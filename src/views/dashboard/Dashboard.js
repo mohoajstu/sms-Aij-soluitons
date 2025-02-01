@@ -176,7 +176,7 @@ const Dashboard = () => {
     },
   ]
 
-  return (
+  /*return (
     <>
       <WidgetsDropdown className="mb-4" />
       <CCard className="mb-4">
@@ -381,7 +381,7 @@ const Dashboard = () => {
         </CCol>
       </CRow>
     </>
-  )
+  )*/
 }
 
 export default Dashboard
