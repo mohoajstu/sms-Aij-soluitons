@@ -37,7 +37,6 @@
     "express": "^4.21.2",
     "firebase": "^11.2.0",
     "firebase-admin": "^13.1.0",
->>>>>>> Stashed changes
     "prop-types": "^15.8.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
