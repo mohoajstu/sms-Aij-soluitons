@@ -4,6 +4,10 @@ const Dashboard = React.lazy(() => import('./views/dashboard/Dashboard'))
 const Colors = React.lazy(() => import('./views/theme/colors/Colors'))
 const Typography = React.lazy(() => import('./views/theme/typography/Typography'))
 
+// Attendance
+const AttendanceTabs = React.lazy(() => import('./views/attendance/attendanceTabs'))
+const AttendanceTable = React.lazy(() => import('./views/attendance/attendanceTable'))
+
 // Base
 const Accordion = React.lazy(() => import('./views/base/accordion/Accordion'))
 const Breadcrumbs = React.lazy(() => import('./views/base/breadcrumbs/Breadcrumbs'))
@@ -62,10 +66,11 @@ const Widgets = React.lazy(() => import('./views/widgets/Widgets'))
 const routes = [
   { path: '/', exact: true, name: 'Home' },
   { path: '/dashboard', name: 'Dashboard', element: Dashboard },
-  { path: '/attendance', name: 'Attendance', element: Typography },
+  { path: '/attendance', name: 'Attendance', element: AttendanceTabs },
   { path: '/reportcards', name: 'Report Cards', element: Breadcrumbs },
   { path: '/applications', name: 'Applications', element: Breadcrumbs },
   { path: '/courses', name: 'Courses', element: Breadcrumbs },
+  { path: '/attendance/attendance-table-page', name: 'Attendance Table', element: AttendanceTable},
 
   // { path: '/theme', name: 'Theme', element: Colors, exact: true },
   // { path: '/theme/colors', name: 'Colors', element: Colors },
