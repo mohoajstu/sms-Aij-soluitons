@@ -8,6 +8,9 @@ const Typography = React.lazy(() => import('./views/theme/typography/Typography'
 const AttendanceTabs = React.lazy(() => import('./views/attendance/attendanceTabs'))
 const AttendanceTable = React.lazy(() => import('./views/attendance/attendanceTable'))
 
+//Report Cards
+const pdfViewer = React.lazy(() => import('./views/reportcards/pdfViewer'))
+
 // Base
 const Accordion = React.lazy(() => import('./views/base/accordion/Accordion'))
 const Breadcrumbs = React.lazy(() => import('./views/base/breadcrumbs/Breadcrumbs'))
@@ -67,7 +70,7 @@ const routes = [
   { path: '/', exact: true, name: 'Home' },
   { path: '/dashboard', name: 'Dashboard', element: Dashboard },
   { path: '/attendance', name: 'Attendance', element: AttendanceTabs },
-  { path: '/reportcards', name: 'Report Cards', element: Breadcrumbs },
+  { path: '/reportcards', name: 'Report Cards', element: pdfViewer },
   { path: '/applications', name: 'Applications', element: Breadcrumbs },
   { path: '/courses', name: 'Courses', element: Breadcrumbs },
   { path: '/attendance/attendance-table-page', name: 'Attendance Table', element: AttendanceTable},
