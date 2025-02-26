@@ -1,54 +1,50 @@
-import { useState } from "react";
-import ReportCardEditor from "./ReportCardEditor";
+import { useState } from 'react'
+import ReportCardEditor from './ReportCardEditor'
 
 function ReportCardPage() {
-  const [selectedReport, setSelectedReport] = useState(null);
-  const [uploadedPdf, setUploadedPdf] = useState(null);
+  const [selectedReport, setSelectedReport] = useState(null)
+  const [pdfSource, setPdfSource] = useState(null)
 
-  // 📌 Handle file upload
+  // Handle file upload from teacher
   const handleFileUpload = (event) => {
-    const file = event.target.files[0];
-    if (file && file.type === "application/pdf") {
-      const fileUrl = URL.createObjectURL(file);
-      setUploadedPdf(fileUrl);
-      setSelectedReport("uploaded"); // Set as a new type
+    const file = event.target.files[0]
+    if (file && file.type === 'application/pdf') {
+      setPdfSource(file)
+      setSelectedReport('uploaded')
     } else {
-      alert("Please upload a valid PDF file.");
+      alert('Please upload a valid PDF file.')
     }
-  };
+  }
+
+  // For predefined report card options
+  const handlePredefinedSelection = (reportType) => {
+    // Example: your PDF files might be stored in /public/assets/ReportCards
+    setPdfSource(`/assets/ReportCards/${reportType}.pdf`)
+    setSelectedReport(reportType)
+  }
 
   return (
-    <div style={{ textAlign: "center", marginTop: 20 }}>
+    <div style={{ textAlign: 'center', marginTop: 20 }}>
       <h2>Select or Upload a Report Card</h2>
 
-      {/* Predefined Report Card Options */}
+      {/* Predefined buttons */}
       <div>
-        <button onClick={() => setSelectedReport("kindergarten")}>
-          Kindergarten
-        </button>
-        <button onClick={() => setSelectedReport("grade1to6")}>
-          Grade 1-6
-        </button>
-        <button onClick={() => setSelectedReport("grade7to8")}>
-          Grade 7-8
-        </button>
-        <button onClick={() => setSelectedReport("quran")}>
-          Quran Report Card
-        </button>
+        <button onClick={() => handlePredefinedSelection('kindergarten')}>Kindergarten</button>
+        <button onClick={() => handlePredefinedSelection('grade1to6')}>Grade 1-6</button>
+        <button onClick={() => handlePredefinedSelection('grade7to8')}>Grade 7-8</button>
+        <button onClick={() => handlePredefinedSelection('quran')}>Quran Report Card</button>
       </div>
 
-      {/* File Upload Option */}
-      <div style={{ marginTop: "20px" }}>
-        <h3>Or Upload Your Own Report Card</h3>
+      {/* File upload */}
+      <div style={{ marginTop: 20 }}>
+        <h3>Or Upload Your Own Report Card (PDF)</h3>
         <input type="file" accept="application/pdf" onChange={handleFileUpload} />
       </div>
 
-      {/* Load the selected report card */}
-      {selectedReport && (
-        <ReportCardEditor pdfPath={uploadedPdf || `/assets/ReportCards/${selectedReport}.pdf`} />
-      )}
+      {/* If a selection was made, show the editor */}
+      {selectedReport && <ReportCardEditor pdfSource={pdfSource} />}
     </div>
-  );
+  )
 }
 
-export default ReportCardPage;
+export default ReportCardPage
