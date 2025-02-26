@@ -40,15 +40,18 @@
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
     "firebase": "^11.2.0",
-
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "2.16.105",
     "prop-types": "^15.8.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-pdf": "6.0.3",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.1.5",
     "react-select": "^5.10.0",
     "redux": "5.0.1",
-    "simplebar-react": "^3.3.0"
+    "simplebar-react": "^3.3.0",
+    "tesseract.js": "^6.0.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
