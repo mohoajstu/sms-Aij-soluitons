@@ -11,6 +11,9 @@ const AttendanceTable = React.lazy(() => import('./views/attendance/attendanceTa
 const ReportCardUI = React.lazy(() => import('./views/ReportCard/ReportCardUI'))
 const ReportCardPage = React.lazy(() => import('./views/ReportCard/ReportCardPage'))
 
+const Courses = React.lazy(() => import('./views/Courses/Courses'))
+const CourseDetailPage = React.lazy(() => import('./views/Courses/courseDetails'))
+
 // Base
 const Accordion = React.lazy(() => import('./views/base/accordion/Accordion'))
 const Breadcrumbs = React.lazy(() => import('./views/base/breadcrumbs/Breadcrumbs'))
@@ -72,7 +75,8 @@ const routes = [
   { path: '/attendance', name: 'Attendance', element: AttendanceTabs },
   { path: '/reportcards', name: 'Report Cards', element: ReportCardUI },
   { path: '/applications', name: 'Applications', element: Breadcrumbs },
-  { path: '/courses', name: 'Courses', element: Breadcrumbs },
+  { path: '/courses', name: 'Courses', element: Courses },
+  { path: '/courses/:id', name: 'Course Detail', element: CourseDetailPage },
   { path: '/attendance/attendance-table-page', name: 'Attendance Table', element: AttendanceTable},
 
   // { path: '/theme', name: 'Theme', element: Colors, exact: true },

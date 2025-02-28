@@ -1,0 +1,37 @@
+[
+  {
+    "id": 101,
+    "title": "CPSC 317",
+    "description": "Networks and Networking",
+    "staff": ["Prof. Jean Grey", "TA: Scott Summers"],
+    "students": ["Wanda Maximoff", "Peter Parker", "Tony Stark"]
+  },
+  {
+    "id": 102,
+    "title": "CPSC 320",
+    "description": "Intermediate Algorithms",
+    "staff": ["Prof. Charles Xavier", "TA: Logan Howlett"],
+    "students": ["Steve Rogers", "Bruce Banner", "Natasha Romanoff"]
+  },
+  {
+    "id": 201,
+    "title": "CPSC 415",
+    "description": "Advanced Graphics and Animation",
+    "staff": ["Prof. Ororo Munroe", "TA: Remy LeBeau"],
+    "students": ["Clint Barton", "Carol Danvers", "Sam Wilson"]
+  },
+  {
+    "id": 202,
+    "title": "MATH 200",
+    "description": "Calculus for the Physical Sciences",
+    "staff": ["Prof. Hank McCoy", "TA: Kitty Pryde"],
+    "students": ["MJ Watson", "Gwen Stacy", "James Rhodes"]
+  },
+  {
+    "id": 301,
+    "title": "PHYS 101",
+    "description": "Introduction to Mechanics",
+    "staff": ["Prof. Reed Richards", "TA: Susan Storm"],
+    "students": ["Johnny Storm", "Ben Grimm", "Victor von Doom"]
+  }
+]
