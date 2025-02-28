@@ -19,6 +19,7 @@ const ClassSelector = () => {
         onChange={(event, newValue) => setSelectedClass(newValue)}
         className="autocomplete-input"
         renderInput={(params) => <TextField {...params} variant="outlined" fullWidth label="Select a class" />}
+        sx={{ width: 300, backgroundColor: "#FFFFFF"}}
       />
     </div>
   );
