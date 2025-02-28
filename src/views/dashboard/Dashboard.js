@@ -1,5 +1,6 @@
-import React from 'react'
-import classNames from 'classnames'
+import React from "react";
+import classNames from "classnames";
+import { useNavigate } from "react-router-dom"; // Import navigation hook
 
 import {
   CAvatar,
@@ -10,19 +11,14 @@ import {
   CCardFooter,
   CCardHeader,
   CCol,
-  CProgress,
   CRow,
-  CTable,
-  CTableBody,
-  CTableDataCell,
-  CTableHead,
-  CTableHeaderCell,
-  CTableRow,
-} from '@coreui/react'
-import CIcon from '@coreui/icons-react'
-import { cilSettings, cilArrowRight, cilUser, cilCheckCircle, cilBook } from '@coreui/icons'
+} from "@coreui/react";
+import CIcon from "@coreui/icons-react";
+import { cilSettings, cilArrowRight, cilUser, cilCheckCircle, cilBook, cilFile } from "@coreui/icons";
 
 const Dashboard = () => {
+  const navigate = useNavigate(); // Enable navigation
+
   return (
     <div className="p-4">
       <h1 className="text-4xl font-bold mb-2">TARBIYAH LEARNING ACADEMY</h1>
@@ -92,9 +88,32 @@ const Dashboard = () => {
             </CCardFooter>
           </CCard>
         </CCol>
+
+        {/* 📌 New Report Card Section */}
+        <CCol xs={12} md={4}>
+          <CCard className="mt-4">
+            <CCardBody
+              className="d-flex justify-content-between align-items-center"
+              style={{ cursor: "pointer" }}
+              onClick={() => navigate("/report-card")}
+            >
+              <div className="d-flex align-items-center">
+                <CIcon icon={cilFile} size="xxl" className="text-info me-3" />
+                <div>
+                  <h3 className="text-info fw-bold">REPORT CARDS</h3>
+                  <p className="mb-0 fw-semibold">Generate & Edit Reports</p>
+                </div>
+              </div>
+            </CCardBody>
+            <CCardFooter className="d-flex justify-content-between align-items-center">
+              <span className="text-decoration-underline text-primary">Go to Report Cards</span>
+              <CIcon icon={cilArrowRight} className="text-primary" />
+            </CCardFooter>
+          </CCard>
+        </CCol>
       </CRow>
     </div>
-  )
-}
+  );
+};
 
-export default Dashboard
+export default Dashboard;
