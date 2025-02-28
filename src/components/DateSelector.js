@@ -16,6 +16,7 @@ const DateSelector = () => {
           label="Select a Date"
           value={selectedDate}
           onChange={(newValue) => setSelectedDate(newValue)}
+          sx={{backgroundColor: "#FFFFFF"}}
           renderInput={(params) => (
             <TextField {...params} className="datepicker-input" fullWidth />
           )}
