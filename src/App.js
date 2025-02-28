@@ -11,6 +11,7 @@ const Register = React.lazy(() => import("./views/pages/register/Register"));
 const Page404 = React.lazy(() => import("./views/pages/page404/Page404"));
 const Page500 = React.lazy(() => import("./views/pages/page500/Page500"));
 const ReportCardPage = React.lazy(() => import("./views/ReportCard/ReportCardPage")); // 📌 Add this
+const ReportCardUI = React.lazy(() => import("./views/ReportCard/ReportCardUI"));
 
 const App = () => {
   const { isColorModeSet, setColorMode } = useColorModes(
@@ -53,7 +54,8 @@ const App = () => {
           <Route path="/*" element={user ? <DefaultLayout /> : <Navigate to="/login" replace />} />
 
           {/* 📌 Add Report Card Page */}
-          <Route path="/reportcards" element={user ? <ReportCardPage /> : <Navigate to="/login" replace />} />
+         {/*} <Route path="/reportcards" element={user ? <ReportCardPage /> : <Navigate to="/login" replace />} />
+          <Route path="/report-card-2" element={user ? <ReportCardUI /> : <Navigate to="/login" replace />} />*/}
 
           {/* Redirect unmatched routes */}
           <Route path="*" element={<Navigate to={user ? "/" : "/login"} replace />} />
