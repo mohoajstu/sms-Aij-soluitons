@@ -25,24 +25,7 @@ function ReportCardPage() {
 
   return (
     <div style={{ textAlign: 'center', marginTop: 20 }}>
-      <h2>Select or Upload a Report Card</h2>
-
-      {/* Predefined buttons */}
-      <div>
-        <button onClick={() => handlePredefinedSelection('kindergarten')}>Kindergarten</button>
-        <button onClick={() => handlePredefinedSelection('grade1to6')}>Grade 1-6</button>
-        <button onClick={() => handlePredefinedSelection('grade7to8')}>Grade 7-8</button>
-        <button onClick={() => handlePredefinedSelection('quran')}>Quran Report Card</button>
-      </div>
-
-      {/* File upload */}
-      <div style={{ marginTop: 20 }}>
-        <h3>Or Upload Your Own Report Card (PDF)</h3>
-        <input type="file" accept="application/pdf" onChange={handleFileUpload} />
-      </div>
-
-      {/* If a selection was made, show the editor */}
-      {selectedReport && <ReportCardEditor pdfSource={pdfSource} />}
+      <ReportCardEditor pdfSource={pdfSource} />
     </div>
   )
 }
