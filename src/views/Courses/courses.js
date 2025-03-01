@@ -38,7 +38,7 @@ function CoursesPage() {
 
   return (
     <div style={{ padding: "2rem" }}>
-      <h1>Dashboard</h1>
+      <h1>Courses</h1>
       <div className="courses-grid">
         {coursesData.map((course, index) => {
           console.log(`Rendering course with id=${course.id}`);
