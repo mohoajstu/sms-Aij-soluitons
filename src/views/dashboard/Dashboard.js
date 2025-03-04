@@ -67,10 +67,7 @@ const Dashboard = () => {
           <p className="dashboard-subtitle">Staff Portal</p>
         </div>
         <div className="user-section">
-          <span className="user-name">SupportAdmin: Mohammad Abdul Jabbar</span>
-          <CButton color="light" className="ms-2" size="sm">
-            Change My Role
-          </CButton>
+          <span className="user-name">Support Admin: Mohammad Abdul Jabbar</span>
           <CButton color="primary" className="ms-2" size="sm">
             Log Out
           </CButton>
