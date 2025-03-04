@@ -11,10 +11,13 @@ import Grid from '@mui/material/Grid2';
 import Box from '@mui/material/Box'
 import { CButton } from '@coreui/react';
 import { useNavigate } from "react-router-dom";
+import AttendanceReportTable from './attendenceReportTable';
+import attendanceData from './tempData';
 
 
 import React, { useState } from 'react'
 import Select from 'react-select'
+import dayjs from 'dayjs';
 
 const attendanceTabs = () => {
   const [activeTab, setActiveTab] = useState(1) // Default: "Attendance Report"
@@ -24,25 +27,42 @@ const attendanceTabs = () => {
     semester: "",
     section: "",
     students: [],
-    startDate: new Date(),
-    endDate: new Date(),
+    startDate: dayjs(),
+    endDate: dayjs(),
   });
 
-  const classes = [
-    { code: '1', label: 'Math' },
-    { code: '2', label: 'Science' },
-    { code: '3', label: 'English' },
-  ]
+  const [filteredData, setFilteredData] = useState(attendanceData);
 
-  const dummyData = [
-    { code: '1', label: 'Data 1' },
-    { code: '2', label: 'Data 2' },
-    { code: '3', label: 'Data 3' },
-  ]
-
+  const semesters = [...new Set(attendanceData.map((row) => row.semester))];
+  const sections = [...new Set(attendanceData.map((row) => row.section))];
+  const students = [...new Set(attendanceData.map((row) => row.student))];
+  
   const handleChange = (key, value) => {
     setReportParams((prev) => ({ ...prev, [key]: value }));
   };
+
+   // Specialized handleChange for multi-select students
+   const handleStudentChange = (event, newValue) => {
+    // Ensure we store an array of students
+    setReportParams((prev) => ({ ...prev, students: newValue || [] }))
+  }
+
+  const handleViewReport = () => {
+    const filtered = attendanceData.filter((entry) => {
+      return (
+        (!reportParams.semester || entry.semester === reportParams.semester) &&
+        (!reportParams.section || entry.section === reportParams.section) &&
+        (!reportParams.students.length || reportParams.students === entry.student) &&
+        (!reportParams.startDate || new Date(entry.date) >= new Date(reportParams.startDate)) &&
+        (!reportParams.endDate || new Date(entry.date) <= new Date(reportParams.endDate))
+      );
+    });
+  
+    setFilteredData(filtered);
+    console.log(filtered);
+    console.log(reportParams.students);
+  };
+
 
   return (
     <div
@@ -128,7 +148,7 @@ const attendanceTabs = () => {
                 <label style={{ fontWeight: "bold" }}>Select a class:</label>
               </Grid>
               <Grid item size={4}>
-                <ClassSelector fullWidth />
+                <ClassSelector  fullWidth />
               </Grid>
             </Grid>
         
@@ -159,8 +179,9 @@ const attendanceTabs = () => {
             <Grid item size={3}>
             <Autocomplete
               disablePortal
-              options={dummyData}
-              sx={{ width: 300 }}
+              options={semesters}
+              onChange={(event, newValue) => handleChange("semester", newValue)}
+              sx={{ width: 300, backgroundColor: "#FFFFFF"}}
               renderInput={(params) => <TextField {...params} label="Select Semester" />}
             />
             </Grid>
@@ -174,8 +195,9 @@ const attendanceTabs = () => {
             <Grid item size={3}>
             <Autocomplete
               disablePortal
-              options={dummyData}
-              sx={{ width: 300 }}
+              options={sections}
+              onChange={(event, newValue) => handleChange("section", newValue)}
+              sx={{ width: 300, backgroundColor: "#FFFFFF" }}
               renderInput={(params) => <TextField {...params} label="Select Section" />}
             />
             </Grid>
@@ -189,8 +211,9 @@ const attendanceTabs = () => {
             <Grid item size={3}>
             <Autocomplete
               disablePortal
-              options={dummyData}
-              sx={{ width: 300 }}
+              options={students}
+              onChange={(event, newValue) => handleStudentChange("students", newValue)}
+              sx={{ width: 300, backgroundColor: "#FFFFFF" }}
               renderInput={(params) => <TextField {...params} label="Select Student" />}
             />
             </Grid>
@@ -205,10 +228,11 @@ const attendanceTabs = () => {
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                       <DatePicker
                         label="From"
-                        value={selectedDate}
-                        onChange={(newValue) => setSelectedDate(newValue)}
+                        value={reportParams.startDate}
+                        onChange={(newValue) => handleChange("startDate", newValue)}
+                        sx={{ backgroundColor: "#FFFFFF" }}
                         renderInput={(params) => (
-                          <TextField {...params} className="datepicker-input" fullWidth />
+                          <TextField {...params} className="datepicker-input" sx={{ backgroundColor: "#D3D3D3" }} fullWidth />
                         )}
                       />
                     </LocalizationProvider>
@@ -217,10 +241,11 @@ const attendanceTabs = () => {
             <LocalizationProvider dateAdapter={AdapterDayjs}>
                       <DatePicker
                         label="To"
-                        value={selectedDate}
-                        onChange={(newValue) => setSelectedDate(newValue)}
+                        value={reportParams.endDate}
+                        onChange={(newValue) => handleChange("endDate", newValue)}
+                        sx={{ backgroundColor: "#FFFFFF" }}
                         renderInput={(params) => (
-                          <TextField {...params} className="datepicker-input" fullWidth />
+                          <TextField {...params} className="datepicker-input" sx={{ backgroundColor: "#D3D3D3" }} fullWidth />
                         )}
                       />
                     </LocalizationProvider>
@@ -228,9 +253,14 @@ const attendanceTabs = () => {
 
           </Grid>
           </Grid>
-          <CButton color="dark" style={{ marginTop: "20px", borderRadius: "30px" }} onClick={() => navigate('')} >View Report</CButton>
-          
-        
+          <CButton 
+            color="dark" 
+            style={{ marginTop: "20px", borderRadius: "30px" }} 
+            onClick={handleViewReport}
+          >
+            View Report
+          </CButton>
+          <AttendanceReportTable attendanceData={filteredData} reportParams={reportParams}/>
         </Box>
         </CTabPane>
       </CTabContent>

@@ -1,24 +1,13 @@
 import React, { useState } from 'react'
-import {
-  Box,
-  Typography,
-  Stepper,
-  Step,
-  StepLabel,
-  Button,
-  Grid,
-  TextField,
-  FormControlLabel,
-  Checkbox,
-} from '@mui/material'
-import { PDFDocument, PDFName, PDFRef } from 'pdf-lib'
+import { PDFDocument } from 'pdf-lib'
 import reportCardPDF from '../../assets/ReportCards/kindergarden-report-card.pdf'
+import './reportCardForm.css'
 
 const ReportCardForm = () => {
-  // Define steps in order (note: we keep the generic Languages step as requested)
+  // Define the steps (1-indexed)
   const steps = [
-    'Student Information',
-    'Learning Skills & Work Habits',
+    'Information',
+    'Learning Skills',
     'Languages',
     'French',
     'Native Language',
@@ -27,12 +16,13 @@ const ReportCardForm = () => {
     'Social Studies',
     'Health & PE',
     'The Arts',
-    'Comments & Signatures',
+    'Signatures',
   ]
+  const totalSteps = steps.length
 
-  // State object for all form data – updated with all fields found in the XFA.
+  // 1. STATE VARIABLES – initialize all form fields
   const [formData, setFormData] = useState({
-    // Student Information
+    // Step 1: Student Information
     student: '',
     oen: '',
     grade: '',
@@ -48,7 +38,7 @@ const ReportCardForm = () => {
     school_address: '',
     principal: '',
     phone_number: '',
-    // Learning Skills & Work Habits
+    // Step 2: Learning Skills & Work Habits
     responsibility1: '',
     responsibility2: '',
     organization1: '',
@@ -62,37 +52,34 @@ const ReportCardForm = () => {
     self_regulation1: '',
     self_regulation2: '',
     lswh_comments: '',
-    // Languages (generic)
+    // Step 3: Languages (generic)
     language1: '',
     language2: '',
     language_comments: '',
     language_na: false,
     language_esl: false,
     language_iep: false,
-    // French (detailed – each skill has text fields and dedicated checkboxes)
+    // Step 4: French
     french_na: false,
-    // Listening
     french_listening1: '',
     french_listening2: '',
     french_listening_esl: false,
     french_listening_iep: false,
-    // Speaking
     french_speaking1: '',
     french_speaking2: '',
     french_speaking_esl: false,
     french_speaking_iep: false,
-    // Reading
     french_reading1: '',
     french_reading2: '',
     french_reading_esl: false,
     french_reading_iep: false,
-    // Writing
     french_writing1: '',
     french_writing2: '',
     french_writing_esl: false,
     french_writing_iep: false,
     french_comments: '',
-    // Native Language (teacher writes grade for overall native language as well as term scores)
+    // Step 5: Native Language
+    native_language: '',
     native_language1: '',
     native_language2: '',
     native_language_overall: '',
@@ -100,28 +87,28 @@ const ReportCardForm = () => {
     native_language_esl: false,
     native_language_iep: false,
     native_language_comments: '',
-    // Mathematics
+    // Step 6: Mathematics
     math1: '',
     math2: '',
     math_comments: '',
     math_french: false,
     math_esl: false,
     math_iep: false,
-    // Science
+    // Step 7: Science
     science1: '',
     science2: '',
     science_comments: '',
     science_french: false,
     science_esl: false,
     science_iep: false,
-    // Social Studies
+    // Step 8: Social Studies
     social_studies1: '',
     social_studies2: '',
     social_studies_comments: '',
     social_studies_french: false,
     social_studies_esl: false,
     social_studies_iep: false,
-    // Health & PE – two parts (Health and PE) with separate checkboxes
+    // Step 9: Health & PE
     health1: '',
     health2: '',
     pe1: '',
@@ -133,29 +120,28 @@ const ReportCardForm = () => {
     pe_french: false,
     pe_esl: false,
     pe_iep: false,
-    // The Arts – for each subcategory include term scores and checkboxes
-    // Dance
+    // Step 10: The Arts – Dance
     dance1: '',
     dance2: '',
     dance_french: false,
     dance_esl: false,
     dance_iep: false,
     dance_na: false,
-    // Drama
+    // The Arts – Drama
     drama1: '',
     drama2: '',
     drama_french: false,
     drama_esl: false,
     drama_iep: false,
     drama_na: false,
-    // Music
+    // The Arts – Music
     music1: '',
     music2: '',
     music_french: false,
     music_esl: false,
     music_iep: false,
     music_na: false,
-    // Visual Arts
+    // The Arts – Visual Arts
     visual_arts1: '',
     visual_arts2: '',
     visual_arts_french: false,
@@ -163,7 +149,7 @@ const ReportCardForm = () => {
     visual_arts_iep: false,
     visual_arts_na: false,
     visual_arts_comments: '',
-    // Comments & Signatures
+    // Step 11: Comments & Signatures
     best_work: '',
     improvement_goal: '',
     parent_improved: '',
@@ -173,15 +159,22 @@ const ReportCardForm = () => {
     principal_signature: '',
   })
 
-  // Update formData state.
+  const [currentStep, setCurrentStep] = useState(1)
+
+  // Update field values
   const handleChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
+    setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  // Helper for updating PDF text fields.
+  // Navigation Handlers
+  const handleNextStep = () => {
+    if (currentStep < totalSteps) setCurrentStep(currentStep + 1)
+  }
+  const handlePrevStep = () => {
+    if (currentStep > 1) setCurrentStep(currentStep - 1)
+  }
+
+  // Helper to update PDF fields
   const safeSetTextField = (form, fieldName, value) => {
     try {
       const field = form.getTextField(fieldName)
@@ -191,39 +184,32 @@ const ReportCardForm = () => {
     }
   }
 
-  // Navigation handlers.
-  const handleNext = () => {
-    setActiveStep((prev) => prev + 1)
-  }
-  const handleBack = () => {
-    setActiveStep((prev) => prev - 1)
-  }
-
-  // Load the PDF, fill in fields, and trigger download.
-  const handleCreateReportCard = async () => {
+  // PDF Generation on form submission
+  const handleCreateReportCard = async (e) => {
+    e.preventDefault()
     try {
       const existingPdfBytes = await fetch(reportCardPDF).then((res) => res.arrayBuffer())
       const pdfDoc = await PDFDocument.load(existingPdfBytes)
       const form = pdfDoc.getForm()
 
-      // 1. Student Information
+      // === Step 1: Student Information ===
       safeSetTextField(form, 'student', formData.student)
+      safeSetTextField(form, 'date', formData.date)
       safeSetTextField(form, 'oen', formData.oen)
       safeSetTextField(form, 'grade', formData.grade)
-      safeSetTextField(form, 'teacher', formData.teacher)
-      safeSetTextField(form, 'date', formData.date)
       safeSetTextField(form, 'days_absent', formData.days_absent)
       safeSetTextField(form, 'total_days_absent', formData.total_days_absent)
       safeSetTextField(form, 'times_late', formData.times_late)
       safeSetTextField(form, 'total_times_late', formData.total_times_late)
       safeSetTextField(form, 'board', formData.board)
-      safeSetTextField(form, 'school', formData.school)
       safeSetTextField(form, 'board_address', formData.board_address)
+      safeSetTextField(form, 'school', formData.school)
       safeSetTextField(form, 'school_address', formData.school_address)
+      safeSetTextField(form, 'teacher', formData.teacher)
       safeSetTextField(form, 'principal', formData.principal)
       safeSetTextField(form, 'phone_number', formData.phone_number)
 
-      // 2. Learning Skills & Work Habits
+      // === Step 2: Learning Skills & Work Habits ===
       safeSetTextField(form, 'responsibility1', formData.responsibility1)
       safeSetTextField(form, 'responsibility2', formData.responsibility2)
       safeSetTextField(form, 'organization1', formData.organization1)
@@ -238,7 +224,7 @@ const ReportCardForm = () => {
       safeSetTextField(form, 'self_regulation2', formData.self_regulation2)
       safeSetTextField(form, 'lswh_comments', formData.lswh_comments)
 
-      // 3. Languages (generic)
+      // === Step 3: Languages ===
       safeSetTextField(form, 'language1', formData.language1)
       safeSetTextField(form, 'language2', formData.language2)
       safeSetTextField(form, 'language_comments', formData.language_comments)
@@ -246,40 +232,37 @@ const ReportCardForm = () => {
       if (formData.language_esl) form.getCheckBox('language_esl').check()
       if (formData.language_iep) form.getCheckBox('language_iep').check()
 
-      // 4. French – fill in each skill with its text fields and checkboxes.
+      // === Step 4: French ===
       if (formData.french_na) form.getCheckBox('french_na').check()
-      // Listening
       safeSetTextField(form, 'french_listening1', formData.french_listening1)
       safeSetTextField(form, 'french_listening2', formData.french_listening2)
       if (formData.french_listening_esl) form.getCheckBox('french_listening_esl').check()
       if (formData.french_listening_iep) form.getCheckBox('french_listening_iep').check()
-      // Speaking
       safeSetTextField(form, 'french_speaking1', formData.french_speaking1)
       safeSetTextField(form, 'french_speaking2', formData.french_speaking2)
       if (formData.french_speaking_esl) form.getCheckBox('french_speaking_esl').check()
       if (formData.french_speaking_iep) form.getCheckBox('french_speaking_iep').check()
-      // Reading
       safeSetTextField(form, 'french_reading1', formData.french_reading1)
       safeSetTextField(form, 'french_reading2', formData.french_reading2)
       if (formData.french_reading_esl) form.getCheckBox('french_reading_esl').check()
       if (formData.french_reading_iep) form.getCheckBox('french_reading_iep').check()
-      // Writing
       safeSetTextField(form, 'french_writing1', formData.french_writing1)
       safeSetTextField(form, 'french_writing2', formData.french_writing2)
       if (formData.french_writing_esl) form.getCheckBox('french_writing_esl').check()
       if (formData.french_writing_iep) form.getCheckBox('french_writing_iep').check()
       safeSetTextField(form, 'french_comments', formData.french_comments)
 
-      // 5. Native Language – including teacher’s overall field.
+      // === Step 5: Native Language ===
+      safeSetTextField(form, 'native_language', formData.native_language)
       safeSetTextField(form, 'native_language1', formData.native_language1)
       safeSetTextField(form, 'native_language2', formData.native_language2)
-      safeSetTextField(form, 'native_language', formData.native_language_overall)
+      safeSetTextField(form, 'native_language_overall', formData.native_language_overall)
       safeSetTextField(form, 'native_language_comments', formData.native_language_comments)
       if (formData.native_language_na) form.getCheckBox('native_language_na').check()
       if (formData.native_language_esl) form.getCheckBox('native_language_esl').check()
       if (formData.native_language_iep) form.getCheckBox('native_language_iep').check()
 
-      // 6. Mathematics
+      // === Step 6: Mathematics ===
       safeSetTextField(form, 'math1', formData.math1)
       safeSetTextField(form, 'math2', formData.math2)
       safeSetTextField(form, 'math_comments', formData.math_comments)
@@ -287,7 +270,7 @@ const ReportCardForm = () => {
       if (formData.math_esl) form.getCheckBox('math_esl').check()
       if (formData.math_iep) form.getCheckBox('math_iep').check()
 
-      // 7. Science
+      // === Step 7: Science ===
       safeSetTextField(form, 'science1', formData.science1)
       safeSetTextField(form, 'science2', formData.science2)
       safeSetTextField(form, 'science_comments', formData.science_comments)
@@ -295,7 +278,7 @@ const ReportCardForm = () => {
       if (formData.science_esl) form.getCheckBox('science_esl').check()
       if (formData.science_iep) form.getCheckBox('science_iep').check()
 
-      // 8. Social Studies
+      // === Step 8: Social Studies ===
       safeSetTextField(form, 'social_studies1', formData.social_studies1)
       safeSetTextField(form, 'social_studies2', formData.social_studies2)
       safeSetTextField(form, 'social_studies_comments', formData.social_studies_comments)
@@ -303,7 +286,7 @@ const ReportCardForm = () => {
       if (formData.social_studies_esl) form.getCheckBox('social_studies_esl').check()
       if (formData.social_studies_iep) form.getCheckBox('social_studies_iep').check()
 
-      // 9. Health & PE
+      // === Step 9: Health & PE ===
       safeSetTextField(form, 'health1', formData.health1)
       safeSetTextField(form, 'health2', formData.health2)
       safeSetTextField(form, 'pe1', formData.pe1)
@@ -316,7 +299,7 @@ const ReportCardForm = () => {
       if (formData.pe_esl) form.getCheckBox('pe_esl').check()
       if (formData.pe_iep) form.getCheckBox('pe_iep').check()
 
-      // 10. The Arts – Dance, Drama, Music, Visual Arts
+      // === Step 10: The Arts ===
       // Dance
       safeSetTextField(form, 'dance1', formData.dance1)
       safeSetTextField(form, 'dance2', formData.dance2)
@@ -347,7 +330,7 @@ const ReportCardForm = () => {
       if (formData.visual_arts_na) form.getCheckBox('visual_arts_na').check()
       safeSetTextField(form, 'visual_arts_comments', formData.visual_arts_comments)
 
-      // 11. Comments & Signatures
+      // === Step 11: Comments & Signatures ===
       safeSetTextField(form, 'best_work', formData.best_work)
       safeSetTextField(form, 'improvement_goal', formData.improvement_goal)
       safeSetTextField(form, 'parent_improved', formData.parent_improved)
@@ -356,17 +339,7 @@ const ReportCardForm = () => {
       safeSetTextField(form, 'parent_signature', formData.parent_signature)
       safeSetTextField(form, 'principal_signature', formData.principal_signature)
 
-      // (Optional) Workaround for any problematic fields.
-      const changeField = { name: 'yourProblemFieldName' }
-      const tmp = form.getFields().find((f) => f.getName() === changeField.name)
-      if (tmp) {
-        const widget0 = tmp.acroField.getWidgets()[0]
-        const AP = widget0.ensureAP()
-        AP.set(PDFName.of('N'), PDFRef.of(0, 0))
-        form.removeField(tmp)
-      }
-
-      // Save and trigger download.
+      // Save PDF and trigger download
       const pdfBytes = await pdfDoc.save()
       const blob = new Blob([pdfBytes], { type: 'application/pdf' })
       const link = document.createElement('a')
@@ -379,1227 +352,1093 @@ const ReportCardForm = () => {
     }
   }
 
-  // Render form pages based on active step.
+  // 2. RENDER STEP CONTENT – each case represents a full form section
   const renderStepContent = (step) => {
     switch (step) {
-      case 0:
+      case 1:
         return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Student Information
-            </Typography>
-            <Grid container spacing={2}>
-              {/* Student Info fields */}
-              <Grid item xs={6}>
-                <TextField
-                  label="Student Name"
-                  fullWidth
+          <section className="form-section">
+            <h2>Student Information</h2>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Student Name</label>
+                <input
+                  type="text"
                   value={formData.student}
                   onChange={(e) => handleChange('student', e.target.value)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Date"
-                  fullWidth
+              </div>
+              <div className="form-group">
+                <label>Date</label>
+                <input
+                  type="text"
                   value={formData.date}
                   onChange={(e) => handleChange('date', e.target.value)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="OEN"
-                  fullWidth
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>OEN</label>
+                <input
+                  type="text"
                   value={formData.oen}
                   onChange={(e) => handleChange('oen', e.target.value)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Grade"
-                  fullWidth
+              </div>
+              <div className="form-group">
+                <label>Grade</label>
+                <input
+                  type="text"
                   value={formData.grade}
                   onChange={(e) => handleChange('grade', e.target.value)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Days Absent"
-                  fullWidth
-                  value={formData.days_absent}
-                  onChange={(e) => handleChange('days_absent', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Total Days Absent"
-                  fullWidth
-                  value={formData.total_days_absent}
-                  onChange={(e) => handleChange('total_days_absent', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Times Late"
-                  fullWidth
-                  value={formData.times_late}
-                  onChange={(e) => handleChange('times_late', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Total Times Late"
-                  fullWidth
-                  value={formData.total_times_late}
-                  onChange={(e) => handleChange('total_times_late', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Board"
-                  fullWidth
+              </div>
+            </div>
+            <div className="term-row">
+              <label>Days Absent:</label>
+              <input
+                type="text"
+                value={formData.days_absent}
+                onChange={(e) => handleChange('days_absent', e.target.value)}
+              />
+              <label>Total Days Absent:</label>
+              <input
+                type="text"
+                value={formData.total_days_absent}
+                onChange={(e) => handleChange('total_days_absent', e.target.value)}
+              />
+            </div>
+            <div className="term-row">
+              <label>Times Late:</label>
+              <input
+                type="text"
+                value={formData.times_late}
+                onChange={(e) => handleChange('times_late', e.target.value)}
+              />
+              <label>Total Times Late:</label>
+              <input
+                type="text"
+                value={formData.total_times_late}
+                onChange={(e) => handleChange('total_times_late', e.target.value)}
+              />
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Board</label>
+                <input
+                  type="text"
                   value={formData.board}
                   onChange={(e) => handleChange('board', e.target.value)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Board Address"
-                  fullWidth
+              </div>
+              <div className="form-group">
+                <label>Board Address</label>
+                <input
+                  type="text"
                   value={formData.board_address}
                   onChange={(e) => handleChange('board_address', e.target.value)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="School"
-                  fullWidth
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>School</label>
+                <input
+                  type="text"
                   value={formData.school}
                   onChange={(e) => handleChange('school', e.target.value)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="School Address"
-                  fullWidth
+              </div>
+              <div className="form-group">
+                <label>School Address</label>
+                <input
+                  type="text"
                   value={formData.school_address}
                   onChange={(e) => handleChange('school_address', e.target.value)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Teacher"
-                  fullWidth
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Teacher</label>
+                <input
+                  type="text"
                   value={formData.teacher}
                   onChange={(e) => handleChange('teacher', e.target.value)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Principal"
-                  fullWidth
+              </div>
+              <div className="form-group">
+                <label>Principal</label>
+                <input
+                  type="text"
                   value={formData.principal}
                   onChange={(e) => handleChange('principal', e.target.value)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Phone Number"
-                  fullWidth
-                  value={formData.phone_number}
-                  onChange={(e) => handleChange('phone_number', e.target.value)}
-                />
-              </Grid>
-            </Grid>
-          </Box>
-        )
-      case 1:
-        return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Learning Skills & Work Habits
-            </Typography>
-            <Typography variant="subtitle1">
-              E - Excellent, G - Good, S - Satisfactory, N - Needs Improvement
-            </Typography>
-            <Grid container spacing={2}>
-              {[
-                { label: 'Responsibility (Term 1)', field: 'responsibility1' },
-                { label: 'Responsibility (Term 2)', field: 'responsibility2' },
-                { label: 'Organization (Term 1)', field: 'organization1' },
-                { label: 'Organization (Term 2)', field: 'organization2' },
-                { label: 'Independent Work (Term 1)', field: 'independent_work1' },
-                { label: 'Independent Work (Term 2)', field: 'independent_work2' },
-                { label: 'Collaboration (Term 1)', field: 'collaboration1' },
-                { label: 'Collaboration (Term 2)', field: 'collaboration2' },
-                { label: 'Initiative (Term 1)', field: 'initiative1' },
-                { label: 'Initiative (Term 2)', field: 'initiative2' },
-                { label: 'Self-Regulation (Term 1)', field: 'self_regulation1' },
-                { label: 'Self-Regulation (Term 2)', field: 'self_regulation2' },
-              ].map((item) => (
-                <Grid item xs={6} key={item.field}>
-                  <TextField
-                    label={item.label}
-                    fullWidth
-                    value={formData[item.field]}
-                    onChange={(e) => handleChange(item.field, e.target.value)}
-                  />
-                </Grid>
-              ))}
-              <Grid item xs={12}>
-                <TextField
-                  label="Strengths/Next Steps for Improvement"
-                  fullWidth
-                  multiline
-                  rows={3}
-                  value={formData.lswh_comments}
-                  onChange={(e) => handleChange('lswh_comments', e.target.value)}
-                />
-              </Grid>
-            </Grid>
-          </Box>
+              </div>
+            </div>
+            <div className="form-group">
+              <label>Phone Number</label>
+              <input
+                type="text"
+                value={formData.phone_number}
+                onChange={(e) => handleChange('phone_number', e.target.value)}
+              />
+            </div>
+          </section>
         )
       case 2:
         return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Languages
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={4}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.language_na}
-                      onChange={(e) => handleChange('language_na', e.target.checked)}
-                    />
-                  }
-                  label="N/A"
-                />
-              </Grid>
-              <Grid item xs={4}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.language_esl}
-                      onChange={(e) => handleChange('language_esl', e.target.checked)}
-                    />
-                  }
-                  label="ESL/ELD"
-                />
-              </Grid>
-              <Grid item xs={4}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.language_iep}
-                      onChange={(e) => handleChange('language_iep', e.target.checked)}
-                    />
-                  }
-                  label="IEP"
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Language Grade Term 1"
-                  fullWidth
-                  value={formData.language1}
-                  onChange={(e) => handleChange('language1', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Language Grade Term 2"
-                  fullWidth
-                  value={formData.language2}
-                  onChange={(e) => handleChange('language2', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Strengths/Next Steps for Improvement"
-                  fullWidth
-                  multiline
-                  rows={3}
-                  value={formData.language_comments}
-                  onChange={(e) => handleChange('language_comments', e.target.value)}
-                />
-              </Grid>
-            </Grid>
-          </Box>
+          <section className="form-section">
+            <h2>Learning Skills & Work Habits</h2>
+            <div className="term-row">
+              <label>Responsibility (Term 1):</label>
+              <input
+                type="text"
+                value={formData.responsibility1}
+                onChange={(e) => handleChange('responsibility1', e.target.value)}
+              />
+              <label>Responsibility (Term 2):</label>
+              <input
+                type="text"
+                value={formData.responsibility2}
+                onChange={(e) => handleChange('responsibility2', e.target.value)}
+              />
+            </div>
+            <div className="term-row">
+              <label>Organization (Term 1):</label>
+              <input
+                type="text"
+                value={formData.organization1}
+                onChange={(e) => handleChange('organization1', e.target.value)}
+              />
+              <label>Organization (Term 2):</label>
+              <input
+                type="text"
+                value={formData.organization2}
+                onChange={(e) => handleChange('organization2', e.target.value)}
+              />
+            </div>
+            <div className="term-row">
+              <label>Independent Work (Term 1):</label>
+              <input
+                type="text"
+                value={formData.independent_work1}
+                onChange={(e) => handleChange('independent_work1', e.target.value)}
+              />
+              <label>Independent Work (Term 2):</label>
+              <input
+                type="text"
+                value={formData.independent_work2}
+                onChange={(e) => handleChange('independent_work2', e.target.value)}
+              />
+            </div>
+            <div className="term-row">
+              <label>Collaboration (Term 1):</label>
+              <input
+                type="text"
+                value={formData.collaboration1}
+                onChange={(e) => handleChange('collaboration1', e.target.value)}
+              />
+              <label>Collaboration (Term 2):</label>
+              <input
+                type="text"
+                value={formData.collaboration2}
+                onChange={(e) => handleChange('collaboration2', e.target.value)}
+              />
+            </div>
+            <div className="term-row">
+              <label>Initiative (Term 1):</label>
+              <input
+                type="text"
+                value={formData.initiative1}
+                onChange={(e) => handleChange('initiative1', e.target.value)}
+              />
+              <label>Initiative (Term 2):</label>
+              <input
+                type="text"
+                value={formData.initiative2}
+                onChange={(e) => handleChange('initiative2', e.target.value)}
+              />
+            </div>
+            <div className="term-row">
+              <label>Self-Regulation (Term 1):</label>
+              <input
+                type="text"
+                value={formData.self_regulation1}
+                onChange={(e) => handleChange('self_regulation1', e.target.value)}
+              />
+              <label>Self-Regulation (Term 2):</label>
+              <input
+                type="text"
+                value={formData.self_regulation2}
+                onChange={(e) => handleChange('self_regulation2', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Strengths/Next Steps for Improvement</label>
+              <textarea
+                value={formData.lswh_comments}
+                onChange={(e) => handleChange('lswh_comments', e.target.value)}
+              />
+            </div>
+          </section>
         )
       case 3:
         return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              French
-            </Typography>
-            {/* Global French N/A */}
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={formData.french_na}
-                  onChange={(e) => handleChange('french_na', e.target.checked)}
+          <section className="form-section">
+            <h2>Languages</h2>
+            <div className="form-group-inline">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.language_na}
+                  onChange={(e) => handleChange('language_na', e.target.checked)}
                 />
-              }
-              label="French N/A"
-            />
-            {/* Listening */}
-            <Typography variant="subtitle1" gutterBottom>
-              Listening
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <TextField
-                  label="Listening Term 1"
-                  fullWidth
-                  value={formData.french_listening1}
-                  onChange={(e) => handleChange('french_listening1', e.target.value)}
+                N/A
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.language_esl}
+                  onChange={(e) => handleChange('language_esl', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Listening Term 2"
-                  fullWidth
-                  value={formData.french_listening2}
-                  onChange={(e) => handleChange('french_listening2', e.target.value)}
+                ESL/ELD
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.language_iep}
+                  onChange={(e) => handleChange('language_iep', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.french_listening_esl}
-                      onChange={(e) => handleChange('french_listening_esl', e.target.checked)}
-                    />
-                  }
-                  label="Listening ESL/ELD"
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.french_listening_iep}
-                      onChange={(e) => handleChange('french_listening_iep', e.target.checked)}
-                    />
-                  }
-                  label="Listening IEP"
-                />
-              </Grid>
-            </Grid>
-            {/* Speaking */}
-            <Typography variant="subtitle1" gutterBottom>
-              Speaking
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <TextField
-                  label="Speaking Term 1"
-                  fullWidth
-                  value={formData.french_speaking1}
-                  onChange={(e) => handleChange('french_speaking1', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Speaking Term 2"
-                  fullWidth
-                  value={formData.french_speaking2}
-                  onChange={(e) => handleChange('french_speaking2', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.french_speaking_esl}
-                      onChange={(e) => handleChange('french_speaking_esl', e.target.checked)}
-                    />
-                  }
-                  label="Speaking ESL/ELD"
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.french_speaking_iep}
-                      onChange={(e) => handleChange('french_speaking_iep', e.target.checked)}
-                    />
-                  }
-                  label="Speaking IEP"
-                />
-              </Grid>
-            </Grid>
-            {/* Reading */}
-            <Typography variant="subtitle1" gutterBottom>
-              Reading
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <TextField
-                  label="Reading Term 1"
-                  fullWidth
-                  value={formData.french_reading1}
-                  onChange={(e) => handleChange('french_reading1', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Reading Term 2"
-                  fullWidth
-                  value={formData.french_reading2}
-                  onChange={(e) => handleChange('french_reading2', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.french_reading_esl}
-                      onChange={(e) => handleChange('french_reading_esl', e.target.checked)}
-                    />
-                  }
-                  label="Reading ESL/ELD"
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.french_reading_iep}
-                      onChange={(e) => handleChange('french_reading_iep', e.target.checked)}
-                    />
-                  }
-                  label="Reading IEP"
-                />
-              </Grid>
-            </Grid>
-            {/* Writing */}
-            <Typography variant="subtitle1" gutterBottom>
-              Writing
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <TextField
-                  label="Writing Term 1"
-                  fullWidth
-                  value={formData.french_writing1}
-                  onChange={(e) => handleChange('french_writing1', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Writing Term 2"
-                  fullWidth
-                  value={formData.french_writing2}
-                  onChange={(e) => handleChange('french_writing2', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.french_writing_esl}
-                      onChange={(e) => handleChange('french_writing_esl', e.target.checked)}
-                    />
-                  }
-                  label="Writing ESL/ELD"
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.french_writing_iep}
-                      onChange={(e) => handleChange('french_writing_iep', e.target.checked)}
-                    />
-                  }
-                  label="Writing IEP"
-                />
-              </Grid>
-            </Grid>
-            <Grid container spacing={2} style={{ marginTop: 16 }}>
-              <Grid item xs={12}>
-                <TextField
-                  label="French Comments"
-                  fullWidth
-                  multiline
-                  rows={3}
-                  value={formData.french_comments}
-                  onChange={(e) => handleChange('french_comments', e.target.value)}
-                />
-              </Grid>
-            </Grid>
-          </Box>
+                IEP
+              </label>
+            </div>
+            <div className="term-row">
+              <label>Language Grade Term 1:</label>
+              <input
+                type="text"
+                value={formData.language1}
+                onChange={(e) => handleChange('language1', e.target.value)}
+              />
+              <label>Language Grade Term 2:</label>
+              <input
+                type="text"
+                value={formData.language2}
+                onChange={(e) => handleChange('language2', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Strengths/Next Steps for Improvement</label>
+              <textarea
+                value={formData.language_comments}
+                onChange={(e) => handleChange('language_comments', e.target.value)}
+              />
+            </div>
+          </section>
         )
       case 4:
         return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Native Language
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={4}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.native_language_na}
-                      onChange={(e) => handleChange('native_language_na', e.target.checked)}
-                    />
-                  }
-                  label="N/A"
+          <section className="form-section">
+            <h2>French</h2>
+            <div className="form-group-inline">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.french_na}
+                  onChange={(e) => handleChange('french_na', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={4}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.native_language_esl}
-                      onChange={(e) => handleChange('native_language_esl', e.target.checked)}
-                    />
-                  }
-                  label="ESL/ELD"
+                French N/A
+              </label>
+            </div>
+            <h3>Listening</h3>
+            <div className="term-row">
+              <label>Listening Term 1:</label>
+              <input
+                type="text"
+                value={formData.french_listening1}
+                onChange={(e) => handleChange('french_listening1', e.target.value)}
+              />
+              <label>Listening Term 2:</label>
+              <input
+                type="text"
+                value={formData.french_listening2}
+                onChange={(e) => handleChange('french_listening2', e.target.value)}
+              />
+            </div>
+            <div className="form-group-inline">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.french_listening_esl}
+                  onChange={(e) => handleChange('french_listening_esl', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={4}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.native_language_iep}
-                      onChange={(e) => handleChange('native_language_iep', e.target.checked)}
-                    />
-                  }
-                  label="IEP"
+                ESL/ELD
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.french_listening_iep}
+                  onChange={(e) => handleChange('french_listening_iep', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Native Language Term 1"
-                  fullWidth
-                  value={formData.native_language1}
-                  onChange={(e) => handleChange('native_language1', e.target.value)}
+                IEP
+              </label>
+            </div>
+            <h3>Speaking</h3>
+            <div className="term-row">
+              <label>Speaking Term 1:</label>
+              <input
+                type="text"
+                value={formData.french_speaking1}
+                onChange={(e) => handleChange('french_speaking1', e.target.value)}
+              />
+              <label>Speaking Term 2:</label>
+              <input
+                type="text"
+                value={formData.french_speaking2}
+                onChange={(e) => handleChange('french_speaking2', e.target.value)}
+              />
+            </div>
+            <div className="form-group-inline">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.french_speaking_esl}
+                  onChange={(e) => handleChange('french_speaking_esl', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Native Language Term 2"
-                  fullWidth
-                  value={formData.native_language2}
-                  onChange={(e) => handleChange('native_language2', e.target.value)}
+                ESL/ELD
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.french_speaking_iep}
+                  onChange={(e) => handleChange('french_speaking_iep', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Teacher's Overall Native Language Grade"
-                  fullWidth
-                  value={formData.native_language_overall}
-                  onChange={(e) => handleChange('native_language_overall', e.target.value)}
+                IEP
+              </label>
+            </div>
+            <h3>Reading</h3>
+            <div className="term-row">
+              <label>Reading Term 1:</label>
+              <input
+                type="text"
+                value={formData.french_reading1}
+                onChange={(e) => handleChange('french_reading1', e.target.value)}
+              />
+              <label>Reading Term 2:</label>
+              <input
+                type="text"
+                value={formData.french_reading2}
+                onChange={(e) => handleChange('french_reading2', e.target.value)}
+              />
+            </div>
+            <div className="form-group-inline">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.french_reading_esl}
+                  onChange={(e) => handleChange('french_reading_esl', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Native Language Comments"
-                  fullWidth
-                  multiline
-                  rows={3}
-                  value={formData.native_language_comments}
-                  onChange={(e) => handleChange('native_language_comments', e.target.value)}
+                ESL/ELD
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.french_reading_iep}
+                  onChange={(e) => handleChange('french_reading_iep', e.target.checked)}
                 />
-              </Grid>
-            </Grid>
-          </Box>
+                IEP
+              </label>
+            </div>
+            <h3>Writing</h3>
+            <div className="term-row">
+              <label>Writing Term 1:</label>
+              <input
+                type="text"
+                value={formData.french_writing1}
+                onChange={(e) => handleChange('french_writing1', e.target.value)}
+              />
+              <label>Writing Term 2:</label>
+              <input
+                type="text"
+                value={formData.french_writing2}
+                onChange={(e) => handleChange('french_writing2', e.target.value)}
+              />
+            </div>
+            <div className="form-group-inline">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.french_writing_esl}
+                  onChange={(e) => handleChange('french_writing_esl', e.target.checked)}
+                />
+                ESL/ELD
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.french_writing_iep}
+                  onChange={(e) => handleChange('french_writing_iep', e.target.checked)}
+                />
+                IEP
+              </label>
+            </div>
+            <div className="form-group">
+              <label>French Comments</label>
+              <textarea
+                value={formData.french_comments}
+                onChange={(e) => handleChange('french_comments', e.target.value)}
+              />
+            </div>
+          </section>
         )
       case 5:
         return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Mathematics
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <TextField
-                  label="Mathematics Term 1"
-                  fullWidth
-                  value={formData.math1}
-                  onChange={(e) => handleChange('math1', e.target.value)}
+          <section className="form-section">
+            <h2>Native Language</h2>
+            <div className="form-group-inline">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.native_language_na}
+                  onChange={(e) => handleChange('native_language_na', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Mathematics Term 2"
-                  fullWidth
-                  value={formData.math2}
-                  onChange={(e) => handleChange('math2', e.target.value)}
+                N/A
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.native_language_esl}
+                  onChange={(e) => handleChange('native_language_esl', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Math Comments"
-                  fullWidth
-                  multiline
-                  rows={3}
-                  value={formData.math_comments}
-                  onChange={(e) => handleChange('math_comments', e.target.value)}
+                ESL/ELD
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.native_language_iep}
+                  onChange={(e) => handleChange('native_language_iep', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={4}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.math_french}
-                      onChange={(e) => handleChange('math_french', e.target.checked)}
-                    />
-                  }
-                  label="French"
-                />
-              </Grid>
-              <Grid item xs={4}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.math_esl}
-                      onChange={(e) => handleChange('math_esl', e.target.checked)}
-                    />
-                  }
-                  label="ESL/ELD"
-                />
-              </Grid>
-              <Grid item xs={4}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.math_iep}
-                      onChange={(e) => handleChange('math_iep', e.target.checked)}
-                    />
-                  }
-                  label="IEP"
-                />
-              </Grid>
-            </Grid>
-          </Box>
+                IEP
+              </label>
+            </div>
+            <div className="form-group">
+              <label>Native Language Title</label>
+              <input
+                type="text"
+                value={formData.native_language}
+                onChange={(e) => handleChange('native_language', e.target.value)}
+              />
+            </div>
+            <div className="term-row">
+              <label>Native Language Term 1:</label>
+              <input
+                type="text"
+                value={formData.native_language1}
+                onChange={(e) => handleChange('native_language1', e.target.value)}
+              />
+              <label>Native Language Term 2:</label>
+              <input
+                type="text"
+                value={formData.native_language2}
+                onChange={(e) => handleChange('native_language2', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Teacher's Overall Native Language Grade</label>
+              <input
+                type="text"
+                value={formData.native_language_overall}
+                onChange={(e) => handleChange('native_language_overall', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Native Language Comments</label>
+              <textarea
+                value={formData.native_language_comments}
+                onChange={(e) => handleChange('native_language_comments', e.target.value)}
+              />
+            </div>
+          </section>
         )
       case 6:
         return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Science
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <TextField
-                  label="Science Term 1"
-                  fullWidth
-                  value={formData.science1}
-                  onChange={(e) => handleChange('science1', e.target.value)}
+          <section className="form-section">
+            <h2>Mathematics</h2>
+            <div className="form-group-inline">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.math_french}
+                  onChange={(e) => handleChange('math_french', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Science Term 2"
-                  fullWidth
-                  value={formData.science2}
-                  onChange={(e) => handleChange('science2', e.target.value)}
+                French
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.math_esl}
+                  onChange={(e) => handleChange('math_esl', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Science Comments"
-                  fullWidth
-                  multiline
-                  rows={3}
-                  value={formData.science_comments}
-                  onChange={(e) => handleChange('science_comments', e.target.value)}
+                ESL/ELD
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.math_iep}
+                  onChange={(e) => handleChange('math_iep', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={4}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.science_french}
-                      onChange={(e) => handleChange('science_french', e.target.checked)}
-                    />
-                  }
-                  label="French"
-                />
-              </Grid>
-              <Grid item xs={4}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.science_esl}
-                      onChange={(e) => handleChange('science_esl', e.target.checked)}
-                    />
-                  }
-                  label="ESL/ELD"
-                />
-              </Grid>
-              <Grid item xs={4}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.science_iep}
-                      onChange={(e) => handleChange('science_iep', e.target.checked)}
-                    />
-                  }
-                  label="IEP"
-                />
-              </Grid>
-            </Grid>
-          </Box>
+                IEP
+              </label>
+            </div>
+            <div className="term-row">
+              <label>Mathematics Term 1:</label>
+              <input
+                type="text"
+                value={formData.math1}
+                onChange={(e) => handleChange('math1', e.target.value)}
+              />
+              <label>Mathematics Term 2:</label>
+              <input
+                type="text"
+                value={formData.math2}
+                onChange={(e) => handleChange('math2', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Math Comments</label>
+              <textarea
+                value={formData.math_comments}
+                onChange={(e) => handleChange('math_comments', e.target.value)}
+              />
+            </div>
+          </section>
         )
       case 7:
         return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Social Studies
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <TextField
-                  label="Social Studies Term 1"
-                  fullWidth
-                  value={formData.social_studies1}
-                  onChange={(e) => handleChange('social_studies1', e.target.value)}
+          <section className="form-section">
+            <h2>Science</h2>
+            <div className="form-group-inline">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.science_french}
+                  onChange={(e) => handleChange('science_french', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Social Studies Term 2"
-                  fullWidth
-                  value={formData.social_studies2}
-                  onChange={(e) => handleChange('social_studies2', e.target.value)}
+                French
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.science_esl}
+                  onChange={(e) => handleChange('science_esl', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Social Studies Comments"
-                  fullWidth
-                  multiline
-                  rows={3}
-                  value={formData.social_studies_comments}
-                  onChange={(e) => handleChange('social_studies_comments', e.target.value)}
+                ESL/ELD
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.science_iep}
+                  onChange={(e) => handleChange('science_iep', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={4}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.social_studies_french}
-                      onChange={(e) => handleChange('social_studies_french', e.target.checked)}
-                    />
-                  }
-                  label="French"
-                />
-              </Grid>
-              <Grid item xs={4}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.social_studies_esl}
-                      onChange={(e) => handleChange('social_studies_esl', e.target.checked)}
-                    />
-                  }
-                  label="ESL/ELD"
-                />
-              </Grid>
-              <Grid item xs={4}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.social_studies_iep}
-                      onChange={(e) => handleChange('social_studies_iep', e.target.checked)}
-                    />
-                  }
-                  label="IEP"
-                />
-              </Grid>
-            </Grid>
-          </Box>
+                IEP
+              </label>
+            </div>
+            <div className="term-row">
+              <label>Science Term 1:</label>
+              <input
+                type="text"
+                value={formData.science1}
+                onChange={(e) => handleChange('science1', e.target.value)}
+              />
+              <label>Science Term 2:</label>
+              <input
+                type="text"
+                value={formData.science2}
+                onChange={(e) => handleChange('science2', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Science Comments</label>
+              <textarea
+                value={formData.science_comments}
+                onChange={(e) => handleChange('science_comments', e.target.value)}
+              />
+            </div>
+          </section>
         )
       case 8:
         return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Health & Physical Education
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <TextField
-                  label="Health Term 1"
-                  fullWidth
-                  value={formData.health1}
-                  onChange={(e) => handleChange('health1', e.target.value)}
+          <section className="form-section">
+            <h2>Social Studies</h2>
+            <div className="form-group-inline">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.social_studies_french}
+                  onChange={(e) => handleChange('social_studies_french', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Health Term 2"
-                  fullWidth
-                  value={formData.health2}
-                  onChange={(e) => handleChange('health2', e.target.value)}
+                French
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.social_studies_esl}
+                  onChange={(e) => handleChange('social_studies_esl', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="PE Term 1"
-                  fullWidth
-                  value={formData.pe1}
-                  onChange={(e) => handleChange('pe1', e.target.value)}
+                ESL/ELD
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.social_studies_iep}
+                  onChange={(e) => handleChange('social_studies_iep', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="PE Term 2"
-                  fullWidth
-                  value={formData.pe2}
-                  onChange={(e) => handleChange('pe2', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Health/PE Comments"
-                  fullWidth
-                  multiline
-                  rows={3}
-                  value={formData.health_pe_comments}
-                  onChange={(e) => handleChange('health_pe_comments', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle1">Health Checkboxes</Typography>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.health_french}
-                      onChange={(e) => handleChange('health_french', e.target.checked)}
-                    />
-                  }
-                  label="French"
-                />
-              </Grid>
-              <Grid item xs={3}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.health_esl}
-                      onChange={(e) => handleChange('health_esl', e.target.checked)}
-                    />
-                  }
-                  label="ESL/ELD"
-                />
-              </Grid>
-              <Grid item xs={3}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.health_iep}
-                      onChange={(e) => handleChange('health_iep', e.target.checked)}
-                    />
-                  }
-                  label="IEP"
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle1">PE Checkboxes</Typography>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.pe_french}
-                      onChange={(e) => handleChange('pe_french', e.target.checked)}
-                    />
-                  }
-                  label="French"
-                />
-              </Grid>
-              <Grid item xs={3}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.pe_esl}
-                      onChange={(e) => handleChange('pe_esl', e.target.checked)}
-                    />
-                  }
-                  label="ESL/ELD"
-                />
-              </Grid>
-              <Grid item xs={3}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.pe_iep}
-                      onChange={(e) => handleChange('pe_iep', e.target.checked)}
-                    />
-                  }
-                  label="IEP"
-                />
-              </Grid>
-            </Grid>
-          </Box>
+                IEP
+              </label>
+            </div>
+            <div className="term-row">
+              <label>Social Studies Term 1:</label>
+              <input
+                type="text"
+                value={formData.social_studies1}
+                onChange={(e) => handleChange('social_studies1', e.target.value)}
+              />
+              <label>Social Studies Term 2:</label>
+              <input
+                type="text"
+                value={formData.social_studies2}
+                onChange={(e) => handleChange('social_studies2', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Social Studies Comments</label>
+              <textarea
+                value={formData.social_studies_comments}
+                onChange={(e) => handleChange('social_studies_comments', e.target.value)}
+              />
+            </div>
+          </section>
         )
       case 9:
         return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              The Arts
-            </Typography>
-            <Grid container spacing={2}>
-              {/* Dance */}
-              <Grid item xs={6}>
-                <TextField
-                  label="Dance Term 1"
-                  fullWidth
-                  value={formData.dance1}
-                  onChange={(e) => handleChange('dance1', e.target.value)}
+          <section className="form-section">
+            <h2>Health & PE</h2>
+            <h3>Health</h3>
+            <div className="form-group-inline">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.health_french}
+                  onChange={(e) => handleChange('health_french', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Dance Term 2"
-                  fullWidth
-                  value={formData.dance2}
-                  onChange={(e) => handleChange('dance2', e.target.value)}
+                Health French
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.health_esl}
+                  onChange={(e) => handleChange('health_esl', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={3}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.dance_french}
-                      onChange={(e) => handleChange('dance_french', e.target.checked)}
-                    />
-                  }
-                  label="French"
+                Health ESL/ELD
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.health_iep}
+                  onChange={(e) => handleChange('health_iep', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={3}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.dance_esl}
-                      onChange={(e) => handleChange('dance_esl', e.target.checked)}
-                    />
-                  }
-                  label="ESL/ELD"
+                Health IEP
+              </label>
+            </div>
+            <div className="term-row">
+              <label>Health Term 1:</label>
+              <input
+                type="text"
+                value={formData.health1}
+                onChange={(e) => handleChange('health1', e.target.value)}
+              />
+              <label>Health Term 2:</label>
+              <input
+                type="text"
+                value={formData.health2}
+                onChange={(e) => handleChange('health2', e.target.value)}
+              />
+            </div>
+            <h3>Physical Education</h3>
+            <div className="form-group-inline">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.pe_french}
+                  onChange={(e) => handleChange('pe_french', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={3}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.dance_iep}
-                      onChange={(e) => handleChange('dance_iep', e.target.checked)}
-                    />
-                  }
-                  label="IEP"
+                PE French
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.pe_esl}
+                  onChange={(e) => handleChange('pe_esl', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={3}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.dance_na}
-                      onChange={(e) => handleChange('dance_na', e.target.checked)}
-                    />
-                  }
-                  label="N/A"
+                PE ESL/ELD
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.pe_iep}
+                  onChange={(e) => handleChange('pe_iep', e.target.checked)}
                 />
-              </Grid>
-              {/* Drama */}
-              <Grid item xs={6}>
-                <TextField
-                  label="Drama Term 1"
-                  fullWidth
-                  value={formData.drama1}
-                  onChange={(e) => handleChange('drama1', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Drama Term 2"
-                  fullWidth
-                  value={formData.drama2}
-                  onChange={(e) => handleChange('drama2', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={3}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.drama_french}
-                      onChange={(e) => handleChange('drama_french', e.target.checked)}
-                    />
-                  }
-                  label="French"
-                />
-              </Grid>
-              <Grid item xs={3}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.drama_esl}
-                      onChange={(e) => handleChange('drama_esl', e.target.checked)}
-                    />
-                  }
-                  label="ESL/ELD"
-                />
-              </Grid>
-              <Grid item xs={3}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.drama_iep}
-                      onChange={(e) => handleChange('drama_iep', e.target.checked)}
-                    />
-                  }
-                  label="IEP"
-                />
-              </Grid>
-              <Grid item xs={3}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.drama_na}
-                      onChange={(e) => handleChange('drama_na', e.target.checked)}
-                    />
-                  }
-                  label="N/A"
-                />
-              </Grid>
-              {/* Music */}
-              <Grid item xs={6}>
-                <TextField
-                  label="Music Term 1"
-                  fullWidth
-                  value={formData.music1}
-                  onChange={(e) => handleChange('music1', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Music Term 2"
-                  fullWidth
-                  value={formData.music2}
-                  onChange={(e) => handleChange('music2', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={3}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.music_french}
-                      onChange={(e) => handleChange('music_french', e.target.checked)}
-                    />
-                  }
-                  label="French"
-                />
-              </Grid>
-              <Grid item xs={3}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.music_esl}
-                      onChange={(e) => handleChange('music_esl', e.target.checked)}
-                    />
-                  }
-                  label="ESL/ELD"
-                />
-              </Grid>
-              <Grid item xs={3}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.music_iep}
-                      onChange={(e) => handleChange('music_iep', e.target.checked)}
-                    />
-                  }
-                  label="IEP"
-                />
-              </Grid>
-              <Grid item xs={3}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.music_na}
-                      onChange={(e) => handleChange('music_na', e.target.checked)}
-                    />
-                  }
-                  label="N/A"
-                />
-              </Grid>
-              {/* Visual Arts */}
-              <Grid item xs={6}>
-                <TextField
-                  label="Visual Arts Term 1"
-                  fullWidth
-                  value={formData.visual_arts1}
-                  onChange={(e) => handleChange('visual_arts1', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Visual Arts Term 2"
-                  fullWidth
-                  value={formData.visual_arts2}
-                  onChange={(e) => handleChange('visual_arts2', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={3}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.visual_arts_french}
-                      onChange={(e) => handleChange('visual_arts_french', e.target.checked)}
-                    />
-                  }
-                  label="French"
-                />
-              </Grid>
-              <Grid item xs={3}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.visual_arts_esl}
-                      onChange={(e) => handleChange('visual_arts_esl', e.target.checked)}
-                    />
-                  }
-                  label="ESL/ELD"
-                />
-              </Grid>
-              <Grid item xs={3}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.visual_arts_iep}
-                      onChange={(e) => handleChange('visual_arts_iep', e.target.checked)}
-                    />
-                  }
-                  label="IEP"
-                />
-              </Grid>
-              <Grid item xs={3}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.visual_arts_na}
-                      onChange={(e) => handleChange('visual_arts_na', e.target.checked)}
-                    />
-                  }
-                  label="N/A"
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Arts Comments"
-                  fullWidth
-                  multiline
-                  rows={3}
-                  value={formData.visual_arts_comments}
-                  onChange={(e) => handleChange('visual_arts_comments', e.target.value)}
-                />
-              </Grid>
-            </Grid>
-          </Box>
+                PE IEP
+              </label>
+            </div>
+            <div className="term-row">
+              <label>PE Term 1:</label>
+              <input
+                type="text"
+                value={formData.pe1}
+                onChange={(e) => handleChange('pe1', e.target.value)}
+              />
+              <label>PE Term 2:</label>
+              <input
+                type="text"
+                value={formData.pe2}
+                onChange={(e) => handleChange('pe2', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Health/PE Comments</label>
+              <textarea
+                value={formData.health_pe_comments}
+                onChange={(e) => handleChange('health_pe_comments', e.target.value)}
+              />
+            </div>
+          </section>
         )
       case 10:
         return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Comments & Signatures
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <TextField
-                  label="Student – My best work is:"
-                  fullWidth
-                  value={formData.best_work}
-                  onChange={(e) => handleChange('best_work', e.target.value)}
+          <section className="form-section">
+            <h2>The Arts</h2>
+            <h3>Dance</h3>
+            <div className="form-group-inline">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.dance_french}
+                  onChange={(e) => handleChange('dance_french', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Student – My goal for improvement is:"
-                  fullWidth
-                  value={formData.improvement_goal}
-                  onChange={(e) => handleChange('improvement_goal', e.target.value)}
+                Dance French
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.dance_esl}
+                  onChange={(e) => handleChange('dance_esl', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Parent/Guardian – My child has improved most in:"
-                  fullWidth
-                  value={formData.parent_improved}
-                  onChange={(e) => handleChange('parent_improved', e.target.value)}
+                Dance ESL/ELD
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.dance_iep}
+                  onChange={(e) => handleChange('dance_iep', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Parent/Guardian – I will help my child to:"
-                  fullWidth
-                  value={formData.parent_help}
-                  onChange={(e) => handleChange('parent_help', e.target.value)}
+                Dance IEP
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.dance_na}
+                  onChange={(e) => handleChange('dance_na', e.target.checked)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Teacher's Signature"
-                  fullWidth
+                Dance N/A
+              </label>
+            </div>
+            <div className="term-row">
+              <label>Dance Term 1:</label>
+              <input
+                type="text"
+                value={formData.dance1}
+                onChange={(e) => handleChange('dance1', e.target.value)}
+              />
+              <label>Dance Term 2:</label>
+              <input
+                type="text"
+                value={formData.dance2}
+                onChange={(e) => handleChange('dance2', e.target.value)}
+              />
+            </div>
+            <h3>Drama</h3>
+            <div className="form-group-inline">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.drama_french}
+                  onChange={(e) => handleChange('drama_french', e.target.checked)}
+                />
+                Drama French
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.drama_esl}
+                  onChange={(e) => handleChange('drama_esl', e.target.checked)}
+                />
+                Drama ESL/ELD
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.drama_iep}
+                  onChange={(e) => handleChange('drama_iep', e.target.checked)}
+                />
+                Drama IEP
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.drama_na}
+                  onChange={(e) => handleChange('drama_na', e.target.checked)}
+                />
+                Drama N/A
+              </label>
+            </div>
+            <div className="term-row">
+              <label>Drama Term 1:</label>
+              <input
+                type="text"
+                value={formData.drama1}
+                onChange={(e) => handleChange('drama1', e.target.value)}
+              />
+              <label>Drama Term 2:</label>
+              <input
+                type="text"
+                value={formData.drama2}
+                onChange={(e) => handleChange('drama2', e.target.value)}
+              />
+            </div>
+            <h3>Music</h3>
+            <div className="form-group-inline">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.music_french}
+                  onChange={(e) => handleChange('music_french', e.target.checked)}
+                />
+                Music French
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.music_esl}
+                  onChange={(e) => handleChange('music_esl', e.target.checked)}
+                />
+                Music ESL/ELD
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.music_iep}
+                  onChange={(e) => handleChange('music_iep', e.target.checked)}
+                />
+                Music IEP
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.music_na}
+                  onChange={(e) => handleChange('music_na', e.target.checked)}
+                />
+                Music N/A
+              </label>
+            </div>
+            <div className="term-row">
+              <label>Music Term 1:</label>
+              <input
+                type="text"
+                value={formData.music1}
+                onChange={(e) => handleChange('music1', e.target.value)}
+              />
+              <label>Music Term 2:</label>
+              <input
+                type="text"
+                value={formData.music2}
+                onChange={(e) => handleChange('music2', e.target.value)}
+              />
+            </div>
+            <h3>Visual Arts</h3>
+            <div className="form-group-inline">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.visual_arts_french}
+                  onChange={(e) => handleChange('visual_arts_french', e.target.checked)}
+                />
+                Visual Arts French
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.visual_arts_esl}
+                  onChange={(e) => handleChange('visual_arts_esl', e.target.checked)}
+                />
+                Visual Arts ESL/ELD
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.visual_arts_iep}
+                  onChange={(e) => handleChange('visual_arts_iep', e.target.checked)}
+                />
+                Visual Arts IEP
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.visual_arts_na}
+                  onChange={(e) => handleChange('visual_arts_na', e.target.checked)}
+                />
+                Visual Arts N/A
+              </label>
+            </div>
+            <div className="term-row">
+              <label>Visual Arts Term 1:</label>
+              <input
+                type="text"
+                value={formData.visual_arts1}
+                onChange={(e) => handleChange('visual_arts1', e.target.value)}
+              />
+              <label>Visual Arts Term 2:</label>
+              <input
+                type="text"
+                value={formData.visual_arts2}
+                onChange={(e) => handleChange('visual_arts2', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Arts Comments</label>
+              <textarea
+                value={formData.visual_arts_comments}
+                onChange={(e) => handleChange('visual_arts_comments', e.target.value)}
+              />
+            </div>
+          </section>
+        )
+      case 11:
+        return (
+          <section className="form-section">
+            <h2>Comments & Signatures</h2>
+            <div className="form-group">
+              <label>Student – My best work is:</label>
+              <input
+                type="text"
+                value={formData.best_work}
+                onChange={(e) => handleChange('best_work', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Student – My goal for improvement is:</label>
+              <input
+                type="text"
+                value={formData.improvement_goal}
+                onChange={(e) => handleChange('improvement_goal', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Parent/Guardian – My child has improved most in:</label>
+              <input
+                type="text"
+                value={formData.parent_improved}
+                onChange={(e) => handleChange('parent_improved', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Parent/Guardian – I will help my child to:</label>
+              <input
+                type="text"
+                value={formData.parent_help}
+                onChange={(e) => handleChange('parent_help', e.target.value)}
+              />
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Teacher's Signature</label>
+                <input
+                  type="text"
                   value={formData.teacher_signature}
                   onChange={(e) => handleChange('teacher_signature', e.target.value)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Parent/Guardian's Signature"
-                  fullWidth
+              </div>
+              <div className="form-group">
+                <label>Parent/Guardian's Signature</label>
+                <input
+                  type="text"
                   value={formData.parent_signature}
                   onChange={(e) => handleChange('parent_signature', e.target.value)}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Principal's Signature"
-                  fullWidth
-                  value={formData.principal_signature}
-                  onChange={(e) => handleChange('principal_signature', e.target.value)}
-                />
-              </Grid>
-            </Grid>
-          </Box>
+              </div>
+            </div>
+            <div className="form-group">
+              <label>Principal's Signature</label>
+              <input
+                type="text"
+                value={formData.principal_signature}
+                onChange={(e) => handleChange('principal_signature', e.target.value)}
+              />
+            </div>
+          </section>
         )
       default:
         return <div>Unknown Step</div>
     }
   }
 
-  const [activeStep, setActiveStep] = useState(0)
-
+  // 3. RENDER – container, progress indicator, and navigation buttons
   return (
-    <Box padding="20px">
-      <Stepper activeStep={activeStep} alternativeLabel>
-        {steps.map((label) => (
-          <Step key={label}>
-            <StepLabel>{label}</StepLabel>
-          </Step>
-        ))}
-      </Stepper>
-      <Box marginTop={4}>{renderStepContent(activeStep)}</Box>
-      <Box marginTop={2} display="flex" justifyContent="space-between">
-        <Button disabled={activeStep === 0} onClick={handleBack}>
-          Back
-        </Button>
-        {activeStep < steps.length - 1 ? (
-          <Button variant="contained" onClick={handleNext}>
-            Next
-          </Button>
-        ) : (
-          <Button variant="contained" onClick={handleCreateReportCard}>
-            Create Report Card
-          </Button>
-        )}
-      </Box>
-    </Box>
+    <div className="registration-page-container">
+      <h1 className="page-title">Report Card Form</h1>
+
+      {/* Progress Indicator */}
+      <div className="progress-indicator">
+        {steps.map((label, index) => {
+          const stepNumber = index + 1
+          return (
+            <div
+              key={stepNumber}
+              className={`progress-step ${currentStep >= stepNumber ? 'active' : ''}`}
+            >
+              <div className="step-number">{stepNumber}</div>
+              <div className="step-label">{label}</div>
+            </div>
+          )
+        })}
+      </div>
+
+      <form className="registration-form" onSubmit={handleCreateReportCard}>
+        {renderStepContent(currentStep)}
+
+        {/* Navigation Buttons */}
+        <div
+          className="form-navigation"
+          style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem' }}
+        >
+          {currentStep > 1 && (
+            <button type="button" className="navigation-button" onClick={handlePrevStep}>
+              Previous
+            </button>
+          )}
+          {currentStep < totalSteps ? (
+            <button type="button" className="navigation-button" onClick={handleNextStep}>
+              Next
+            </button>
+          ) : (
+            <button type="submit" className="navigation-button">
+              Create Report Card
+            </button>
+          )}
+        </div>
+      </form>
+    </div>
   )
 }
 
