@@ -1,75 +1,48 @@
 import React from 'react'
 import CIcon from '@coreui/icons-react'
 import {
-  cilBell,
-  cilCalculator,
-  cilChartPie,
-  cilCursor,
-  cilDescription,
-  cilDrop,
-  cilExternalLink,
-  cilPencil,
-  cilPuzzle,
-  cilSpeedometer,
-  cilStar,
   cilHome,
   cilList,
-  cilNotes
+  cilNotes,
+  cilSpeedometer,
 } from '@coreui/icons'
-import { CNavGroup, CNavItem, CNavTitle } from '@coreui/react'
+import BeenhereOutlinedIcon from '@mui/icons-material/BeenhereOutlined';
+import { CNavItem } from '@coreui/react'
+import AutoStoriesOutlinedIcon from '@mui/icons-material/AutoStoriesOutlined';
 
 const _nav = [
   {
     component: CNavItem,
     name: 'Home',
     to: '/dashboard',
+    // For a CoreUI icon:
     icon: <CIcon icon={cilHome} customClassName="nav-icon" />,
-    // badge: {
-    //   color: 'info',
-    //   text: 'NEW',
-    // },
   },
   {
     component: CNavItem,
     name: 'Attendance',
     to: '/attendance',
     icon: <CIcon icon={cilList} customClassName="nav-icon" />,
-    // badge: {
-    //   color: 'info',
-    //   text: 'NEW',
-    // },
   },
   {
     component: CNavItem,
     name: 'Report Cards',
     to: '/reportcards',
     icon: <CIcon icon={cilNotes} customClassName="nav-icon" />,
-    // badge: {
-    //   color: 'info',
-    //   text: 'NEW',
-    // },
   },
   {
     component: CNavItem,
     name: 'Registration',
     to: '/registration',
-    icon: <CIcon icon={cilSpeedometer} customClassName="nav-icon" />,
-    badge: {
-      color: 'info',
-      text: 'NEW',
-    },
+    // Use the MUI icon directly, instead of <CIcon ...>
+    icon: <BeenhereOutlinedIcon className="nav-icon" />,
   },
   {
     component: CNavItem,
     name: 'Courses',
     to: '/courses',
-    icon: <CIcon icon={cilSpeedometer} customClassName="nav-icon" />,
-    badge: {
-      color: 'info',
-      text: 'NEW',
-    },
+    icon: <AutoStoriesOutlinedIcon className="nav-icon" />,
   },
-
 ]
 
 export default _nav
