@@ -13,8 +13,9 @@ import CIcon from '@coreui/icons-react'
 
 import { AppSidebarNav } from './AppSidebarNav'
 
-import { logo } from 'src/assets/brand/logo'
-import { sygnet } from 'src/assets/brand/sygnet'
+import logo from 'src/assets/brand/TLA_logo_TPBK.svg'
+import smallLogo from 'src/assets/brand/TLA_logo_simple.svg'
+
 
 // sidebar nav config
 import navigation from '../_nav'
@@ -36,10 +37,11 @@ const AppSidebar = () => {
       }}
     >
       <CSidebarHeader className="border-bottom">
-        <CSidebarBrand to="/">
-          <CIcon customClassName="sidebar-brand-full" icon={logo} height={32} />
-          <CIcon customClassName="sidebar-brand-narrow" icon={sygnet} height={32} />
-        </CSidebarBrand>
+      <CSidebarBrand to="/">
+  <img src={logo} alt="TLA Logo" height="60" className="sidebar-brand-full" />
+  <img src={smallLogo} alt="TLA Logo" height="50" className="sidebar-brand-narrow" />
+</CSidebarBrand>
+
         <CCloseButton
           className="d-lg-none"
           dark
