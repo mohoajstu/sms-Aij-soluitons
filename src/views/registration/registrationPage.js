@@ -134,8 +134,8 @@ const RegistrationPage = () => {
     };
     console.log('Form submitted:', formData);
     
-    alert('Application submitted successfully!');
-    navigate('/registration/thankYouPage')
+    // Directly navigate to thank you page without alert
+    navigate('/registration/thankYouPage');
   };
 
   // --- 3. RENDER ---
@@ -163,15 +163,15 @@ const RegistrationPage = () => {
                   : index === 3
                   ? 'Parents/Guardians'
                   : index === 4
-                  ? 'Payment'
-                  : 'Documents'}
+                  ? 'Documents'
+                  : 'Payment'}
               </div>
             </div>
           );
         })}
       </div>
 
-      <form className="registration-form">
+      <form className="registration-form" onSubmit={handleSubmit}>
         {/* STEP 1: Basic Application Info */}
         {currentStep === 1 && (
           <section className="form-section">
@@ -617,8 +617,55 @@ const RegistrationPage = () => {
           </section>
         )}
 
-        {/* STEP 5: Payment Info */}
+        {/* STEP 5: Documents (moved up) */}
         {currentStep === 5 && (
+          <section className="form-section">
+            <h2>Required Documents</h2>
+            <p className="documents-intro">
+              The following documents are required to complete your child's registration. You can
+              upload them now or submit them later.
+            </p>
+
+            <div className="form-group">
+              <label>Immunization Records</label>
+              <input
+                type="file"
+                onChange={(e) => setImmunizationFile(e.target.files[0])}
+              />
+              <small>Each student must have their immunization records on file.</small>
+            </div>
+
+            <div className="form-group">
+              <label>Recent Report Card</label>
+              <input
+                type="file"
+                onChange={(e) => setReportCardFile(e.target.files[0])}
+              />
+              <small>Required for students applying for SK or higher grades.</small>
+            </div>
+
+            <div className="form-group">
+              <label>OSR Permission Form</label>
+              <input
+                type="file"
+                onChange={(e) => setOsrPermissionFile(e.target.files[0])}
+              />
+              <small>Needed for new students transferring from an Ontario school.</small>
+            </div>
+
+            <div className="form-group">
+              <label>Government Issued ID</label>
+              <input
+                type="file"
+                onChange={(e) => setGovtIdFile(e.target.files[0])}
+              />
+              <small>Please provide ONE of the following: passport, birth certificate, or residency permit.</small>
+            </div>
+          </section>
+        )}
+
+        {/* STEP 6: Payment Info (moved to last) */}
+        {currentStep === 6 && (
           <section className="form-section">
             <h2>Payment Information</h2>
             <div className="payment-notice">
@@ -672,53 +719,6 @@ const RegistrationPage = () => {
           </section>
         )}
 
-        {/* STEP 6: Documents */}
-        {currentStep === 6 && (
-          <section className="form-section">
-            <h2>Required Documents</h2>
-            <p className="documents-intro">
-              The following documents are required to complete your child's registration. You can
-              upload them now or submit them later.
-            </p>
-
-            <div className="form-group">
-              <label>Immunization Records</label>
-              <input
-                type="file"
-                onChange={(e) => setImmunizationFile(e.target.files[0])}
-              />
-              <small>Each student must have their immunization records on file.</small>
-            </div>
-
-            <div className="form-group">
-              <label>Recent Report Card</label>
-              <input
-                type="file"
-                onChange={(e) => setReportCardFile(e.target.files[0])}
-              />
-              <small>Required for students applying for SK or higher grades.</small>
-            </div>
-
-            <div className="form-group">
-              <label>OSR Permission Form</label>
-              <input
-                type="file"
-                onChange={(e) => setOsrPermissionFile(e.target.files[0])}
-              />
-              <small>Needed for new students transferring from an Ontario school.</small>
-            </div>
-
-            <div className="form-group">
-              <label>Government Issued ID</label>
-              <input
-                type="file"
-                onChange={(e) => setGovtIdFile(e.target.files[0])}
-              />
-              <small>Please provide ONE of the following: passport, birth certificate, or residency permit.</small>
-            </div>
-          </section>
-        )}
-
         {/* OPTIONAL ADMIN SECTION */}
         {isAdmin && (
           <section className="form-section admin-section">
@@ -734,7 +734,7 @@ const RegistrationPage = () => {
                 <option value="Accept">Accept</option>
                 <option value="Reject">Reject</option>
               </select>
-              <small>To Accept a Student, select “Accept.”</small>
+              <small>To Accept a Student, select "Accept."</small>
             </div>
 
             <div className="form-group">
@@ -758,7 +758,7 @@ const RegistrationPage = () => {
         )}
 
         {/* NAVIGATION BUTTONS */}
-        <div className="form-navigation" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem' }}>
+        <div className="form-navigation" style={{ display: 'flex', justifyContent: currentStep === 1 ? 'flex-end' : 'space-between', marginTop: '1rem' }}>
           {currentStep > 1 && (
             <button
               type="button"
@@ -777,7 +777,7 @@ const RegistrationPage = () => {
               Next
             </button>
           ) : (
-            <button type="submit"  className="navigation-button" onClick={handleSubmit}>
+            <button type="submit" className="navigation-button">
               Submit Application
             </button>
           )}
