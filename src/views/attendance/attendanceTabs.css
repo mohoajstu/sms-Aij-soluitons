@@ -1,0 +1,173 @@
+/* attendanceTabs.css */
+.attendance-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  }
+  
+  .tab-navigation {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 30px;
+    padding-bottom: 10px;
+  }
+  
+  .tab-item {
+    font-size: 16px;
+    padding: 12px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 160px;
+    text-align: center;
+    position: relative;
+    color: #757575;
+  }
+  
+  .tab-item.active {
+    font-weight: 600;
+    color: #212121;
+  }
+  
+  .tab-item.active::after {
+    content: '';
+    position: absolute;
+    bottom: -11px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: #212121;
+  }
+  
+  .tab-separator {
+    font-size: 18px;
+    color: #e0e0e0;
+    padding: 0 10px;
+  }
+  
+  .tab-content {
+    width: 100%;
+    padding: 10px;
+  }
+  
+  .take-attendance-content,
+  .attendance-report-content {
+    width: 100%;
+    padding: 20px 0;
+  }
+  
+  .field-label {
+    font-weight: 600;
+    color: #424242;
+    font-size: 15px;
+  }
+  
+  /* Base styles for form fields */
+  .attendance-container .autocomplete-field {
+    width: 300px;
+    background-color: #FFFFFF;
+    border-radius: 8px;
+  }
+  
+  /* Restore proper height and styling for Autocomplete */
+  .attendance-container .MuiAutocomplete-root .MuiOutlinedInput-root {
+    height: 56px;
+  }
+  
+  .attendance-container .MuiInputBase-input {
+    height: auto !important;
+    padding: 14px 16px !important;
+  }
+  
+  .attendance-container .MuiOutlinedInput-root {
+    height: 56px;
+    border-radius: 8px;
+  }
+  
+  /* Fix for dropdown fields */
+  .attendance-container .MuiAutocomplete-root .MuiOutlinedInput-root .MuiAutocomplete-input {
+    padding: 7.5px 4px 7.5px 8px !important;
+    height: 23px !important;
+    box-sizing: content-box;
+  }
+  
+  /* Fix for nested input elements */
+  .attendance-container .MuiAutocomplete-root .MuiInputBase-input,
+  .attendance-container .MuiTextField-root .MuiInputBase-input {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    margin-bottom: 0 !important;
+  }
+  
+  /* Fix for date picker fields */
+  .attendance-container .date-picker {
+    background-color: #FFFFFF;
+    border-radius: 8px;
+  }
+  
+  .attendance-container .MuiDatePicker-root .MuiInputBase-root,
+  .attendance-container .MuiTextField-root .MuiInputBase-root {
+    height: 56px;
+  }
+  
+  /* Ensure proper width and rendering */
+  .attendance-container .MuiAutocomplete-root,
+  .attendance-container .MuiFormControl-root,
+  .attendance-container .MuiTextField-root {
+    width: 300px;
+  }
+  
+  /* Action button styling */
+  .action-button {
+    margin-top: 30px !important;
+    background-color: #212121 !important;
+    color: white !important;
+    border-radius: 30px !important;
+    padding: 10px 25px !important;
+    font-weight: 500 !important;
+    text-transform: none !important;
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2) !important;
+    transition: all 0.3s ease !important;
+    height: 48px !important;
+  }
+  
+  .action-button:hover {
+    background-color: #000000 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 8px rgba(0, 0, 0, 0.3) !important;
+  }
+  
+  /* Override registration page styles that affect form element height */
+  .attendance-container input,
+  .attendance-container select,
+  .attendance-container textarea {
+    margin-bottom: 0;
+    height: auto;
+  }
+  
+  /* Fix for outlines on focused elements */
+  .attendance-container .MuiOutlinedInput-notchedOutline {
+    border-color: #e0e0e0;
+    border-width: 1px;
+  }
+  
+  .attendance-container .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+    border-color: #1976d2;
+    border-width: 2px;
+  }
+  
+  /* Make sure the text inside dropdowns has proper height and alignment */
+  .attendance-container .MuiSelect-outlined {
+    display: flex;
+    align-items: center;
+    height: 100%;
+  }
