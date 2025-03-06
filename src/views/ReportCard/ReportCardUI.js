@@ -5,6 +5,7 @@ import Grid from '@mui/material/Grid'
 import Box from '@mui/material/Box'
 import ReportCardPage from './ReportCardPage'
 import classData from '../../Data/Classes.json'
+import './ReportCardUI.css' // Import the CSS file
 
 const ReportCardUI = () => {
   const [activeTab, setActiveTab] = useState(0)
@@ -20,6 +21,7 @@ const ReportCardUI = () => {
 
   return (
     <div
+      className="report-card-container"
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -31,6 +33,7 @@ const ReportCardUI = () => {
       {/* Tab Navigation */}
       <CNav
         variant="tabs"
+        className="tab-navigation"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -43,6 +46,7 @@ const ReportCardUI = () => {
           <CNavLink
             active={activeTab === 0}
             onClick={() => setActiveTab(0)}
+            className={`tab-item ${activeTab === 0 ? 'active' : ''}`}
             style={{
               fontSize: '16px',
               fontWeight: activeTab === 0 ? 'bold' : 'normal',
@@ -53,7 +57,7 @@ const ReportCardUI = () => {
               padding: '10px 15px',
               minWidth: '150px',
               textAlign: 'center',
-              borderBottom: activeTab === 0 ? '2px solid #000' : 'none',
+              // borderBottom: activeTab === 0 ? '2px solid #000' : 'none',
             }}
           >
             Generate Report Card
@@ -61,6 +65,7 @@ const ReportCardUI = () => {
         </CNavItem>
         {/* Separator */}
         <span
+          className="tab-separator"
           style={{
             fontSize: '18px',
             color: '#000',
@@ -74,6 +79,7 @@ const ReportCardUI = () => {
           <CNavLink
             active={activeTab === 1}
             onClick={() => setActiveTab(1)}
+            className={`tab-item ${activeTab === 1 ? 'active' : ''}`}
             style={{
               fontSize: '16px',
               fontWeight: activeTab === 1 ? 'bold' : 'normal',
@@ -84,7 +90,7 @@ const ReportCardUI = () => {
               padding: '10px 15px',
               minWidth: '150px',
               textAlign: 'center',
-              borderBottom: activeTab === 1 ? '2px solid #000' : 'none',
+              // borderBottom: activeTab === 1 ? '2px solid #000' : 'none',
             }}
           >
             Report Card History
@@ -92,7 +98,7 @@ const ReportCardUI = () => {
         </CNavItem>
       </CNav>
       {/* Tab Content */}
-      <CTabContent style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+      <CTabContent className="tab-content" style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
         <CTabPane visible={activeTab === 0} style={{ width: '100%' }}>
           {!selectedStudent ? (
             <Box marginTop="60px" sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
@@ -100,7 +106,7 @@ const ReportCardUI = () => {
                 {/* Row 1: Semester Selector */}
                 <Grid container item direction="row" alignItems="center" spacing={2}>
                   <Grid item xs={4}>
-                    <label style={{ fontWeight: 'bold' }}>Select Semester:</label>
+                    <label className="field-label">Select Semester:</label>
                   </Grid>
                   <Grid item xs={8}>
                     <Autocomplete
@@ -112,7 +118,6 @@ const ReportCardUI = () => {
                         setSelectedSection(null)
                         setSelectedStudent(null)
                       }}
-                      sx={{ backgroundColor: '#FFFFFF' }}
                       renderInput={(params) => <TextField {...params} label="Select Semester" />}
                     />
                   </Grid>
@@ -120,7 +125,7 @@ const ReportCardUI = () => {
                 {/* Row 2: Section Selector */}
                 <Grid container item direction="row" alignItems="center" spacing={2}>
                   <Grid item xs={4}>
-                    <label style={{ fontWeight: 'bold' }}>Select Section:</label>
+                    <label className="field-label">Select Section:</label>
                   </Grid>
                   <Grid item xs={8}>
                     <Autocomplete
@@ -131,7 +136,6 @@ const ReportCardUI = () => {
                         setSelectedSection(newValue)
                         setSelectedStudent(null)
                       }}
-                      sx={{ backgroundColor: '#FFFFFF' }}
                       renderInput={(params) => <TextField {...params} label="Select Section" />}
                       disabled={!selectedSemester}
                     />
@@ -140,7 +144,7 @@ const ReportCardUI = () => {
                 {/* Row 3: Student Selector */}
                 <Grid container item direction="row" alignItems="center" spacing={2}>
                   <Grid item xs={4}>
-                    <label style={{ fontWeight: 'bold' }}>Select Student:</label>
+                    <label className="field-label">Select Student:</label>
                   </Grid>
                   <Grid item xs={8}>
                     <Autocomplete
@@ -148,7 +152,6 @@ const ReportCardUI = () => {
                       options={studentOptions}
                       value={selectedStudent}
                       onChange={(event, newValue) => setSelectedStudent(newValue)}
-                      sx={{ backgroundColor: '#FFFFFF' }}
                       renderInput={(params) => <TextField {...params} label="Select Student" />}
                       disabled={!selectedSection}
                     />

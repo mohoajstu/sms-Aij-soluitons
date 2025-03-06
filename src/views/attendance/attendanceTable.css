@@ -1,100 +1,93 @@
-/* attendanceTabs.css */
-.attendance-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-    background-color: #f8f9fa;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  }
-  
-  .tab-navigation {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    border-bottom: 1px solid #e0e0e0;
-    margin-bottom: 30px;
-    padding-bottom: 10px;
-  }
-  
-  .tab-item {
-    font-size: 16px;
-    padding: 12px 20px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    min-width: 160px;
-    text-align: center;
-    position: relative;
-    color: #757575;
-  }
-  
-  .tab-item.active {
-    font-weight: 600;
-    color: #212121;
-  }
-  
-  .tab-item.active::after {
-    content: '';
-    position: absolute;
-    bottom: -11px;
-    left: 0;
-    width: 100%;
-    height: 3px;
-    background-color: #212121;
-  }
-  
-  .tab-separator {
-    font-size: 18px;
-    color: #e0e0e0;
-    padding: 0 10px;
-  }
-  
-  .tab-content {
-    width: 100%;
-    padding: 10px;
-  }
-  
-  .take-attendance-content,
-  .attendance-report-content {
-    width: 100%;
-    padding: 20px 0;
-  }
-  
-  .field-label {
-    font-weight: 600;
-    color: #424242;
-    font-size: 15px;
-  }
-  
-  .autocomplete-field {
-    width: 300px;
-    background-color: #FFFFFF;
-    border-radius: 8px;
-  }
-  
-  .date-picker {
-    background-color: #FFFFFF;
-    border-radius: 8px;
-  }
-  
-  .action-button {
-    margin-top: 30px !important;
-    background-color: #212121 !important;
-    color: white !important;
-    border-radius: 30px !important;
-    padding: 10px 25px !important;
-    font-weight: 500 !important;
-    text-transform: none !important;
-    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2) !important;
-    transition: all 0.3s ease !important;
-  }
-  
-  .action-button:hover {
-    background-color: #000000 !important;
-    transform: translateY(-2px);
-    box-shadow: 0 5px 8px rgba(0, 0, 0, 0.3) !important;
-  }
+/* AttendanceTable.module.css */
+
+/* Container that wraps the entire attendance table component */
+.attendanceTableContainer {
+  position: relative;
+  padding-bottom: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* Styling for the "Mark All Present" switch */
+.markAllSwitch {
+  margin-bottom: 10px;
+}
+
+/* Student information cell (for name, avatar, etc.) */
+.studentInfoCell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Student avatar image styling */
+.studentAvatar {
+  border-radius: 50%;
+}
+
+/* Common styles for attendance buttons */
+.attendanceButton {
+  margin-right: 5px;
+  border: 1px solid;
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  background-color: white;
+}
+
+/* Present button styles */
+.btnPresent {
+  border-color: #28a745;
+  color: black;
+}
+.btnPresent.active {
+  background-color: #28a745;
+  color: white;
+}
+
+/* Absent button styles */
+.btnAbsent {
+  border-color: #dc3545;
+  color: black;
+}
+.btnAbsent.active {
+  background-color: #dc3545;
+  color: white;
+}
+
+/* Late button styles */
+.btnLate {
+  border-color: #ffc107;
+  color: black;
+}
+.btnLate.active {
+  background-color: #ffc107;
+  color: black;
+}
+
+/* Comment icon styling */
+.commentIcon {
+  cursor: pointer;
+  color: black;
+}
+.commentIcon.hasComment {
+  color: green;
+}
+
+/* Complete button styling */
+.completeButton {
+  position: absolute;
+  bottom: 10px;
+  right: 20px;
+  padding: 10px 20px;
+  font-size: 16px;
+  border-radius: 100px;
+}
