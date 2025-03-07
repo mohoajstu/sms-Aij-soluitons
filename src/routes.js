@@ -9,7 +9,6 @@ const AttendanceTabs = React.lazy(() => import('./views/attendance/attendanceTab
 const AttendanceTable = React.lazy(() => import('./views/attendance/attendanceTable'))
 //Report Cards
 const ReportCardUI = React.lazy(() => import('./views/ReportCard/ReportCardUI'))
-const ReportCardPage = React.lazy(() => import('./views/ReportCard/ReportCardPage'))
 // Courses
 const Courses = React.lazy(() => import('./views/Courses/Courses'))
 const CourseDetailPage = React.lazy(() => import('./views/Courses/courseDetails'))
