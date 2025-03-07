@@ -24,6 +24,8 @@ import {
 } from "@coreui/icons";
 
 import './Dashboard.css'
+import sygnet from '../../assets/brand/TLA_logo_simple.svg'; 
+
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -60,15 +62,24 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container">
-      {/* Header */}
       <div className="dashboard-header">
-        <div>
-          <h1 className="dashboard-title">TARBIYAH LEARNING ACADEMY</h1>
-          <p className="dashboard-subtitle">Staff Portal</p>
-        </div>
-        <div className="user-section">
-        </div>
-      </div>
+  {/* Wrap the logo and text in a .header-left container for easy alignment */}
+  <div className="header-left">
+    {/* Logo / Sygnet Image */}
+    <img src={sygnet} alt="School Logo" className="school-logo" />
+    
+    {/* Title and subtitle */}
+    <div>
+      <h1 className="dashboard-title">TARBIYAH LEARNING ACADEMY</h1>
+      <p className="dashboard-subtitle">Staff Portal</p>
+    </div>
+  </div>
+  {/* Right side (user / icons / etc.) */}
+  <div className="user-section">
+    {/* Add your user info or other elements here */}
+  </div>
+</div>
+
 
       {/* Welcome Banner */}
       <div className="enhanced-welcome-banner">
@@ -311,7 +322,7 @@ const Dashboard = () => {
         </CCol>
       </CRow>
 
-      {/* Report Card Management */}
+      {/* Report Card Management
       <CRow className="mt-4">
         <CCol lg={6} md={12}>
           <CCard className="report-card-management">

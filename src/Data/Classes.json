@@ -1,5 +1,5 @@
 {
-    "Grade 1": {
+    "Fall 2023": {
         "Section A": {
             "students": ["Alice Brown", "Bob Smith", "Charlie Johnson"],
             "faculty": ["Ms. Adams", "Mr. Thompson"],
@@ -11,7 +11,7 @@
             "max_students": 22
         }
     },
-    "Grade 2": {
+    "Winter 2024": {
         "Section A": {
             "students": ["George Hall", "Hannah Lee", "Isaac King"],
             "faculty": ["Mr. Martin"],
@@ -23,7 +23,7 @@
             "max_students": 21
         }
     },
-    "Grade 3": {
+    "Summer 2025": {
         "Section A": {
             "students": ["Mia Davis", "Noah Evans", "Olivia Fisher"],
             "faculty": ["Ms. Harris"],
