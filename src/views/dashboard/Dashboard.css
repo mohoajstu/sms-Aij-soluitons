@@ -13,7 +13,24 @@
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    font-size: 4rem;
+    font-weight: bold;
+    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
   }
+
+  /* Put the logo and the text side by side */
+.header-left {
+    display: flex;
+    align-items: center;
+  }
+  
+  /* Style the logo image */
+  .school-logo {
+    width: 50px;       /* Adjust as needed */
+    height: auto;      /* Let height scale automatically */
+    margin-right: 1rem;  /* Spacing between image and text */
+  }
+  
   
   .dashboard-title {
     font-size: 2rem;
@@ -317,10 +334,16 @@
   
   .quick-links-container {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    /* Adjust `minmax(150px, 1fr)` based on how wide you want each item */
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 1rem;
     margin-top: 1rem;
+    /* If you also want to prevent vertical overflow, you can set a max-height:
+    max-height: 400px;
+    overflow-y: auto;
+    */
   }
+  
   
   .quick-link-item {
     display: flex;

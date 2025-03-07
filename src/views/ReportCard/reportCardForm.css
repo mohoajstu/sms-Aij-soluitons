@@ -6,7 +6,7 @@
     --text-color: #333;
     --section-bg: #ffffff;
     --border-radius: 8px;
-    --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --box-shadow: 0 4px 6px rgba(50, 32, 32, 0.1);
     --input-border: #e0e0e0;
     --input-focus: #7bb432;
     --required-color: #e74c3c;
@@ -245,6 +245,7 @@ input[type="file"]:hover {
     justify-content: space-between;
     margin-bottom: 2rem;
     position: relative;
+    z-index: 1;
 }
   
 .progress-indicator::before {
