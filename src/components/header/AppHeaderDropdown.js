@@ -23,7 +23,7 @@ import {
 import CIcon from '@coreui/icons-react'
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../Firebase/useAuth'
-import avatar8 from './../../assets/images/avatars/8.jpg'
+import avatar8 from './../../assets/images/avatars/0.png'
 
 const AppHeaderDropdown = () => {
     const { signOut } = useAuth();
