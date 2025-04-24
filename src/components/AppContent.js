@@ -2,6 +2,8 @@ import React, { Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { CContainer, CSpinner } from '@coreui/react'
 
+import AddStudentForm from "./addStudentForm.js";
+
 // routes config
 import routes from '../routes'
 
@@ -23,6 +25,7 @@ const AppContent = () => {
               )
             )
           })}
+          <Route path="/add-student" element={<AddStudentForm />} />
           <Route path="/" element={<Navigate to="dashboard" replace />} />
         </Routes>
       </Suspense>
