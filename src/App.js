@@ -2,6 +2,8 @@ import React, { Suspense, useEffect } from "react";
 import { HashRouter, Route, Routes, Navigate } from "react-router-dom";
 import { CSpinner, useColorModes } from "@coreui/react";
 import useAuth from "./Firebase/useAuth";
+import ErrorBoundary from "./components/ErrorBoundary";
+import { Toaster } from "react-hot-toast";
 import "./scss/style.scss";
 import "./scss/examples.scss";
 
@@ -35,33 +37,36 @@ const App = () => {
   }
 
   return (
-    <HashRouter>
-      <Suspense
-        fallback={
-          <div className="pt-3 text-center">
-            <CSpinner color="primary" variant="grow" />
-          </div>
-        }
-      >
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/404" element={<Page404 />} />
-          <Route path="/500" element={<Page500 />} />
+    <ErrorBoundary>
+      <HashRouter>
+        <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
+        <Suspense
+          fallback={
+            <div className="pt-3 text-center">
+              <CSpinner color="primary" variant="grow" />
+            </div>
+          }
+        >
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/404" element={<Page404 />} />
+            <Route path="/500" element={<Page500 />} />
 
-          {/* Protected Routes */}
-          <Route path="/*" element={user ? <DefaultLayout /> : <Navigate to="/login" replace />} />
+            {/* Protected Routes */}
+            <Route path="/*" element={user ? <DefaultLayout /> : <Navigate to="/login" replace />} />
 
-          {/* 📌 Add Report Card Page */}
-         {/*} <Route path="/reportcards" element={user ? <ReportCardPage /> : <Navigate to="/login" replace />} />
-          <Route path="/report-card-2" element={user ? <ReportCardUI /> : <Navigate to="/login" replace />} />*/}
+            {/* 📌 Add Report Card Page */}
+           {/*} <Route path="/reportcards" element={user ? <ReportCardPage /> : <Navigate to="/login" replace />} />
+            <Route path="/report-card-2" element={user ? <ReportCardUI /> : <Navigate to="/login" replace />} />*/}
 
-          {/* Redirect unmatched routes */}
-          <Route path="*" element={<Navigate to={user ? "/" : "/login"} replace />} />
-        </Routes>
-      </Suspense>
-    </HashRouter>
+            {/* Redirect unmatched routes */}
+            <Route path="*" element={<Navigate to={user ? "/" : "/login"} replace />} />
+          </Routes>
+        </Suspense>
+      </HashRouter>
+    </ErrorBoundary>
   );
 };
 

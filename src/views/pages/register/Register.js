@@ -22,7 +22,7 @@ import {
   signInWithPopup, 
   GoogleAuthProvider 
 } from "firebase/auth";
-import { auth, firestore } from '../../../Firebase/firebase';
+import { auth, firestore } from '../../../firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 // Google Auth Provider Configuration

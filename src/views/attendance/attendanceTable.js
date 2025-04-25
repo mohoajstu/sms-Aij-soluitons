@@ -13,9 +13,13 @@ import {
   CModalBody,
   CModalFooter,
   CFormInput,
+  CSpinner,
+  CAlert,
 } from "@coreui/react";
 import CIcon from "@coreui/icons-react";
 import { cilChatBubble } from "@coreui/icons";
+import { firestore } from "../../firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 const students = [
   { id: 1, name: "Arthur Boucher", grade: 9, avatar: "https://i.pravatar.cc/40?img=1" },
@@ -26,12 +30,14 @@ const students = [
   { id: 6, name: "Justin Aponte", grade: 9, avatar: "https://i.pravatar.cc/40?img=3" },
 ];
 
-const AttendanceTable = () => {
+const AttendanceTable = ({ classInfo = { name: 'Default Class' } }) => {
   const [attendanceData, setAttendanceData] = useState({});
   const [showModal, setShowModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [commentInput, setCommentInput] = useState("");
   const [allPresent, setAllPresent] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [alert, setAlert] = useState({ show: false, message: '', color: 'success' });
 
   const handleSetAllPresent = (checked) => {
     const newAttendance = {};
@@ -63,13 +69,75 @@ const AttendanceTable = () => {
     setShowModal(false);
   };
 
-  const handleComplete = () => {
-    console.log("Attendance Completed:", attendanceData);
-    alert("Attendance has been submitted!");
+  const handleComplete = async () => {
+    setIsSubmitting(true);
+    setAlert({ show: false, message: '', color: 'success' });
+    
+    try {
+      const attendanceRecords = [];
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      
+      // Prepare all attendance records
+      for (const student of students) {
+        const status = attendanceData[student.id]?.status || "Absent";
+        const comment = attendanceData[student.id]?.comment || "";
+        
+        // Create the attendance record
+        const attendanceRecord = {
+          studentId: student.id.toString(),
+          student: student.name,
+          status: status,
+          date: today,
+          timestamp: serverTimestamp(),
+          comment: comment,
+          class: classInfo.name,
+          grade: student.grade
+        };
+        
+        attendanceRecords.push(attendanceRecord);
+        
+        // If student is absent, immediately save to Firestore to trigger notification
+        if (status === "Absent") {
+          await addDoc(collection(firestore, "attendance"), attendanceRecord);
+        }
+      }
+      
+      // For all other records (not absent), batch save them
+      const nonAbsentRecords = attendanceRecords.filter(record => record.status !== "Absent");
+      
+      for (const record of nonAbsentRecords) {
+        await addDoc(collection(firestore, "attendance"), record);
+      }
+      
+      setAlert({
+        show: true,
+        message: 'Attendance submitted successfully! Notifications will be sent to parents of absent students.',
+        color: 'success'
+      });
+      
+      console.log("Attendance Completed:", attendanceRecords);
+      
+    } catch (error) {
+      console.error("Error saving attendance:", error);
+      setAlert({
+        show: true,
+        message: `Error submitting attendance: ${error.message}`,
+        color: 'danger'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div style={{ position: "relative", paddingBottom: "60px" }}>
+      {/* Alert Message */}
+      {alert.show && (
+        <CAlert color={alert.color} dismissible onClose={() => setAlert({ ...alert, show: false })}>
+          {alert.message}
+        </CAlert>
+      )}
+      
       {/* Mark All Present Switch */}
       <CFormSwitch
         label="Mark All Present"
@@ -190,8 +258,15 @@ const AttendanceTable = () => {
           borderRadius: "100px",
         }}
         onClick={handleComplete}
+        disabled={isSubmitting}
       >
-        Complete Attendance
+        {isSubmitting ? (
+          <>
+            <CSpinner size="sm" className="me-2" /> Submitting...
+          </>
+        ) : (
+          "Complete Attendance"
+        )}
       </CButton>
     </div>
   );

@@ -7,12 +7,13 @@ import Grid from '@mui/material/Grid2';
 import ClassSelector from '../../components/classSelector';
 import DateSelector from '../../components/DateSelector';
 import AttendanceReportTable from './attendenceReportTable';
+import ManualSmsNotification from './ManualSmsNotification';
 import attendanceData from './tempData';
 import dayjs from 'dayjs';
 import './attendanceTabs.css';
 
 const AttendanceTabs = () => {
-  const [activeTab, setActiveTab] = useState(1); // Default to "Attendance Report"
+  const [activeTab, setActiveTab] = useState(2); // Default to "SMS Notifications" tab
   const navigate = useNavigate();
   const [reportParams, setReportParams] = useState({
     semester: "",
@@ -67,6 +68,13 @@ const AttendanceTabs = () => {
       <div className="at-tab-wrapper">
         <div className="at-tab-navigation">
           <div 
+            className={`at-tab-link ${activeTab === 2 ? 'at-active' : ''}`}
+            onClick={() => setActiveTab(2)}
+          >
+            SMS Test
+          </div>
+          <div className="at-tab-separator"></div>
+          <div 
             className={`at-tab-link ${activeTab === 0 ? 'at-active' : ''}`}
             onClick={() => setActiveTab(0)}
           >
@@ -84,6 +92,17 @@ const AttendanceTabs = () => {
 
       {/* Tab Content */}
       <div className="at-tab-content">
+        {/* SMS Notifications Tab */}
+        {activeTab === 2 && (
+          <Box className="at-sms-notifications-content">
+            <div className="at-note-box">
+              <strong>Direct SMS Test:</strong> This tab allows you to send test SMS messages directly to your phone using our HTTP API. 
+              No database interactions are required, so you can test the messaging functionality without Firestore permissions.
+            </div>
+            <ManualSmsNotification />
+          </Box>
+        )}
+        
         {/* Take Attendance Tab */}
         {activeTab === 0 && (
           <Box className="at-take-attendance-content">

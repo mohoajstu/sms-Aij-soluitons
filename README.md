@@ -163,3 +163,112 @@ CoreUI is an MIT-licensed open source project and is completely free to use. How
 copyright 2025 creativeLabs Łukasz Holeczek.   
 
 Code released under [the MIT license](https://github.com/coreui/coreui-free-react-admin-template/blob/main/LICENSE).
+
+# SMS Attendance Notification System
+
+This system uses Firebase Functions and Twilio to send SMS notifications to parents when their children are marked absent in the attendance system.
+
+## Setup
+
+### 1. Firebase Setup
+
+Ensure you have the Firebase CLI installed:
+
+```bash
+npm install -g firebase-tools
+```
+
+Login to Firebase:
+
+```bash
+firebase login
+```
+
+### 2. Twilio Configuration
+
+1. Create a Twilio account at [twilio.com](https://www.twilio.com)
+2. Get your Account SID and Auth Token from the Twilio dashboard
+3. Purchase or use an existing Twilio phone number for sending SMS
+
+### 3. Set Environment Variables
+
+Set up your Twilio configuration in Firebase:
+
+```bash
+firebase functions:config:set twilio.accountsid=YOUR_ACCOUNT_SID twilio.authtoken=YOUR_AUTH_TOKEN twilio.phonenumber=YOUR_TWILIO_PHONE_NUMBER
+```
+
+### 4. Deploy the Functions
+
+Deploy the Firebase functions:
+
+```bash
+firebase deploy --only functions
+```
+
+## How It Works
+
+### Automatic Notifications
+
+When a student is marked as absent in the attendance system, the information is stored in Firestore. The Firebase function listens for new attendance records and automatically sends an SMS notification to the parent's phone number if the student is marked absent.
+
+### Manual Notifications
+
+You can also manually trigger SMS notifications using the `manualSendAbsenceNotification` function. This is useful for testing or for sending notifications for attendance records that were created before the function was deployed.
+
+## Firestore Data Structure
+
+### Students Collection
+
+Each student document should include:
+- `name`: Student's full name
+- `parentPhoneNumber`: Parent's phone number in E.164 format (e.g., +1XXXXXXXXXX)
+
+### Attendance Collection
+
+The attendance records should include:
+- `studentId`: Reference to the student document
+- `status`: Attendance status (Present, Absent, Late)
+- `date`: Date of the attendance record
+- `class` or `course`: Class or course name
+- `notificationSent`: Boolean indicating if notification was sent (added by the function)
+- `notificationTimestamp`: Timestamp when notification was sent (added by the function)
+- `notificationSid`: Twilio message SID (added by the function)
+
+## Testing
+
+To test the system:
+
+1. Create a sample student document in Firestore with a real phone number:
+   ```javascript
+   {
+     "name": "Test Student",
+     "parentPhoneNumber": "+1234567890"  // Use a real phone number for testing
+   }
+   ```
+
+2. Create an attendance record marking the student as absent:
+   ```javascript
+   {
+     "studentId": "student-document-id",
+     "status": "Absent",
+     "date": "2023-09-15",
+     "class": "Mathematics",
+     "timestamp": serverTimestamp()
+   }
+   ```
+
+3. Check the Firebase Functions logs to ensure the notification was sent.
+
+## Troubleshooting
+
+- **Missing Student Information**: Ensure the student ID in the attendance record matches a valid student document ID.
+- **Invalid Phone Number**: Make sure phone numbers are stored in E.164 format (e.g., +1XXXXXXXXXX).
+- **Authentication Issues**: Verify your Twilio credentials are set correctly with `firebase functions:config:get`.
+
+## Security and Privacy
+
+- All SMS messages are sent through Twilio's secure API.
+- Only basic attendance information is included in the SMS, no sensitive student data.
+- Parent phone numbers are stored securely in Firestore with appropriate security rules.
+- Only authenticated users can trigger manual notifications.

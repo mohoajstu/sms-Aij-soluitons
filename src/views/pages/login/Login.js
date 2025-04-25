@@ -11,7 +11,7 @@ import {
   setDoc, 
   getDoc 
 } from 'firebase/firestore';
-import { auth } from '../../../Firebase/firebase';
+import { auth } from '../../../firebase';
 import {
   CButton,
   CCard,
