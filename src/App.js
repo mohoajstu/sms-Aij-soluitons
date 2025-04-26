@@ -2,6 +2,7 @@ import React, { Suspense, useEffect } from "react";
 import { HashRouter, Route, Routes, Navigate } from "react-router-dom";
 import { CSpinner, useColorModes } from "@coreui/react";
 import useAuth from "./Firebase/useAuth";
+import { Toaster } from 'react-hot-toast';
 import "./scss/style.scss";
 import "./scss/examples.scss";
 
@@ -36,6 +37,25 @@ const App = () => {
 
   return (
     <HashRouter>
+      {/* Add Toaster for notifications */}
+      <Toaster position="top-right" toastOptions={{
+        duration: 4000,
+        style: {
+          background: '#363636',
+          color: '#fff',
+        },
+        success: {
+          style: {
+            background: 'green',
+          },
+        },
+        error: {
+          style: {
+            background: 'red',
+          },
+        },
+      }} />
+      
       <Suspense
         fallback={
           <div className="pt-3 text-center">
