@@ -1,0 +1,72 @@
+{
+  "name": "@coreui/coreui-free-react-admin-template",
+  "version": "5.4.0",
+  "description": "CoreUI Free React Admin Template",
+  "homepage": ".",
+  "bugs": {
+    "url": "https://github.com/coreui/coreui-free-react-admin-template/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:coreui/coreui-free-react-admin-template.git"
+  },
+  "license": "MIT",
+  "author": "The CoreUI Team (https://github.com/orgs/coreui/people)",
+  "scripts": {
+    "build": "vite build",
+    "lint": "eslint",
+    "serve": "vite preview",
+    "start": "vite"
+  },
+  "dependencies": {
+    "@coreui/chartjs": "^4.1.0",
+    "@coreui/coreui": "^5.3.1",
+    "@coreui/icons": "^3.0.1",
+    "@coreui/icons-react": "^2.3.0",
+    "@coreui/react": "^5.5.0",
+    "@coreui/react-chartjs": "^3.0.0",
+    "@coreui/utils": "^2.0.2",
+    "@date-io/date-fns": "^3.2.0",
+    "@date-io/dayjs": "^3.2.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^6.4.6",
+    "@mui/lab": "^6.0.0-beta.27",
+    "@mui/material": "^6.4.4",
+    "@mui/x-date-pickers": "^7.26.0",
+    "@popperjs/core": "^2.11.8",
+    "chart.js": "^4.4.7",
+    "classnames": "^2.5.1",
+    "core-js": "^3.40.0",
+    "date-fns": "^4.1.0",
+    "dayjs": "^1.11.13",
+    "firebase": "^11.2.0",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "2.16.105",
+    "prop-types": "^15.8.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hot-toast": "^2.5.2",
+    "react-pdf": "^6.0.3",
+    "react-redux": "^9.2.0",
+    "react-router-dom": "^7.1.5",
+    "react-select": "^5.10.0",
+    "redux": "5.0.1",
+    "simplebar-react": "^3.3.0",
+    "tesseract.js": "^6.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.20.1",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-prettier": "^5.2.3",
+    "eslint-plugin-react": "^7.37.4",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "globals": "^15.15.0",
+    "postcss": "^8.5.2",
+    "prettier": "3.5.1",
+    "sass": "^1.85.0",
+    "vite": "^6.1.0"
+  }
+}

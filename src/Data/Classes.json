@@ -1,0 +1,38 @@
+{
+    "Fall 2023": {
+        "Section A": {
+            "students": ["Alice Brown", "Bob Smith", "Charlie Johnson"],
+            "faculty": ["Ms. Adams", "Mr. Thompson"],
+            "max_students": 20
+        },
+        "Section B": {
+            "students": ["David White", "Emma Wilson", "Frank Black"],
+            "faculty": ["Ms. Clark"],
+            "max_students": 22
+        }
+    },
+    "Winter 2024": {
+        "Section A": {
+            "students": ["George Hall", "Hannah Lee", "Isaac King"],
+            "faculty": ["Mr. Martin"],
+            "max_students": 18
+        },
+        "Section B": {
+            "students": ["Jack Allen", "Katie Brooks", "Liam Scott"],
+            "faculty": ["Ms. Robinson"],
+            "max_students": 21
+        }
+    },
+    "Summer 2025": {
+        "Section A": {
+            "students": ["Mia Davis", "Noah Evans", "Olivia Fisher"],
+            "faculty": ["Ms. Harris"],
+            "max_students": 19
+        },
+        "Section B": {
+            "students": ["Paul Green", "Quinn Howard", "Rachel Jackson"],
+            "faculty": ["Mr. Young"],
+            "max_students": 23
+        }
+    }
+}

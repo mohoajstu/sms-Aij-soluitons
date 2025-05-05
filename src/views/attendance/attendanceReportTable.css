@@ -1,0 +1,152 @@
+/* attendanceReportTable.css */
+
+/* Container spacing around the report table */
+.report-table-container {
+    margin-top: 32px;
+    margin-bottom: 20px;
+  }
+  
+  /* Header containing title and export buttons */
+  .report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  
+  /* Main title of the report */
+  .report-title {
+    font-weight: 600 !important;
+    color: #212121;
+  }
+  
+  /* Subtitle that appears after the main title (e.g., semester) */
+  .report-subtitle {
+    font-weight: normal;
+    color: #616161;
+    margin-left: 8px;
+  }
+  
+  /* Container for the export buttons */
+  .export-buttons {
+    display: flex;
+    gap: 12px;
+  }
+  
+  /* Base style for both export buttons */
+  .export-button {
+    text-transform: none !important;
+    font-weight: 500 !important;
+    border-radius: 20px !important;
+    padding: 6px 16px !important;
+  }
+  
+  /* Excel export button */
+  .excel-button {
+    color: #2e7d32 !important;
+    border-color: #2e7d32 !important;
+  }
+  
+  /* PDF export button */
+  .pdf-button {
+    color: #c62828 !important;
+    border-color: #c62828 !important;
+  }
+  
+  /* The container that wraps the MUI Table component */
+  .table-container {
+    border-radius: 8px !important;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  }
+  
+  /* Main table styling */
+  .report-table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  
+  /* Table header cells */
+  .table-header {
+    background-color: #212631 !important;
+    color: white !important;
+    font-weight: 600 !important;
+    padding: 14px 16px !important;
+  }
+  
+  /* Row background colors based on attendance status */
+  .status-row.present {
+    background-color: #f1f8e9; /* light green */
+  }
+  
+  .status-row.absent {
+    background-color: #ffebee; /* light red */
+  }
+  
+  .status-row.late {
+    background-color: #fffde7; /* light yellow */
+  }
+  
+  /* Base styling for the status chips (MUI Chips) */
+  .status-chip {
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    border-radius: 16px !important;
+    height: 24px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    /* You can add margins if you want some spacing: */
+    /* margin-right: 8px; */
+  }
+  
+  /* Present chip styling */
+  .status-chip.present {
+    background-color: #c5e1a5 !important; /* soft green background */
+    color: #33691e !important;            /* darker green text */
+  }
+  
+  /* Absent chip styling */
+  .status-chip.absent {
+    background-color: #ef9a9a !important; /* soft red background */
+    color: #b71c1c !important;            /* darker red text */
+  }
+  
+  /* Late chip styling */
+  .status-chip.late {
+    background-color: #fff59d !important; /* soft yellow background */
+    color: #f57f17 !important;           /* deeper amber text */
+  }
+  
+  /* Style for cells where there is no note */
+  .no-note {
+    color: #9e9e9e;
+    font-style: italic;
+  }
+  
+  /* When there's no data to display, show this container with a message */
+  .no-data-container {
+    text-align: center;
+    margin-top: 20px;
+  }
+  
+  /* Primary "no data" text */
+  .no-data-text {
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #757575;
+  }
+  
+  /* Footer area below the table (record count, pagination, etc.) */
+  .report-footer {
+    margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  /* Text that shows the number of records found */
+  .record-count {
+    color: #424242;
+    font-weight: 500;
+  }
+  

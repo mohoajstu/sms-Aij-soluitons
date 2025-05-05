@@ -1,0 +1,93 @@
+/* AttendanceTable.module.css */
+
+/* Container that wraps the entire attendance table component */
+.attendanceTableContainer {
+  position: relative;
+  padding-bottom: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* Styling for the "Mark All Present" switch */
+.markAllSwitch {
+  margin-bottom: 10px;
+}
+
+/* Student information cell (for name, avatar, etc.) */
+.studentInfoCell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Student avatar image styling */
+.studentAvatar {
+  border-radius: 50%;
+}
+
+/* Common styles for attendance buttons */
+.attendanceButton {
+  margin-right: 5px;
+  border: 1px solid;
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  background-color: white;
+}
+
+/* Present button styles */
+.btnPresent {
+  border-color: #28a745;
+  color: black;
+}
+.btnPresent.active {
+  background-color: #28a745;
+  color: white;
+}
+
+/* Absent button styles */
+.btnAbsent {
+  border-color: #dc3545;
+  color: black;
+}
+.btnAbsent.active {
+  background-color: #dc3545;
+  color: white;
+}
+
+/* Late button styles */
+.btnLate {
+  border-color: #ffc107;
+  color: black;
+}
+.btnLate.active {
+  background-color: #ffc107;
+  color: black;
+}
+
+/* Comment icon styling */
+.commentIcon {
+  cursor: pointer;
+  color: black;
+}
+.commentIcon.hasComment {
+  color: green;
+}
+
+/* Complete button styling */
+.completeButton {
+  position: absolute;
+  bottom: 10px;
+  right: 20px;
+  padding: 10px 20px;
+  font-size: 16px;
+  border-radius: 100px;
+}

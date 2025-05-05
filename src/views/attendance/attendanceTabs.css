@@ -1,0 +1,189 @@
+/* Container */
+.at-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    font-family: 'Roboto', sans-serif;
+  }
+  
+  /* Tab Navigation Wrapper */
+  .at-tab-wrapper {
+    width: 100%;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  
+  /* Tab Navigation */
+  .at-tab-navigation {
+    display: flex;
+    background-color: #f5f7ff;
+  }
+  
+  /* Tab Links */
+  .at-tab-link {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #7a7a7a;
+    position: relative;
+  }
+  
+  .at-tab-link:hover {
+    background-color: rgba(33, 38, 49, 0.1);
+  }
+  
+  .at-active {
+    color: #212631;
+    background-color: #ffffff;
+  }
+  
+  .at-active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: #212631;
+    border-radius: 3px 3px 0 0;
+  }
+  
+  /* Separator between tabs */
+  .at-tab-separator {
+    width: 1px;
+    background-color: #ccc;
+  }
+  
+  /* Tab Content */
+  .at-tab-content {
+    width: 100%;
+    padding: 10px;
+  }
+  
+  /* Content sections */
+  .at-take-attendance-content,
+  .at-attendance-report-content {
+    width: 100%;
+    padding: 20px 0;
+  }
+  
+  /* Field Labels */
+  .at-field-label {
+    font-weight: 600;
+    color: #212631;
+    font-size: 15px;
+  }
+  
+  /* Autocomplete Fields */
+  .at-autocomplete-field {
+    width: 300px;
+    background-color: #ffffff;
+    border-radius: 8px;
+  }
+  
+  /* MUI Autocomplete and Input adjustments */
+  .at-container .MuiAutocomplete-root .MuiOutlinedInput-root {
+    height: 56px;
+  }
+  
+  .at-container .MuiInputBase-input {
+    height: auto !important;
+    padding: 14px 16px !important;
+  }
+  
+  .at-container .MuiOutlinedInput-root {
+    height: 56px;
+    border-radius: 8px;
+  }
+  
+  .at-container .MuiAutocomplete-root .MuiOutlinedInput-root .MuiAutocomplete-input {
+    padding: 7.5px 4px 7.5px 8px !important;
+    height: 23px !important;
+    box-sizing: content-box;
+  }
+  
+  .at-container .MuiAutocomplete-root .MuiInputBase-input,
+  .at-container .MuiTextField-root .MuiInputBase-input {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    margin-bottom: 0 !important;
+  }
+  
+  /* Date Picker */
+  .at-date-picker {
+    background-color: #ffffff;
+    border-radius: 8px;
+  }
+  
+  .at-container .MuiDatePicker-root .MuiInputBase-root,
+  .at-container .MuiTextField-root .MuiInputBase-root {
+    height: 56px;
+  }
+  
+  /* Ensure proper width for inputs */
+  .at-container .MuiAutocomplete-root,
+  .at-container .MuiFormControl-root,
+  .at-container .MuiTextField-root {
+    width: 300px;
+  }
+  
+  /* Action Button */
+  .at-action-button {
+    margin-top: 30px !important;
+    background-color: #212631 !important;
+    color: white !important;
+    border-radius: 30px !important;
+    padding: 10px 25px !important;
+    font-weight: 500 !important;
+    text-transform: none !important;
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2) !important;
+    transition: all 0.3s ease !important;
+    height: 48px !important;
+  }
+  
+  .at-action-button:hover {
+    background-color: #171b27 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 8px rgba(0, 0, 0, 0.3) !important;
+  }
+  
+  /* Override any default margins for inputs */
+  .at-container input,
+  .at-container select,
+  .at-container textarea {
+    margin-bottom: 0;
+    height: auto;
+  }
+  
+  /* Focused input outline fix */
+  .at-container .MuiOutlinedInput-notchedOutline {
+    border-color: #e0e0e0;
+    border-width: 1px;
+  }
+  
+  .at-container .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+    border-color: #212631;
+    border-width: 2px;
+  }
+  
+  /* Ensure proper alignment for dropdown text */
+  .at-container .MuiSelect-outlined {
+    display: flex;
+    align-items: center;
+    height: 100%;
+  }
