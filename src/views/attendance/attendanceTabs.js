@@ -7,12 +7,13 @@ import Grid from '@mui/material/Grid2';
 import ClassSelector from '../../components/classSelector';
 import DateSelector from '../../components/DateSelector';
 import AttendanceReportTable from './attendenceReportTable';
+import ManualSmsNotification from './ManualSmsNotification';
 import attendanceData from './tempData';
 import dayjs from 'dayjs';
 import './attendanceTabs.css';
 
 const AttendanceTabs = () => {
-  const [activeTab, setActiveTab] = useState(1); // Default to "Attendance Report"
+  const [activeTab, setActiveTab] = useState(0); // Default to "Take Attendance"
   const navigate = useNavigate();
   const [reportParams, setReportParams] = useState({
     semester: "",
@@ -78,6 +79,13 @@ const AttendanceTabs = () => {
             onClick={() => setActiveTab(1)}
           >
             Attendance Report
+          </div>
+          <div className="at-tab-separator"></div>
+          <div 
+            className={`at-tab-link ${activeTab === 2 ? 'at-active' : ''}`}
+            onClick={() => setActiveTab(2)}
+          >
+            Test SMS
           </div>
         </div>
       </div>
@@ -204,6 +212,16 @@ const AttendanceTabs = () => {
               attendanceData={filteredData} 
               reportParams={reportParams}
             />
+          </Box>
+        )}
+
+        {/* Test SMS Tab */}
+        {activeTab === 2 && (
+          <Box className="at-sms-test-content">
+            <div className="at-note-box">
+              <strong>Send Test SMS:</strong> Use this form to manually test the SMS notification system. Enter any phone number to send a test absence notification message.
+            </div>
+            <ManualSmsNotification />
           </Box>
         )}
       </div>
