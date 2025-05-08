@@ -348,3 +348,26 @@
     font-size: 2rem;
   }
 }
+
+/* Add to your existing CSS file */
+.navigation-card {
+  transition: transform 0.2s, box-shadow 0.2s;
+  height: 100%;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.navigation-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.navigation-card h4 {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.navigation-card p {
+  color: #666;
+  margin-bottom: 15px;
+}

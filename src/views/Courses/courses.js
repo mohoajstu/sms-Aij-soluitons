@@ -3,6 +3,7 @@ import React from "react";
 import coursesData from "../../Data/coursesData.json";
 import { Link } from "react-router-dom";
 import "./courses.css";
+import { CButton, CButtonGroup, CCard, CCardBody, CCardHeader, CCol, CRow } from '@coreui/react';
 
 function CoursesPage() {
   // Function to get contrasting text color based on background
@@ -37,8 +38,49 @@ function CoursesPage() {
   console.log('coursesData in CoursesPage:', coursesData);
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <h1>Courses</h1>
+    <div className="courses-page-container">
+      <div className="courses-header">
+        <h1>Courses</h1>
+        <div className="courses-actions">
+          <CButtonGroup>
+            <CButton 
+              color="primary" 
+              component={Link} 
+              to="/courses/new"
+            >
+              Create Course
+            </CButton>
+            <CButton 
+              color="success" 
+              component={Link} 
+              to="/courses/timetable"
+            >
+              View Timetable
+            </CButton>
+          </CButtonGroup>
+        </div>
+      </div>
+
+      <CRow className="mb-4">
+        <CCol>
+          <CCard className="course-info-card">
+            <CCardHeader>Course Management</CCardHeader>
+            <CCardBody>
+              <p>
+                Manage your school courses, assignments, and class schedules. Add or edit courses,
+                track assignments and deadlines, and view timetables for students and teachers.
+              </p>
+              <ul className="course-features">
+                <li>Course creation and editing</li>
+                <li>Assignment management with deadline tracking</li>
+                <li>Timetable view with Google Calendar integration</li>
+                <li>Hijri calendar support for Islamic school scheduling</li>
+              </ul>
+            </CCardBody>
+          </CCard>
+        </CCol>
+      </CRow>
+
       <div className="courses-grid">
         {coursesData.map((course, index) => {
           console.log(`Rendering course with id=${course.id}`);
@@ -71,6 +113,23 @@ function CoursesPage() {
                 <div className="course-tile-body">
                   <h2 className="course-tile-title">{course.title}</h2>
                   <p className="course-tile-description">{course.description}</p>
+                  
+                  {/* Course Schedule Information */}
+                  <div className="course-schedule-info">
+                    <div className="course-schedule-days">
+                      {course.schedule.classDays.join(', ')}
+                    </div>
+                    <div className="course-schedule-time">
+                      {course.schedule.startTime} - {course.schedule.endTime}
+                    </div>
+                  </div>
+                  
+                  {/* Assignment Count Badge */}
+                  {course.assignments && course.assignments.length > 0 && (
+                    <div className="assignment-badge">
+                      {course.assignments.length} {course.assignments.length === 1 ? 'Assignment' : 'Assignments'}
+                    </div>
+                  )}
                 </div>
                 <div className="course-tile-footer">
                   {/* Generate course-specific icons */}

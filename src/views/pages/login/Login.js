@@ -3,13 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   signInWithEmailAndPassword, 
   signInWithPopup, 
-  GoogleAuthProvider 
+  GoogleAuthProvider,
 } from 'firebase/auth';
 import { 
   getFirestore, 
   doc, 
   setDoc, 
-  getDoc 
+  getDoc,
+  serverTimestamp
 } from 'firebase/firestore';
 import { auth } from '../../../Firebase/firebase';
 import {
@@ -34,8 +35,12 @@ const googleProvider = new GoogleAuthProvider();
 googleProvider.addScope('https://www.googleapis.com/auth/forms.body');
 googleProvider.addScope('https://www.googleapis.com/auth/presentations');
 googleProvider.addScope('https://www.googleapis.com/auth/drive.file');
+// Add Google Calendar scopes
+googleProvider.addScope('https://www.googleapis.com/auth/calendar.readonly');
+googleProvider.addScope('https://www.googleapis.com/auth/calendar.events');
 
 const db = getFirestore();
+const SHARED_GOOGLE_AUTH_TOKEN_KEY = 'firebase_google_auth_token';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -63,6 +68,16 @@ const Login = () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
+      
+      // Store Google credentials for Calendar access
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      if (credential) {
+        const token = {
+          accessToken: credential.accessToken,
+          expiresAt: Date.now() + 3600000 // 1 hour expiration
+        };
+        localStorage.setItem(SHARED_GOOGLE_AUTH_TOKEN_KEY, JSON.stringify(token));
+      }
       
       // Check/create user document
       const userRef = doc(db, 'users', user.uid);
