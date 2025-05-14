@@ -1,22 +1,59 @@
 // CourseDetailPage.jsx
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import coursesData from "../../Data/coursesData.json";
 import "./courseDetails.css";
+import { doc, getDoc, onSnapshot } from "firebase/firestore";
+import { firestore } from "../../Firebase/firebase"; // <-- your import
+import BudgetTracker from "./budgetTracker";
 
 function CourseDetailPage() {
   const { id } = useParams();
   const courseId = Number(id);
 
-  // find the course in your JSON
-  const course = coursesData.find((c) => c.id === courseId);
+  const [course, setCourse] = useState(null);
 
-  // Budget tracker state
-  const [budgetEntries, setBudgetEntries] = useState([]);
-  const [newExpense, setNewExpense] = useState("");
-  const [newAmount, setNewAmount] = useState("");
-  const [isExpense, setIsExpense] = useState(true);
-  const initialBudget = course?.budget || 500; // Default annual budget of $500
+  // find the course in your JSON
+  // const course = coursesData.find((c) => c.id === courseId);
+
+  // async function getCourse(courseId) {
+  //   console.log("Getting course:", courseId);
+  //   const courseRef = doc(firestore, "courses", courseId); // path: /courses/courseId
+  //   const courseSnap = await getDoc(courseRef);
+  
+  //   if (courseSnap.exists()) {
+  //     console.log("Course data:", courseSnap.data());
+  //     return courseSnap.data();
+  //   } else {
+  //     console.log("No such course!");
+  //     return null;
+  //   }
+  // }
+  async function getCourse(courseId) {
+    const courseRef = doc(firestore, "courses", courseId);
+    const snap      = await getDoc(courseRef);
+  
+    if (snap.exists()) {
+      return { id: snap.id, ...snap.data() };   // ← include doc‑id
+    }
+    return null;
+  }
+  
+  useEffect(() => {
+    if (!id) return;
+  
+    const courseRef = doc(firestore, "courses", id);
+  
+    const unsubscribe = onSnapshot(courseRef, snap => {
+      if (snap.exists()) {
+        setCourse({ id: snap.id, ...snap.data() });
+      } else {
+        setCourse(null);
+      }
+    });
+  
+    return unsubscribe;
+  }, [id]);
   
   // Function to get contrasting text color based on background
   const getTextColor = (bgColor) => {
@@ -51,65 +88,6 @@ function CourseDetailPage() {
     
     return `rgb(${r}, ${g}, ${b})`;
   };
-  
-  // Load budget entries from localStorage on component mount
-  useEffect(() => {
-    const savedEntries = localStorage.getItem(`budget-entries-${courseId}`);
-    if (savedEntries) {
-      setBudgetEntries(JSON.parse(savedEntries));
-    }
-  }, [courseId]);
-  
-  // Save budget entries to localStorage when they change
-  useEffect(() => {
-    if (budgetEntries.length > 0) {
-      localStorage.setItem(`budget-entries-${courseId}`, JSON.stringify(budgetEntries));
-    }
-  }, [budgetEntries, courseId]);
-  
-  // Calculate remaining budget
-  const calculateRemainingBudget = () => {
-    const spent = budgetEntries.reduce((total, entry) => {
-      return entry.type === "expense" 
-        ? total + parseFloat(entry.amount) 
-        : total - parseFloat(entry.amount);
-    }, 0);
-    
-    return initialBudget - spent;
-  };
-  
-  // Handle form submission for new budget entry
-  const handleAddEntry = (e) => {
-    e.preventDefault();
-    
-    if (!newExpense || !newAmount || isNaN(parseFloat(newAmount)) || parseFloat(newAmount) <= 0) {
-      alert("Please enter a valid description and amount");
-      return;
-    }
-    
-    const newEntry = {
-      id: Date.now(),
-      description: newExpense,
-      amount: parseFloat(newAmount),
-      type: isExpense ? "expense" : "refund",
-      date: new Date().toLocaleDateString()
-    };
-    
-    setBudgetEntries([...budgetEntries, newEntry]);
-    setNewExpense("");
-    setNewAmount("");
-  };
-  
-  // Handle removing an entry
-  const handleRemoveEntry = (entryId) => {
-    setBudgetEntries(budgetEntries.filter(entry => entry.id !== entryId));
-  };
-  
-  // Calculate budget percentage used
-  const percentageUsed = () => {
-    const remaining = calculateRemainingBudget();
-    return 100 - ((remaining / initialBudget) * 100);
-  };
 
   if (!course) {
     return <div className="course-not-found">Course not found</div>;
@@ -121,9 +99,8 @@ function CourseDetailPage() {
     return `hsl(${hue}, 70%, 45%)`
   }
   
-  
   // Get course color or use default
-  const courseColor = course.color || getColorFromId(courseId);
+  const courseColor = course.color || getColorFromId(course.courseID);
   const textColor = getTextColor(courseColor);
   const lightColor = getLighterColor(courseColor);
   const accentColor = courseColor;
@@ -155,7 +132,7 @@ function CourseDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {course.staff.map((person, index) => (
+                  {course.teachers.map((person, index) => (
                     <tr key={index}>
                       <td>{index + 1}</td>
                       <td>{person}</td>
@@ -179,7 +156,7 @@ function CourseDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {course.students.map((student, index) => (
+                  {course.enrolledList.map((student, index) => (
                     <tr key={index}>
                       <td>{index + 1}</td>
                       <td>{student}</td>
@@ -194,127 +171,13 @@ function CourseDetailPage() {
         
         {/* Right Column - Budget Tracker */}
         <div className="budget-column">
-          <div className="budget-tracker-card">
-            <h3 
-              className="budget-tracker-title"
-              style={{ borderBottom: `2px solid ${courseColor}` }}
-            >
-              Classroom Budget Tracker
-            </h3>
-            
-            <div className="budget-summary">
-              <div className="budget-row">
-                <span>Annual Budget:</span>
-                <span className="budget-amount">${initialBudget.toFixed(2)}</span>
-              </div>
-              <div className="budget-row">
-                <span>Remaining:</span>
-                <span className={`budget-amount ${calculateRemainingBudget() < 50 ? "budget-low" : "budget-good"}`}>
-                  ${calculateRemainingBudget().toFixed(2)}
-                </span>
-              </div>
-              
-              {/* Budget progress bar */}
-              <div className="budget-progress-container">
-                <div 
-                  className={`budget-progress-bar ${percentageUsed() > 90 ? "budget-critical" : "budget-normal"}`}
-                  style={{ 
-                    width: `${Math.min(percentageUsed(), 100)}%`,
-                    backgroundColor: percentageUsed() > 90 ? "#dc3545" :"#28a745" 
-                  }} 
-                />
-              </div>
-            </div>
-            
-            {/* Add expense form */}
-            <form onSubmit={handleAddEntry} className="budget-form">
-              <div className="form-group">
-                <label>Description:</label>
-                <input 
-                  type="text" 
-                  value={newExpense}
-                  onChange={(e) => setNewExpense(e.target.value)}
-                  placeholder="e.g., Art supplies"
-                  required
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>Amount ($):</label>
-                <input 
-                  type="number" 
-                  value={newAmount}
-                  onChange={(e) => setNewAmount(e.target.value)}
-                  placeholder="0.00"
-                  min="0.01"
-                  step="0.01"
-                  required
-                />
-              </div>
-              
-              <div className="radio-group">
-                <label>
-                  <input 
-                    type="radio" 
-                    checked={isExpense} 
-                    onChange={() => setIsExpense(true)}
-                  />
-                  Expense
-                </label>
-                <label>
-                  <input 
-                    type="radio" 
-                    checked={!isExpense} 
-                    onChange={() => setIsExpense(false)}
-                  />
-                  Refund/Credit
-                </label>
-              </div>
-              
-              <button 
-                type="submit" 
-                className="btn-add-entry"
-              >
-                Add Entry
-              </button>
-            </form>
-            
-            {/* Recent entries */}
-            <div className="recent-entries">
-              <h4 className="recent-entries-title">
-                Recent Entries
-              </h4>
-              
-              <div className="entries-list">
-                {budgetEntries.length === 0 ? (
-                  <p className="no-entries">
-                    No entries yet
-                  </p>
-                ) : (
-                  budgetEntries.slice().reverse().map(entry => (
-                    <div key={entry.id} className="entry-item">
-                      <div className="entry-details">
-                        <div className="entry-description">{entry.description}</div>
-                        <div className="entry-date">{entry.date}</div>
-                      </div>
-                      <div className="entry-amount-container">
-                        <span className={`entry-amount ${entry.type === "expense" ? "expense" : "refund"}`}>
-                          {entry.type === "expense" ? "-" : "+"}${entry.amount.toFixed(2)}
-                        </span>
-                        <button 
-                          onClick={() => handleRemoveEntry(entry.id)}
-                          className="btn-remove-entry"
-                          title="Remove entry"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
+          <BudgetTracker 
+            courseId={course.id} 
+            course_id={course.courseID}
+            budget={course.budget}
+            initialBudget={course.budget.initialBudget} 
+            accentColor={accentColor} 
+          />
         </div>
       </div>
     </div>
