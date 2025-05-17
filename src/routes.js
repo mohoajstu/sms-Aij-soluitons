@@ -87,6 +87,7 @@ const routes = [
   { path: '/courses/new', name: 'Create Course', element: CourseForm },
   { path: '/courses/edit/:id', name: 'Edit Course', element: CourseForm },
   { path: '/courses/timetable', name: 'Timetable', element: Timetable },
+  { path: '/calendar', name: 'Enhanced Calendar', element: CalendarDemo },
   { path: '/courses/:id/schedule', name: 'Course Schedule', element: SchedulePage },
   { path: '/courses/:id/assignments', name: 'Course Assignments', element: AssignmentsPage },
   { path: '/courses/:id/budget', name: 'Course Budget', element: BudgetPage },
