@@ -5,6 +5,7 @@ import {
   cilList,
   cilNotes,
   cilSpeedometer,
+  cilCalendar,
 } from '@coreui/icons'
 import BeenhereOutlinedIcon from '@mui/icons-material/BeenhereOutlined';
 import { CNavItem } from '@coreui/react'
@@ -42,6 +43,12 @@ const _nav = [
     name: 'Courses',
     to: '/courses',
     icon: <AutoStoriesOutlinedIcon className="nav-icon" />,
+  },
+  {
+    component: CNavItem,
+    name: 'Calendar',
+    to: '/calendar',
+    icon: <CIcon icon={cilCalendar} customClassName="nav-icon" />,
   },
 ]
 

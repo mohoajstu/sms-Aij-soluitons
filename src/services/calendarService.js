@@ -206,6 +206,41 @@ export const signOut = () => {
   }
 };
 
+// Add this wrapper function
+const callGoogleApi = async (apiCallFunction) => {
+  try {
+    // Ensure GAPI client is loaded and initialized before making a call
+    if (!gapi.client) {
+      console.error("GAPI client not loaded.");
+      throw { message: 'GAPI client not loaded.', reAuthRequired: false };
+    }
+    // It's assumed that initializeGoogleApi and initializeGIS have been called
+    // and isInitialized() would be true if we reach here through a component.
+    // However, an explicit token check before calling might be useful if isAuthenticated isn't perfect.
+    // For now, we'll rely on catching the 401.
+
+    return await apiCallFunction();
+  } catch (error) {
+    // Check for GAPI client specific error structure for 401 or UNAUTHENTICATED
+    const gapiError = error.result && error.result.error;
+    const isAuthError = gapiError && (gapiError.code === 401 || gapiError.status === 'UNAUTHENTICATED');
+
+    if (isAuthError) {
+      console.warn('Google API call failed due to authentication error. Clearing token and signaling re-auth.', error);
+      signOut(); // Clear token and session details from gapi and localStorage
+      throw { message: 'Authentication required. Please connect to Google Calendar again.', reAuthRequired: true, originalError: error };
+    }
+    console.error('Google API call error:', error);
+    // If it's not a known auth error structure, but status is 401, also treat as auth error.
+    if (error.status === 401 || (error.code === 401 && !gapiError) ) {
+        console.warn('General 401 error. Clearing token and signaling re-auth.', error);
+        signOut();
+        throw { message: 'Authentication required. Please connect to Google Calendar again.', reAuthRequired: true, originalError: error };
+    }
+    throw error; // Re-throw other errors or errors that are not clearly auth related from this layer
+  }
+};
+
 /**
  * Get events from a specific calendar
  * @param {string} calendarId - The ID of the calendar to fetch events from
@@ -213,14 +248,15 @@ export const signOut = () => {
  */
 export const getEvents = async (calendarId = 'primary', options = {}) => {
   if (!isInitialized()) {
-    throw new Error('Google APIs not initialized');
+    // This error should ideally be caught by the calling component's initial checks
+    throw new Error('Google APIs not initialized for getEvents');
   }
 
   const defaultOptions = {
     timeMin: (new Date()).toISOString(),
     showDeleted: false,
     singleEvents: true,
-    maxResults: 10,
+    maxResults: 10, // Default, can be overridden by options
     orderBy: 'startTime',
   };
 
@@ -230,13 +266,10 @@ export const getEvents = async (calendarId = 'primary', options = {}) => {
     ...options,
   };
 
-  try {
+  return callGoogleApi(async () => {
     const response = await gapi.client.calendar.events.list(request);
     return response.result.items;
-  } catch (error) {
-    console.error('Error fetching events:', error);
-    throw error;
-  }
+  });
 };
 
 /**
@@ -246,19 +279,53 @@ export const getEvents = async (calendarId = 'primary', options = {}) => {
  */
 export const createEvent = async (calendarId = 'primary', event) => {
   if (!isInitialized()) {
-    throw new Error('Google APIs not initialized');
+    throw new Error('Google APIs not initialized for createEvent');
   }
 
-  try {
+  return callGoogleApi(async () => {
     const response = await gapi.client.calendar.events.insert({
       calendarId,
       resource: event,
     });
     return response.result;
-  } catch (error) {
-    console.error('Error creating event:', error);
-    throw error;
+  });
+};
+
+/**
+ * Delete an event from a calendar
+ * @param {string} calendarId - The ID of the calendar containing the event
+ * @param {string} eventId - The ID of the event to delete
+ */
+export const deleteEvent = async (calendarId = 'primary', eventId) => {
+  if (!isInitialized()) {
+    throw new Error('Google APIs not initialized for deleteEvent');
   }
+
+  return callGoogleApi(async () => {
+    await gapi.client.calendar.events.delete({
+      calendarId,
+      eventId,
+    });
+    return true; // Indicate success
+  });
+};
+
+/**
+ * Get the list of the user's calendars
+ */
+export const getCalendarList = async () => {
+  if (!isInitialized()) {
+    throw new Error('Google APIs not initialized for getCalendarList');
+  }
+  return callGoogleApi(async () => {
+    const response = await gapi.client.calendar.calendarList.list();
+    return response.result.items.map(calendar => ({
+      id: calendar.id,
+      summary: calendar.summary,
+      primary: calendar.primary || false,
+      backgroundColor: calendar.backgroundColor
+    }));
+  });
 };
 
 /**
@@ -352,10 +419,13 @@ export default {
   initializeGoogleApi,
   initializeGIS,
   isInitialized,
+  isAuthenticated,
   authenticate,
   signOut,
   getEvents,
   createEvent,
+  deleteEvent,
+  getCalendarList,
   assignmentToEvent,
   hijriToGregorian,
   gregorianToHijri
