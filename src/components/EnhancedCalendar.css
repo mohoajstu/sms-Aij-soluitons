@@ -82,6 +82,23 @@
   padding: 4px 6px;
   text-align: center;
   font-size: 0.85rem;
+  position: relative;
+}
+
+/* Style for the Hijri date - COMMENTED OUT as CustomDateHeader is used now
+.enhanced-calendar-container .rbc-date-cell::after {
+  content: attr(data-hijri-date);
+  display: block;
+  font-size: 0.65rem;
+  color: #6c757d;
+  margin-top: 2px;
+  line-height: 1;
+}
+*/
+
+/* Adjust padding if Hijri date makes cells too tall, or adjust line-height/font-size above */
+.enhanced-calendar-container .rbc-month-view .rbc-row-content {
+    min-height: 100px;
 }
 
 .enhanced-calendar-container .rbc-day-bg.current-day {

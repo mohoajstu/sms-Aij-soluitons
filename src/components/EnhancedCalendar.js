@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
-import moment from 'moment';
+import moment from 'moment-hijri';
 import { 
   authenticate, 
   getEvents, 
@@ -60,6 +60,67 @@ import { format, parseISO } from 'date-fns';
 
 const localizer = momentLocalizer(moment);
 
+// Define Hijri month names/abbreviations globally or pass them appropriately
+const HIJRI_MONTH_NAMES = [
+  "Muh.", "Saf.", "Rabi' I", "Rabi' II", 
+  "Jum. I", "Jum. II", "Raj.", "Sha.", 
+  "Ram.", "Shaw.", "Dhu'l-Q.", "Dhu'l-H."
+];
+
+// Custom component for rendering the date header in month view
+const CustomDateHeader = ({ date, label }) => {
+  const mDate = moment(date);
+
+  const hijriDay = mDate.iDate(); 
+  const hijriMonthJs = mDate.iMonth();
+  
+  let hijriDisplay = '-';
+  if (hijriDay !== undefined && hijriMonthJs !== undefined && hijriMonthJs >= 0 && hijriMonthJs < HIJRI_MONTH_NAMES.length) {
+    hijriDisplay = `${hijriDay} ${HIJRI_MONTH_NAMES[hijriMonthJs]}`;
+  } else {
+    console.warn(
+      'CustomDateHeader: Could not determine Hijri date using moment-hijri for', 
+      date, 
+      'iMonth():', hijriMonthJs, 
+      'iDate():', hijriDay
+    );
+  }
+
+  return (
+    <Box 
+      sx={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
+        padding: '2px 0',
+        boxSizing: 'border-box'
+      }}
+    >
+      <Typography variant="body2" component="div" sx={{ fontWeight: '500', lineHeight: 1.1, color: 'text.primary' }}>
+        {label}
+      </Typography>
+      {hijriDisplay && (
+        <Typography 
+          variant="caption" 
+          component="div" 
+          sx={{
+            color: '#2e7d32',
+            fontSize: '0.7rem',
+            lineHeight: 1.1, 
+            marginTop: '1px'
+          }}
+        >
+          {hijriDisplay}
+        </Typography>
+      )}
+    </Box>
+  );
+};
+
 const EnhancedCalendar = ({ courseId }) => {
   // State for calendar events and UI state
   const [events, setEvents] = useState([]);
@@ -70,7 +131,7 @@ const EnhancedCalendar = ({ courseId }) => {
     end: new Date(new Date().getTime() + 60 * 60 * 1000), // 1 hour from now
     description: '',
     location: '',
-    allDay: false
+    eventType: 'Default'
   });
   const [openEventDialog, setOpenEventDialog] = useState(false);
   const [openNewEventDialog, setOpenNewEventDialog] = useState(false);
@@ -83,6 +144,7 @@ const EnhancedCalendar = ({ courseId }) => {
   const [calendarView, setCalendarView] = useState('month');
   const [calendars, setCalendars] = useState([]);
   const [selectedCalendar, setSelectedCalendar] = useState('primary');
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
 
   const fetchEventsAndCalendars = useCallback(async () => {
     setLoading(true);
@@ -99,16 +161,30 @@ const EnhancedCalendar = ({ courseId }) => {
       
       setCalendars(fetchedCalendars || []); // Ensure calendars is an array
       
-      const mappedEvents = googleEvents.map(ev => ({
-        id: ev.id,
-        title: ev.summary || 'Untitled Event',
-        start: new Date(ev.start.dateTime || ev.start.date),
-        end: new Date(ev.end.dateTime || ev.end.date),
-        allDay: !ev.start.dateTime,
-        description: ev.description || '',
-        location: ev.location || '',
-        googleEvent: ev
-      }));
+      const mappedEvents = googleEvents.map(ev => {
+        const isAllDay = !ev.start.dateTime;
+        let endDate = new Date(ev.end.dateTime || ev.end.date);
+        if (isAllDay) {
+          // For all-day events, Google's end.date is exclusive (e.g., next day at 00:00).
+          // react-big-calendar might render this as spilling into the next day.
+          // Subtracting a small amount (e.g., 1 minute or 1 ms) can sometimes fix this display issue.
+          endDate = new Date(endDate.getTime() - 1); // Subtract 1 millisecond
+        }
+
+        return {
+          id: ev.id,
+          title: ev.summary || 'Untitled Event',
+          start: new Date(ev.start.dateTime || ev.start.date),
+          end: endDate, // Use the potentially adjusted end date
+          allDay: isAllDay,
+          description: ev.description || '',
+          location: ev.location || '',
+          eventType: (ev.extendedProperties && ev.extendedProperties.private && ev.extendedProperties.private.eventType) 
+                      ? ev.extendedProperties.private.eventType 
+                      : 'Default', // Add eventType to our mapped event
+          googleEvent: ev
+        };
+      });
       
       setEvents(mappedEvents);
       setAuthRequired(false);
@@ -181,7 +257,7 @@ const EnhancedCalendar = ({ courseId }) => {
     };
 
     initCalendar();
-  }, [fetchEventsAndCalendars]); // Depend on the combined fetch function
+  }, [fetchEventsAndCalendars]);
 
   const handleConnectCalendar = async () => {
     setLoading(true);
@@ -218,22 +294,15 @@ const EnhancedCalendar = ({ courseId }) => {
       end,
       description: '',
       location: '',
-      allDay: false
+      allDay: false,
+      eventType: 'Default'
     });
     setOpenNewEventDialog(true);
   };
 
   const handleEventChange = (e) => {
-    const { name, value, checked } = e.target;
-    if (name === 'allDay') {
-      setNewEvent(prev => ({ 
-        ...prev, 
-        [name]: checked,
-        end: checked ? moment(prev.start).endOf('day').toDate() : prev.end
-      }));
-    } else {
-      setNewEvent(prev => ({ ...prev, [name]: value }));
-    }
+    const { name, value } = e.target;
+    setNewEvent(prev => ({ ...prev, [name]: value }));
   };
 
   const handleDateChange = (name, date) => {
@@ -244,26 +313,27 @@ const EnhancedCalendar = ({ courseId }) => {
     setLoading(true);
     let errorOccurred = null; 
     try {
-      // Format the event for Google Calendar API
       const googleApiEvent = {
         summary: newEvent.title,
         description: newEvent.description,
         location: newEvent.location,
         start: {},
-        end: {}
+        end: {},
+        extendedProperties: {
+          private: {
+            eventType: newEvent.eventType || 'Default' // Store our custom event type
+          }
+        }
       };
 
-      if (newEvent.allDay) {
-        googleApiEvent.start.date = moment(newEvent.start).format('YYYY-MM-DD');
-        // For all-day events, Google Calendar API expects the end date to be exclusive.
-        // So, if the event is for May 15th, end.date should be May 16th.
-        googleApiEvent.end.date = moment(newEvent.start).add(1, 'days').format('YYYY-MM-DD');
-      } else {
-        googleApiEvent.start.dateTime = newEvent.start.toISOString();
-        googleApiEvent.start.timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        googleApiEvent.end.dateTime = newEvent.end.toISOString();
-        googleApiEvent.end.timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      googleApiEvent.start.dateTime = newEvent.start.toISOString();
+      googleApiEvent.start.timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      let endDate = newEvent.end;
+      if (endDate <= newEvent.start) {
+        endDate = moment(newEvent.start).add(1, 'hour').toDate();
       }
+      googleApiEvent.end.dateTime = endDate.toISOString();
+      googleApiEvent.end.timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
       const createdEvent = await createEvent(selectedCalendar, googleApiEvent);
       
@@ -275,6 +345,9 @@ const EnhancedCalendar = ({ courseId }) => {
         allDay: !createdEvent.start.dateTime,
         description: createdEvent.description || '',
         location: createdEvent.location || '',
+        eventType: (createdEvent.extendedProperties && createdEvent.extendedProperties.private && createdEvent.extendedProperties.private.eventType) 
+                    ? createdEvent.extendedProperties.private.eventType 
+                    : 'Default',
         googleEvent: createdEvent
       };
       
@@ -316,7 +389,8 @@ const EnhancedCalendar = ({ courseId }) => {
           end: new Date(new Date().getTime() + 60 * 60 * 1000),
           description: '',
           location: '',
-          allDay: false
+          allDay: false,
+          eventType: 'Default'
         });
       }
     }
@@ -396,9 +470,21 @@ const EnhancedCalendar = ({ courseId }) => {
 
   // Helper functions
   const getEventColor = (event) => {
-    // Get the color from the original Google event if available
+    const typeColorMap = {
+      'Meeting': '#039be5',
+      'Assignment': '#e67c73',
+      'Class Session': '#33b679',
+      'Personal': '#7986cb',
+      // 'Default': '#4285f4' // Default can fall through to Google's color or a final default
+    };
+
+    if (event.eventType && typeColorMap[event.eventType]) {
+      return typeColorMap[event.eventType];
+    }
+
+    // Fallback to Google Calendar event colorId if available
     if (event.googleEvent && event.googleEvent.colorId) {
-      const colorMap = {
+      const googleColorMap = {
         '1': '#7986cb', // Lavender
         '2': '#33b679', // Sage
         '3': '#8e24aa', // Grape
@@ -411,7 +497,7 @@ const EnhancedCalendar = ({ courseId }) => {
         '10': '#0b8043', // Basil
         '11': '#d50000', // Tomato
       };
-      return colorMap[event.googleEvent.colorId] || '#4285f4'; // Default blue
+      return googleColorMap[event.googleEvent.colorId] || '#4285f4'; // Default blue
     }
     
     // If no color is specified, use a default color
@@ -431,6 +517,10 @@ const EnhancedCalendar = ({ courseId }) => {
     
     // Convert back to hex
     return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  };
+
+  const handleNavigate = (newDate) => {
+    setDate(newDate);
   };
 
   // Render loading state
@@ -569,12 +659,15 @@ const EnhancedCalendar = ({ courseId }) => {
           view={calendarView}
           onView={setCalendarView}
           date={date}
-          onNavigate={setDate}
+          onNavigate={handleNavigate}
           selectable
           onSelectEvent={handleSelectEvent}
           onSelectSlot={handleSelectSlot}
           components={{
-            event: EventComponent
+            event: EventComponent,
+            month: { 
+              dateHeader: CustomDateHeader
+            } 
           }}
           eventPropGetter={(event) => ({
             style: {
@@ -586,17 +679,19 @@ const EnhancedCalendar = ({ courseId }) => {
           })}
           dayPropGetter={(date) => {
             const today = new Date();
+            const isCurrentDay = 
+              date.getDate() === today.getDate() && 
+              date.getMonth() === today.getMonth() && 
+              date.getFullYear() === today.getFullYear();
+
             return {
-              className: 
-                date.getDate() === today.getDate() && 
-                date.getMonth() === today.getMonth() && 
-                date.getFullYear() === today.getFullYear() 
-                  ? 'current-day' 
-                  : undefined
+              className: isCurrentDay ? 'current-day' : undefined,
             };
           }}
           toolbar={true}
           popup
+          min={new Date(0, 0, 0, 7, 0, 0)} // 7:00 AM
+          max={new Date(0, 0, 0, 17, 0, 0)} // 5:00 PM
         />
       </Box>
 
@@ -685,9 +780,9 @@ const EnhancedCalendar = ({ courseId }) => {
         </DialogTitle>
         <DialogContent dividers>
           <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <Grid container spacing={2} sx={{ pt: 2 }}> {/* Added some padding-top */}
+            <Grid container spacing={2} sx={{ pt: 2 }}>
               <Grid item xs={12}>
-                <TextField // From @mui/material
+                <TextField
                   autoFocus
                   margin="dense"
                   name="title"
@@ -701,21 +796,27 @@ const EnhancedCalendar = ({ courseId }) => {
                 />
               </Grid>
               
-              <Grid item xs={12}>
-                <FormControlLabel // From @mui/material
-                  control={
-                    <Switch // From @mui/material
-                      checked={newEvent.allDay}
-                      onChange={handleEventChange}
-                      name="allDay"
-                    />
-                  }
-                  label="All day event"
-                />
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth margin="dense" variant="outlined">
+                  <InputLabel id="event-type-select-label">Event Type</InputLabel>
+                  <Select
+                    labelId="event-type-select-label"
+                    name="eventType"
+                    value={newEvent.eventType}
+                    onChange={handleEventChange}
+                    label="Event Type"
+                  >
+                    <MenuItem value="Default">Default</MenuItem>
+                    <MenuItem value="Meeting">Meeting</MenuItem>
+                    <MenuItem value="Assignment">Assignment</MenuItem>
+                    <MenuItem value="Class Session">Class Session</MenuItem>
+                    <MenuItem value="Personal">Personal</MenuItem>
+                  </Select>
+                </FormControl>
               </Grid>
               
-              <Grid item xs={12} md={6}>
-                <DateTimePicker // From @mui/x-date-pickers
+              <Grid item xs={12} sm={6}>
+                <DateTimePicker
                   label="Start"
                   value={newEvent.start}
                   onChange={(date) => handleDateChange('start', date)}
@@ -725,19 +826,19 @@ const EnhancedCalendar = ({ courseId }) => {
               </Grid>
               
               <Grid item xs={12} md={6}>
-                <DateTimePicker // From @mui/x-date-pickers
+                <DateTimePicker
                   label="End"
                   value={newEvent.end}
                   onChange={(date) => handleDateChange('end', date)}
                   disablePast
-                  minDateTime={newEvent.allDay ? undefined : newEvent.start} // minDateTime only for timed events
+                  minDateTime={newEvent.allDay ? undefined : newEvent.start}
                   disabled={newEvent.allDay}
                   slotProps={{ textField: { fullWidth: true, variant: 'outlined', margin: 'dense' } }}
                 />
               </Grid>
               
               <Grid item xs={12}>
-                <TextField // From @mui/material
+                <TextField
                   margin="dense"
                   name="location"
                   label="Location"
@@ -750,7 +851,7 @@ const EnhancedCalendar = ({ courseId }) => {
               </Grid>
               
               <Grid item xs={12}>
-                <TextField // From @mui/material
+                <TextField
                   margin="dense"
                   name="description"
                   label="Description"
