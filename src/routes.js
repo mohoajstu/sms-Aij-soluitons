@@ -4,6 +4,9 @@ const Dashboard = React.lazy(() => import('./views/dashboard/Dashboard'))
 const Colors = React.lazy(() => import('./views/theme/colors/Colors'))
 const Typography = React.lazy(() => import('./views/theme/typography/Typography'))
 
+// Calendar
+const CalendarDemo = React.lazy(() => import('./views/CalendarDemo'))
+
 // Attendance
 const AttendanceTabs = React.lazy(() => import('./views/attendance/attendanceTabs'))
 const AttendanceTable = React.lazy(() => import('./views/attendance/attendanceTable'))
