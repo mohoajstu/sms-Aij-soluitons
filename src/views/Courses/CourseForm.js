@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import {
   CButton,
   CCard,
@@ -16,12 +16,12 @@ import {
   CFormCheck,
   CSpinner,
   CInputGroup,
-  CInputGroupText
-} from '@coreui/react';
-import coursesData from '../../Data/coursesData.json';
-import './CourseForm.css';
-import { cilClock, cilUser, cilSettings, cilCalendar } from '@coreui/icons-react';
-import { initializeGoogleApi, initializeGIS, authenticate } from '../../services/calendarService';
+  CInputGroupText,
+} from '@coreui/react'
+import coursesData from '../../Data/coursesData.json'
+import './CourseForm.css'
+import { cilClock, cilUser, cilSettings, cilCalendar } from '@coreui/icons-react'
+import { initializeGoogleApi, initializeGIS, authenticate } from '../../services/calendarService'
 
 // Mock data for instructor options
 const INSTRUCTORS = [
@@ -29,7 +29,7 @@ const INSTRUCTORS = [
   { id: '2', name: 'Sara Khan' },
   { id: '3', name: 'Muhammad Ali' },
   { id: '4', name: 'Fatima Zahra' },
-];
+]
 
 // Mock data for subject options
 const SUBJECTS = [
@@ -42,7 +42,7 @@ const SUBJECTS = [
   'Physical Education',
   'Art',
   'Computer Science',
-];
+]
 
 // Mock data for grade options
 const GRADES = [
@@ -60,23 +60,15 @@ const GRADES = [
   '10th Grade',
   '11th Grade',
   '12th Grade',
-];
+]
 
 // Days of the week for class scheduling
-const DAYS_OF_WEEK = [
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-  'Sunday',
-];
+const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 const CourseForm = () => {
-  const navigate = useNavigate();
-  const { id } = useParams();
-  const isEditMode = !!id;
+  const navigate = useNavigate()
+  const { id } = useParams()
+  const isEditMode = !!id
 
   // Form state
   const [formData, setFormData] = useState({
@@ -98,23 +90,23 @@ const CourseForm = () => {
     materials: [],
     addToCalendar: false,
     isActive: true,
-  });
+  })
 
-  const [newStaffMember, setNewStaffMember] = useState('');
-  const [newStudent, setNewStudent] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [isCreating, setIsCreating] = useState(true);
-  const [materialInput, setMaterialInput] = useState('');
-  const [isGoogleCalendarReady, setIsGoogleCalendarReady] = useState(false);
+  const [newStaffMember, setNewStaffMember] = useState('')
+  const [newStudent, setNewStudent] = useState('')
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [isCreating, setIsCreating] = useState(true)
+  const [materialInput, setMaterialInput] = useState('')
+  const [isGoogleCalendarReady, setIsGoogleCalendarReady] = useState(false)
 
   // If in edit mode, load existing course data
   useEffect(() => {
     if (isEditMode) {
-      const courseId = Number(id);
-      const course = coursesData.find(c => c.id === courseId);
-      
+      const courseId = Number(id)
+      const course = coursesData.find((c) => c.id === courseId)
+
       if (course) {
         setFormData({
           ...course,
@@ -130,190 +122,192 @@ const CourseForm = () => {
           materials: course.materials || [],
           addToCalendar: false,
           isActive: true,
-        });
-        setIsCreating(false);
+        })
+        setIsCreating(false)
       } else {
-        setError('Course not found');
+        setError('Course not found')
       }
     }
-  }, [id, isEditMode]);
+  }, [id, isEditMode])
 
   useEffect(() => {
     const initializeGoogleCalendar = async () => {
       try {
-        await initializeGoogleApi();
-        await initializeGIS();
-        setIsGoogleCalendarReady(true);
+        await initializeGoogleApi()
+        await initializeGIS()
+        setIsGoogleCalendarReady(true)
       } catch (error) {
-        console.error('Failed to initialize Google Calendar:', error);
+        console.error('Failed to initialize Google Calendar:', error)
       }
-    };
+    }
 
-    initializeGoogleCalendar();
-  }, []);
+    initializeGoogleCalendar()
+  }, [])
 
   const handleGoogleCalendarAuth = async () => {
     try {
-      await authenticate();
+      await authenticate()
       // After successful authentication, you can proceed with calendar operations
-      console.log('Successfully authenticated with Google Calendar');
+      console.log('Successfully authenticated with Google Calendar')
     } catch (error) {
-      console.error('Failed to authenticate with Google Calendar:', error);
-      setError('Failed to authenticate with Google Calendar. Please try again.');
+      console.error('Failed to authenticate with Google Calendar:', error)
+      setError('Failed to authenticate with Google Calendar. Please try again.')
     }
-  };
+  }
 
   // Handle form input changes
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    
+    const { name, value, type, checked } = e.target
+
     // Handle nested fields
     if (name.includes('.')) {
-      const [parent, child] = name.split('.');
+      const [parent, child] = name.split('.')
       setFormData({
         ...formData,
         [parent]: {
           ...formData[parent],
-          [child]: value
-        }
-      });
+          [child]: value,
+        },
+      })
     } else {
       setFormData({
         ...formData,
-        [name]: type === 'checkbox' ? checked : value
-      });
+        [name]: type === 'checkbox' ? checked : value,
+      })
     }
-  };
+  }
 
   // Handle class days selection (multiple)
   const handleClassDaysChange = (e) => {
-    const selectedOptions = Array.from(e.target.selectedOptions).map(option => option.value);
+    const selectedOptions = Array.from(e.target.selectedOptions).map((option) => option.value)
     setFormData({
       ...formData,
       schedule: {
         ...formData.schedule,
-        classDays: selectedOptions
-      }
-    });
-  };
+        classDays: selectedOptions,
+      },
+    })
+  }
 
   // Add new staff member
   const handleAddStaff = () => {
-    if (newStaffMember.trim() === '') return;
-    
+    if (newStaffMember.trim() === '') return
+
     setFormData({
       ...formData,
-      staff: [...formData.staff, newStaffMember.trim()]
-    });
-    
-    setNewStaffMember('');
-  };
+      staff: [...formData.staff, newStaffMember.trim()],
+    })
+
+    setNewStaffMember('')
+  }
 
   // Remove staff member
   const handleRemoveStaff = (index) => {
-    const updatedStaff = [...formData.staff];
-    updatedStaff.splice(index, 1);
-    
+    const updatedStaff = [...formData.staff]
+    updatedStaff.splice(index, 1)
+
     setFormData({
       ...formData,
-      staff: updatedStaff
-    });
-  };
+      staff: updatedStaff,
+    })
+  }
 
   // Add new student
   const handleAddStudent = () => {
-    if (newStudent.trim() === '') return;
-    
+    if (newStudent.trim() === '') return
+
     setFormData({
       ...formData,
-      students: [...formData.students, newStudent.trim()]
-    });
-    
-    setNewStudent('');
-  };
+      students: [...formData.students, newStudent.trim()],
+    })
+
+    setNewStudent('')
+  }
 
   // Remove student
   const handleRemoveStudent = (index) => {
-    const updatedStudents = [...formData.students];
-    updatedStudents.splice(index, 1);
-    
+    const updatedStudents = [...formData.students]
+    updatedStudents.splice(index, 1)
+
     setFormData({
       ...formData,
-      students: updatedStudents
-    });
-  };
+      students: updatedStudents,
+    })
+  }
 
   const addMaterial = () => {
     if (materialInput.trim()) {
-      setFormData(prevData => ({
+      setFormData((prevData) => ({
         ...prevData,
-        materials: [...prevData.materials, materialInput.trim()]
-      }));
-      setMaterialInput('');
+        materials: [...prevData.materials, materialInput.trim()],
+      }))
+      setMaterialInput('')
     }
-  };
+  }
 
   const removeMaterial = (index) => {
-    setFormData(prevData => ({
+    setFormData((prevData) => ({
       ...prevData,
-      materials: prevData.materials.filter((_, i) => i !== index)
-    }));
-  };
+      materials: prevData.materials.filter((_, i) => i !== index),
+    }))
+  }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    setSuccess('');
-    
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    setSuccess('')
+
     try {
       // Generate unique ID for new courses
       const updatedFormData = {
         ...formData,
-        id: formData.id || `course_${Date.now()}`
-      };
-      
+        id: formData.id || `course_${Date.now()}`,
+      }
+
       // Try to add to Google Calendar if selected
       if (formData.addToCalendar) {
         try {
-          const eventIds = await addToGoogleCalendar(updatedFormData);
-          updatedFormData.calendarEventIds = eventIds;
+          const eventIds = await addToGoogleCalendar(updatedFormData)
+          updatedFormData.calendarEventIds = eventIds
         } catch (calendarError) {
           // Continue with save even if calendar fails
-          console.error('Failed to add to calendar:', calendarError);
-          setError('Course saved, but failed to add to Google Calendar. Please check your Google Calendar configuration.');
+          console.error('Failed to add to calendar:', calendarError)
+          setError(
+            'Course saved, but failed to add to Google Calendar. Please check your Google Calendar configuration.',
+          )
         }
       }
-      
+
       // In a real app, this would be an API call
-      console.log('Saving course:', updatedFormData);
-      
+      console.log('Saving course:', updatedFormData)
+
       // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setSuccess(isCreating ? 'Course created successfully!' : 'Course updated successfully!');
-      navigate('/courses');
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      setSuccess(isCreating ? 'Course created successfully!' : 'Course updated successfully!')
+      navigate('/courses')
     } catch (error) {
-      console.error('Error saving course:', error);
-      setError('Failed to save course. Please try again.');
+      console.error('Error saving course:', error)
+      setError('Failed to save course. Please try again.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const addToGoogleCalendar = async (course) => {
     try {
       // Initialize and authenticate with Google Calendar
-      await initializeGoogleApi();
-      await initializeGIS();
-      await authenticate();
-      
+      await initializeGoogleApi()
+      await initializeGIS()
+      await authenticate()
+
       // Create recurring events for each class day
-      const calendarIds = [];
+      const calendarIds = []
       for (const day of course.schedule.classDays) {
         // Get the next occurrence of this day
-        const nextDate = getNextDayOfWeek(new Date(), day);
-        
+        const nextDate = getNextDayOfWeek(new Date(), day)
+
         // Create event object
         const event = {
           summary: `${course.title} (${course.grade})`,
@@ -321,60 +315,65 @@ const CourseForm = () => {
           location: course.schedule.room,
           start: {
             dateTime: getDateTimeString(nextDate, course.schedule.startTime),
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           },
           end: {
             dateTime: getDateTimeString(nextDate, course.schedule.endTime),
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           },
           recurrence: [
-            'RRULE:FREQ=WEEKLY;COUNT=16' // 16 weeks (typical semester length)
+            'RRULE:FREQ=WEEKLY;COUNT=16', // 16 weeks (typical semester length)
           ],
-          attendees: INSTRUCTORS
-            .filter(instructor => course.staff.includes(instructor.id))
-            .map(instructor => ({ email: `${instructor.id}@example.com` })), // Mock emails
+          attendees: INSTRUCTORS.filter((instructor) => course.staff.includes(instructor.id)).map(
+            (instructor) => ({ email: `${instructor.id}@example.com` }),
+          ), // Mock emails
           reminders: {
             useDefault: false,
             overrides: [
               { method: 'email', minutes: 24 * 60 }, // 1 day before
-              { method: 'popup', minutes: 30 } // 30 minutes before
-            ]
-          }
-        };
-        
+              { method: 'popup', minutes: 30 }, // 30 minutes before
+            ],
+          },
+        }
+
         // Create the event
-        const result = await calendarService.createEvent('primary', event);
-        calendarIds.push(result.id);
+        const result = await calendarService.createEvent('primary', event)
+        calendarIds.push(result.id)
       }
-      
-      return calendarIds;
+
+      return calendarIds
     } catch (error) {
-      console.error('Error adding events to Google Calendar:', error);
-      throw error;
+      console.error('Error adding events to Google Calendar:', error)
+      throw error
     }
-  };
+  }
 
   // Helper function to get the next occurrence of a specific day of the week
   const getNextDayOfWeek = (date, dayName) => {
-    const days = { 
-      Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, 
-      Thursday: 4, Friday: 5, Saturday: 6 
-    };
-    const dayOfWeek = days[dayName];
-    const resultDate = new Date(date.getTime());
-    resultDate.setDate(date.getDate() + (7 + dayOfWeek - date.getDay()) % 7);
-    
-    return resultDate;
-  };
+    const days = {
+      Sunday: 0,
+      Monday: 1,
+      Tuesday: 2,
+      Wednesday: 3,
+      Thursday: 4,
+      Friday: 5,
+      Saturday: 6,
+    }
+    const dayOfWeek = days[dayName]
+    const resultDate = new Date(date.getTime())
+    resultDate.setDate(date.getDate() + ((7 + dayOfWeek - date.getDay()) % 7))
+
+    return resultDate
+  }
 
   // Helper function to format date and time for Google Calendar
   const getDateTimeString = (date, timeString) => {
-    const [hours, minutes] = timeString.split(':').map(Number);
-    const result = new Date(date.getTime());
-    result.setHours(hours, minutes, 0, 0);
-    
-    return result.toISOString();
-  };
+    const [hours, minutes] = timeString.split(':').map(Number)
+    const result = new Date(date.getTime())
+    result.setHours(hours, minutes, 0, 0)
+
+    return result.toISOString()
+  }
 
   return (
     <div className="course-form-container">
@@ -385,7 +384,7 @@ const CourseForm = () => {
         <CCardBody>
           {error && <CAlert color="danger">{error}</CAlert>}
           {success && <CAlert color="success">{success}</CAlert>}
-          
+
           <CForm onSubmit={handleSubmit}>
             <CRow className="mb-3">
               <CCol md={6}>
@@ -399,7 +398,7 @@ const CourseForm = () => {
                   required
                 />
               </CCol>
-              
+
               <CCol md={3}>
                 <CFormLabel htmlFor="subject">Subject</CFormLabel>
                 <CFormSelect
@@ -410,14 +409,14 @@ const CourseForm = () => {
                   required
                 >
                   <option value="">Select subject</option>
-                  {SUBJECTS.map(subject => (
+                  {SUBJECTS.map((subject) => (
                     <option key={subject} value={subject}>
                       {subject}
                     </option>
                   ))}
                 </CFormSelect>
               </CCol>
-              
+
               <CCol md={3}>
                 <CFormLabel htmlFor="grade">Grade Level</CFormLabel>
                 <CFormSelect
@@ -428,7 +427,7 @@ const CourseForm = () => {
                   required
                 >
                   <option value="">Select grade</option>
-                  {GRADES.map(grade => (
+                  {GRADES.map((grade) => (
                     <option key={grade} value={grade}>
                       {grade}
                     </option>
@@ -436,7 +435,7 @@ const CourseForm = () => {
                 </CFormSelect>
               </CCol>
             </CRow>
-            
+
             <CRow className="mb-3">
               <CCol>
                 <CFormLabel htmlFor="description">Course Description</CFormLabel>
@@ -451,7 +450,7 @@ const CourseForm = () => {
                 />
               </CCol>
             </CRow>
-            
+
             <CRow className="mb-3">
               <CCol md={6}>
                 <CFormLabel htmlFor="staff">
@@ -464,7 +463,7 @@ const CourseForm = () => {
                   value={formData.staff}
                   size="5"
                 >
-                  {INSTRUCTORS.map(instructor => (
+                  {INSTRUCTORS.map((instructor) => (
                     <option key={instructor.id} value={instructor.id}>
                       {instructor.name}
                     </option>
@@ -474,24 +473,26 @@ const CourseForm = () => {
                   Hold Ctrl/Cmd key to select multiple instructors
                 </small>
               </CCol>
-              
+
               <CCol md={6}>
                 <CFormLabel>
                   <cilClock className="me-1" /> Class Schedule
                 </CFormLabel>
                 <div className="mb-3 d-flex flex-wrap gap-2">
-                  {DAYS_OF_WEEK.map(day => (
+                  {DAYS_OF_WEEK.map((day) => (
                     <CFormCheck
                       key={day}
                       id={`day-${day}`}
                       label={day.substring(0, 3)}
                       checked={formData.schedule.classDays.includes(day)}
-                      onChange={() => handleChange({ target: { name: 'schedule.classDays', value: day } })}
+                      onChange={() =>
+                        handleChange({ target: { name: 'schedule.classDays', value: day } })
+                      }
                       inline
                     />
                   ))}
                 </div>
-                
+
                 <CRow className="g-2 mb-3">
                   <CCol>
                     <CFormLabel htmlFor="startTime">Start Time</CFormLabel>
@@ -529,7 +530,7 @@ const CourseForm = () => {
                 </CRow>
               </CCol>
             </CRow>
-            
+
             <CRow className="mb-3">
               <CCol md={6}>
                 <CFormLabel>
@@ -548,7 +549,7 @@ const CourseForm = () => {
                     required
                   />
                 </CInputGroup>
-                
+
                 {!isCreating && (
                   <CInputGroup className="mb-3">
                     <CInputGroupText>Enrolled</CInputGroupText>
@@ -563,7 +564,7 @@ const CourseForm = () => {
                     />
                   </CInputGroup>
                 )}
-                
+
                 <div className="mb-3">
                   <CFormCheck
                     id="isActive"
@@ -573,7 +574,7 @@ const CourseForm = () => {
                     onChange={handleChange}
                   />
                 </div>
-                
+
                 <div className="mb-3">
                   <CFormCheck
                     id="addToCalendar"
@@ -584,9 +585,9 @@ const CourseForm = () => {
                     disabled={!isGoogleCalendarReady}
                   />
                   {!isGoogleCalendarReady && (
-                    <CButton 
-                      color="primary" 
-                      size="sm" 
+                    <CButton
+                      color="primary"
+                      size="sm"
                       className="mt-2"
                       onClick={handleGoogleCalendarAuth}
                     >
@@ -598,7 +599,7 @@ const CourseForm = () => {
                   </small>
                 </div>
               </CCol>
-              
+
               <CCol md={6}>
                 <CFormLabel>
                   <cilCalendar className="me-1" /> Course Materials
@@ -615,11 +616,14 @@ const CourseForm = () => {
                     Add
                   </CButton>
                 </CInputGroup>
-                
+
                 {formData.materials.length > 0 ? (
                   <ul className="list-group">
                     {formData.materials.map((material, index) => (
-                      <li key={index} className="list-group-item d-flex justify-content-between align-items-center">
+                      <li
+                        key={index}
+                        className="list-group-item d-flex justify-content-between align-items-center"
+                      >
                         {material}
                         <CButton
                           color="danger"
@@ -637,7 +641,7 @@ const CourseForm = () => {
                 )}
               </CCol>
             </CRow>
-            
+
             <div className="d-flex justify-content-end">
               <CButton color="secondary" className="me-2" onClick={() => navigate('/courses')}>
                 Cancel
@@ -648,8 +652,10 @@ const CourseForm = () => {
                     <CSpinner size="sm" className="me-2" />
                     {isCreating ? 'Creating...' : 'Updating...'}
                   </>
+                ) : isCreating ? (
+                  'Create Course'
                 ) : (
-                  isCreating ? 'Create Course' : 'Update Course'
+                  'Update Course'
                 )}
               </CButton>
             </div>
@@ -657,7 +663,7 @@ const CourseForm = () => {
         </CCardBody>
       </CCard>
     </div>
-  );
-};
+  )
+}
 
-export default CourseForm; 
+export default CourseForm

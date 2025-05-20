@@ -22,7 +22,7 @@ const AssignmentsPage = React.lazy(() => import('./views/Courses/AssignmentsPage
 const BudgetPage = React.lazy(() => import('./views/Courses/BudgetPage'))
 const TimetablePage = React.lazy(() => import('./views/Courses/TimetablePage'))
 //Registration
-const RegistrationPage = React.lazy(() => import('./views/registration/registrationPage') )
+const RegistrationPage = React.lazy(() => import('./views/registration/registrationPage'))
 const ThankYouPage = React.lazy(() => import('./views/registration/thankYouPage.js'))
 // Base
 const Accordion = React.lazy(() => import('./views/base/accordion/Accordion'))
@@ -71,7 +71,6 @@ const Toasts = React.lazy(() => import('./views/notifications/toasts/Toasts'))
 
 const Widgets = React.lazy(() => import('./views/widgets/Widgets'))
 
-
 // const routes = [
 //   { path: '/', exact: true, name: 'Home' },
 //   { path: '/dashboard', name: 'Dashboard', element: Dashboard },
@@ -82,7 +81,7 @@ const Widgets = React.lazy(() => import('./views/widgets/Widgets'))
 const routes = [
   { path: '/', exact: true, name: 'Home' },
   { path: '/dashboard', name: 'Dashboard', element: Dashboard },
-  { path: '/attendance', name: 'Attendance', element: AttendanceTabs},
+  { path: '/attendance', name: 'Attendance', element: AttendanceTabs },
   { path: '/reportcards', name: 'Report Cards', element: ReportCardUI },
   { path: '/registration', name: 'Registration', element: RegistrationPage },
   { path: '/registration/thankYouPage', name: 'Thank You', element: ThankYouPage },
@@ -96,7 +95,7 @@ const routes = [
   { path: '/courses/:id/budget', name: 'Course Budget', element: BudgetPage },
   { path: '/courses/:id/timetable', name: 'Course Timetable', element: TimetablePage },
   { path: '/courses/:id', name: 'Course Detail', element: CourseDetailPage },
-  { path: '/attendance/attendance-table-page', name: 'Attendance Table', element: AttendanceTable},
+  { path: '/attendance/attendance-table-page', name: 'Attendance Table', element: AttendanceTable },
 
   // { path: '/theme', name: 'Theme', element: Colors, exact: true },
   // { path: '/theme/colors', name: 'Colors', element: Colors },

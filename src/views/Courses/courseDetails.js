@@ -1,65 +1,72 @@
 // CourseDetailPage.jsx
-import React, { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
-import coursesData from "../../Data/coursesData.json";
-import "./courseDetails.css";
-import { CButton, CCard, CCardBody, CRow, CCol } from '@coreui/react';
-import { initializeGoogleApi, initializeGIS, authenticate, createEvent, assignmentToEvent, isAuthenticated } from "../../services/calendarService";
+import React, { useState, useEffect } from 'react'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import coursesData from '../../Data/coursesData.json'
+import './courseDetails.css'
+import { CButton, CCard, CCardBody, CRow, CCol } from '@coreui/react'
+import {
+  initializeGoogleApi,
+  initializeGIS,
+  authenticate,
+  createEvent,
+  assignmentToEvent,
+  isAuthenticated,
+} from '../../services/calendarService'
 
 function CourseDetailPage() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const courseId = Number(id);
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const courseId = Number(id)
 
   // find the course in your JSON
-  const course = coursesData.find((c) => c.id === courseId);
-  
+  const course = coursesData.find((c) => c.id === courseId)
+
   // State for assignments
-  const [assignments, setAssignments] = useState([]);
-  
+  const [assignments, setAssignments] = useState([])
+
   // Function to get contrasting text color based on background
   const getTextColor = (bgColor) => {
     // Convert hex to RGB
-    const hex = bgColor.replace('#', '');
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
-    
+    const hex = bgColor.replace('#', '')
+    const r = parseInt(hex.substr(0, 2), 16)
+    const g = parseInt(hex.substr(2, 2), 16)
+    const b = parseInt(hex.substr(4, 2), 16)
+
     // Calculate brightness
-    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000
 
     // Return black for light backgrounds, white for dark
-    return brightness > 125 ? '#333' : '#fff';
-  };
-  
+    return brightness > 125 ? '#333' : '#fff'
+  }
+
   // Create a lighter version of the course color for section headers
   const getLighterColor = (hexColor) => {
     // Default color if none provided
-    if (!hexColor) return '#f8f9fa';
-    
+    if (!hexColor) return '#f8f9fa'
+
     // Convert hex to RGB
-    const hex = hexColor.replace('#', '');
-    let r = parseInt(hex.substr(0, 2), 16);
-    let g = parseInt(hex.substr(2, 2), 16);
-    let b = parseInt(hex.substr(4, 2), 16);
-    
+    const hex = hexColor.replace('#', '')
+    let r = parseInt(hex.substr(0, 2), 16)
+    let g = parseInt(hex.substr(2, 2), 16)
+    let b = parseInt(hex.substr(4, 2), 16)
+
     // Make it lighter (mix with white)
-    r = Math.floor(r + (255 - r) * 0.85);
-    g = Math.floor(g + (255 - g) * 0.85);
-    b = Math.floor(b + (255 - b) * 0.85);
-    
-    return `rgb(${r}, ${g}, ${b})`;
-  };
-  
+    r = Math.floor(r + (255 - r) * 0.85)
+    g = Math.floor(g + (255 - g) * 0.85)
+    b = Math.floor(b + (255 - b) * 0.85)
+
+    return `rgb(${r}, ${g}, ${b})`
+  }
+
   // Load assignments from course data
   useEffect(() => {
     if (course && course.assignments) {
-      setAssignments(course.assignments);
+      setAssignments(course.assignments)
     }
-  }, [courseId, course]);
+  }, [courseId, course])
 
   if (!course) {
-    return <div className="course-not-found">Course not found</div>;
+    return <div className="course-not-found">Course not found</div>
   }
 
   const getColorFromId = (id) => {
@@ -67,19 +74,16 @@ function CourseDetailPage() {
     const hue = (id * 271.019) % 360
     return `hsl(${hue}, 70%, 45%)`
   }
-  
+
   // Get course color or use default
-  const courseColor = course.color || getColorFromId(courseId);
-  const textColor = getTextColor(courseColor);
-  const lightColor = getLighterColor(courseColor);
+  const courseColor = course.color || getColorFromId(courseId)
+  const textColor = getTextColor(courseColor)
+  const lightColor = getLighterColor(courseColor)
 
   return (
     <div className="course-detail-container">
       {/* Course Header with course color */}
-      <div 
-        className="course-header" 
-        style={{ backgroundColor: courseColor, color: textColor }}
-      >
+      <div className="course-header" style={{ backgroundColor: courseColor, color: textColor }}>
         <h1>{course.title}</h1>
         <p>{course.description}</p>
       </div>
@@ -91,10 +95,12 @@ function CourseDetailPage() {
             <CCard className="h-100 navigation-card">
               <CCardBody className="d-flex flex-column">
                 <h4>Assignments</h4>
-                <p className="flex-grow-1">Manage and view course assignments, deadlines, and files.</p>
+                <p className="flex-grow-1">
+                  Manage and view course assignments, deadlines, and files.
+                </p>
                 <div>
-                  <CButton 
-                    color="primary" 
+                  <CButton
+                    color="primary"
                     onClick={() => navigate(`/courses/${id}/assignments`)}
                     className="w-100"
                   >
@@ -109,10 +115,12 @@ function CourseDetailPage() {
             <CCard className="h-100 navigation-card">
               <CCardBody className="d-flex flex-column">
                 <h4>Schedule</h4>
-                <p className="flex-grow-1">View course schedule, meeting times, and calendar integration.</p>
+                <p className="flex-grow-1">
+                  View course schedule, meeting times, and calendar integration.
+                </p>
                 <div>
-                  <CButton 
-                    color="primary" 
+                  <CButton
+                    color="primary"
                     onClick={() => navigate(`/courses/${id}/schedule`)}
                     className="w-100"
                   >
@@ -127,10 +135,12 @@ function CourseDetailPage() {
             <CCard className="h-100 navigation-card">
               <CCardBody className="d-flex flex-column">
                 <h4>Budget</h4>
-                <p className="flex-grow-1">Track and manage course budget, expenses, and financial records.</p>
+                <p className="flex-grow-1">
+                  Track and manage course budget, expenses, and financial records.
+                </p>
                 <div>
-                  <CButton 
-                    color="primary" 
+                  <CButton
+                    color="primary"
                     onClick={() => navigate(`/courses/${id}/budget`)}
                     className="w-100"
                   >
@@ -145,10 +155,12 @@ function CourseDetailPage() {
             <CCard className="h-100 navigation-card">
               <CCardBody className="d-flex flex-column">
                 <h4>Timetable</h4>
-                <p className="flex-grow-1">View the complete class timetable with all course sessions.</p>
+                <p className="flex-grow-1">
+                  View the complete class timetable with all course sessions.
+                </p>
                 <div>
-                  <CButton 
-                    color="primary" 
+                  <CButton
+                    color="primary"
                     onClick={() => navigate(`/courses/${id}/timetable`)}
                     className="w-100"
                   >
@@ -238,9 +250,7 @@ function CourseDetailPage() {
                   </div>
                   <div className="stat-item">
                     <div className="stat-label">Schedule</div>
-                    <div className="stat-value">
-                      {course.schedule.classDays.join(', ')}
-                    </div>
+                    <div className="stat-value">{course.schedule.classDays.join(', ')}</div>
                   </div>
                   <div className="stat-item">
                     <div className="stat-label">Times</div>
@@ -259,7 +269,7 @@ function CourseDetailPage() {
         </CCardBody>
       </CCard>
     </div>
-  );
+  )
 }
 
-export default CourseDetailPage;
+export default CourseDetailPage

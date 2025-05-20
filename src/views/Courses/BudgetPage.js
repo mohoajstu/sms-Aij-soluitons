@@ -1,93 +1,102 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import coursesData from '../../Data/coursesData.json';
-import { CCard, CCardBody, CCardHeader, CProgress, CButton, CForm, CFormInput, CFormCheck } from '@coreui/react';
+import React, { useState, useEffect } from 'react'
+import { useParams } from 'react-router-dom'
+import coursesData from '../../Data/coursesData.json'
+import {
+  CCard,
+  CCardBody,
+  CCardHeader,
+  CProgress,
+  CButton,
+  CForm,
+  CFormInput,
+  CFormCheck,
+} from '@coreui/react'
 
 export default function BudgetPage() {
-  const { id } = useParams();
-  const courseId = Number(id);
-  const [course, setCourse] = useState(null);
-  const [budgetEntries, setBudgetEntries] = useState([]);
-  const [newExpense, setNewExpense] = useState("");
-  const [newAmount, setNewAmount] = useState("");
-  const [isExpense, setIsExpense] = useState(true);
+  const { id } = useParams()
+  const courseId = Number(id)
+  const [course, setCourse] = useState(null)
+  const [budgetEntries, setBudgetEntries] = useState([])
+  const [newExpense, setNewExpense] = useState('')
+  const [newAmount, setNewAmount] = useState('')
+  const [isExpense, setIsExpense] = useState(true)
 
   useEffect(() => {
     // Find the course data
-    const foundCourse = coursesData.find(c => c.id === courseId);
+    const foundCourse = coursesData.find((c) => c.id === courseId)
     if (foundCourse) {
-      setCourse(foundCourse);
-      
+      setCourse(foundCourse)
+
       // Load budget entries from localStorage
-      const savedEntries = localStorage.getItem(`budget-entries-${courseId}`);
+      const savedEntries = localStorage.getItem(`budget-entries-${courseId}`)
       if (savedEntries) {
-        setBudgetEntries(JSON.parse(savedEntries));
+        setBudgetEntries(JSON.parse(savedEntries))
       }
     }
-  }, [courseId]);
+  }, [courseId])
 
   // Save budget entries to localStorage when they change
   useEffect(() => {
     if (budgetEntries.length > 0) {
-      localStorage.setItem(`budget-entries-${courseId}`, JSON.stringify(budgetEntries));
+      localStorage.setItem(`budget-entries-${courseId}`, JSON.stringify(budgetEntries))
     }
-  }, [budgetEntries, courseId]);
+  }, [budgetEntries, courseId])
 
   if (!course) {
-    return <div>Loading course information...</div>;
+    return <div>Loading course information...</div>
   }
 
   // Calculate budget
-  const initialBudget = course.budget || 500; // Default annual budget of $500
-  
+  const initialBudget = course.budget || 500 // Default annual budget of $500
+
   const calculateRemainingBudget = () => {
     const spent = budgetEntries.reduce((total, entry) => {
-      return entry.type === "expense" 
-        ? total + parseFloat(entry.amount) 
-        : total - parseFloat(entry.amount);
-    }, 0);
-    
-    return initialBudget - spent;
-  };
-  
+      return entry.type === 'expense'
+        ? total + parseFloat(entry.amount)
+        : total - parseFloat(entry.amount)
+    }, 0)
+
+    return initialBudget - spent
+  }
+
   // Calculate budget percentage used
   const percentageUsed = () => {
-    const remaining = calculateRemainingBudget();
-    return 100 - ((remaining / initialBudget) * 100);
-  };
-  
+    const remaining = calculateRemainingBudget()
+    return 100 - (remaining / initialBudget) * 100
+  }
+
   // Handle form submission for new budget entry
   const handleAddEntry = (e) => {
-    e.preventDefault();
-    
+    e.preventDefault()
+
     if (!newExpense || !newAmount || isNaN(parseFloat(newAmount)) || parseFloat(newAmount) <= 0) {
-      alert("Please enter a valid description and amount");
-      return;
+      alert('Please enter a valid description and amount')
+      return
     }
-    
+
     const newEntry = {
       id: Date.now(),
       description: newExpense,
       amount: parseFloat(newAmount),
-      type: isExpense ? "expense" : "refund",
-      date: new Date().toLocaleDateString()
-    };
-    
-    setBudgetEntries([...budgetEntries, newEntry]);
-    setNewExpense("");
-    setNewAmount("");
-  };
-  
+      type: isExpense ? 'expense' : 'refund',
+      date: new Date().toLocaleDateString(),
+    }
+
+    setBudgetEntries([...budgetEntries, newEntry])
+    setNewExpense('')
+    setNewAmount('')
+  }
+
   // Handle removing an entry
   const handleRemoveEntry = (entryId) => {
-    setBudgetEntries(budgetEntries.filter(entry => entry.id !== entryId));
-  };
+    setBudgetEntries(budgetEntries.filter((entry) => entry.id !== entryId))
+  }
 
   return (
     <div style={{ padding: 20 }}>
       <h2>Budget for {course.title}</h2>
       <p className="text-muted">Course ID: {courseId}</p>
-      
+
       <CCard className="mb-4">
         <CCardHeader>
           <h3>Budget Overview</h3>
@@ -107,11 +116,16 @@ export default function BudgetPage() {
               <h3>{percentageUsed().toFixed(1)}%</h3>
             </div>
           </div>
-          
-          <CProgress value={percentageUsed()} color={percentageUsed() > 80 ? "danger" : "success"} height={10} className="mb-3" />
+
+          <CProgress
+            value={percentageUsed()}
+            color={percentageUsed() > 80 ? 'danger' : 'success'}
+            height={10}
+            className="mb-3"
+          />
         </CCardBody>
       </CCard>
-      
+
       <CCard className="mb-4">
         <CCardHeader>
           <h3>Add New Entry</h3>
@@ -121,18 +135,18 @@ export default function BudgetPage() {
             <div className="row mb-3">
               <div className="col-md-5">
                 <label htmlFor="expense-description">Description</label>
-                <CFormInput 
+                <CFormInput
                   id="expense-description"
                   value={newExpense}
                   onChange={(e) => setNewExpense(e.target.value)}
                   placeholder="e.g., Textbooks, Field Trip"
                 />
               </div>
-              
+
               <div className="col-md-3">
                 <label htmlFor="expense-amount">Amount ($)</label>
-                <CFormInput 
-                  type="number" 
+                <CFormInput
+                  type="number"
                   id="expense-amount"
                   value={newAmount}
                   onChange={(e) => setNewAmount(e.target.value)}
@@ -141,42 +155,46 @@ export default function BudgetPage() {
                   placeholder="0.00"
                 />
               </div>
-              
+
               <div className="col-md-4">
                 <label>Type</label>
                 <div>
-                  <CFormCheck 
+                  <CFormCheck
                     inline
                     type="radio"
                     id="expense-type-expense"
                     label="Expense"
-                    checked={isExpense} 
+                    checked={isExpense}
                     onChange={() => setIsExpense(true)}
                   />
-                  <CFormCheck 
+                  <CFormCheck
                     inline
                     type="radio"
                     id="expense-type-refund"
                     label="Refund"
-                    checked={!isExpense} 
+                    checked={!isExpense}
                     onChange={() => setIsExpense(false)}
                   />
                 </div>
               </div>
             </div>
-            
-            <CButton type="submit" color="primary">Add Entry</CButton>
+
+            <CButton type="submit" color="primary">
+              Add Entry
+            </CButton>
           </CForm>
         </CCardBody>
       </CCard>
-      
+
       <CCard>
         <CCardHeader>
           <h3>Transaction History</h3>
         </CCardHeader>
         <CCardBody>
           {budgetEntries.length === 0 ? (
-            <div className="text-center py-5">No entries yet. Add your first budget item above.</div>
+            <div className="text-center py-5">
+              No entries yet. Add your first budget item above.
+            </div>
           ) : (
             <div className="table-responsive">
               <table className="table">
@@ -196,12 +214,14 @@ export default function BudgetPage() {
                       <td>{entry.description}</td>
                       <td>${entry.amount.toFixed(2)}</td>
                       <td>
-                        <span className={`badge bg-${entry.type === "expense" ? "danger" : "success"}`}>
-                          {entry.type === "expense" ? "Expense" : "Refund"}
+                        <span
+                          className={`badge bg-${entry.type === 'expense' ? 'danger' : 'success'}`}
+                        >
+                          {entry.type === 'expense' ? 'Expense' : 'Refund'}
                         </span>
                       </td>
                       <td>
-                        <CButton 
+                        <CButton
                           color="danger"
                           size="sm"
                           variant="ghost"
@@ -219,5 +239,5 @@ export default function BudgetPage() {
         </CCardBody>
       </CCard>
     </div>
-  );
-} 
+  )
+}
