@@ -1,46 +1,46 @@
-import React from 'react';
-import { 
-  Box, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow, 
-  Paper, 
+import React from 'react'
+import {
+  Box,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
   Button,
   Typography,
-  Chip
-} from '@mui/material';
-import DownloadIcon from '@mui/icons-material/Download';
-import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import './attendanceReportTable.css';
+  Chip,
+} from '@mui/material'
+import DownloadIcon from '@mui/icons-material/Download'
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
+import './attendanceReportTable.css'
 
 const AttendanceReportTable = ({ attendanceData, reportParams }) => {
   const exportToExcel = () => {
     // Placeholder for Excel export functionality
-    console.log("Exporting to Excel...");
-    alert("Excel export feature will be implemented with actual library");
-  };
+    console.log('Exporting to Excel...')
+    alert('Excel export feature will be implemented with actual library')
+  }
 
   const exportToPDF = () => {
     // Placeholder for PDF export functionality
-    console.log("Exporting to PDF...");
-    alert("PDF export feature will be implemented with actual library");
-  };
+    console.log('Exporting to PDF...')
+    alert('PDF export feature will be implemented with actual library')
+  }
 
   const getStatusChip = (status) => {
     switch (status) {
       case 'Present':
-        return <Chip label="Present" className="status-chip present" />;
+        return <Chip label="Present" className="status-chip present" />
       case 'Late':
-        return <Chip label="Late" className="status-chip late" />;
+        return <Chip label="Late" className="status-chip late" />
       case 'Absent':
-        return <Chip label="Absent" className="status-chip absent" />;
+        return <Chip label="Absent" className="status-chip absent" />
       default:
-        return <Chip label={status} className="status-chip" />;
+        return <Chip label={status} className="status-chip" />
     }
-  };
+  }
 
   const noDataDisplay = (
     <Box className="no-data-container">
@@ -51,7 +51,7 @@ const AttendanceReportTable = ({ attendanceData, reportParams }) => {
         Try adjusting your filters or selecting different dates.
       </Typography>
     </Box>
-  );
+  )
 
   return (
     <Box className="report-table-container">
@@ -60,9 +60,9 @@ const AttendanceReportTable = ({ attendanceData, reportParams }) => {
           <Box className="report-header">
             <Typography variant="h6" className="report-title">
               Attendance Report
-              {reportParams.semester && 
+              {reportParams.semester && (
                 <span className="report-subtitle"> - {reportParams.semester}</span>
-              }
+              )}
             </Typography>
             <Box className="export-buttons">
               <Button
@@ -121,7 +121,7 @@ const AttendanceReportTable = ({ attendanceData, reportParams }) => {
         noDataDisplay
       )}
     </Box>
-  );
-};
+  )
+}
 
-export default AttendanceReportTable;
+export default AttendanceReportTable

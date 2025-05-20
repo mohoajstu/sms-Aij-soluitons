@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   CButton,
   CCard,
@@ -13,23 +13,19 @@ import {
   CInputGroupText,
   CRow,
   CAlert,
-  CProgress
-} from '@coreui/react';
-import CIcon from '@coreui/icons-react';
-import { cilLockLocked, cilUser, cilPhone, cilContact, cilShieldAlt } from '@coreui/icons';
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithPopup, 
-  GoogleAuthProvider 
-} from "firebase/auth";
-import { auth, firestore } from '../../../Firebase/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+  CProgress,
+} from '@coreui/react'
+import CIcon from '@coreui/icons-react'
+import { cilLockLocked, cilUser, cilPhone, cilContact, cilShieldAlt } from '@coreui/icons'
+import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
+import { auth, firestore } from '../../../Firebase/firebase'
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 
 // Google Auth Provider Configuration
-const googleProvider = new GoogleAuthProvider();
+const googleProvider = new GoogleAuthProvider()
 
 const Register = () => {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(1)
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -40,36 +36,36 @@ const Register = () => {
     role: '',
     emergencyNumber: '',
     subjects: '',
-    permissions: ''
-  });
-  
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+    permissions: '',
+  })
+
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    
+    e.preventDefault()
+
     if (step === 1) {
-      if (!validateStep1()) return;
-      setStep(2);
-      return;
+      if (!validateStep1()) return
+      setStep(2)
+      return
     }
 
     if (step === 2) {
-      if (!validateStep2()) return;
-      setStep(3);
-      return;
+      if (!validateStep2()) return
+      setStep(3)
+      return
     }
 
-    await handleFinalSubmission();
-  };
+    await handleFinalSubmission()
+  }
 
   const handleGoogleSignUp = async () => {
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      const [firstName, lastName] = user.displayName?.split(' ') || ['', ''];
+      const result = await signInWithPopup(auth, googleProvider)
+      const user = result.user
+      const [firstName, lastName] = user.displayName?.split(' ') || ['', '']
 
       const userData = {
         firstName,
@@ -84,45 +80,45 @@ const Register = () => {
         parentProfile: {
           emergencyNumber: '',
           children: [],
-          communicationPreferences: { email: true, sms: true }
-        }
-      };
+          communicationPreferences: { email: true, sms: true },
+        },
+      }
 
-      await setDoc(doc(firestore, 'users', user.uid), userData);
-      navigate('/dashboard');
+      await setDoc(doc(firestore, 'users', user.uid), userData)
+      navigate('/dashboard')
     } catch (error) {
-      handleFirebaseError(error);
+      handleFirebaseError(error)
     }
-  };
+  }
 
   const validateStep1 = () => {
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return false;
+      setError('Passwords do not match')
+      return false
     }
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return false;
+      setError('Password must be at least 6 characters')
+      return false
     }
-    return true;
-  };
+    return true
+  }
 
   const validateStep2 = () => {
     if (!formData.firstName || !formData.lastName || !formData.phone || !formData.role) {
-      setError('All fields are required');
-      return false;
+      setError('All fields are required')
+      return false
     }
-    return true;
-  };
+    return true
+  }
 
   const handleFinalSubmission = async () => {
-    setLoading(true);
+    setLoading(true)
     try {
       const userCredential = await createUserWithEmailAndPassword(
-        auth, 
-        formData.email, 
-        formData.password
-      );
+        auth,
+        formData.email,
+        formData.password,
+      )
 
       const userData = {
         firstName: formData.firstName,
@@ -134,73 +130,73 @@ const Register = () => {
         updatedAt: serverTimestamp(),
         lastLogin: serverTimestamp(),
         loginCount: 0,
-        ...getRoleSpecificData()
-      };
+        ...getRoleSpecificData(),
+      }
 
-      await setDoc(doc(firestore, 'users', userCredential.user.uid), userData);
-      navigate('/dashboard');
+      await setDoc(doc(firestore, 'users', userCredential.user.uid), userData)
+      navigate('/dashboard')
     } catch (err) {
-      handleFirebaseError(err);
+      handleFirebaseError(err)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const getRoleSpecificData = () => {
-    switch(formData.role) {
+    switch (formData.role) {
       case 'parent':
         return {
           parentProfile: {
             emergencyNumber: formData.emergencyNumber,
             children: [],
-            communicationPreferences: { email: true, sms: true }
-          }
-        };
+            communicationPreferences: { email: true, sms: true },
+          },
+        }
       case 'teacher':
         return {
           teacherProfile: {
-            subjects: formData.subjects.split(',').map(s => s.trim()),
+            subjects: formData.subjects.split(',').map((s) => s.trim()),
             classesManaged: [],
-            teacherPerformance: { averageClassAttendance: 0, feedbackScore: 0 }
-          }
-        };
+            teacherPerformance: { averageClassAttendance: 0, feedbackScore: 0 },
+          },
+        }
       case 'admin':
         return {
           adminProfile: {
-            permissions: formData.permissions.split(',').map(p => p.trim()),
-            auditMetrics: { lastAudit: null, actionsLogged: 0 }
-          }
-        };
+            permissions: formData.permissions.split(',').map((p) => p.trim()),
+            auditMetrics: { lastAudit: null, actionsLogged: 0 },
+          },
+        }
       default:
-        return {};
+        return {}
     }
-  };
+  }
 
   const handleChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+    setFormData((prev) => ({ ...prev, [field]: value }))
+  }
 
   const handleFirebaseError = (error) => {
     switch (error.code) {
       case 'auth/email-already-in-use':
-        setError('Email is already registered');
-        break;
+        setError('Email is already registered')
+        break
       case 'auth/invalid-email':
-        setError('Invalid email address');
-        break;
+        setError('Invalid email address')
+        break
       case 'auth/weak-password':
-        setError('Password must be at least 6 characters');
-        break;
+        setError('Password must be at least 6 characters')
+        break
       case 'auth/popup-closed-by-user':
-        setError('Google sign-up window was closed');
-        break;
+        setError('Google sign-up window was closed')
+        break
       case 'auth/account-exists-with-different-credential':
-        setError('Email already exists with different login method');
-        break;
+        setError('Email already exists with different login method')
+        break
       default:
-        setError('Registration failed. Please try again.');
+        setError('Registration failed. Please try again.')
     }
-  };
+  }
 
   const renderStep = () => {
     switch (step) {
@@ -219,9 +215,7 @@ const Register = () => {
                 required
               />
             </CInputGroup>
-            <small className="text-muted d-block mb-3">
-              Use your official email address
-            </small>
+            <small className="text-muted d-block mb-3">Use your official email address</small>
 
             <CInputGroup className="mb-3">
               <CInputGroupText>
@@ -253,11 +247,7 @@ const Register = () => {
             </CInputGroup>
 
             <div className="text-center mb-4">
-              <CButton 
-                color="secondary" 
-                onClick={handleGoogleSignUp}
-                style={{ width: '100%' }}
-              >
+              <CButton color="secondary" onClick={handleGoogleSignUp} style={{ width: '100%' }}>
                 <CIcon icon={cilUser} className="me-2" />
                 Sign up with Google
               </CButton>
@@ -266,7 +256,7 @@ const Register = () => {
               </small>
             </div>
           </>
-        );
+        )
 
       case 2:
         return (
@@ -282,9 +272,7 @@ const Register = () => {
                 required
               />
             </CInputGroup>
-            <small className="text-muted d-block mb-3">
-              Legal name as per official documents
-            </small>
+            <small className="text-muted d-block mb-3">Legal name as per official documents</small>
 
             <CInputGroup className="mb-3">
               <CInputGroupText>
@@ -317,7 +305,7 @@ const Register = () => {
               <CInputGroupText>
                 <CIcon icon={cilShieldAlt} />
               </CInputGroupText>
-              <CFormSelect 
+              <CFormSelect
                 value={formData.role}
                 onChange={(e) => handleChange('role', e.target.value)}
                 required
@@ -332,7 +320,7 @@ const Register = () => {
               Choose your primary role in the institution
             </small>
           </>
-        );
+        )
 
       case 3:
         return (
@@ -350,9 +338,7 @@ const Register = () => {
                     required
                   />
                 </CInputGroup>
-                <small className="text-muted d-block mb-3">
-                  Primary emergency contact number
-                </small>
+                <small className="text-muted d-block mb-3">Primary emergency contact number</small>
               </>
             )}
 
@@ -394,9 +380,9 @@ const Register = () => {
               </>
             )}
           </>
-        );
+        )
     }
-  };
+  }
 
   return (
     <div className="bg-body-tertiary min-vh-100 d-flex flex-row align-items-center">
@@ -416,7 +402,8 @@ const Register = () => {
                     <p className="text-body-secondary">
                       {step === 1 && 'Account Setup'}
                       {step === 2 && 'Personal Information'}
-                      {step === 3 && `${formData.role.charAt(0).toUpperCase() + formData.role.slice(1)} Details`}
+                      {step === 3 &&
+                        `${formData.role.charAt(0).toUpperCase() + formData.role.slice(1)} Details`}
                     </p>
                   </div>
 
@@ -425,12 +412,12 @@ const Register = () => {
                   {renderStep()}
 
                   <div className="d-grid">
-                    <CButton 
-                      color="success" 
-                      type="submit"
-                      disabled={loading}
-                    >
-                      {loading ? 'Processing...' : step === 3 ? 'Complete Registration' : 'Next Step'}
+                    <CButton color="success" type="submit" disabled={loading}>
+                      {loading
+                        ? 'Processing...'
+                        : step === 3
+                          ? 'Complete Registration'
+                          : 'Next Step'}
                     </CButton>
                   </div>
                 </CForm>
@@ -440,7 +427,7 @@ const Register = () => {
         </CRow>
       </CContainer>
     </div>
-  );
-};
+  )
+}
 
-export default Register;
+export default Register

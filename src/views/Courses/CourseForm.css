@@ -1,0 +1,115 @@
+.course-form-container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.list-group {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.list-group-item {
+  transition: background-color 0.2s;
+}
+
+.list-group-item:hover {
+  background-color: #f8f9fa;
+}
+
+/* Style for multiple select */
+select[multiple] {
+  height: auto;
+  min-height: 150px;
+}
+
+/* Small text indicator for multiselect */
+.form-text {
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+/* Style for day selection checkboxes */
+.day-checkbox {
+  margin-right: 10px;
+}
+
+/* Custom styling for input groups */
+.input-group-text {
+  background-color: #f0f0f0;
+  min-width: 80px;
+  justify-content: center;
+}
+
+/* Card styling */
+.card {
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+/* Form styling */
+.form-label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.form-control:focus {
+  box-shadow: 0 0 0 0.25rem rgba(79, 93, 115, 0.15);
+  border-color: #4f5d73;
+}
+
+/* Button styling */
+.btn-primary {
+  background-color: #4f5d73;
+  border-color: #4f5d73;
+}
+
+.btn-primary:hover {
+  background-color: #425065;
+  border-color: #3c4a5d;
+}
+
+.btn-danger {
+  background-color: #e55353;
+  border-color: #e55353;
+}
+
+.btn-danger:hover {
+  background-color: #d13b3b;
+  border-color: #c53535;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .card-body {
+    padding: 1rem;
+  }
+  
+  .row {
+    --bs-gutter-x: 0.5rem;
+  }
+}
+
+/* Form check styling */
+.form-check-input:checked {
+  background-color: #4f5d73;
+  border-color: #4f5d73;
+}
+
+/* Alert styling */
+.alert-success {
+  background-color: #2eb85c;
+  border-color: #2aa052;
+  color: #fff;
+}
+
+.alert-danger {
+  background-color: #e55353;
+  border-color: #d13b3b;
+  color: #fff;
+} 

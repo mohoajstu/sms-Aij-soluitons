@@ -1,0 +1,150 @@
+.courses-view .card-header {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+}
+
+.courses-view .nav-tabs {
+  border-bottom: none;
+}
+
+.courses-view .nav-link {
+  font-weight: 500;
+  padding: 0.75rem 1rem;
+  color: #5c6873;
+  border-top-left-radius: 0.25rem;
+  border-top-right-radius: 0.25rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.courses-view .nav-link.active {
+  color: #4f5d73;
+  border-bottom: 2px solid #4f5d73;
+  background-color: transparent;
+  border-color: transparent transparent #4f5d73 transparent;
+}
+
+.courses-view .nav-link:hover:not(.active) {
+  color: #3c4b64;
+  border-color: transparent;
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+/* Table styling */
+.courses-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.courses-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #5c6873;
+  padding: 0.75rem 1rem;
+  vertical-align: middle;
+}
+
+.courses-table td {
+  padding: 0.75rem 1rem;
+  vertical-align: middle;
+}
+
+.course-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.course-title a {
+  color: #4f5d73;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.course-title a:hover {
+  color: #3c4b64;
+  text-decoration: underline;
+}
+
+.course-description {
+  font-size: 0.85rem;
+  color: #768192;
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.schedule-time {
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+.enrollment {
+  font-weight: 600;
+  text-align: center;
+}
+
+.text-success {
+  color: #2eb85c !important;
+}
+
+.text-warning {
+  color: #f9b115 !important;
+}
+
+.text-danger {
+  color: #e55353 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .d-flex.gap-3 {
+    flex-direction: column;
+    gap: 0.5rem !important;
+  }
+  
+  .courses-table th:nth-child(2),
+  .courses-table td:nth-child(2),
+  .courses-table th:nth-child(5),
+  .courses-table td:nth-child(5) {
+    display: none;
+  }
+  
+  .course-title {
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .course-description {
+    display: none;
+  }
+}
+
+/* Filter controls */
+.input-group {
+  max-width: 300px;
+}
+
+.input-group-text {
+  background-color: #f8f9fa;
+  border-color: #e4e7ea;
+}
+
+/* Badge styling */
+.badge {
+  padding: 0.35em 0.65em;
+  font-size: 0.75em;
+}
+
+/* Button hover effects */
+.btn-light:hover {
+  background-color: #ebedef;
+  border-color: #d8dbe0;
+}
+
+.btn-outline-danger:hover {
+  background-color: #e55353;
+  color: white;
+} 

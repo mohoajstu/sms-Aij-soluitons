@@ -21,22 +21,22 @@ import {
   cilUser,
 } from '@coreui/icons'
 import CIcon from '@coreui/icons-react'
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom'
 import useAuth from '../../Firebase/useAuth'
 import avatar8 from './../../assets/images/avatars/0.png'
 
 const AppHeaderDropdown = () => {
-    const { signOut } = useAuth();
-    const navigate = useNavigate();
+  const { signOut } = useAuth()
+  const navigate = useNavigate()
 
-    const handleLogout = async () => {
-        try {
-          await signOut();
-          navigate('/login');
-        } catch (error) {
-          console.error('Logout error:', error);
-        }
-      };
+  const handleLogout = async () => {
+    try {
+      await signOut()
+      navigate('/login')
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+  }
 
   return (
     <CDropdown variant="nav-item">
