@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'
 import {
   CCard,
   CCardBody,
@@ -13,12 +13,12 @@ import {
   CCol,
   CFormCheck,
   CAlert,
-  CSpinner
-} from '@coreui/react';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
-import coursesData from '../../Data/coursesData.json';
-import calendarService from '../../services/calendarService';
+  CSpinner,
+} from '@coreui/react'
+import DatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
+import coursesData from '../../Data/coursesData.json'
+import calendarService from '../../services/calendarService'
 
 const AssignmentForm = ({ assignmentId = null, onSave = () => {}, onCancel = () => {} }) => {
   const [formData, setFormData] = useState({
@@ -32,17 +32,17 @@ const AssignmentForm = ({ assignmentId = null, onSave = () => {}, onCancel = () 
     addToCalendar: false,
     fileAttachments: [],
     status: 'draft', // draft, published, graded
-  });
-  
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [isCreating, setIsCreating] = useState(true);
+  })
+
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [isCreating, setIsCreating] = useState(true)
 
   useEffect(() => {
     // If editing an existing assignment, fetch data
     if (assignmentId) {
-      setIsCreating(false);
+      setIsCreating(false)
       // Simulating API call to get assignment details
       // In a real app, this would be an API call
       const assignment = {
@@ -56,122 +56,124 @@ const AssignmentForm = ({ assignmentId = null, onSave = () => {}, onCancel = () 
         addToCalendar: false,
         fileAttachments: [],
         status: 'draft',
-      };
-      
-      setFormData(assignment);
+      }
+
+      setFormData(assignment)
     }
-  }, [assignmentId]);
+  }, [assignmentId])
 
   const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    
-    setFormData(prevData => ({
+    const { name, value, type, checked } = e.target
+
+    setFormData((prevData) => ({
       ...prevData,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-  };
+      [name]: type === 'checkbox' ? checked : value,
+    }))
+  }
 
   const handleDateChange = (date) => {
-    setFormData(prevData => ({
+    setFormData((prevData) => ({
       ...prevData,
-      dueDate: date
-    }));
-  };
+      dueDate: date,
+    }))
+  }
 
   const handleFileChange = (e) => {
-    const files = Array.from(e.target.files);
-    
-    setFormData(prevData => ({
+    const files = Array.from(e.target.files)
+
+    setFormData((prevData) => ({
       ...prevData,
-      fileAttachments: [...prevData.fileAttachments, ...files]
-    }));
-  };
+      fileAttachments: [...prevData.fileAttachments, ...files],
+    }))
+  }
 
   const removeFile = (index) => {
-    setFormData(prevData => ({
+    setFormData((prevData) => ({
       ...prevData,
-      fileAttachments: prevData.fileAttachments.filter((_, i) => i !== index)
-    }));
-  };
+      fileAttachments: prevData.fileAttachments.filter((_, i) => i !== index),
+    }))
+  }
 
   const addToGoogleCalendar = async (assignment) => {
     try {
       // Initialize and authenticate with Google Calendar
-      await calendarService.initializeGoogleApi();
-      await calendarService.initializeGIS();
-      await calendarService.authenticate();
-      
+      await calendarService.initializeGoogleApi()
+      await calendarService.initializeGIS()
+      await calendarService.authenticate()
+
       // Create event object
       const event = {
         summary: `Assignment: ${assignment.title}`,
         description: assignment.description,
         start: {
           dateTime: new Date(assignment.dueDate).toISOString(),
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
         end: {
           dateTime: new Date(new Date(assignment.dueDate).getTime() + 60 * 60 * 1000).toISOString(), // 1 hour duration
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
         reminders: {
           useDefault: false,
           overrides: [
             { method: 'email', minutes: 24 * 60 }, // 1 day before
-            { method: 'popup', minutes: 60 } // 1 hour before
-          ]
-        }
-      };
-      
+            { method: 'popup', minutes: 60 }, // 1 hour before
+          ],
+        },
+      }
+
       // Create the event
-      const result = await calendarService.createEvent('primary', event);
-      console.log('Event created: ', result.id);
-      return result.id;
+      const result = await calendarService.createEvent('primary', event)
+      console.log('Event created: ', result.id)
+      return result.id
     } catch (error) {
-      console.error('Error adding event to Google Calendar:', error);
-      throw error;
+      console.error('Error adding event to Google Calendar:', error)
+      throw error
     }
-  };
+  }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    setSuccess('');
-    
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    setSuccess('')
+
     try {
       // Generate unique ID for new assignments
       const updatedFormData = {
         ...formData,
-        id: formData.id || `assignment_${Date.now()}`
-      };
-      
+        id: formData.id || `assignment_${Date.now()}`,
+      }
+
       // Try to add to Google Calendar if selected
       if (formData.addToCalendar) {
         try {
-          const eventId = await addToGoogleCalendar(updatedFormData);
-          updatedFormData.calendarEventId = eventId;
+          const eventId = await addToGoogleCalendar(updatedFormData)
+          updatedFormData.calendarEventId = eventId
         } catch (calendarError) {
           // Continue with save even if calendar fails
-          console.error('Failed to add to calendar, but saving assignment:', calendarError);
-          setError('Assignment saved, but failed to add to Google Calendar.');
+          console.error('Failed to add to calendar, but saving assignment:', calendarError)
+          setError('Assignment saved, but failed to add to Google Calendar.')
         }
       }
-      
+
       // In a real app, this would be an API call
-      console.log('Saving assignment:', updatedFormData);
-      
+      console.log('Saving assignment:', updatedFormData)
+
       // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setSuccess(isCreating ? 'Assignment created successfully!' : 'Assignment updated successfully!');
-      onSave(updatedFormData);
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      setSuccess(
+        isCreating ? 'Assignment created successfully!' : 'Assignment updated successfully!',
+      )
+      onSave(updatedFormData)
     } catch (error) {
-      console.error('Error saving assignment:', error);
-      setError('Failed to save assignment. Please try again.');
+      console.error('Error saving assignment:', error)
+      setError('Failed to save assignment. Please try again.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <CCard>
@@ -181,7 +183,7 @@ const AssignmentForm = ({ assignmentId = null, onSave = () => {}, onCancel = () 
       <CCardBody>
         {error && <CAlert color="danger">{error}</CAlert>}
         {success && <CAlert color="success">{success}</CAlert>}
-        
+
         <CForm onSubmit={handleSubmit}>
           <CRow className="mb-3">
             <CCol md={8}>
@@ -206,7 +208,7 @@ const AssignmentForm = ({ assignmentId = null, onSave = () => {}, onCancel = () 
                 required
               >
                 <option value="">Select a course</option>
-                {coursesData.map(course => (
+                {coursesData.map((course) => (
                   <option key={course.id} value={course.id}>
                     {course.title}
                   </option>
@@ -214,7 +216,7 @@ const AssignmentForm = ({ assignmentId = null, onSave = () => {}, onCancel = () 
               </CFormSelect>
             </CCol>
           </CRow>
-          
+
           <CRow className="mb-3">
             <CCol>
               <CFormLabel htmlFor="description">Description</CFormLabel>
@@ -228,7 +230,7 @@ const AssignmentForm = ({ assignmentId = null, onSave = () => {}, onCancel = () 
               />
             </CCol>
           </CRow>
-          
+
           <CRow className="mb-3">
             <CCol md={6}>
               <CFormLabel htmlFor="dueDate">Due Date</CFormLabel>
@@ -271,26 +273,24 @@ const AssignmentForm = ({ assignmentId = null, onSave = () => {}, onCancel = () 
               </CFormSelect>
             </CCol>
           </CRow>
-          
+
           <CRow className="mb-3">
             <CCol md={6}>
               <div className="mb-3">
                 <CFormLabel htmlFor="fileAttachments">Attachments</CFormLabel>
-                <CFormInput
-                  type="file"
-                  id="fileAttachments"
-                  onChange={handleFileChange}
-                  multiple
-                />
+                <CFormInput type="file" id="fileAttachments" onChange={handleFileChange} multiple />
                 <small className="text-muted">Attach any relevant files for this assignment.</small>
               </div>
-              
+
               {formData.fileAttachments.length > 0 && (
                 <div className="mt-2">
                   <strong>Attached Files:</strong>
                   <ul className="list-group mt-2">
                     {formData.fileAttachments.map((file, index) => (
-                      <li key={index} className="list-group-item d-flex justify-content-between align-items-center">
+                      <li
+                        key={index}
+                        className="list-group-item d-flex justify-content-between align-items-center"
+                      >
                         {file.name}
                         <CButton
                           color="danger"
@@ -306,7 +306,7 @@ const AssignmentForm = ({ assignmentId = null, onSave = () => {}, onCancel = () 
                 </div>
               )}
             </CCol>
-            
+
             <CCol md={6} className="d-flex flex-column justify-content-end">
               <div className="mb-3">
                 <CFormCheck
@@ -317,7 +317,7 @@ const AssignmentForm = ({ assignmentId = null, onSave = () => {}, onCancel = () 
                   onChange={handleInputChange}
                 />
               </div>
-              
+
               <div className="mb-3">
                 <CFormCheck
                   id="addToCalendar"
@@ -332,7 +332,7 @@ const AssignmentForm = ({ assignmentId = null, onSave = () => {}, onCancel = () 
               </div>
             </CCol>
           </CRow>
-          
+
           <div className="d-flex justify-content-end gap-2 mt-4">
             <CButton color="secondary" onClick={onCancel}>
               Cancel
@@ -343,15 +343,17 @@ const AssignmentForm = ({ assignmentId = null, onSave = () => {}, onCancel = () 
                   <CSpinner size="sm" className="me-2" />
                   {isCreating ? 'Creating...' : 'Updating...'}
                 </>
+              ) : isCreating ? (
+                'Create Assignment'
               ) : (
-                isCreating ? 'Create Assignment' : 'Update Assignment'
+                'Update Assignment'
               )}
             </CButton>
           </div>
         </CForm>
       </CCardBody>
     </CCard>
-  );
-};
+  )
+}
 
-export default AssignmentForm; 
+export default AssignmentForm

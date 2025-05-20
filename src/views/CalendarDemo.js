@@ -1,14 +1,6 @@
-import React from 'react';
-import { 
-  CCard, 
-  CCardHeader, 
-  CCardBody, 
-  CRow, 
-  CCol,
-  CContainer,
-  CCardFooter
-} from '@coreui/react';
-import EnhancedCalendar from '../components/EnhancedCalendar';
+import React from 'react'
+import { CCard, CCardHeader, CCardBody, CRow, CCol, CContainer, CCardFooter } from '@coreui/react'
+import EnhancedCalendar from '../components/EnhancedCalendar'
 
 const CalendarDemo = () => {
   return (
@@ -24,15 +16,15 @@ const CalendarDemo = () => {
             </CCardBody>
             <CCardFooter className="text-muted small">
               <p className="mb-0">
-                The calendar automatically syncs changes with your Google Calendar. 
-                All events you create, modify, or delete here will be reflected in your Google Calendar account.
+                The calendar automatically syncs changes with your Google Calendar. All events you
+                create, modify, or delete here will be reflected in your Google Calendar account.
               </p>
             </CCardFooter>
           </CCard>
         </CCol>
       </CRow>
     </CContainer>
-  );
-};
+  )
+}
 
-export default CalendarDemo; 
+export default CalendarDemo

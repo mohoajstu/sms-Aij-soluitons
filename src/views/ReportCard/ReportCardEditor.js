@@ -169,11 +169,11 @@ const ReportCardForm = () => {
   // Navigation Handlers
   const handleNextStep = () => {
     if (currentStep < totalSteps) setCurrentStep(currentStep + 1)
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
   const handlePrevStep = () => {
     if (currentStep > 1) setCurrentStep(currentStep - 1)
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   // Helper to update PDF fields

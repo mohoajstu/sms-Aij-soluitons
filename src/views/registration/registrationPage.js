@@ -1,93 +1,92 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import './registrationPage.css';
+import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import './registrationPage.css'
 
 const RegistrationPage = () => {
-
-  const navigate = useNavigate();
+  const navigate = useNavigate()
   // --- 1. STATE VARIABLES ---
 
   // Step-based form state
-  const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 6;
+  const [currentStep, setCurrentStep] = useState(1)
+  const totalSteps = 6
 
   // Basic Application Info
-  const [schoolYear, setSchoolYear] = useState('2025');
-  const [gradeAppliedFor, setGradeAppliedFor] = useState('Grade 1');
+  const [schoolYear, setSchoolYear] = useState('2025')
+  const [gradeAppliedFor, setGradeAppliedFor] = useState('Grade 1')
 
   // Student Details
-  const [studentFirstName, setStudentFirstName] = useState('');
-  const [studentNickName, setStudentNickName] = useState('');
-  const [studentMiddleName, setStudentMiddleName] = useState('');
-  const [studentLastName, setStudentLastName] = useState('');
-  const [gender, setGender] = useState('');
-  const [oen, setOen] = useState('');
-  const [dateOfBirth, setDateOfBirth] = useState('');
-  const [previousSchool, setPreviousSchool] = useState('');
-  const [allergies, setAllergies] = useState('');
-  const [photoPermission, setPhotoPermission] = useState(false);
+  const [studentFirstName, setStudentFirstName] = useState('')
+  const [studentNickName, setStudentNickName] = useState('')
+  const [studentMiddleName, setStudentMiddleName] = useState('')
+  const [studentLastName, setStudentLastName] = useState('')
+  const [gender, setGender] = useState('')
+  const [oen, setOen] = useState('')
+  const [dateOfBirth, setDateOfBirth] = useState('')
+  const [previousSchool, setPreviousSchool] = useState('')
+  const [allergies, setAllergies] = useState('')
+  const [photoPermission, setPhotoPermission] = useState(false)
 
   // Contact Details
-  const [primaryContactPhone, setPrimaryContactPhone] = useState('');
-  const [emergencyPhone, setEmergencyPhone] = useState('');
-  const [primaryEmail, setPrimaryEmail] = useState('');
-  const [studentAddress, setStudentAddress] = useState('');
+  const [primaryContactPhone, setPrimaryContactPhone] = useState('')
+  const [emergencyPhone, setEmergencyPhone] = useState('')
+  const [primaryEmail, setPrimaryEmail] = useState('')
+  const [studentAddress, setStudentAddress] = useState('')
 
   // Mother/Primary Guardian
-  const [motherFirstName, setMotherFirstName] = useState('');
-  const [motherNickName, setMotherNickName] = useState('');
-  const [motherMiddleName, setMotherMiddleName] = useState('');
-  const [motherLastName, setMotherLastName] = useState('');
-  const [motherSameContact, setMotherSameContact] = useState(false);
-  const [motherPrimaryPhone, setMotherPrimaryPhone] = useState('');
-  const [motherEmail, setMotherEmail] = useState('');
-  const [motherSameAddress, setMotherSameAddress] = useState(false);
-  const [motherAddress, setMotherAddress] = useState('');
+  const [motherFirstName, setMotherFirstName] = useState('')
+  const [motherNickName, setMotherNickName] = useState('')
+  const [motherMiddleName, setMotherMiddleName] = useState('')
+  const [motherLastName, setMotherLastName] = useState('')
+  const [motherSameContact, setMotherSameContact] = useState(false)
+  const [motherPrimaryPhone, setMotherPrimaryPhone] = useState('')
+  const [motherEmail, setMotherEmail] = useState('')
+  const [motherSameAddress, setMotherSameAddress] = useState(false)
+  const [motherAddress, setMotherAddress] = useState('')
 
   // Father/Guardian
-  const [fatherFirstName, setFatherFirstName] = useState('');
-  const [fatherNickName, setFatherNickName] = useState('');
-  const [fatherMiddleName, setFatherMiddleName] = useState('');
-  const [fatherLastName, setFatherLastName] = useState('');
-  const [fatherSameContact, setFatherSameContact] = useState(false);
-  const [fatherPrimaryPhone, setFatherPrimaryPhone] = useState('');
-  const [fatherEmail, setFatherEmail] = useState('');
-  const [fatherSameAddress, setFatherSameAddress] = useState(false);
-  const [fatherAddress, setFatherAddress] = useState('');
+  const [fatherFirstName, setFatherFirstName] = useState('')
+  const [fatherNickName, setFatherNickName] = useState('')
+  const [fatherMiddleName, setFatherMiddleName] = useState('')
+  const [fatherLastName, setFatherLastName] = useState('')
+  const [fatherSameContact, setFatherSameContact] = useState(false)
+  const [fatherPrimaryPhone, setFatherPrimaryPhone] = useState('')
+  const [fatherEmail, setFatherEmail] = useState('')
+  const [fatherSameAddress, setFatherSameAddress] = useState(false)
+  const [fatherAddress, setFatherAddress] = useState('')
 
   // Payment
-  const [paymentMethod, setPaymentMethod] = useState('');
-  const [acknowledgeFees, setAcknowledgeFees] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('')
+  const [acknowledgeFees, setAcknowledgeFees] = useState(false)
 
   // Documents
-  const [immunizationFile, setImmunizationFile] = useState(null);
-  const [reportCardFile, setReportCardFile] = useState(null);
-  const [osrPermissionFile, setOsrPermissionFile] = useState(null);
-  const [govtIdFile, setGovtIdFile] = useState(null);
+  const [immunizationFile, setImmunizationFile] = useState(null)
+  const [reportCardFile, setReportCardFile] = useState(null)
+  const [osrPermissionFile, setOsrPermissionFile] = useState(null)
+  const [govtIdFile, setGovtIdFile] = useState(null)
 
   // Admin Section
-  const [applicationState, setApplicationState] = useState('Pending');
-  const [noteToParents, setNoteToParents] = useState('');
-  const [sendEmailUpdate, setSendEmailUpdate] = useState(false);
-  const isAdmin = true;
+  const [applicationState, setApplicationState] = useState('Pending')
+  const [noteToParents, setNoteToParents] = useState('')
+  const [sendEmailUpdate, setSendEmailUpdate] = useState(false)
+  const isAdmin = true
 
   // --- 2. HANDLERS FOR NEXT/PREV/FORM SUBMIT ---
   const handleNextStep = () => {
     if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
+      setCurrentStep(currentStep + 1)
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const handlePrevStep = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+      setCurrentStep(currentStep - 1)
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const handleSubmit = (e) => {
-    e.preventDefault();
+    e.preventDefault()
     // Gather all data
     const formData = {
       schoolYear,
@@ -132,13 +131,13 @@ const RegistrationPage = () => {
       govtIdFile,
       applicationState,
       noteToParents,
-      sendEmailUpdate
-    };
-    console.log('Form submitted:', formData);
-    
+      sendEmailUpdate,
+    }
+    console.log('Form submitted:', formData)
+
     // Directly navigate to thank you page without alert
-    navigate('/registration/thankYouPage');
-  };
+    navigate('/registration/thankYouPage')
+  }
 
   // --- 3. RENDER ---
   return (
@@ -148,7 +147,7 @@ const RegistrationPage = () => {
       {/* Progress Indicator */}
       <div className="progress-indicator">
         {[...Array(totalSteps)].map((_, index) => {
-          const stepNumber = index + 1;
+          const stepNumber = index + 1
           return (
             <div
               key={stepNumber}
@@ -159,17 +158,17 @@ const RegistrationPage = () => {
                 {index === 0
                   ? 'Basic Info'
                   : index === 1
-                  ? 'Student Details'
-                  : index === 2
-                  ? 'Contact Info'
-                  : index === 3
-                  ? 'Parents/Guardians'
-                  : index === 4
-                  ? 'Documents'
-                  : 'Payment'}
+                    ? 'Student Details'
+                    : index === 2
+                      ? 'Contact Info'
+                      : index === 3
+                        ? 'Parents/Guardians'
+                        : index === 4
+                          ? 'Documents'
+                          : 'Payment'}
               </div>
             </div>
-          );
+          )
         })}
       </div>
 
@@ -264,10 +263,7 @@ const RegistrationPage = () => {
             <div className="form-row">
               <div className="form-group">
                 <label>Gender</label>
-                <select
-                  value={gender}
-                  onChange={(e) => setGender(e.target.value)}
-                >
+                <select value={gender} onChange={(e) => setGender(e.target.value)}>
                   <option value="">Select gender</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
@@ -368,9 +364,7 @@ const RegistrationPage = () => {
                 onChange={(e) => setPrimaryEmail(e.target.value)}
                 placeholder="email@example.com"
               />
-              <small>
-                This will be our primary means of communication for events and updates.
-              </small>
+              <small>This will be our primary means of communication for events and updates.</small>
             </div>
 
             <div className="form-group">
@@ -441,13 +435,13 @@ const RegistrationPage = () => {
                 type="checkbox"
                 checked={motherSameContact}
                 onChange={(e) => {
-                  setMotherSameContact(e.target.checked);
+                  setMotherSameContact(e.target.checked)
                   if (e.target.checked) {
-                    setMotherPrimaryPhone(primaryContactPhone);
-                    setMotherEmail(primaryEmail);
+                    setMotherPrimaryPhone(primaryContactPhone)
+                    setMotherEmail(primaryEmail)
                   } else {
-                    setMotherPrimaryPhone('');
-                    setMotherEmail('');
+                    setMotherPrimaryPhone('')
+                    setMotherEmail('')
                   }
                 }}
               />
@@ -483,11 +477,11 @@ const RegistrationPage = () => {
                 type="checkbox"
                 checked={motherSameAddress}
                 onChange={(e) => {
-                  setMotherSameAddress(e.target.checked);
+                  setMotherSameAddress(e.target.checked)
                   if (e.target.checked) {
-                    setMotherAddress(studentAddress);
+                    setMotherAddress(studentAddress)
                   } else {
-                    setMotherAddress('');
+                    setMotherAddress('')
                   }
                 }}
               />
@@ -554,13 +548,13 @@ const RegistrationPage = () => {
                 type="checkbox"
                 checked={fatherSameContact}
                 onChange={(e) => {
-                  setFatherSameContact(e.target.checked);
+                  setFatherSameContact(e.target.checked)
                   if (e.target.checked) {
-                    setFatherPrimaryPhone(primaryContactPhone);
-                    setFatherEmail(primaryEmail);
+                    setFatherPrimaryPhone(primaryContactPhone)
+                    setFatherEmail(primaryEmail)
                   } else {
-                    setFatherPrimaryPhone('');
-                    setFatherEmail('');
+                    setFatherPrimaryPhone('')
+                    setFatherEmail('')
                   }
                 }}
               />
@@ -596,11 +590,11 @@ const RegistrationPage = () => {
                 type="checkbox"
                 checked={fatherSameAddress}
                 onChange={(e) => {
-                  setFatherSameAddress(e.target.checked);
+                  setFatherSameAddress(e.target.checked)
                   if (e.target.checked) {
-                    setFatherAddress(studentAddress);
+                    setFatherAddress(studentAddress)
                   } else {
-                    setFatherAddress('');
+                    setFatherAddress('')
                   }
                 }}
               />
@@ -630,38 +624,29 @@ const RegistrationPage = () => {
 
             <div className="form-group">
               <label>Immunization Records</label>
-              <input
-                type="file"
-                onChange={(e) => setImmunizationFile(e.target.files[0])}
-              />
+              <input type="file" onChange={(e) => setImmunizationFile(e.target.files[0])} />
               <small>Each student must have their immunization records on file.</small>
             </div>
 
             <div className="form-group">
               <label>Recent Report Card</label>
-              <input
-                type="file"
-                onChange={(e) => setReportCardFile(e.target.files[0])}
-              />
+              <input type="file" onChange={(e) => setReportCardFile(e.target.files[0])} />
               <small>Required for students applying for SK or higher grades.</small>
             </div>
 
             <div className="form-group">
               <label>OSR Permission Form</label>
-              <input
-                type="file"
-                onChange={(e) => setOsrPermissionFile(e.target.files[0])}
-              />
+              <input type="file" onChange={(e) => setOsrPermissionFile(e.target.files[0])} />
               <small>Needed for new students transferring from an Ontario school.</small>
             </div>
 
             <div className="form-group">
               <label>Government Issued ID</label>
-              <input
-                type="file"
-                onChange={(e) => setGovtIdFile(e.target.files[0])}
-              />
-              <small>Please provide ONE of the following: passport, birth certificate, or residency permit.</small>
+              <input type="file" onChange={(e) => setGovtIdFile(e.target.files[0])} />
+              <small>
+                Please provide ONE of the following: passport, birth certificate, or residency
+                permit.
+              </small>
             </div>
           </section>
         )}
@@ -688,8 +673,8 @@ const RegistrationPage = () => {
                 has been received.
               </p>
               <p>
-                There is also a <strong>$325 resource fee</strong> per student which is to be paid by
-                July 2024 and becomes non-refundable after this date.
+                There is also a <strong>$325 resource fee</strong> per student which is to be paid
+                by July 2024 and becomes non-refundable after this date.
               </p>
             </div>
 
@@ -760,22 +745,21 @@ const RegistrationPage = () => {
         )}
 
         {/* NAVIGATION BUTTONS */}
-        <div className="form-navigation" style={{ display: 'flex', justifyContent: currentStep === 1 ? 'flex-end' : 'space-between', marginTop: '1rem' }}>
+        <div
+          className="form-navigation"
+          style={{
+            display: 'flex',
+            justifyContent: currentStep === 1 ? 'flex-end' : 'space-between',
+            marginTop: '1rem',
+          }}
+        >
           {currentStep > 1 && (
-            <button
-              type="button"
-              className="navigation-button"
-              onClick={handlePrevStep}
-            >
+            <button type="button" className="navigation-button" onClick={handlePrevStep}>
               Previous
             </button>
           )}
           {currentStep < totalSteps ? (
-            <button
-              type="button"
-              className="navigation-button"
-              onClick={handleNextStep}
-            >
+            <button type="button" className="navigation-button" onClick={handleNextStep}>
               Next
             </button>
           ) : (
@@ -786,7 +770,7 @@ const RegistrationPage = () => {
         </div>
       </form>
     </div>
-  );
-};
+  )
+}
 
-export default RegistrationPage;
+export default RegistrationPage

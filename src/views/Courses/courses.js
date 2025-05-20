@@ -1,25 +1,25 @@
 // CoursesPage.jsx (debug version)
-import React from "react";
-import coursesData from "../../Data/coursesData.json";
-import { Link } from "react-router-dom";
-import "./courses.css";
-import { CButton, CButtonGroup, CCard, CCardBody, CCardHeader, CCol, CRow } from '@coreui/react';
+import React from 'react'
+import coursesData from '../../Data/coursesData.json'
+import { Link } from 'react-router-dom'
+import './courses.css'
+import { CButton, CButtonGroup, CCard, CCardBody, CCardHeader, CCol, CRow } from '@coreui/react'
 
 function CoursesPage() {
   // Function to get contrasting text color based on background
   const getTextColor = (bgColor) => {
     // Convert hex to RGB
-    const hex = bgColor.replace('#', '');
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
+    const hex = bgColor.replace('#', '')
+    const r = parseInt(hex.substr(0, 2), 16)
+    const g = parseInt(hex.substr(2, 2), 16)
+    const b = parseInt(hex.substr(4, 2), 16)
 
     // Calculate brightness
-    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000
 
     // Return black for light backgrounds, white for dark
-    return brightness > 125 ? '#333' : '#fff';
-  };
+    return brightness > 125 ? '#333' : '#fff'
+  }
 
   const getColorFromId = (id) => {
     // Slightly different multiplier
@@ -29,13 +29,13 @@ function CoursesPage() {
 
   // Course icon types - for more visual differentiation
   const iconTypes = [
-    { shape: "circle", size: "20px" },
-    { shape: "square", size: "18px" },
-    { shape: "triangle", size: "22px" }
-  ];
+    { shape: 'circle', size: '20px' },
+    { shape: 'square', size: '18px' },
+    { shape: 'triangle', size: '22px' },
+  ]
 
   // Just to confirm what the data looks like
-  console.log('coursesData in CoursesPage:', coursesData);
+  console.log('coursesData in CoursesPage:', coursesData)
 
   return (
     <div className="courses-page-container">
@@ -43,18 +43,10 @@ function CoursesPage() {
         <h1>Courses</h1>
         <div className="courses-actions">
           <CButtonGroup>
-            <CButton 
-              color="primary" 
-              component={Link} 
-              to="/courses/new"
-            >
+            <CButton color="primary" component={Link} to="/courses/new">
               Create Course
             </CButton>
-            <CButton 
-              color="success" 
-              component={Link} 
-              to="/courses/timetable"
-            >
+            <CButton color="success" component={Link} to="/courses/timetable">
               View Timetable
             </CButton>
           </CButtonGroup>
@@ -83,24 +75,24 @@ function CoursesPage() {
 
       <div className="courses-grid">
         {coursesData.map((course, index) => {
-          console.log(`Rendering course with id=${course.id}`);
-          
+          console.log(`Rendering course with id=${course.id}`)
+
           // Determine icon style based on course category or index
-          const iconStyle = index % iconTypes.length;
-          const iconClasses = `course-tile-icon ${iconTypes[iconStyle].shape}`;
+          const iconStyle = index % iconTypes.length
+          const iconClasses = `course-tile-icon ${iconTypes[iconStyle].shape}`
 
           // Default color if none provided
-          const bgColor = course.color || getColorFromId(course.id);
-          const textColor = getTextColor(bgColor);
+          const bgColor = course.color || getColorFromId(course.id)
+          const textColor = getTextColor(bgColor)
 
-          const linkUrl = `/courses/${course.id}`;
-          console.log('Link URL:', linkUrl);
+          const linkUrl = `/courses/${course.id}`
+          console.log('Link URL:', linkUrl)
 
           return (
             <Link
               key={course.id}
               to={linkUrl}
-              style={{ textDecoration: "none" }}
+              style={{ textDecoration: 'none' }}
               onClick={() => console.log(`Clicked course ID: ${course.id}`)}
             >
               <div
@@ -113,7 +105,7 @@ function CoursesPage() {
                 <div className="course-tile-body">
                   <h2 className="course-tile-title">{course.title}</h2>
                   <p className="course-tile-description">{course.description}</p>
-                  
+
                   {/* Course Schedule Information */}
                   <div className="course-schedule-info">
                     <div className="course-schedule-days">
@@ -123,11 +115,12 @@ function CoursesPage() {
                       {course.schedule.startTime} - {course.schedule.endTime}
                     </div>
                   </div>
-                  
+
                   {/* Assignment Count Badge */}
                   {course.assignments && course.assignments.length > 0 && (
                     <div className="assignment-badge">
-                      {course.assignments.length} {course.assignments.length === 1 ? 'Assignment' : 'Assignments'}
+                      {course.assignments.length}{' '}
+                      {course.assignments.length === 1 ? 'Assignment' : 'Assignments'}
                     </div>
                   )}
                 </div>
@@ -139,7 +132,7 @@ function CoursesPage() {
                       className={iconClasses}
                       style={{
                         backgroundColor: `rgba(${
-                          textColor === "#fff" ? "255,255,255" : "0,0,0"
+                          textColor === '#fff' ? '255,255,255' : '0,0,0'
                         }, ${0.2 + i * 0.2})`,
                         width: iconTypes[iconStyle].size,
                         height: iconTypes[iconStyle].size,
@@ -149,11 +142,11 @@ function CoursesPage() {
                 </div>
               </div>
             </Link>
-          );
+          )
         })}
       </div>
     </div>
-  );
+  )
 }
 
-export default CoursesPage;
+export default CoursesPage
