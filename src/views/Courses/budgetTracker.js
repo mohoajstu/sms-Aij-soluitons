@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./BudgetTracker.css";
 import { doc, updateDoc } from "firebase/firestore";
 import { firestore } from "../../Firebase/firebase"; 
+import { Timestamp } from "firebase/firestore";	
 
 
 function BudgetTracker({ budget, accentColor, courseId}) {
@@ -38,6 +39,15 @@ function BudgetTracker({ budget, accentColor, courseId}) {
   };
   
   
+  const formatDate = d =>
+    !d
+      ? ""
+      : d instanceof Timestamp
+          ? d.toDate().toLocaleDateString()   // convert TS → JS Date → string
+          : typeof d === "string"
+              ? d
+              : "";
+
   // Handle form submission for new budget entry
   const handleAddEntry = async (e) => {
     e.preventDefault();
@@ -51,6 +61,7 @@ function BudgetTracker({ budget, accentColor, courseId}) {
       itemName: newExpense,
       itemCost: parseFloat(newAmount),
       itemType: isExpense ? "expense" : "refund",
+      itemDate : Timestamp.now() 
     };
 
     try {
@@ -233,7 +244,7 @@ function BudgetTracker({ budget, accentColor, courseId}) {
               <div key={index} className="entry-item">
                 <div className="entry-details">
                   <div className="entry-description">{entry.itemName}</div>
-                  <div className="entry-date">—</div> {/* Add a date field later if needed */}
+                  <div className="entry-date">{formatDate(entry.itemDate)}</div> {/* Add a date field later if needed */}
                 </div>
                 <div className="entry-amount-container">
                   <span className={`entry-amount ${entry.itemType === "expense" ? "expense" : "refund"}`}>
