@@ -1,10 +1,33 @@
 // CoursesPage.jsx (debug version)
 import React from "react";
-import coursesData from "../../Data/coursesData.json";
+// import coursesData from "../../Data/coursesData.json";
+import { collection, getDocs } from "firebase/firestore";
+import { firestore } from "../../Firebase/firebase";
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 import "./courses.css";
 
 function CoursesPage() {
+
+  const [coursesData, setCoursesData] = useState([]);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(firestore, "courses"));
+        const courses = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setCoursesData(courses);
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+      }
+    };
+  
+    fetchCourses();
+  }, []);
+
   // Function to get contrasting text color based on background
   const getTextColor = (bgColor) => {
     // Convert hex to RGB
@@ -35,6 +58,7 @@ function CoursesPage() {
 
   // Just to confirm what the data looks like
   console.log('coursesData in CoursesPage:', coursesData);
+  if (!coursesData.length) return <p>Loading courses...</p>;
 
   return (
     <div style={{ padding: "2rem" }}>
@@ -48,7 +72,7 @@ function CoursesPage() {
           const iconClasses = `course-tile-icon ${iconTypes[iconStyle].shape}`;
 
           // Default color if none provided
-          const bgColor = course.color || getColorFromId(course.id);
+          const bgColor = course.color || getColorFromId(course.courseID);
           const textColor = getTextColor(bgColor);
 
           const linkUrl = `/courses/${course.id}`;
