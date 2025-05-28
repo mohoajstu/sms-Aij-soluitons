@@ -1,53 +1,53 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from "react-router-dom";
-import { Autocomplete, TextField, Box, Button } from '@mui/material';
-import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import Grid from '@mui/material/Grid2';
-import ClassSelector from '../../components/classSelector';
-import DateSelector from '../../components/DateSelector';
-import AttendanceReportTable from './attendenceReportTable';
-import ManualSmsNotification from './ManualSmsNotification';
-import attendanceData from './tempData';
-import dayjs from 'dayjs';
-import './attendanceTabs.css';
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Autocomplete, TextField, Box, Button } from '@mui/material'
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
+import Grid from '@mui/material/Grid2'
+import ClassSelector from '../../components/classSelector'
+import DateSelector from '../../components/DateSelector'
+import AttendanceReportTable from './attendenceReportTable'
+import ManualSmsNotification from './ManualSmsNotification'
+import attendanceData from './tempData'
+import dayjs from 'dayjs'
+import './attendanceTabs.css'
 
 const AttendanceTabs = () => {
-  const [activeTab, setActiveTab] = useState(0); // Default to "Take Attendance"
-  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState(0) // Default to "Take Attendance"
+  const navigate = useNavigate()
   const [reportParams, setReportParams] = useState({
-    semester: "",
-    section: "",
+    semester: '',
+    section: '',
     students: [],
     startDate: dayjs(),
     endDate: dayjs(),
-  });
+  })
 
   // Reset state when the component mounts or navigates back
   useEffect(() => {
     setReportParams({
-      semester: "",
-      section: "",
+      semester: '',
+      section: '',
       students: [],
       startDate: dayjs(),
       endDate: dayjs(),
-    });
-    setFilteredData(attendanceData);
-  }, []);
+    })
+    setFilteredData(attendanceData)
+  }, [])
 
-  const [filteredData, setFilteredData] = useState(attendanceData);
+  const [filteredData, setFilteredData] = useState(attendanceData)
 
-  const semesters = [...new Set(attendanceData.map((row) => row.semester))];
-  const sections = [...new Set(attendanceData.map((row) => row.section))];
-  const students = [...new Set(attendanceData.map((row) => row.student))];
+  const semesters = [...new Set(attendanceData.map((row) => row.semester))]
+  const sections = [...new Set(attendanceData.map((row) => row.section))]
+  const students = [...new Set(attendanceData.map((row) => row.student))]
 
   const handleChange = (key, value) => {
-    setReportParams((prev) => ({ ...prev, [key]: value }));
-  };
+    setReportParams((prev) => ({ ...prev, [key]: value }))
+  }
 
   const handleStudentChange = (event, newValue) => {
-    setReportParams((prev) => ({ ...prev, students: newValue || [] }));
-  };
+    setReportParams((prev) => ({ ...prev, students: newValue || [] }))
+  }
 
   const handleViewReport = () => {
     const filtered = attendanceData.filter((entry) => {
@@ -57,31 +57,31 @@ const AttendanceTabs = () => {
         (!reportParams.students.length || reportParams.students === entry.student) &&
         (!reportParams.startDate || new Date(entry.date) >= new Date(reportParams.startDate)) &&
         (!reportParams.endDate || new Date(entry.date) <= new Date(reportParams.endDate))
-      );
-    });
-    setFilteredData(filtered);
-  };
+      )
+    })
+    setFilteredData(filtered)
+  }
 
   return (
     <div className="at-container">
       {/* Tab Navigation */}
       <div className="at-tab-wrapper">
         <div className="at-tab-navigation">
-          <div 
+          <div
             className={`at-tab-link ${activeTab === 0 ? 'at-active' : ''}`}
             onClick={() => setActiveTab(0)}
           >
             Take Attendance
           </div>
           <div className="at-tab-separator"></div>
-          <div 
+          <div
             className={`at-tab-link ${activeTab === 1 ? 'at-active' : ''}`}
             onClick={() => setActiveTab(1)}
           >
             Attendance Report
           </div>
           <div className="at-tab-separator"></div>
-          <div 
+          <div
             className={`at-tab-link ${activeTab === 2 ? 'at-active' : ''}`}
             onClick={() => setActiveTab(2)}
           >
@@ -113,8 +113,8 @@ const AttendanceTabs = () => {
                 </Grid>
               </Grid>
             </Grid>
-            <Button 
-              variant="contained" 
+            <Button
+              variant="contained"
               className="at-action-button"
               onClick={() => navigate('./attendance-table-page')}
             >
@@ -135,7 +135,7 @@ const AttendanceTabs = () => {
                   <Autocomplete
                     disablePortal
                     options={semesters}
-                    onChange={(event, newValue) => handleChange("semester", newValue)}
+                    onChange={(event, newValue) => handleChange('semester', newValue)}
                     className="at-autocomplete-field"
                     renderInput={(params) => <TextField {...params} label="Select Semester" />}
                   />
@@ -149,7 +149,7 @@ const AttendanceTabs = () => {
                   <Autocomplete
                     disablePortal
                     options={sections}
-                    onChange={(event, newValue) => handleChange("section", newValue)}
+                    onChange={(event, newValue) => handleChange('section', newValue)}
                     className="at-autocomplete-field"
                     renderInput={(params) => <TextField {...params} label="Select Section" />}
                   />
@@ -178,7 +178,7 @@ const AttendanceTabs = () => {
                     <DatePicker
                       label="From"
                       value={reportParams.startDate}
-                      onChange={(newValue) => handleChange("startDate", newValue)}
+                      onChange={(newValue) => handleChange('startDate', newValue)}
                       className="at-date-picker"
                       renderInput={(params) => (
                         <TextField {...params} className="at-datepicker-input" fullWidth />
@@ -191,7 +191,7 @@ const AttendanceTabs = () => {
                     <DatePicker
                       label="To"
                       value={reportParams.endDate}
-                      onChange={(newValue) => handleChange("endDate", newValue)}
+                      onChange={(newValue) => handleChange('endDate', newValue)}
                       className="at-date-picker"
                       renderInput={(params) => (
                         <TextField {...params} className="at-datepicker-input" fullWidth />
@@ -201,17 +201,10 @@ const AttendanceTabs = () => {
                 </Grid>
               </Grid>
             </Grid>
-            <Button 
-              variant="contained"
-              className="at-action-button"
-              onClick={handleViewReport}
-            >
+            <Button variant="contained" className="at-action-button" onClick={handleViewReport}>
               View Report
             </Button>
-            <AttendanceReportTable 
-              attendanceData={filteredData} 
-              reportParams={reportParams}
-            />
+            <AttendanceReportTable attendanceData={filteredData} reportParams={reportParams} />
           </Box>
         )}
 
@@ -219,14 +212,15 @@ const AttendanceTabs = () => {
         {activeTab === 2 && (
           <Box className="at-sms-test-content">
             <div className="at-note-box">
-              <strong>Send Test SMS:</strong> Use this form to manually test the SMS notification system. Enter any phone number to send a test absence notification message.
+              <strong>Send Test SMS:</strong> Use this form to manually test the SMS notification
+              system. Enter any phone number to send a test absence notification message.
             </div>
             <ManualSmsNotification />
           </Box>
         )}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default AttendanceTabs;
+export default AttendanceTabs

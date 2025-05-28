@@ -4,34 +4,127 @@
     "title": "CPSC 317",
     "description": "Networks and Networking",
     "staff": ["Prof. Jean Grey", "TA: Scott Summers"],
-    "students": ["Wanda Maximoff", "Peter Parker", "Tony Stark"]
+    "students": ["Wanda Maximoff", "Peter Parker", "Tony Stark"],
+    "assignments": [
+      {
+        "id": 1001,
+        "title": "Network Protocols Analysis",
+        "description": "Analyze the TCP/IP protocol stack and its applications",
+        "deadline": "2023-12-15T23:59:00",
+        "uploadedFiles": [],
+        "maxPoints": 100
+      },
+      {
+        "id": 1002,
+        "title": "Socket Programming",
+        "description": "Implement a client-server application using sockets",
+        "deadline": "2023-12-20T23:59:00",
+        "uploadedFiles": [],
+        "maxPoints": 150
+      }
+    ],
+    "schedule": {
+      "calendarId": "c101@example.com",
+      "classDays": ["Monday", "Wednesday", "Friday"],
+      "startTime": "10:00",
+      "endTime": "11:30",
+      "room": "ICCS 110"
+    }
   },
   {
     "id": 102,
     "title": "CPSC 320",
     "description": "Intermediate Algorithms",
     "staff": ["Prof. Charles Xavier", "TA: Logan Howlett"],
-    "students": ["Steve Rogers", "Bruce Banner", "Natasha Romanoff"]
+    "students": ["Steve Rogers", "Bruce Banner", "Natasha Romanoff"],
+    "assignments": [
+      {
+        "id": 2001,
+        "title": "Dynamic Programming",
+        "description": "Solve optimization problems using dynamic programming",
+        "deadline": "2023-12-10T23:59:00",
+        "uploadedFiles": [],
+        "maxPoints": 100
+      }
+    ],
+    "schedule": {
+      "calendarId": "c102@example.com",
+      "classDays": ["Tuesday", "Thursday"],
+      "startTime": "14:00",
+      "endTime": "15:30",
+      "room": "Math Building 203"
+    }
   },
   {
     "id": 201,
     "title": "CPSC 415",
     "description": "Advanced Graphics and Animation",
     "staff": ["Prof. Ororo Munroe", "TA: Remy LeBeau"],
-    "students": ["Clint Barton", "Carol Danvers", "Sam Wilson"]
+    "students": ["Clint Barton", "Carol Danvers", "Sam Wilson"],
+    "assignments": [
+      {
+        "id": 3001,
+        "title": "3D Rendering Project",
+        "description": "Implement a 3D renderer with lighting and textures",
+        "deadline": "2023-12-18T23:59:00",
+        "uploadedFiles": [],
+        "maxPoints": 200
+      }
+    ],
+    "schedule": {
+      "calendarId": "c201@example.com",
+      "classDays": ["Monday", "Wednesday"],
+      "startTime": "13:00",
+      "endTime": "14:30",
+      "room": "ICCS 105"
+    }
   },
   {
     "id": 202,
     "title": "MATH 200",
     "description": "Calculus for the Physical Sciences",
     "staff": ["Prof. Hank McCoy", "TA: Kitty Pryde"],
-    "students": ["MJ Watson", "Gwen Stacy", "James Rhodes"]
+    "students": ["MJ Watson", "Gwen Stacy", "James Rhodes"],
+    "assignments": [
+      {
+        "id": 4001,
+        "title": "Integration Techniques",
+        "description": "Solve complex integration problems",
+        "deadline": "2023-12-12T23:59:00",
+        "uploadedFiles": [],
+        "maxPoints": 100
+      }
+    ],
+    "schedule": {
+      "calendarId": "c202@example.com",
+      "classDays": ["Monday", "Wednesday", "Friday"],
+      "startTime": "09:00",
+      "endTime": "10:30",
+      "room": "Math Building 105"
+    }
   },
   {
     "id": 301,
     "title": "PHYS 101",
     "description": "Introduction to Mechanics",
     "staff": ["Prof. Reed Richards", "TA: Susan Storm"],
-    "students": ["Johnny Storm", "Ben Grimm", "Victor von Doom"]
+    "students": ["Johnny Storm", "Ben Grimm", "Victor von Doom"],
+    "assignments": [
+      {
+        "id": 5001,
+        "title": "Newton's Laws Lab Report",
+        "description": "Document experiments related to Newton's Laws of Motion",
+        "deadline": "2023-12-14T23:59:00",
+        "uploadedFiles": [],
+        "maxPoints": 100
+      }
+    ],
+    "schedule": {
+      "calendarId": "c301@example.com",
+      "classDays": ["Tuesday", "Thursday"],
+      "startTime": "11:00",
+      "endTime": "12:30",
+      "room": "Physics Building 201"
+    }
   }
 ]

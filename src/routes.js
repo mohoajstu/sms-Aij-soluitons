@@ -4,6 +4,9 @@ const Dashboard = React.lazy(() => import('./views/dashboard/Dashboard'))
 const Colors = React.lazy(() => import('./views/theme/colors/Colors'))
 const Typography = React.lazy(() => import('./views/theme/typography/Typography'))
 
+// Calendar
+const CalendarDemo = React.lazy(() => import('./views/CalendarDemo'))
+
 // Attendance
 const AttendanceTabs = React.lazy(() => import('./views/attendance/attendanceTabs'))
 const AttendanceTable = React.lazy(() => import('./views/attendance/attendanceTable'))
@@ -12,8 +15,14 @@ const ReportCardUI = React.lazy(() => import('./views/ReportCard/ReportCardUI'))
 // Courses
 const Courses = React.lazy(() => import('./views/Courses/Courses'))
 const CourseDetailPage = React.lazy(() => import('./views/Courses/courseDetails'))
+const CourseForm = React.lazy(() => import('./views/Courses/CourseForm'))
+const Timetable = React.lazy(() => import('./views/Courses/Timetable'))
+const SchedulePage = React.lazy(() => import('./views/Courses/SchedulePage'))
+const AssignmentsPage = React.lazy(() => import('./views/Courses/AssignmentsPage'))
+const BudgetPage = React.lazy(() => import('./views/Courses/BudgetPage'))
+const TimetablePage = React.lazy(() => import('./views/Courses/TimetablePage'))
 //Registration
-const RegistrationPage = React.lazy(() => import('./views/registration/registrationPage') )
+const RegistrationPage = React.lazy(() => import('./views/registration/registrationPage'))
 const ThankYouPage = React.lazy(() => import('./views/registration/thankYouPage.js'))
 // Base
 const Accordion = React.lazy(() => import('./views/base/accordion/Accordion'))
@@ -62,7 +71,6 @@ const Toasts = React.lazy(() => import('./views/notifications/toasts/Toasts'))
 
 const Widgets = React.lazy(() => import('./views/widgets/Widgets'))
 
-
 // const routes = [
 //   { path: '/', exact: true, name: 'Home' },
 //   { path: '/dashboard', name: 'Dashboard', element: Dashboard },
@@ -73,13 +81,21 @@ const Widgets = React.lazy(() => import('./views/widgets/Widgets'))
 const routes = [
   { path: '/', exact: true, name: 'Home' },
   { path: '/dashboard', name: 'Dashboard', element: Dashboard },
-  { path: '/attendance', name: 'Attendance', element: AttendanceTabs},
+  { path: '/attendance', name: 'Attendance', element: AttendanceTabs },
   { path: '/reportcards', name: 'Report Cards', element: ReportCardUI },
   { path: '/registration', name: 'Registration', element: RegistrationPage },
   { path: '/registration/thankYouPage', name: 'Thank You', element: ThankYouPage },
   { path: '/courses', name: 'Courses', element: Courses },
+  { path: '/courses/new', name: 'Create Course', element: CourseForm },
+  { path: '/courses/edit/:id', name: 'Edit Course', element: CourseForm },
+  { path: '/courses/timetable', name: 'Timetable', element: Timetable },
+  { path: '/calendar', name: 'Enhanced Calendar', element: CalendarDemo },
+  { path: '/courses/:id/schedule', name: 'Course Schedule', element: SchedulePage },
+  { path: '/courses/:id/assignments', name: 'Course Assignments', element: AssignmentsPage },
+  { path: '/courses/:id/budget', name: 'Course Budget', element: BudgetPage },
+  { path: '/courses/:id/timetable', name: 'Course Timetable', element: TimetablePage },
   { path: '/courses/:id', name: 'Course Detail', element: CourseDetailPage },
-  { path: '/attendance/attendance-table-page', name: 'Attendance Table', element: AttendanceTable},
+  { path: '/attendance/attendance-table-page', name: 'Attendance Table', element: AttendanceTable },
 
   // { path: '/theme', name: 'Theme', element: Colors, exact: true },
   // { path: '/theme/colors', name: 'Colors', element: Colors },
