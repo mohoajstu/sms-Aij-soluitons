@@ -1,17 +1,8 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { 
-  signInWithEmailAndPassword, 
-  signInWithPopup, 
-  GoogleAuthProvider 
-} from 'firebase/auth';
-import { 
-  getFirestore, 
-  doc, 
-  setDoc, 
-  getDoc 
-} from 'firebase/firestore';
-import { auth } from '../../../Firebase/firebase';
+import React, { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
+import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
+import { auth } from '../../../Firebase/firebase'
 import {
   CButton,
   CCard,
@@ -25,51 +16,65 @@ import {
   CInputGroupText,
   CRow,
   CAlert,
-} from '@coreui/react';
-import CIcon from '@coreui/icons-react';
-import { cilLockLocked, cilUser } from '@coreui/icons';
+} from '@coreui/react'
+import CIcon from '@coreui/icons-react'
+import { cilLockLocked, cilUser } from '@coreui/icons'
 
 // Configure Google Provider
-const googleProvider = new GoogleAuthProvider();
-googleProvider.addScope('https://www.googleapis.com/auth/forms.body');
-googleProvider.addScope('https://www.googleapis.com/auth/presentations');
-googleProvider.addScope('https://www.googleapis.com/auth/drive.file');
+const googleProvider = new GoogleAuthProvider()
+googleProvider.addScope('https://www.googleapis.com/auth/forms.body')
+googleProvider.addScope('https://www.googleapis.com/auth/presentations')
+googleProvider.addScope('https://www.googleapis.com/auth/drive.file')
+// Add Google Calendar scopes
+googleProvider.addScope('https://www.googleapis.com/auth/calendar.readonly')
+googleProvider.addScope('https://www.googleapis.com/auth/calendar.events')
 
-const db = getFirestore();
+const db = getFirestore()
+const SHARED_GOOGLE_AUTH_TOKEN_KEY = 'firebase_google_auth_token'
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+    e.preventDefault()
+    setError('')
+    setLoading(true)
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigate('/');
+      await signInWithEmailAndPassword(auth, email, password)
+      navigate('/')
     } catch (err) {
-      handleAuthError(err);
+      handleAuthError(err)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleGoogleLogin = async () => {
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      
+      const result = await signInWithPopup(auth, googleProvider)
+      const user = result.user
+
+      // Store Google credentials for Calendar access
+      const credential = GoogleAuthProvider.credentialFromResult(result)
+      if (credential) {
+        const token = {
+          accessToken: credential.accessToken,
+          expiresAt: Date.now() + 3600000, // 1 hour expiration
+        }
+        localStorage.setItem(SHARED_GOOGLE_AUTH_TOKEN_KEY, JSON.stringify(token))
+      }
+
       // Check/create user document
-      const userRef = doc(db, 'users', user.uid);
-      const userDoc = await getDoc(userRef);
-      
+      const userRef = doc(db, 'users', user.uid)
+      const userDoc = await getDoc(userRef)
+
       if (!userDoc.exists()) {
-        const [firstName, lastName] = user.displayName?.split(' ') || ['', ''];
+        const [firstName, lastName] = user.displayName?.split(' ') || ['', '']
         await setDoc(userRef, {
           firstName,
           lastName,
@@ -77,34 +82,34 @@ const Login = () => {
           role: 'parent',
           createdAt: serverTimestamp(),
           lastLogin: serverTimestamp(),
-          loginCount: 0
-        });
+          loginCount: 0,
+        })
       }
 
-      navigate('/');
+      navigate('/')
     } catch (err) {
-      handleAuthError(err);
+      handleAuthError(err)
     }
-  };
+  }
 
   const handleAuthError = (error) => {
     switch (error.code) {
       case 'auth/user-not-found':
-        setError('No account found with this email');
-        break;
+        setError('No account found with this email')
+        break
       case 'auth/wrong-password':
-        setError('Incorrect password');
-        break;
+        setError('Incorrect password')
+        break
       case 'auth/popup-closed-by-user':
-        setError('Google sign-in window closed');
-        break;
+        setError('Google sign-in window closed')
+        break
       case 'auth/account-exists-with-different-credential':
-        setError('Account exists with different login method');
-        break;
+        setError('Account exists with different login method')
+        break
       default:
-        setError('Login failed. Please try again.');
+        setError('Login failed. Please try again.')
     }
-  };
+  }
 
   return (
     <div className="bg-body-tertiary min-vh-100 d-flex flex-row align-items-center">
@@ -118,7 +123,7 @@ const Login = () => {
                     <h1>Login</h1>
                     <p className="text-body-secondary">Sign In to your account</p>
                     {error && <CAlert color="danger">{error}</CAlert>}
-                    
+
                     <CInputGroup className="mb-3">
                       <CInputGroupText>
                         <CIcon icon={cilUser} />
@@ -149,12 +154,7 @@ const Login = () => {
 
                     <CRow>
                       <CCol xs={6}>
-                        <CButton 
-                          color="primary" 
-                          className="px-4" 
-                          type="submit" 
-                          disabled={loading}
-                        >
+                        <CButton color="primary" className="px-4" type="submit" disabled={loading}>
                           {loading ? 'Loading...' : 'Login'}
                         </CButton>
                       </CCol>
@@ -166,8 +166,8 @@ const Login = () => {
                     </CRow>
 
                     <div className="text-center mt-4">
-                      <CButton 
-                        color="secondary" 
+                      <CButton
+                        color="secondary"
                         onClick={handleGoogleLogin}
                         disabled={loading}
                         style={{ width: '100%' }}
@@ -201,7 +201,7 @@ const Login = () => {
         </CRow>
       </CContainer>
     </div>
-  );
-};
+  )
+}
 
-export default Login;
+export default Login
