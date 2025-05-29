@@ -8,100 +8,122 @@ import {
   CCardHeader,
   CCol,
   CRow,
-  CProgress,
 } from "@coreui/react";
 import CIcon from "@coreui/icons-react";
 import {
   cilUser,
   cilArrowRight,
-  cilBook,
   cilFile,
   cilBullhorn,
   cilCalendar,
-  cilPencil,
   cilCheckCircle,
   cilClock,
   cilMoney,
-  cilPhone,
-  cilEnvelopeClosed, // Fixed: was cisMail
-  cilSpeech, // Fixed: was cisChatBubble
 } from "@coreui/icons";
-// import { CIcon } from '@coreui/icons-react';
-// import * as icon from '@coreui/icons';
 import './ParentDashboard.css'
 import sygnet from '../../assets/brand/TLA_logo_simple.svg'; 
 
 const ParentDashboard = () => {
   const navigate = useNavigate();
 
-  // Sample student data (would come from API in real app)
+  // Sample student data - works for 1, 2, 3+ children
   const studentData = [
     {
       id: 1,
       name: "Aisha Khan",
       grade: "Grade 5",
       attendance: 94,
-      nextClass: "Mathematics - 10:30 AM",
-      recentGrade: "A- in Science Quiz",
     },
     {
       id: 2,
-      name: "Omar Khan",
+      name: "Omar Khan", 
       grade: "Grade 3",
       attendance: 97,
-      nextClass: "Islamic Studies - 11:00 AM",
-      recentGrade: "B+ in Reading Assignment",
-    }
+    },
+    {
+      id: 3,
+      name: "Fatima Khan",
+      grade: "Grade 1",
+      attendance: 98,
+    },
+
   ];
 
-  // Sample announcements data
+  // Simplified announcements
   const announcements = [
     {
       id: 1,
-      title: "Parent-Teacher Meetings scheduled for February 14th",
+      title: "Parent-Teacher Meetings - February 14th",
       date: "January 20, 2025",
       priority: "high",
     },
     {
       id: 2,
-      title: "Term 1 Report Cards will be available February 7th",
+      title: "Term 1 Report Cards Available February 7th",
       date: "January 25, 2025",
       priority: "medium",
     },
     {
       id: 3,
-      title: "Winter Break - School closed February 17-21",
+      title: "Winter Break - February 17-21",
       date: "January 30, 2025",
       priority: "low",
     },
+  ];
+
+  // Upcoming events data
+  const upcomingEvents = [
+    {
+      id: 1,
+      title: "Science Fair",
+      date: "Feb 10",
+      type: "academic",
+    },
+    {
+      id: 2,
+      title: "Parent-Teacher Meeting",
+      date: "Feb 14",
+      type: "meeting",
+    },
+    {
+      id: 3,
+      title: "Winter Break",
+      date: "Feb 17",
+      type: "holiday",
+    },
     {
       id: 4,
-      title: "Science Fair - Students may participate (optional)",
-      date: "February 1, 2025",
-      priority: "medium",
+      title: "Sports Day",
+      date: "Feb 28",
+      type: "activity",
     },
   ];
 
-  // Quick links data for parents
-  const quickLinks = [
+  // Simplified quick actions
+  const quickActions = [
     { id: 1, title: "View Report Cards", icon: cilFile, path: "/parent/reportcards" },
     { id: 2, title: "Check Attendance", icon: cilCheckCircle, path: "/parent/attendance" },
-    { id: 3, title: "Schedule Meetings", icon: cilCalendar, path: "/parent/meetings" },
+    { id: 3, title: "Schedule Meeting", icon: cilCalendar, path: "/parent/meetings" },
     { id: 4, title: "Pay Fees", icon: cilMoney, path: "/parent/payments" },
-    { id: 5, title: "Contact Teachers", icon: cilEnvelopeClosed, path: "/parent/messages" }, // Fixed icon
-    { id: 6, title: "View Calendar", icon: cilClock, path: "/parent/calendar" },
   ];
 
-  // Upcoming events
-  const upcomingEvents = [
-    { date: "Feb 7", event: "Report Cards Available", type: "academic" },
-    { date: "Feb 14", event: "Parent-Teacher Meeting", type: "meeting" },
-    { date: "Feb 17", event: "Winter Break Begins", type: "holiday" },
-    { date: "Mar 5", event: "Science Fair (Optional)", type: "activity" },
-  ];
+  // Calculate totals for multiple children
+  const totalChildren = studentData.length;
+  const averageAttendance = Math.round(
+    studentData.reduce((sum, student) => sum + student.attendance, 0) / totalChildren
+  );
+
+  // Determine grid class based on number of children
+  const getGridClass = (childCount) => {
+    if (childCount === 1) return 'one-child';
+    if (childCount === 2) return 'two-children';
+    if (childCount === 3) return 'three-children';
+    return 'many-children';
+  };
 
   return (
     <div className="parent-dashboard-container">
+      {/* Header */}
       <div className="parent-dashboard-header">
         <div className="header-left">
           <img src={sygnet} alt="School Logo" className="school-logo" />
@@ -115,166 +137,148 @@ const ParentDashboard = () => {
         </div>
       </div>
 
-      {/* Welcome Banner */}
-      <div className="parent-welcome-banner">
-        <div className="welcome-banner-content">
-          <div className="welcome-header">
-            <h2>Your Children's Progress</h2>
-            <div className="welcome-date">
+      {/* Children Overview Banner */}
+      <div className="children-overview-banner">
+        <div className="banner-content">
+          <div className="banner-header">
+            <h2>Your {totalChildren === 1 ? 'Child\'s' : 'Children\'s'} Progress</h2>
+            <div className="current-date">
               <CIcon icon={cilCalendar} className="me-2" />
               <span>
                 {new Date().toLocaleDateString("en-US", {
                   weekday: "long",
-                  year: "numeric",
-                  month: "long",
+                  month: "long", 
                   day: "numeric",
                 })}
               </span>
             </div>
           </div>
 
-          <div className="student-overview">
+          <div className={`children-grid ${getGridClass(totalChildren)}`}>
             {studentData.map((student) => (
-              <div key={student.id} className="student-card">
-                <div className="student-info">
+              <div key={student.id} className="child-card">
+                <div className="child-info">
                   <h4>{student.name}</h4>
-                  <p className="student-grade">{student.grade}</p>
+                  <p className="child-grade">{student.grade}</p>
                 </div>
-                <div className="student-stats">
-                  <div className="stat-item">
-                    <span className="stat-label">Attendance</span>
+                <div className="child-stats">
+                  <div className="stat-row">
+                    <span className="stat-label">Attendance Rate:</span>
                     <span className="stat-value">{student.attendance}%</span>
                   </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Next Class</span>
-                    <span className="stat-value">{student.nextClass}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Recent Grade</span>
-                    <span className="stat-value">{student.recentGrade}</span>
-                  </div>
                 </div>
-                <div className="student-actions">
-                  <CButton
-                    color="light"
-                    size="sm"
-                    onClick={() => navigate(`/parent/student/${student.id}`)}
-                  >
-                    View Details
-                  </CButton>
-                </div>
+                <CButton
+                  color="light"
+                  size="sm"
+                  onClick={() => navigate(`/parent/student/${student.id}`)}
+                  className="view-details-btn"
+                >
+                  View Full Details
+                </CButton>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Key Information Row */}
-      <div className="parent-stats-row">
-        <CRow>
-          <CCol lg={3} md={6} sm={12}>
-            <CCard className="parent-stat-card outstanding-fees">
-              <CCardBody className="d-flex align-items-center">
-                <div className="stat-icon">
-                  <CIcon icon={cilMoney} size="3xl" />
-                </div>
-                <div className="stat-content">
-                  <h3 className="stat-number">$0</h3>
-                  <p className="stat-label">OUTSTANDING FEES</p>
-                </div>
-              </CCardBody>
-              <CCardFooter
-                className="stat-footer"
-                onClick={() => navigate("/parent/payments")}
-              >
-                <span>View Payment History</span>
-                <CIcon icon={cilArrowRight} />
-              </CCardFooter>
-            </CCard>
-          </CCol>
+      {/* Key Stats */}
+      <CRow className="stats-row">
+        <CCol lg={3} md={6} sm={12}>
+          <CCard className="stat-card fees-card">
+            <CCardBody className="d-flex align-items-center">
+              <div className="stat-icon">
+                <CIcon icon={cilMoney} size="3xl" />
+              </div>
+              <div className="stat-content">
+                <h3 className="stat-number">$0</h3>
+                <p className="stat-label">OUTSTANDING FEES</p>
+              </div>
+            </CCardBody>
+            <CCardFooter className="stat-footer" onClick={() => navigate("/parent/payments")}>
+              <span>View Payments</span>
+              <CIcon icon={cilArrowRight} />
+            </CCardFooter>
+          </CCard>
+        </CCol>
 
-          <CCol lg={3} md={6} sm={12}>
-            <CCard className="parent-stat-card upcoming-meetings">
-              <CCardBody className="d-flex align-items-center">
-                <div className="stat-icon">
-                  <CIcon icon={cilCalendar} size="3xl" />
-                </div>
-                <div className="stat-content">
-                  <h3 className="stat-number">1</h3>
-                  <p className="stat-label">UPCOMING MEETINGS</p>
-                </div>
-              </CCardBody>
-              <CCardFooter className="stat-footer" onClick={() => navigate("/parent/meetings")}>
-                <span>Schedule New Meeting</span>
-                <CIcon icon={cilArrowRight} />
-              </CCardFooter>
-            </CCard>
-          </CCol>
+        <CCol lg={3} md={6} sm={12}>
+          <CCard className="stat-card attendance-card">
+            <CCardBody className="d-flex align-items-center">
+              <div className="stat-icon">
+                <CIcon icon={cilCheckCircle} size="3xl" />
+              </div>
+              <div className="stat-content">
+                <h3 className="stat-number">{averageAttendance}%</h3>
+                <p className="stat-label">AVERAGE ATTENDANCE</p>
+              </div>
+            </CCardBody>
+            <CCardFooter className="stat-footer" onClick={() => navigate("/parent/attendance")}>
+              <span>View Attendance</span>
+              <CIcon icon={cilArrowRight} />
+            </CCardFooter>
+          </CCard>
+        </CCol>
 
-          <CCol lg={3} md={6} sm={12}>
-            <CCard className="parent-stat-card unread-messages">
-              <CCardBody className="d-flex align-items-center">
-                <div className="stat-icon">
-                  <CIcon icon={cilEnvelopeClosed} size="3xl" /> {/* Fixed icon */}
-                </div>
-                <div className="stat-content">
-                  <h3 className="stat-number">3</h3>
-                  <p className="stat-label">UNREAD MESSAGES</p>
-                </div>
-              </CCardBody>
-              <CCardFooter className="stat-footer" onClick={() => navigate("/parent/messages")}>
-                <span>View Messages</span>
-                <CIcon icon={cilArrowRight} />
-              </CCardFooter>
-            </CCard>
-          </CCol>
+        <CCol lg={3} md={6} sm={12}>
+          <CCard className="stat-card meetings-card">
+            <CCardBody className="d-flex align-items-center">
+              <div className="stat-icon">
+                <CIcon icon={cilCalendar} size="3xl" />
+              </div>
+              <div className="stat-content">
+                <h3 className="stat-number">1</h3>
+                <p className="stat-label">UPCOMING MEETING</p>
+              </div>
+            </CCardBody>
+            <CCardFooter className="stat-footer" onClick={() => navigate("/parent/meetings")}>
+              <span>Schedule Meeting</span>
+              <CIcon icon={cilArrowRight} />
+            </CCardFooter>
+          </CCard>
+        </CCol>
 
-          <CCol lg={3} md={6} sm={12}>
-            <CCard className="parent-stat-card children-count">
-              <CCardBody className="d-flex align-items-center">
-                <div className="stat-icon">
-                  <CIcon icon={cilUser} size="3xl" />
-                </div>
-                <div className="stat-content">
-                  <h3 className="stat-number">{studentData.length}</h3>
-                  <p className="stat-label">YOUR CHILDREN</p>
-                </div>
-              </CCardBody>
-              <CCardFooter
-                className="stat-footer"
-                onClick={() => navigate("/parent/children")}
-              >
-                <span>View All Details</span>
-                <CIcon icon={cilArrowRight} />
-              </CCardFooter>
-            </CCard>
-          </CCol>
-        </CRow>
-      </div>
+        <CCol lg={3} md={6} sm={12}>
+          <CCard className="stat-card children-card">
+            <CCardBody className="d-flex align-items-center">
+              <div className="stat-icon">
+                <CIcon icon={cilUser} size="3xl" />
+              </div>
+              <div className="stat-content">
+                <h3 className="stat-number">{totalChildren}</h3>
+                <p className="stat-label">{totalChildren === 1 ? 'CHILD' : 'CHILDREN'}</p>
+              </div>
+            </CCardBody>
+            <CCardFooter className="stat-footer" onClick={() => navigate("/parent/children")}>
+              <span>View Details</span>
+              <CIcon icon={cilArrowRight} />
+            </CCardFooter>
+          </CCard>
+        </CCol>
+      </CRow>
 
-      {/* Main Content Row */}
+      {/* Main Content */}
       <CRow className="mt-4">
-        {/* Quick Links */}
+        {/* Quick Actions */}
         <CCol lg={4} md={12}>
           <CCard className="h-100">
-            <CCardHeader className="quick-links-header">
+            <CCardHeader className="card-header">
               <h3>
                 <CIcon icon={cilUser} className="me-2" />
                 Quick Actions
               </h3>
             </CCardHeader>
-            <CCardBody className="quick-links-body">
-              <div className="parent-quick-links-container">
-                {quickLinks.map((link) => (
+            <CCardBody className="quick-actions-body">
+              <div className="quick-actions-grid">
+                {quickActions.map((action) => (
                   <div
-                    key={link.id}
-                    className="parent-quick-link-item"
-                    onClick={() => navigate(link.path)}
+                    key={action.id}
+                    className="quick-action-item"
+                    onClick={() => navigate(action.path)}
                   >
-                    <div className="quick-link-icon">
-                      <CIcon icon={link.icon} size="xl" />
+                    <div className="action-icon">
+                      <CIcon icon={action.icon} size="xl" />
                     </div>
-                    <span className="quick-link-title">{link.title}</span>
+                    <span className="action-title">{action.title}</span>
                   </div>
                 ))}
               </div>
@@ -285,14 +289,14 @@ const ParentDashboard = () => {
         {/* Announcements */}
         <CCol lg={8} md={12}>
           <CCard className="h-100">
-            <CCardHeader className="announcements-header">
+            <CCardHeader className="card-header">
               <h3>
                 <CIcon icon={cilBullhorn} className="me-2" />
-                School Announcements & Important Dates
+                School Announcements
               </h3>
             </CCardHeader>
             <CCardBody className="announcements-body">
-              <div className="announcements-container">
+              <div className="announcements-list">
                 {announcements.map((announcement) => (
                   <div
                     key={announcement.id}
@@ -305,12 +309,8 @@ const ParentDashboard = () => {
                           <CIcon icon={cilCalendar} className="me-1" />
                           {announcement.date}
                         </span>
-                        <span
-                          className={`announcement-priority priority-${announcement.priority}`}
-                        >
-                          {announcement.priority.charAt(0).toUpperCase() +
-                            announcement.priority.slice(1)}{" "}
-                          Priority
+                        <span className={`priority-badge priority-${announcement.priority}`}>
+                          {announcement.priority.toUpperCase()}
                         </span>
                       </div>
                     </div>
@@ -318,10 +318,9 @@ const ParentDashboard = () => {
                 ))}
               </div>
             </CCardBody>
-            <CCardFooter className="announcements-footer">
+            <CCardFooter className="text-center">
               <CButton
                 color="link"
-                className="view-all-link"
                 onClick={() => navigate("/parent/announcements")}
               >
                 View All Announcements
@@ -332,109 +331,51 @@ const ParentDashboard = () => {
         </CCol>
       </CRow>
 
-      {/* Additional Information Row */}
+      {/* Upcoming Events */}
       <CRow className="mt-4">
-        {/* Upcoming Events */}
-        <CCol lg={6} md={12}>
-          <CCard className="upcoming-events-card">
-            <CCardHeader className="events-header">
+        <CCol md={12}>
+          <CCard className="events-card">
+            <CCardHeader className="card-header">
               <h3>
                 <CIcon icon={cilClock} className="me-2" />
                 Upcoming Events
               </h3>
             </CCardHeader>
             <CCardBody>
-              <div className="events-container">
-                {upcomingEvents.map((event, index) => (
-                  <div key={index} className={`event-item ${event.type}`}>
+              <div className="events-grid">
+                {upcomingEvents.map((event) => (
+                  <div key={event.id} className="event-item">
                     <div className="event-date">
-                      <span>{event.date}</span>
+                      {event.date}
                     </div>
                     <div className="event-details">
-                      <h5>{event.event}</h5>
+                      <h5>{event.title}</h5>
                       <span className={`event-type ${event.type}`}>
-                        {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
+                        {event.type}
                       </span>
                     </div>
                   </div>
                 ))}
               </div>
+            </CCardBody>
+            <CCardFooter className="text-center">
               <CButton
-                color="primary"
-                className="mt-3 w-100"
+                color="link"
                 onClick={() => navigate("/parent/calendar")}
               >
-                <CIcon icon={cilCalendar} className="me-2" />
                 View Full Calendar
+                <CIcon icon={cilArrowRight} className="ms-1" />
               </CButton>
-            </CCardBody>
-          </CCard>
-        </CCol>
-
-        {/* Contact Information */}
-        <CCol lg={6} md={12}>
-          <CCard className="contact-info-card">
-            <CCardHeader className="contact-header">
-              <h3>
-                <CIcon icon={cilPhone} className="me-2" />
-                Contact School
-              </h3>
-            </CCardHeader>
-            <CCardBody>
-              <div className="contact-methods">
-                <div className="contact-item">
-                  <div className="contact-icon">
-                    <CIcon icon={cilPhone} size="lg" />
-                  </div>
-                  <div className="contact-details">
-                    <h5>Phone</h5>
-                    <p>(555) 123-4567</p>
-                  </div>
-                </div>
-                <div className="contact-item">
-                  <div className="contact-icon">
-                    <CIcon icon={cilEnvelopeClosed} size="lg" /> {/* Fixed icon */}
-                  </div>
-                  <div className="contact-details">
-                    <h5>Email</h5>
-                    <p>info@tarbiyahacademy.edu</p>
-                  </div>
-                </div>
-                <div className="contact-item">
-                  <div className="contact-icon">
-                    <CIcon icon={cilSpeech} size="lg" /> {/* Fixed icon */}
-                  </div>
-                  <div className="contact-details">
-                    <h5>Message Teachers</h5>
-                    <p>Send direct messages</p>
-                  </div>
-                </div>
-              </div>
-              <div className="contact-actions">
-                <CButton
-                  color="success"
-                  className="me-2"
-                  onClick={() => navigate("/parent/messages")}
-                >
-                  <CIcon icon={cilEnvelopeClosed} className="me-1" /> {/* Fixed icon */}
-                  Send Message
-                </CButton>
-                <CButton
-                  color="info"
-                  onClick={() => navigate("/parent/meetings")}
-                >
-                  <CIcon icon={cilCalendar} className="me-1" />
-                  Schedule Meeting
-                </CButton>
-              </div>
-            </CCardBody>
+            </CCardFooter>
           </CCard>
         </CCol>
       </CRow>
 
       {/* Footer */}
-      <div className="dashboard-footer mt-4">
-        <p className="footer-text">© 2025 Tarbiyah Learning Academy - Parent Portal</p>
+      <div className="dashboard-footer">
+        <p className="footer-text">
+          © 2025 Tarbiyah Learning Academy. All rights reserved.
+        </p>
       </div>
     </div>
   );
