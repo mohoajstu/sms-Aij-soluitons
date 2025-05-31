@@ -42,6 +42,7 @@ const _nav = [
     name: 'Courses',
     to: '/courses',
     icon: <AutoStoriesOutlinedIcon className="nav-icon" />,
+    hideFor: ['parent'],
   },
 ]
 
