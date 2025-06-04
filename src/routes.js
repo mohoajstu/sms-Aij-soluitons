@@ -12,6 +12,7 @@ const AttendanceTabs = React.lazy(() => import('./views/attendance/attendanceTab
 const AttendanceTable = React.lazy(() => import('./views/attendance/attendanceTable'))
 //Report Cards
 const ReportCardUI = React.lazy(() => import('./views/ReportCard/ReportCardUI'))
+const ReportCardLovable = React.lazy(() => import('./views/ReportCardLovable'))
 // Courses
 const Courses = React.lazy(() => import('./views/Courses/Courses'))
 const CourseDetailPage = React.lazy(() => import('./views/Courses/courseDetails'))
@@ -83,6 +84,7 @@ const routes = [
   { path: '/dashboard', name: 'Dashboard', element: Dashboard },
   { path: '/attendance', name: 'Attendance', element: AttendanceTabs },
   { path: '/reportcards', name: 'Report Cards', element: ReportCardUI },
+  { path: '/reportcards/lovable', name: 'Lovable Report Cards', element: ReportCardLovable },
   { path: '/registration', name: 'Registration', element: RegistrationPage },
   { path: '/registration/thankYouPage', name: 'Thank You', element: ThankYouPage },
   { path: '/courses', name: 'Courses', element: Courses },

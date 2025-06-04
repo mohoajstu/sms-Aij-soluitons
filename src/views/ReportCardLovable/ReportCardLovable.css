@@ -1,0 +1,541 @@
+/* ReportCardLovable Component Styles */
+
+/* Main Container */
+.report-card-container {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+  margin: 0 auto;
+  width: 90%;
+}
+
+.report-card-main-card {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  width: 100%;
+}
+
+.report-card-header {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  border: none;
+  border-radius: 0;
+  padding: 1.5rem 1rem;
+  width: 100%;
+}
+
+.report-card-header h1 {
+  color: white;
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+.report-card-header p {
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  font-size: 1rem;
+}
+
+.report-card-body {
+  padding: 0;
+  width: 100%;
+}
+
+/* Tab Navigation */
+.report-card-tabs {
+  background-color: white;
+  border-bottom: 1px solid #dee2e6;
+  padding: 0 1rem;
+  width: 100%;
+}
+
+.report-card-tab-button {
+  background: none;
+  border: none;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  color: #6c757d;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.report-card-tab-button.active {
+  color: #007bff;
+  border-bottom-color: #007bff;
+  background-color: #f8f9ff;
+}
+
+.report-card-tab-button:hover {
+  background-color: #f8f9fa;
+  color: #495057;
+}
+
+.report-card-save-button {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  border: none;
+  padding: 0.75rem 2rem;
+  font-weight: 600;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+  transition: all 0.2s ease;
+}
+
+.report-card-save-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.report-card-save-button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 2px 4px rgba(108, 117, 125, 0.2);
+}
+
+.report-card-save-button:disabled:hover {
+  transform: none;
+  box-shadow: 0 2px 4px rgba(108, 117, 125, 0.2);
+}
+
+/* Main Layout */
+.report-card-content {
+  padding: 2rem 1rem;
+  background-color: #f8f9fa;
+  width: 100%;
+  max-width: none;
+}
+
+.report-card-preview-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  margin-right: 1.5rem;
+  height: fit-content;
+  position: sticky;
+  top: 2rem;
+  width: 100%;
+}
+
+.report-card-form-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  margin-left: 1.5rem;
+  width: 100%;
+}
+
+/* Form Styles */
+.report-card-form {
+  width: 100%;
+}
+
+.report-card-accordion {
+  width: 100%;
+  border: none;
+}
+
+.report-card-accordion-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: none;
+  padding: 1rem 1.5rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.report-card-accordion-body {
+  padding: 1.5rem;
+  border: none;
+}
+
+.report-card-form-card {
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+}
+
+/* AI Input Field */
+.ai-input-field {
+  margin-bottom: 1rem;
+}
+
+.ai-input-container {
+  position: relative;
+}
+
+.ai-input-textarea {
+  min-height: 150px;
+  resize: vertical;
+  padding-right: 40px;
+}
+
+.ai-input-textarea.generating {
+  background-color: #f0f8ff;
+}
+
+.ai-generate-button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  color: #6c757d;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.ai-generate-button:hover {
+  background-color: rgba(0, 123, 255, 0.1);
+  color: #007bff;
+}
+
+.ai-generate-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ai-generating-text {
+  color: #17a2b8;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Preview Styles */
+.report-card-preview {
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  background: white;
+  color: #000;
+  line-height: 1.4;
+  width: 100%;
+}
+
+.report-card-preview.full-page {
+  padding: 2rem 3rem;
+  margin: 0 auto;
+  max-width: 1400px;
+  width: 100%;
+}
+
+.report-card-border {
+  border: 2px solid #333;
+  width: 100%;
+}
+
+.report-card-ontario-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 2px solid #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.ontario-logo {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.ontario-title {
+  font-weight: bold;
+  font-size: 1.25rem;
+}
+
+.ministry-subtitle {
+  margin-left: 1rem;
+  font-size: 0.875rem;
+}
+
+.report-card-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+/* Student Information Grid */
+.student-info-grid {
+  border-bottom: 2px solid #333;
+}
+
+.student-info-cell {
+  padding: 0.75rem;
+  border-right: 1px solid #333;
+  border-bottom: 1px solid #333;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.student-info-cell:last-child {
+  border-right: none;
+}
+
+.student-info-row:last-child .student-info-cell {
+  border-bottom: none;
+}
+
+/* Learning Skills Section */
+.learning-skills-section {
+  padding: 1.5rem 2rem;
+}
+
+.learning-skills-title {
+  font-size: 1.125rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.skills-table {
+  border: 1px solid #333;
+  margin-bottom: 2rem;
+  width: 100%;
+}
+
+.skills-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #333;
+  font-size: 0.875rem;
+}
+
+.skills-header-cell {
+  padding: 0.75rem;
+  font-weight: 600;
+  border-right: 1px solid #333;
+}
+
+.skills-header-cell:last-child {
+  border-right: none;
+}
+
+.skills-header-ratings {
+  text-align: center;
+}
+
+.skills-row {
+  font-size: 0.875rem;
+  border-bottom: 1px solid #333;
+}
+
+.skills-row:last-child {
+  border-bottom: none;
+}
+
+.skills-cell {
+  padding: 0.75rem;
+}
+
+.skills-label {
+  font-weight: 600;
+  background-color: #f8f9fa;
+  border-right: 1px solid #333;
+}
+
+.skills-rating {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-right: 1px solid #333;
+}
+
+.skills-rating:last-child {
+  border-right: none;
+}
+
+/* Rating Circles */
+.rating-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rating-circle {
+  margin: 0 3px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid #6c757d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.rating-circle.selected {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+/* Strengths Section */
+.strengths-section {
+  margin-bottom: 2rem;
+}
+
+.strengths-title {
+  font-size: 1.125rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.strengths-content {
+  border: 1px solid #333;
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  min-height: 200px;
+  white-space: pre-wrap;
+  font-size: 0.875rem;
+  width: 100%;
+}
+
+/* Signatures Section */
+.signatures-section {
+  border-top: 2px solid #333;
+  padding-top: 1.5rem;
+  margin-top: 2rem;
+}
+
+.signatures-title {
+  font-size: 1.125rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.signature-container {
+  text-align: center;
+}
+
+.signature-line {
+  border-bottom: 1px solid #333;
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.signature-label {
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+/* Footer */
+.report-card-footer {
+  border-top: 2px solid #333;
+  padding: 0.75rem 1.5rem;
+  color: #6c757d;
+  font-size: 0.875rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .report-card-content {
+    padding: 2rem 1rem;
+  }
+  
+  .report-card-header {
+    padding: 1.5rem 1rem;
+  }
+  
+  .report-card-tabs {
+    padding: 0 1rem;
+  }
+  
+  .report-card-preview.full-page {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .report-card-content {
+    padding: 1rem 0.5rem;
+  }
+  
+  .report-card-preview-container,
+  .report-card-form-container {
+    margin: 0;
+    margin-bottom: 1rem;
+  }
+  
+  .report-card-header {
+    padding: 1rem 0.5rem;
+  }
+  
+  .report-card-tabs {
+    padding: 0 0.5rem;
+  }
+  
+  .ontario-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .ontario-logo {
+    margin-bottom: 0.5rem;
+  }
+  
+  .report-card-preview.full-page {
+    padding: 1rem;
+    max-width: 100%;
+  }
+  
+  .learning-skills-section {
+    padding: 1rem;
+  }
+  
+  .skills-header-cell,
+  .skills-cell {
+    padding: 0.5rem;
+    font-size: 0.8rem;
+  }
+  
+  .student-info-cell {
+    padding: 0.5rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* PDF Generation Loading States */
+.pdf-generating {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.pdf-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.pdf-loading-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.pdf-loading-spinner {
+  margin-bottom: 1rem;
+} 
