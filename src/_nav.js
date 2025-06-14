@@ -1,14 +1,9 @@
 import React from 'react'
 import CIcon from '@coreui/icons-react'
-import {
-  cilHome,
-  cilList,
-  cilNotes,
-  cilSpeedometer,
-} from '@coreui/icons'
-import BeenhereOutlinedIcon from '@mui/icons-material/BeenhereOutlined';
+import { cilHome, cilList, cilNotes, cilSpeedometer, cilCalendar } from '@coreui/icons'
+import BeenhereOutlinedIcon from '@mui/icons-material/BeenhereOutlined'
 import { CNavItem } from '@coreui/react'
-import AutoStoriesOutlinedIcon from '@mui/icons-material/AutoStoriesOutlined';
+import AutoStoriesOutlinedIcon from '@mui/icons-material/AutoStoriesOutlined'
 
 const _nav = [
   {
@@ -43,6 +38,12 @@ const _nav = [
     to: '/courses',
     icon: <AutoStoriesOutlinedIcon className="nav-icon" />,
     hideFor: ['parent'],
+  },
+  {
+    component: CNavItem,
+    name: 'Calendar',
+    to: '/calendar',
+    icon: <CIcon icon={cilCalendar} customClassName="nav-icon" />,
   },
 ]
 

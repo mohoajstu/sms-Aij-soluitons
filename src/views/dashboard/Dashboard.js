@@ -1,5 +1,5 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   CButton,
   CCard,
@@ -9,8 +9,8 @@ import {
   CCol,
   CRow,
   CProgress,
-} from "@coreui/react";
-import CIcon from "@coreui/icons-react";
+} from '@coreui/react'
+import CIcon from '@coreui/icons-react'
 import {
   cilSettings,
   cilArrowRight,
@@ -21,65 +21,61 @@ import {
   cilBullhorn,
   cilCalendar,
   cilPencil,
-} from "@coreui/icons";
+} from '@coreui/icons'
 
 import './Dashboard.css'
-import sygnet from '../../assets/brand/TLA_logo_simple.svg'; 
-
+import sygnet from '../../assets/brand/TLA_logo_simple.svg'
 
 const Dashboard = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   // Sample announcements data
   const announcements = [
     {
       id: 1,
-      title: "Term 1 Report Cards due on Monday, January 27th",
-      date: "January 20, 2025",
-      priority: "high",
+      title: 'Term 1 Report Cards due on Monday, January 27th',
+      date: 'January 20, 2025',
+      priority: 'high',
     },
     {
       id: 2,
-      title: "Term 1 Report Cards released to parents on Friday, February 7th",
-      date: "January 25, 2025",
-      priority: "medium",
+      title: 'Term 1 Report Cards released to parents on Friday, February 7th',
+      date: 'January 25, 2025',
+      priority: 'medium',
     },
     {
       id: 3,
-      title: "Parent-Teacher Meetings on Friday, February 14th",
-      date: "January 30, 2025",
-      priority: "medium",
+      title: 'Parent-Teacher Meetings on Friday, February 14th',
+      date: 'January 30, 2025',
+      priority: 'medium',
     },
-  ];
+  ]
 
   // Quick links data
   const quickLinks = [
-    { id: 1, title: "Take Attendance", icon: cilCheckCircle, path: "/attendance" },
-    { id: 2, title: "Create Report Cards", icon: cilFile, path: "/reportcards" },
-    { id: 3, title: "View Student Directory", icon: cilUser, path: "/students" },
-    { id: 4, title: "Manage Courses", icon: cilBook, path: "/courses" },
-  ];
+    { id: 1, title: 'Take Attendance', icon: cilCheckCircle, path: '/attendance' },
+    { id: 2, title: 'Create Report Cards', icon: cilFile, path: '/reportcards' },
+    { id: 3, title: 'View Student Directory', icon: cilUser, path: '/students' },
+    { id: 4, title: 'Manage Courses', icon: cilBook, path: '/courses' },
+  ]
 
   return (
     <div className="dashboard-container">
       <div className="dashboard-header">
-  {/* Wrap the logo and text in a .header-left container for easy alignment */}
-  <div className="header-left">
-    {/* Logo / Sygnet Image */}
-    <img src={sygnet} alt="School Logo" className="school-logo" />
-    
-    {/* Title and subtitle */}
-    <div>
-      <h1 className="dashboard-title">TARBIYAH LEARNING ACADEMY</h1>
-      <p className="dashboard-subtitle">Staff Portal</p>
-    </div>
-  </div>
-  {/* Right side (user / icons / etc.) */}
-  <div className="user-section">
-    {/* Add your user info or other elements here */}
-  </div>
-</div>
+        {/* Wrap the logo and text in a .header-left container for easy alignment */}
+        <div className="header-left">
+          {/* Logo / Sygnet Image */}
+          <img src={sygnet} alt="School Logo" className="school-logo" />
 
+          {/* Title and subtitle */}
+          <div>
+            <h1 className="dashboard-title">TARBIYAH LEARNING ACADEMY</h1>
+            <p className="dashboard-subtitle">Staff Portal</p>
+          </div>
+        </div>
+        {/* Right side (user / icons / etc.) */}
+        <div className="user-section">{/* Add your user info or other elements here */}</div>
+      </div>
 
       {/* Welcome Banner */}
       <div className="enhanced-welcome-banner">
@@ -89,11 +85,11 @@ const Dashboard = () => {
             <div className="welcome-date">
               <CIcon icon={cilCalendar} className="me-2" />
               <span>
-                {new Date().toLocaleDateString("en-US", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
+                {new Date().toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
                 })}
               </span>
             </div>
@@ -107,11 +103,7 @@ const Dashboard = () => {
               <div className="action-content">
                 <h4>Daily Attendance</h4>
                 <p>You need to mark today's attendance</p>
-                <CButton
-                  color="primary"
-                  size="sm"
-                  onClick={() => navigate("/attendance")}
-                >
+                <CButton color="primary" size="sm" onClick={() => navigate('/attendance')}>
                   Mark Now
                 </CButton>
               </div>
@@ -124,11 +116,7 @@ const Dashboard = () => {
               <div className="action-content">
                 <h4>Report Cards</h4>
                 <p>25 days until final submission</p>
-                <CButton
-                  color="success"
-                  size="sm"
-                  onClick={() => navigate("/reportcards")}
-                >
+                <CButton color="success" size="sm" onClick={() => navigate('/reportcards')}>
                   Continue Work
                 </CButton>
               </div>
@@ -141,7 +129,7 @@ const Dashboard = () => {
               <div className="action-content">
                 <h4>Upcoming Event</h4>
                 <p>Parent-Teacher Meeting (Feb 14)</p>
-                <CButton color="info" size="sm" onClick={() => navigate("/events")}>
+                <CButton color="info" size="sm" onClick={() => navigate('/events')}>
                   View Details
                 </CButton>
               </div>
@@ -164,10 +152,7 @@ const Dashboard = () => {
                   <p className="stat-label">ACTIVE STUDENTS</p>
                 </div>
               </CCardBody>
-              <CCardFooter
-                className="stat-footer"
-                onClick={() => navigate("/students")}
-              >
+              <CCardFooter className="stat-footer" onClick={() => navigate('/students')}>
                 <span>View Student Directory</span>
                 <CIcon icon={cilArrowRight} />
               </CCardFooter>
@@ -185,7 +170,7 @@ const Dashboard = () => {
                   <p className="stat-label">ACTIVE FACULTY</p>
                 </div>
               </CCardBody>
-              <CCardFooter className="stat-footer" onClick={() => navigate("/faculty")}>
+              <CCardFooter className="stat-footer" onClick={() => navigate('/faculty')}>
                 <span>View Faculty</span>
                 <CIcon icon={cilArrowRight} />
               </CCardFooter>
@@ -203,7 +188,7 @@ const Dashboard = () => {
                   <p className="stat-label">ACTIVE CLASSES</p>
                 </div>
               </CCardBody>
-              <CCardFooter className="stat-footer" onClick={() => navigate("/courses")}>
+              <CCardFooter className="stat-footer" onClick={() => navigate('/courses')}>
                 <span>View Classes</span>
                 <CIcon icon={cilArrowRight} />
               </CCardFooter>
@@ -221,10 +206,7 @@ const Dashboard = () => {
                   <p className="stat-label">NEW APPLICATIONS</p>
                 </div>
               </CCardBody>
-              <CCardFooter
-                className="stat-footer"
-                onClick={() => navigate("/registration")}
-              >
+              <CCardFooter className="stat-footer" onClick={() => navigate('/registration')}>
                 <span>View Applications</span>
                 <CIcon icon={cilArrowRight} />
               </CCardFooter>
@@ -275,7 +257,7 @@ const Dashboard = () => {
                 color="primary"
                 size="sm"
                 className="add-announcement-btn"
-                onClick={() => navigate("/announcements/new")}
+                onClick={() => navigate('/announcements/new')}
               >
                 <CIcon icon={cilPencil} className="me-1" />
                 New
@@ -295,11 +277,9 @@ const Dashboard = () => {
                           <CIcon icon={cilCalendar} className="me-1" />
                           {announcement.date}
                         </span>
-                        <span
-                          className={`announcement-priority priority-${announcement.priority}`}
-                        >
+                        <span className={`announcement-priority priority-${announcement.priority}`}>
                           {announcement.priority.charAt(0).toUpperCase() +
-                            announcement.priority.slice(1)}{" "}
+                            announcement.priority.slice(1)}{' '}
                           Priority
                         </span>
                       </div>
@@ -312,7 +292,7 @@ const Dashboard = () => {
               <CButton
                 color="link"
                 className="view-all-link"
-                onClick={() => navigate("/announcements")}
+                onClick={() => navigate('/announcements')}
               >
                 View All Announcements
                 <CIcon icon={cilArrowRight} className="ms-1" />
@@ -417,7 +397,7 @@ const Dashboard = () => {
         <p className="footer-text">© 2025 Tarbiyah Learning Academy</p>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Dashboard;
+export default Dashboard
