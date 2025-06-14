@@ -1,5 +1,7 @@
 import React from 'react'
+const ParentDashboard = React.lazy(() => import('./views/dashboard/ParentDashboard'))
 
+const DashboardSwitch = React.lazy(() => import('./views/dashboard/DashboardSwitch'))
 const Dashboard = React.lazy(() => import('./views/dashboard/Dashboard'))
 const Colors = React.lazy(() => import('./views/theme/colors/Colors'))
 const Typography = React.lazy(() => import('./views/theme/typography/Typography'))
@@ -80,8 +82,10 @@ const Widgets = React.lazy(() => import('./views/widgets/Widgets'))
 
 const routes = [
   { path: '/', exact: true, name: 'Home' },
-  { path: '/dashboard', name: 'Dashboard', element: Dashboard },
-  { path: '/attendance', name: 'Attendance', element: AttendanceTabs },
+
+  { path: '/dashboard', name: 'Dashboard', element: DashboardSwitch },
+  { path: '/attendance', name: 'Attendance', element: AttendanceTabs},
+
   { path: '/reportcards', name: 'Report Cards', element: ReportCardUI },
   { path: '/registration', name: 'Registration', element: RegistrationPage },
   { path: '/registration/thankYouPage', name: 'Thank You', element: ThankYouPage },
