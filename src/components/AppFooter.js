@@ -7,8 +7,7 @@ const AppFooter = () => {
       <div>
         <span className="ms-1">&copy; 2025 Tarbiyah Administration</span>
       </div>
-      <div className="ms-auto">
-      </div>
+      <div className="ms-auto"></div>
     </CFooter>
   )
 }

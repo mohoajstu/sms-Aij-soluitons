@@ -1,25 +1,25 @@
-import Tesseract from "tesseract.js";
+import Tesseract from 'tesseract.js'
 
 export async function detectTextPositions(imageUrl) {
-  console.log("🔄 Running OCR on image...");
+  console.log('🔄 Running OCR on image...')
 
-  const { data } = await Tesseract.recognize(imageUrl, "eng", {
-    logger: (m) => console.log("📝 OCR Progress:", m),
-  });
+  const { data } = await Tesseract.recognize(imageUrl, 'eng', {
+    logger: (m) => console.log('📝 OCR Progress:', m),
+  })
 
-  console.log("✅ Full OCR Data:", data); // Log everything
+  console.log('✅ Full OCR Data:', data) // Log everything
 
   if (!data || !data.text) {
-    console.error("❌ OCR failed: No text detected.");
-    return []; // Return empty array instead of throwing an error
+    console.error('❌ OCR failed: No text detected.')
+    return [] // Return empty array instead of throwing an error
   }
 
-  console.log("📌 Extracted Text:", data.text);
+  console.log('📌 Extracted Text:', data.text)
 
   // Manually split text into lines (since data.lines is missing)
-  const textLines = data.text.split("\n").filter((line) => line.trim().length > 0);
+  const textLines = data.text.split('\n').filter((line) => line.trim().length > 0)
 
-  console.log("📄 Detected Lines:", textLines);
+  console.log('📄 Detected Lines:', textLines)
 
   // Simulated positioning (since Tesseract didn’t return bbox data)
   return textLines.map((line, index) => ({
@@ -28,5 +28,5 @@ export async function detectTextPositions(imageUrl) {
     y: 800 - index * 30, // Spacing out lines top-down
     width: 200,
     height: 20,
-  }));
+  }))
 }
