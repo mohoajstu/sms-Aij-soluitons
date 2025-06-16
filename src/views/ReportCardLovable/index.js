@@ -7,13 +7,56 @@ import {
   CContainer, 
   CRow, 
   CCol,
-  CSpinner
+  CSpinner,
+  CFormSelect
 } from "@coreui/react";
 import { ReportCardForm } from "./Componenets/ReportCardForm";
 import { ReportCardPreview } from "./Componenets/ReportCardPreview";
+import PDFViewer from "./Componenets/PDFViewer";
+import PDFFieldInspector from './Componenets/PDFFieldInspector';
 import "./ReportCardLovable.css";
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import { PDFDocument } from 'pdf-lib';
+import { saveAs } from 'file-saver';
+
+// Report card types configuration
+const REPORT_CARD_TYPES = [
+  {
+    id: 'kindergarten-report',
+    name: 'Kindergarten Report Card',
+    pdfPath: '/assets/ReportCards/kg-report.pdf',
+    category: 'kindergarten'
+  },
+  {
+    id: 'kindergarten-progress',
+    name: 'Kindergarten Progress Report',
+    pdfPath: '/assets/ReportCards/kg-report.pdf',
+    category: 'kindergarten'
+  },
+  {
+    id: 'elementary-report',
+    name: 'Elementary Report Card (Grades 1-6)',
+    pdfPath: '/assets/ReportCards/elementary-report-card.pdf',
+    category: 'elementary'
+  },
+  {
+    id: 'elementary-progress',
+    name: 'Elementary Progress Report (Grades 1-6)',
+    pdfPath: '/assets/ReportCards/elementary-report-card.pdf',
+    category: 'elementary'
+  },
+  {
+    id: 'middle-report',
+    name: 'Middle School Report Card (Grades 7-8)',
+    pdfPath: '/assets/ReportCards/elementary-report-card.pdf',
+    category: 'middle'
+  },
+  {
+    id: 'middle-progress',
+    name: 'Middle School Progress Report (Grades 7-8)',
+    pdfPath: '/assets/ReportCards/elementary-report-card.pdf',
+    category: 'middle'
+  }
+];
 
 // Define the structure of our form data with JSDoc
 /**
@@ -47,350 +90,460 @@ import jsPDF from 'jspdf';
  */
 
 const ReportCardLovable = () => {
-  // Initial data state
+  const [selectedReportType, setSelectedReportType] = useState('');
   const [formData, setFormData] = useState({
-    student_name: "",
-    grade: "",
-    teacher_name: "",
-    school_year: "",
+    // Student Information
+    student_name: '',
+    grade: '',
+    term: '',
+    oen: '',
+    teacher_name: '',
+    school_year: '',
+    date: '',
+    parent_name: '',
     
-    // New fields
-    date: "",
-    oen: "",
-    days_absent: "",
-    total_days_absent: "",
-    times_late: "",
-    total_times_late: "",
-    board: "",
-    school: "",
-    address_1: "",
-    address_2: "",
-    principal: "",
-    telephone: "",
+    // School Information
+    board: '',
+    school: '',
+    address_1: '',
+    address_2: '',
+    principal: '',
+    telephone: '',
     
-    // Skills ratings (default empty)
-    responsibility: "",
-    organization: "",
-    independent_work: "",
-    collaboration: "",
-    initiative: "",
-    self_regulation: "",
+    // Attendance
+    days_absent: '',
+    total_days_absent: '',
+    times_late: '',
+    total_times_late: '',
     
-    // Comments
-    strengths_next_steps: "",
+    // Learning Skills and Work Habits
+    responsibility: '',
+    organization: '',
+    independent_work: '',
+    collaboration: '',
+    initiative: '',
+    self_regulation: '',
     
-    // Signatures
-    teacher_signature: "",
-    parent_signature: "",
-    principal_signature: ""
+    // Comments and Signatures
+    strengths_next_steps: '',
+    teacher_comments: '',
+    teacher_signature: '',
+    parent_signature: '',
+    principal_signature: ''
   });
+  const [currentTab, setCurrentTab] = useState('form');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showFieldInspector, setShowFieldInspector] = useState(false);
 
-  const [currentTab, setCurrentTab] = useState("form");
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  // Get current report card configuration
+  const getCurrentReportType = () => {
+    return REPORT_CARD_TYPES.find(type => type.id === selectedReportType);
+  };
 
   // Handle changes to the form data
-  const handleChange = (field, value) => {
+  const handleFormDataChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
-  // Generate and download PDF
-  const generatePDF = async () => {
+  // Handle report card type change
+  const handleReportTypeChange = (e) => {
+    setSelectedReportType(e.target.value);
+  };
+
+  // Fill PDF form programmatically
+  const fillPDFForm = async () => {
     try {
-      setIsGeneratingPDF(true);
+      setIsGenerating(true);
       
-      // Create a temporary container for the full-page preview
-      const tempContainer = document.createElement('div');
-      tempContainer.style.position = 'absolute';
-      tempContainer.style.left = '-9999px';
-      tempContainer.style.top = '0';
-      tempContainer.style.width = '210mm'; // A4 width
-      tempContainer.style.height = 'auto';
-      tempContainer.style.backgroundColor = 'white';
-      tempContainer.style.padding = '20mm';
-      tempContainer.style.fontFamily = 'Georgia, "Times New Roman", Times, serif';
-      
-      // Create the preview content
-      tempContainer.innerHTML = `
-        <div class="report-card-preview full-page" style="
-          font-family: Georgia, 'Times New Roman', Times, serif;
-          background: white;
-          color: #000;
-          line-height: 1.4;
-          width: 100%;
-          max-width: none;
-          padding: 0;
-        ">
-          <div class="report-card-border" style="border: 2px solid #333; width: 100%;">
-            <!-- Header -->
-            <div class="report-card-ontario-header" style="
-              padding: 1rem 1.5rem;
-              border-bottom: 2px solid #333;
-              display: flex;
-              justify-content: space-between;
-              align-items: flex-start;
-              flex-wrap: wrap;
-            ">
-              <div class="ontario-logo" style="display: flex; align-items: center; margin-bottom: 1rem;">
-                <div class="ontario-title" style="font-weight: bold; font-size: 1.25rem;">Ontario</div>
-                <div class="ministry-subtitle" style="margin-left: 1rem; font-size: 0.875rem;">Ministry of Education</div>
-              </div>
-              <div class="report-card-title" style="font-size: 1.25rem; font-weight: bold;">Elementary Provincial Report Card</div>
-            </div>
-            
-            <!-- Student Information Grid -->
-            <div class="student-info-grid" style="border-bottom: 2px solid #333;">
-              <div style="display: flex; border-bottom: 1px solid #333;">
-                <div style="flex: 5; padding: 0.75rem; border-right: 1px solid #333; font-weight: 600; font-size: 0.875rem;">Student: ${formData.student_name}</div>
-                <div style="flex: 2; padding: 0.75rem; border-right: 1px solid #333; font-weight: 600; font-size: 0.875rem;">OEN: ${formData.oen}</div>
-                <div style="flex: 2; padding: 0.75rem; border-right: 1px solid #333; font-weight: 600; font-size: 0.875rem;">Days Absent: ${formData.days_absent}</div>
-                <div style="flex: 3; padding: 0.75rem; font-weight: 600; font-size: 0.875rem;">Total Days Absent: ${formData.total_days_absent}</div>
-              </div>
-              <div style="display: flex; border-bottom: 1px solid #333;">
-                <div style="flex: 2; padding: 0.75rem; border-right: 1px solid #333; font-weight: 600; font-size: 0.875rem;">Grade: ${formData.grade}</div>
-                <div style="flex: 3; padding: 0.75rem; border-right: 1px solid #333; font-weight: 600; font-size: 0.875rem;">Teacher: ${formData.teacher_name}</div>
-                <div style="flex: 2; padding: 0.75rem; border-right: 1px solid #333; font-weight: 600; font-size: 0.875rem;">Times Late: ${formData.times_late}</div>
-                <div style="flex: 5; padding: 0.75rem; font-weight: 600; font-size: 0.875rem;">Total Times Late: ${formData.total_times_late}</div>
-              </div>
-              <div style="display: flex; border-bottom: 1px solid #333;">
-                <div style="flex: 5; padding: 0.75rem; border-right: 1px solid #333; font-weight: 600; font-size: 0.875rem;">Board: ${formData.board}</div>
-                <div style="flex: 7; padding: 0.75rem; font-weight: 600; font-size: 0.875rem;">School: ${formData.school}</div>
-              </div>
-              <div style="display: flex; border-bottom: 1px solid #333;">
-                <div style="flex: 5; padding: 0.75rem; border-right: 1px solid #333; font-weight: 600; font-size: 0.875rem;">Address: ${formData.address_1}</div>
-                <div style="flex: 7; padding: 0.75rem; font-weight: 600; font-size: 0.875rem;">Address: ${formData.address_2}</div>
-              </div>
-              <div style="display: flex;">
-                <div style="flex: 5; padding: 0.75rem; border-right: 1px solid #333; font-weight: 600; font-size: 0.875rem;">Date: ${formData.date}</div>
-                <div style="flex: 3; padding: 0.75rem; border-right: 1px solid #333; font-weight: 600; font-size: 0.875rem;">Principal: ${formData.principal}</div>
-                <div style="flex: 4; padding: 0.75rem; font-weight: 600; font-size: 0.875rem;">Telephone: ${formData.telephone}</div>
-              </div>
-            </div>
-            
-            <!-- Learning Skills Section -->
-            <div style="padding: 1.5rem 2rem;">
-              <h3 style="font-size: 1.125rem; font-weight: bold; margin-bottom: 1rem;">Learning Skills and Work Habits</h3>
-              <div style="border: 1px solid #333; margin-bottom: 2rem; width: 100%;">
-                <div style="background-color: #f8f9fa; border-bottom: 1px solid #333; font-size: 0.875rem; display: flex;">
-                  <div style="flex: 3; padding: 0.75rem; font-weight: 600; border-right: 1px solid #333;">Skill</div>
-                  <div style="flex: 9; padding: 0.75rem; font-weight: 600; text-align: center;">E – Excellent&nbsp;&nbsp;G – Good&nbsp;&nbsp;S – Satisfactory&nbsp;&nbsp;N – Needs Improvement</div>
-                </div>
-                
-                ${[
-                  { label: 'Responsibility', value: formData.responsibility, pair: { label: 'Organization', value: formData.organization } },
-                  { label: 'Independent Work', value: formData.independent_work, pair: { label: 'Collaboration', value: formData.collaboration } },
-                  { label: 'Initiative', value: formData.initiative, pair: { label: 'Self-Regulation', value: formData.self_regulation } }
-                ].map(skill => `
-                  <div style="font-size: 0.875rem; border-bottom: 1px solid #333; display: flex;">
-                    <div style="flex: 3; padding: 0.75rem; font-weight: 600; background-color: #f8f9fa; border-right: 1px solid #333;">${skill.label}</div>
-                    <div style="flex: 3; padding: 0.75rem; display: flex; justify-content: center; align-items: center; border-right: 1px solid #333;">
-                      ${['E', 'G', 'S', 'N'].map(rating => `
-                        <div style="margin: 0 3px; width: 26px; height: 26px; border-radius: 50%; border: 1px solid #6c757d; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; ${skill.value === rating ? 'background-color: #007bff; color: white; border-color: #007bff;' : ''}">${rating}</div>
-                      `).join('')}
-                    </div>
-                    <div style="flex: 3; padding: 0.75rem; font-weight: 600; background-color: #f8f9fa; border-right: 1px solid #333;">${skill.pair.label}</div>
-                    <div style="flex: 3; padding: 0.75rem; display: flex; justify-content: center; align-items: center;">
-                      ${['E', 'G', 'S', 'N'].map(rating => `
-                        <div style="margin: 0 3px; width: 26px; height: 26px; border-radius: 50%; border: 1px solid #6c757d; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; ${skill.pair.value === rating ? 'background-color: #007bff; color: white; border-color: #007bff;' : ''}">${rating}</div>
-                      `).join('')}
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-              
-              <!-- Strengths and Next Steps -->
-              <div style="margin-bottom: 2rem;">
-                <h3 style="font-size: 1.125rem; font-weight: bold; margin-bottom: 1rem;">Strengths/Next Steps for Improvement</h3>
-                <div style="border: 1px solid #333; padding: 1.5rem; background-color: #f8f9fa; min-height: 200px; white-space: pre-wrap; font-size: 0.875rem; width: 100%;">
-                  ${formData.strengths_next_steps}
-                </div>
-              </div>
-              
-              <!-- Signatures -->
-              <div style="border-top: 2px solid #333; padding-top: 1.5rem; margin-top: 2rem;">
-                <h3 style="font-size: 1.125rem; font-weight: bold; margin-bottom: 1rem;">Signatures</h3>
-                <div style="display: flex; margin-top: 1rem;">
-                  ${formData.teacher_signature ? `
-                    <div style="flex: 1; text-align: center; margin-right: 1rem;">
-                      <p style="border-bottom: 1px solid #333; padding-bottom: 0.25rem; margin-bottom: 0.25rem;">${formData.teacher_signature}</p>
-                      <p style="font-size: 0.875rem; margin-top: 0.25rem;">Teacher</p>
-                    </div>
-                  ` : ''}
-                  
-                  ${formData.parent_signature ? `
-                    <div style="flex: 1; text-align: center; margin: 0 0.5rem;">
-                      <p style="border-bottom: 1px solid #333; padding-bottom: 0.25rem; margin-bottom: 0.25rem;">${formData.parent_signature}</p>
-                      <p style="font-size: 0.875rem; margin-top: 0.25rem;">Parent/Guardian</p>
-                    </div>
-                  ` : ''}
-                  
-                  ${formData.principal_signature ? `
-                    <div style="flex: 1; text-align: center; margin-left: 1rem;">
-                      <p style="border-bottom: 1px solid #333; padding-bottom: 0.25rem; margin-bottom: 0.25rem;">${formData.principal_signature}</p>
-                      <p style="font-size: 0.875rem; margin-top: 0.25rem;">Principal</p>
-                    </div>
-                  ` : ''}
-                </div>
-              </div>
-            </div>
-            
-            <!-- Footer -->
-            <div style="border-top: 2px solid #333; padding: 0.75rem 1.5rem; color: #6c757d; font-size: 0.875rem; display: flex; justify-content: space-between; align-items: center;">
-              <div>Report Card Genie</div>
-              <div>Page 1 of 1</div>
-            </div>
-          </div>
-        </div>
-      `;
-      
-      document.body.appendChild(tempContainer);
-      
-      // Generate canvas from the element
-      const canvas = await html2canvas(tempContainer, {
-        scale: 2, // Higher resolution
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        width: 794, // A4 width in pixels at 96 DPI
-        height: 1123 // A4 height in pixels at 96 DPI
-      });
-      
-      // Remove temporary container
-      document.body.removeChild(tempContainer);
-      
-      // Create PDF
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgData = canvas.toDataURL('image/png');
-      
-      // Calculate dimensions to fit A4
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 295; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      
-      let position = 0;
-      
-      // Add image to PDF
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-      
-      // Add additional pages if needed
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+      const currentReportCard = getCurrentReportType();
+      if (!currentReportCard) {
+        throw new Error('No report card type selected');
+      }
+
+      // Fetch the PDF file
+      const response = await fetch(currentReportCard.pdfPath);
+      if (!response.ok) {
+        throw new Error('Failed to fetch PDF file');
       }
       
-      // Generate filename with student name and date
-      const studentName = formData.student_name || 'Report_Card';
-      const date = formData.date || new Date().toLocaleDateString();
-      const filename = `${studentName.replace(/\s+/g, '_')}_Report_Card_${date.replace(/\//g, '-')}.pdf`;
+      const pdfBytes = await response.arrayBuffer();
+      const pdfDoc = await PDFDocument.load(pdfBytes);
       
-      // Download the PDF
-      pdf.save(filename);
+      // Get the form from the PDF
+      const form = pdfDoc.getForm();
+      
+      // Get all field names for debugging
+      const fieldNames = form.getFields().map(field => field.getName());
+      console.log('Available PDF form fields:', fieldNames);
+      
+      // Map form data to PDF fields
+      const fieldMappings = {
+        // Student Information - try multiple field name variations
+        'Student': formData.student_name,
+        'student_name': formData.student_name,
+        'Student Name': formData.student_name,
+        'STUDENT NAME': formData.student_name,
+        'Name': formData.student_name,
+        'name': formData.student_name,
+        
+        'OEN': formData.oen,
+        'oen': formData.oen,
+        'Ontario Education Number': formData.oen,
+        
+        'Grade': formData.grade,
+        'grade': formData.grade,
+        'GRADE': formData.grade,
+        
+        'Term': formData.term,
+        'term': formData.term,
+        'TERM': formData.term,
+        'Reporting Period': formData.term,
+        
+        'Teacher': formData.teacher_name,
+        'teacher': formData.teacher_name,
+        'teacher_name': formData.teacher_name,
+        'Teacher Name': formData.teacher_name,
+        'TEACHER': formData.teacher_name,
+        
+        'School Year': formData.school_year,
+        'school_year': formData.school_year,
+        'SCHOOL YEAR': formData.school_year,
+        'Year': formData.school_year,
+        
+        'Date': formData.date,
+        'date': formData.date,
+        'DATE': formData.date,
+        'Report Date': formData.date,
+        
+        'Parent': formData.parent_name,
+        'parent': formData.parent_name,
+        'parent_name': formData.parent_name,
+        'Parent Name': formData.parent_name,
+        'Parent/Guardian': formData.parent_name,
+        
+        // School Information
+        'Board': formData.board,
+        'board': formData.board,
+        'BOARD': formData.board,
+        'School Board': formData.board,
+        
+        'School': formData.school,
+        'school': formData.school,
+        'SCHOOL': formData.school,
+        'School Name': formData.school,
+        
+        'Address': formData.address_1,
+        'address': formData.address_1,
+        'address_1': formData.address_1,
+        'Address 1': formData.address_1,
+        'School Address': formData.address_1,
+        
+        'Address2': formData.address_2,
+        'address_2': formData.address_2,
+        'Address 2': formData.address_2,
+        'City Province Postal': formData.address_2,
+        
+        'Principal': formData.principal,
+        'principal': formData.principal,
+        'PRINCIPAL': formData.principal,
+        'Principal Name': formData.principal,
+        
+        'Telephone': formData.telephone,
+        'telephone': formData.telephone,
+        'TELEPHONE': formData.telephone,
+        'Phone': formData.telephone,
+        
+        // Attendance
+        'Days Absent': formData.days_absent,
+        'days_absent': formData.days_absent,
+        'DAYS ABSENT': formData.days_absent,
+        'Absent': formData.days_absent,
+        
+        'Total Days Absent': formData.total_days_absent,
+        'total_days_absent': formData.total_days_absent,
+        'TOTAL DAYS ABSENT': formData.total_days_absent,
+        'Total Absent': formData.total_days_absent,
+        
+        'Times Late': formData.times_late,
+        'times_late': formData.times_late,
+        'TIMES LATE': formData.times_late,
+        'Late': formData.times_late,
+        
+        'Total Times Late': formData.total_times_late,
+        'total_times_late': formData.total_times_late,
+        'TOTAL TIMES LATE': formData.total_times_late,
+        'Total Late': formData.total_times_late,
+        
+        // Learning Skills and Work Habits
+        'Responsibility': formData.responsibility,
+        'responsibility': formData.responsibility,
+        'RESPONSIBILITY': formData.responsibility,
+        
+        'Organization': formData.organization,
+        'organization': formData.organization,
+        'ORGANIZATION': formData.organization,
+        
+        'Independent Work': formData.independent_work,
+        'independent_work': formData.independent_work,
+        'INDEPENDENT WORK': formData.independent_work,
+        'Independent': formData.independent_work,
+        
+        'Collaboration': formData.collaboration,
+        'collaboration': formData.collaboration,
+        'COLLABORATION': formData.collaboration,
+        
+        'Initiative': formData.initiative,
+        'initiative': formData.initiative,
+        'INITIATIVE': formData.initiative,
+        
+        'Self-Regulation': formData.self_regulation,
+        'self_regulation': formData.self_regulation,
+        'SELF-REGULATION': formData.self_regulation,
+        'Self Regulation': formData.self_regulation,
+        
+        // Comments and Signatures
+        'Strengths and Next Steps': formData.strengths_next_steps,
+        'strengths_next_steps': formData.strengths_next_steps,
+        'STRENGTHS AND NEXT STEPS': formData.strengths_next_steps,
+        'Strengths': formData.strengths_next_steps,
+        'Next Steps': formData.strengths_next_steps,
+        'Comments': formData.strengths_next_steps,
+        
+        'Teacher Comments': formData.teacher_comments,
+        'teacher_comments': formData.teacher_comments,
+        'TEACHER COMMENTS': formData.teacher_comments,
+        'Additional Comments': formData.teacher_comments,
+        
+        'Teacher Signature': formData.teacher_signature,
+        'teacher_signature': formData.teacher_signature,
+        'TEACHER SIGNATURE': formData.teacher_signature,
+        'Teacher Sig': formData.teacher_signature,
+        
+        'Parent Signature': formData.parent_signature,
+        'parent_signature': formData.parent_signature,
+        'PARENT SIGNATURE': formData.parent_signature,
+        'Parent Sig': formData.parent_signature,
+        
+        'Principal Signature': formData.principal_signature,
+        'principal_signature': formData.principal_signature,
+        'PRINCIPAL SIGNATURE': formData.principal_signature,
+        'Principal Sig': formData.principal_signature
+      };
+      
+      // Fill the form fields
+      let filledFieldsCount = 0;
+      const totalFields = form.getFields().length;
+      
+      Object.entries(fieldMappings).forEach(([fieldName, value]) => {
+        try {
+          const field = form.getFieldMaybe(fieldName);
+          if (field && value && value.toString().trim() !== '') {
+            // Handle different field types
+            const fieldType = field.constructor.name;
+            console.log(`Attempting to fill field: ${fieldName} (${fieldType}) with value: ${value}`);
+            
+            switch (fieldType) {
+              case 'PDFTextField':
+                field.setText(value.toString());
+                console.log(`✓ Filled text field: ${fieldName}`);
+                filledFieldsCount++;
+                break;
+                
+              case 'PDFCheckBox':
+                // For checkboxes, check if the value indicates it should be checked
+                const checkValue = value.toString().toLowerCase();
+                if (['true', 'yes', '1', 'checked', 'x', 'e', 'g', 's', 'n'].includes(checkValue)) {
+                  field.check();
+                  console.log(`✓ Checked field: ${fieldName}`);
+                  filledFieldsCount++;
+                }
+                break;
+                
+              case 'PDFDropdown':
+                // For dropdowns, try to set the value if it's in the options
+                const options = field.getOptions();
+                if (options.includes(value.toString())) {
+                  field.select(value.toString());
+                  console.log(`✓ Selected dropdown: ${fieldName} = ${value}`);
+                  filledFieldsCount++;
+                } else {
+                  console.warn(`Dropdown ${fieldName} doesn't have option: ${value}. Available: ${options.join(', ')}`);
+                }
+                break;
+                
+              case 'PDFRadioGroup':
+                // For radio groups, try to select the option
+                try {
+                  field.select(value.toString());
+                  console.log(`✓ Selected radio: ${fieldName} = ${value}`);
+                  filledFieldsCount++;
+                } catch (radioError) {
+                  console.warn(`Could not select radio option ${value} for ${fieldName}:`, radioError.message);
+                }
+                break;
+                
+              default:
+                // Try to set as text for unknown field types
+                if (field.setText) {
+                  field.setText(value.toString());
+                  console.log(`✓ Filled unknown field type: ${fieldName} (${fieldType})`);
+                  filledFieldsCount++;
+                } else {
+                  console.warn(`Unknown field type ${fieldType} for field ${fieldName}`);
+                }
+                break;
+            }
+          }
+        } catch (error) {
+          console.warn(`Could not set field '${fieldName}':`, error.message);
+        }
+      });
+      
+      console.log(`Successfully filled ${filledFieldsCount} out of ${totalFields} total PDF fields`);
+      
+      // Generate the filled PDF
+      const filledPdfBytes = await pdfDoc.save();
+      
+      // Create a blob and download
+      const blob = new Blob([filledPdfBytes], { type: 'application/pdf' });
+      const fileName = `${formData.student_name || 'student'}_report_card.pdf`;
+      saveAs(blob, fileName);
       
       // Show success message
-      alert(`PDF generated successfully! Downloaded as: ${filename}`);
+      alert(`PDF generated successfully! Filled ${filledFieldsCount} out of ${totalFields} fields.`);
       
     } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Error generating PDF. Please try again.');
+      console.error('Error filling PDF:', error);
+      alert('Error generating PDF: ' + error.message);
     } finally {
-      setIsGeneratingPDF(false);
+      setIsGenerating(false);
     }
   };
 
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
-    generatePDF();
+    fillPDFForm();
+  };
+
+  // Handle field inspection results
+  const handleFieldsInspected = (fields) => {
+    console.log('PDF fields inspected:', fields);
   };
 
   return (
-    <div className="report-card-container">
-      <CContainer fluid className="p-0">
-        <CRow className="g-0">
-          <CCol>
-            <CCard className="report-card-main-card">
-              <CCardHeader className="report-card-header">
-                <h1>Report Card Genie</h1>
-                <p>Create beautiful report cards with AI assistance</p>
-              </CCardHeader>
-              <CCardBody className="report-card-body">
-                <div className="report-card-tabs">
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div>
-                      <button 
-                        className={`report-card-tab-button ${currentTab === "form" ? "active" : ""}`}
-                        onClick={() => setCurrentTab("form")}
-                      >
-                        Form View
-                      </button>
-                      <button 
-                        className={`report-card-tab-button ${currentTab === "preview" ? "active" : ""}`}
-                        onClick={() => setCurrentTab("preview")}
-                      >
-                        Preview
-                      </button>
-                    </div>
+    <CContainer fluid>
+      <CRow>
+        <CCol>
+          <h2>Report Card Generator</h2>
+
+          {/* Report Card Type Selector */}
+          <CCard className="mb-4">
+            <CCardBody>
+              <div className="report-card-type-selector">
+                <label htmlFor="reportCardType" className="form-label">
+                  Select Report Card Type:
+                </label>
+                <CFormSelect
+                  id="reportCardType"
+                  value={selectedReportType}
+                  onChange={handleReportTypeChange}
+                  className="mb-3"
+                >
+                  <option value="">Choose a report card type...</option>
+                  {REPORT_CARD_TYPES.map((type) => (
+                    <option key={type.id} value={type.id}>
+                      {type.name} ({type.category})
+                    </option>
+                  ))}
+                </CFormSelect>
+              </div>
+            </CCardBody>
+          </CCard>
+
+          {/* Toggle Field Inspector */}
+          {selectedReportType && (
+            <div className="mb-4">
+              <CButton 
+                variant="outline" 
+                onClick={() => setShowFieldInspector(!showFieldInspector)}
+                className="mb-3"
+              >
+                {showFieldInspector ? 'Hide' : 'Show'} PDF Field Inspector
+              </CButton>
+              
+              {showFieldInspector && (
+                <PDFFieldInspector
+                  pdfUrl={getCurrentReportType()?.pdfPath}
+                  onFieldsInspected={handleFieldsInspected}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Main Content */}
+          {selectedReportType && (
+            <CRow>
+              {/* PDF Section */}
+              <CCol lg={6} className="pdf-section">
+                <CCard>
+                  <CCardHeader>
+                    <h5>Report Card Preview</h5>
+                    <small className="text-muted">Live preview - changes appear as you type</small>
+                  </CCardHeader>
+                  <CCardBody>
+                    <PDFViewer 
+                      pdfUrl={getCurrentReportType()?.pdfPath} 
+                      className="report-card-pdf-viewer"
+                      formData={formData}
+                      showPreview={true}
+                    />
+                  </CCardBody>
+                </CCard>
+              </CCol>
+
+              {/* Form Section */}
+              <CCol lg={6} className="form-section">
+                <CCard>
+                  <CCardHeader>
+                    <h5>Student Information</h5>
+                    <small className="text-muted">Fill out the form to see live preview on the left</small>
+                  </CCardHeader>
+                  <CCardBody>
+                    <ReportCardForm 
+                      formData={formData}
+                      handleChange={handleFormDataChange}
+                      handleSubmit={handleSubmit}
+                    />
                     
-                    <CButton 
-                      type="submit" 
-                      form="report-card-form"
-                      className="report-card-save-button"
-                      disabled={isGeneratingPDF}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        generatePDF();
-                      }}
-                    >
-                      {isGeneratingPDF ? (
-                        <>
-                          <CSpinner size="sm" className="me-2" />
-                          Generating PDF...
-                        </>
-                      ) : (
-                        'Save as PDF'
-                      )}
-                    </CButton>
-                  </div>
-                </div>
-                
-                {currentTab === "form" && (
-                  <div className="report-card-content">
-                    <CRow className="g-0">
-                      <CCol md={6}>
-                        <div className="report-card-preview-container">
-                          <ReportCardPreview data={formData} />
-                        </div>
-                      </CCol>
-                      <CCol md={6}>
-                        <div className="report-card-form-container">
-                          <ReportCardForm 
-                            formData={formData} 
-                            handleChange={handleChange}
-                            handleSubmit={handleSubmit}
-                          />
-                        </div>
-                      </CCol>
-                    </CRow>
-                  </div>
-                )}
-                
-                {currentTab === "preview" && (
-                  <div className="report-card-content">
-                    <ReportCardPreview data={formData} fullPage={true} />
-                  </div>
-                )}
-              </CCardBody>
-            </CCard>
-          </CCol>
-        </CRow>
-      </CContainer>
-    </div>
+                    <div className="mt-4">
+                      <CButton 
+                        color="primary" 
+                        onClick={fillPDFForm}
+                        disabled={isGenerating}
+                        className="me-2"
+                      >
+                        {isGenerating ? (
+                          <>
+                            <CSpinner size="sm" className="me-2" />
+                            Generating PDF...
+                          </>
+                        ) : (
+                          'Fill & Download PDF'
+                        )}
+                      </CButton>
+                    </div>
+                  </CCardBody>
+                </CCard>
+              </CCol>
+            </CRow>
+          )}
+        </CCol>
+      </CRow>
+    </CContainer>
   );
 };
 

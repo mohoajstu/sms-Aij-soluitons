@@ -1,9 +1,12 @@
 import React, { useState } from 'react'
 import { PDFDocument } from 'pdf-lib'
-import reportCardPDF from '../../assets/ReportCards/kindergarden-report-card.pdf'
+// import reportCardPDF from '../../assets/ReportCards/kindergarden-report-card.pdf'
 import './reportCardForm.css'
 
 const ReportCardForm = () => {
+  // Use the PDF from the public folder instead
+  const reportCardPDF = '/assets/ReportCards/kg-report.pdf'
+
   // Define the steps (1-indexed)
   const steps = [
     'Information',
