@@ -86,6 +86,27 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
     { value: "N", label: "N - Needs Improvement" },
   ];
 
+  // Grade options
+  const gradeOptions = [
+    { value: "JK", label: "Junior Kindergarten" },
+    { value: "SK", label: "Senior Kindergarten" },
+    { value: "1", label: "Grade 1" },
+    { value: "2", label: "Grade 2" },
+    { value: "3", label: "Grade 3" },
+    { value: "4", label: "Grade 4" },
+    { value: "5", label: "Grade 5" },
+    { value: "6", label: "Grade 6" },
+    { value: "7", label: "Grade 7" },
+    { value: "8", label: "Grade 8" },
+  ];
+
+  // Term options
+  const termOptions = [
+    { value: "1", label: "Term 1" },
+    { value: "2", label: "Term 2" },
+    { value: "3", label: "Term 3" },
+  ];
+
   // This would be replaced with an actual AI generation function
   const handleAIGenerate = (field, context) => {
     setIsGenerating(prev => ({ ...prev, [field]: true }));
@@ -96,7 +117,10 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
       
       switch(field) {
         case "strengths_next_steps":
-          generatedText = "Emily demonstrates strong critical thinking skills in math and science. She excels at problem-solving and applying concepts to new situations. Next steps include improving organization of written work and participating more actively in class discussions. Emily should focus on completing homework assignments on time and double-checking her work for accuracy.";
+          generatedText = `${formData.student_name || 'The student'} demonstrates strong critical thinking skills in math and science. They excel at problem-solving and applying concepts to new situations. Next steps include improving organization of written work and participating more actively in class discussions. ${formData.student_name || 'The student'} should focus on completing homework assignments on time and double-checking their work for accuracy.`;
+          break;
+        case "teacher_comments":
+          generatedText = `${formData.student_name || 'The student'} has shown consistent effort and improvement throughout this term. They demonstrate good understanding of key concepts and work well with peers during group activities.`;
           break;
         default:
           generatedText = "Generated content for " + field;
@@ -112,7 +136,9 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
 
   return (
     <CForm id="report-card-form" onSubmit={handleSubmit} className="report-card-form">
-      <CAccordion alwaysOpen activeItemKey={["1", "2", "3"]} className="report-card-accordion">
+      <CAccordion alwaysOpen activeItemKey={["1", "2", "3", "4"]} className="report-card-accordion">
+        
+        {/* Student Information */}
         <CAccordionItem itemKey="1">
           <CAccordionHeader className="report-card-accordion-header">Student Information</CAccordionHeader>
           <CAccordionBody className="report-card-accordion-body">
@@ -120,15 +146,51 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
               <CCardBody>
                 <CRow className="mb-3">
                   <CCol md={6}>
-                    <CFormLabel htmlFor="student_name">Student Name</CFormLabel>
+                    <CFormLabel htmlFor="student_name">Student Name *</CFormLabel>
                     <CFormInput
                       id="student_name"
                       value={formData.student_name}
                       onChange={(e) => handleChange('student_name', e.target.value)}
-                      placeholder="Enter student name"
+                      placeholder="Enter student's full name"
+                      required
                     />
                   </CCol>
-                  <CCol md={6}>
+                  <CCol md={3}>
+                    <CFormLabel htmlFor="grade">Grade *</CFormLabel>
+                    <CFormSelect
+                      id="grade"
+                      value={formData.grade}
+                      onChange={(e) => handleChange('grade', e.target.value)}
+                      required
+                    >
+                      <option value="">Select Grade</option>
+                      {gradeOptions.map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </CFormSelect>
+                  </CCol>
+                  <CCol md={3}>
+                    <CFormLabel htmlFor="term">Term *</CFormLabel>
+                    <CFormSelect
+                      id="term"
+                      value={formData.term}
+                      onChange={(e) => handleChange('term', e.target.value)}
+                      required
+                    >
+                      <option value="">Select Term</option>
+                      {termOptions.map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </CFormSelect>
+                  </CCol>
+                </CRow>
+
+                <CRow className="mb-3">
+                  <CCol md={4}>
                     <CFormLabel htmlFor="oen">OEN</CFormLabel>
                     <CFormInput
                       id="oen"
@@ -137,92 +199,71 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
                       placeholder="Ontario Education Number"
                     />
                   </CCol>
-                </CRow>
-
-                <CRow className="mb-3">
                   <CCol md={4}>
-                    <CFormLabel htmlFor="grade">Grade</CFormLabel>
-                    <CFormInput
-                      id="grade"
-                      value={formData.grade}
-                      onChange={(e) => handleChange('grade', e.target.value)}
-                      placeholder="Enter grade"
-                    />
-                  </CCol>
-                  <CCol md={4}>
-                    <CFormLabel htmlFor="teacher_name">Teacher</CFormLabel>
+                    <CFormLabel htmlFor="teacher_name">Teacher Name *</CFormLabel>
                     <CFormInput
                       id="teacher_name"
                       value={formData.teacher_name}
                       onChange={(e) => handleChange('teacher_name', e.target.value)}
-                      placeholder="Enter teacher name"
+                      placeholder="Enter teacher's name"
+                      required
                     />
                   </CCol>
                   <CCol md={4}>
-                    <CFormLabel htmlFor="date">Date</CFormLabel>
+                    <CFormLabel htmlFor="school_year">School Year *</CFormLabel>
                     <CFormInput
+                      id="school_year"
+                      value={formData.school_year}
+                      onChange={(e) => handleChange('school_year', e.target.value)}
+                      placeholder="e.g., 2023-2024"
+                      required
+                    />
+                  </CCol>
+                </CRow>
+
+                <CRow className="mb-3">
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="date">Report Date</CFormLabel>
+                    <CFormInput
+                      type="date"
                       id="date"
                       value={formData.date}
                       onChange={(e) => handleChange('date', e.target.value)}
-                      placeholder="MM/DD/YYYY"
+                    />
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="parent_name">Parent/Guardian Name</CFormLabel>
+                    <CFormInput
+                      id="parent_name"
+                      value={formData.parent_name}
+                      onChange={(e) => handleChange('parent_name', e.target.value)}
+                      placeholder="Enter parent/guardian name"
                     />
                   </CCol>
                 </CRow>
+              </CCardBody>
+            </CCard>
+          </CAccordionBody>
+        </CAccordionItem>
 
+        {/* School Information */}
+        <CAccordionItem itemKey="2">
+          <CAccordionHeader className="report-card-accordion-header">School Information</CAccordionHeader>
+          <CAccordionBody className="report-card-accordion-body">
+            <CCard className="report-card-form-card">
+              <CCardBody>
                 <CRow className="mb-3">
                   <CCol md={6}>
-                    <CFormLabel htmlFor="days_absent">Days Absent</CFormLabel>
-                    <CFormInput
-                      id="days_absent"
-                      value={formData.days_absent}
-                      onChange={(e) => handleChange('days_absent', e.target.value)}
-                      placeholder="0"
-                    />
-                  </CCol>
-                  <CCol md={6}>
-                    <CFormLabel htmlFor="total_days_absent">Total Days Absent</CFormLabel>
-                    <CFormInput
-                      id="total_days_absent"
-                      value={formData.total_days_absent}
-                      onChange={(e) => handleChange('total_days_absent', e.target.value)}
-                      placeholder="0"
-                    />
-                  </CCol>
-                </CRow>
-
-                <CRow className="mb-3">
-                  <CCol md={6}>
-                    <CFormLabel htmlFor="times_late">Times Late</CFormLabel>
-                    <CFormInput
-                      id="times_late"
-                      value={formData.times_late}
-                      onChange={(e) => handleChange('times_late', e.target.value)}
-                      placeholder="0"
-                    />
-                  </CCol>
-                  <CCol md={6}>
-                    <CFormLabel htmlFor="total_times_late">Total Times Late</CFormLabel>
-                    <CFormInput
-                      id="total_times_late"
-                      value={formData.total_times_late}
-                      onChange={(e) => handleChange('total_times_late', e.target.value)}
-                      placeholder="0"
-                    />
-                  </CCol>
-                </CRow>
-
-                <CRow className="mb-3">
-                  <CCol md={6}>
-                    <CFormLabel htmlFor="board">Board</CFormLabel>
+                    <CFormLabel htmlFor="board">School Board</CFormLabel>
                     <CFormInput
                       id="board"
                       value={formData.board}
                       onChange={(e) => handleChange('board', e.target.value)}
-                      placeholder="School Board"
+                      placeholder="School Board Name"
                     />
                   </CCol>
                   <CCol md={6}>
-                    <CFormLabel htmlFor="school">School</CFormLabel>
+                    <CFormLabel htmlFor="school">School Name</CFormLabel>
                     <CFormInput
                       id="school"
                       value={formData.school}
@@ -234,28 +275,28 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
 
                 <CRow className="mb-3">
                   <CCol md={6}>
-                    <CFormLabel htmlFor="address_1">Address 1</CFormLabel>
+                    <CFormLabel htmlFor="address_1">School Address</CFormLabel>
                     <CFormInput
                       id="address_1"
                       value={formData.address_1}
                       onChange={(e) => handleChange('address_1', e.target.value)}
-                      placeholder="School/Student Address"
+                      placeholder="Street Address"
                     />
                   </CCol>
                   <CCol md={6}>
-                    <CFormLabel htmlFor="address_2">Address 2</CFormLabel>
+                    <CFormLabel htmlFor="address_2">City, Province, Postal Code</CFormLabel>
                     <CFormInput
                       id="address_2"
                       value={formData.address_2}
                       onChange={(e) => handleChange('address_2', e.target.value)}
-                      placeholder="Additional Address"
+                      placeholder="City, Province, Postal Code"
                     />
                   </CCol>
                 </CRow>
 
-                <CRow>
+                <CRow className="mb-3">
                   <CCol md={6}>
-                    <CFormLabel htmlFor="principal">Principal</CFormLabel>
+                    <CFormLabel htmlFor="principal">Principal Name</CFormLabel>
                     <CFormInput
                       id="principal"
                       value={formData.principal}
@@ -264,7 +305,7 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
                     />
                   </CCol>
                   <CCol md={6}>
-                    <CFormLabel htmlFor="telephone">Telephone</CFormLabel>
+                    <CFormLabel htmlFor="telephone">School Telephone</CFormLabel>
                     <CFormInput
                       id="telephone"
                       value={formData.telephone}
@@ -278,11 +319,75 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
           </CAccordionBody>
         </CAccordionItem>
 
-        <CAccordionItem itemKey="2">
+        {/* Attendance */}
+        <CAccordionItem itemKey="3">
+          <CAccordionHeader className="report-card-accordion-header">Attendance</CAccordionHeader>
+          <CAccordionBody className="report-card-accordion-body">
+            <CCard className="report-card-form-card">
+              <CCardBody>
+                <CRow className="mb-3">
+                  <CCol md={3}>
+                    <CFormLabel htmlFor="days_absent">Days Absent</CFormLabel>
+                    <CFormInput
+                      type="number"
+                      id="days_absent"
+                      value={formData.days_absent}
+                      onChange={(e) => handleChange('days_absent', e.target.value)}
+                      placeholder="0"
+                      min="0"
+                    />
+                  </CCol>
+                  <CCol md={3}>
+                    <CFormLabel htmlFor="total_days_absent">Total Days Absent</CFormLabel>
+                    <CFormInput
+                      type="number"
+                      id="total_days_absent"
+                      value={formData.total_days_absent}
+                      onChange={(e) => handleChange('total_days_absent', e.target.value)}
+                      placeholder="0"
+                      min="0"
+                    />
+                  </CCol>
+                  <CCol md={3}>
+                    <CFormLabel htmlFor="times_late">Times Late</CFormLabel>
+                    <CFormInput
+                      type="number"
+                      id="times_late"
+                      value={formData.times_late}
+                      onChange={(e) => handleChange('times_late', e.target.value)}
+                      placeholder="0"
+                      min="0"
+                    />
+                  </CCol>
+                  <CCol md={3}>
+                    <CFormLabel htmlFor="total_times_late">Total Times Late</CFormLabel>
+                    <CFormInput
+                      type="number"
+                      id="total_times_late"
+                      value={formData.total_times_late}
+                      onChange={(e) => handleChange('total_times_late', e.target.value)}
+                      placeholder="0"
+                      min="0"
+                    />
+                  </CCol>
+                </CRow>
+              </CCardBody>
+            </CCard>
+          </CAccordionBody>
+        </CAccordionItem>
+
+        {/* Learning Skills and Work Habits */}
+        <CAccordionItem itemKey="4">
           <CAccordionHeader className="report-card-accordion-header">Learning Skills and Work Habits</CAccordionHeader>
           <CAccordionBody className="report-card-accordion-body">
             <CCard className="report-card-form-card">
               <CCardBody>
+                <div className="mb-3">
+                  <small className="text-muted">
+                    E = Excellent, G = Good, S = Satisfactory, N = Needs Improvement
+                  </small>
+                </div>
+                
                 <CRow className="mb-3">
                   <CCol md={6}>
                     <CFormLabel>Responsibility</CFormLabel>
@@ -347,7 +452,7 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
                   </CCol>
                 </CRow>
                 
-                <CRow>
+                <CRow className="mb-3">
                   <CCol md={6}>
                     <CFormLabel>Initiative</CFormLabel>
                     <CFormSelect 
@@ -383,29 +488,34 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
           </CAccordionBody>
         </CAccordionItem>
 
-        <CAccordionItem itemKey="3">
-          <CAccordionHeader className="report-card-accordion-header">Strengths/Next Steps for Improvement</CAccordionHeader>
+        {/* Comments and Signatures */}
+        <CAccordionItem itemKey="5">
+          <CAccordionHeader className="report-card-accordion-header">Comments & Signatures</CAccordionHeader>
           <CAccordionBody className="report-card-accordion-body">
             <CCard className="report-card-form-card">
               <CCardBody>
-                <AIInputField
-                  label="Strengths and Next Steps for Improvement"
-                  value={formData.strengths_next_steps}
-                  onChange={(value) => handleChange('strengths_next_steps', value)}
-                  onGenerate={() => handleAIGenerate('strengths_next_steps')}
-                  isGenerating={isGenerating.strengths_next_steps}
-                  placeholder="Describe student strengths and areas for improvement..."
-                />
-              </CCardBody>
-            </CCard>
-          </CAccordionBody>
-        </CAccordionItem>
+                <div className="mb-4">
+                  <AIInputField
+                    label="Strengths and Next Steps for Improvement"
+                    value={formData.strengths_next_steps}
+                    onChange={(value) => handleChange('strengths_next_steps', value)}
+                    onGenerate={() => handleAIGenerate('strengths_next_steps')}
+                    isGenerating={isGenerating.strengths_next_steps}
+                    placeholder="Describe student strengths and areas for improvement..."
+                  />
+                </div>
 
-        <CAccordionItem itemKey="4">
-          <CAccordionHeader className="report-card-accordion-header">Signatures</CAccordionHeader>
-          <CAccordionBody className="report-card-accordion-body">
-            <CCard className="report-card-form-card">
-              <CCardBody>
+                <div className="mb-4">
+                  <AIInputField
+                    label="Teacher Comments"
+                    value={formData.teacher_comments}
+                    onChange={(value) => handleChange('teacher_comments', value)}
+                    onGenerate={() => handleAIGenerate('teacher_comments')}
+                    isGenerating={isGenerating.teacher_comments}
+                    placeholder="Additional teacher comments..."
+                  />
+                </div>
+
                 <CRow>
                   <CCol md={4}>
                     <CFormLabel htmlFor="teacher_signature">Teacher's Signature</CFormLabel>
