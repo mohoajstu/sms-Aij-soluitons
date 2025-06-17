@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min?url'; // Vite static asset import
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min?url';
 import { PDFDocument } from 'pdf-lib';
 import { CButton, CSpinner } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
 import { cilChevronLeft, cilChevronRight, cilZoomIn, cilZoomOut } from '@coreui/icons';
 import PropTypes from 'prop-types';
 
-// Set up the worker for PDF.js - use local worker to avoid CORS issues
+// Set up the worker for PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
-const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false }) => {
+const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false, onFilledPdfGenerated = null }) => {
   const [numPages, setNumPages] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(0.8);
@@ -18,12 +18,12 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false 
   const [error, setError] = useState(null);
   const [pdfDocument, setPdfDocument] = useState(null);
   const [filledPdfUrl, setFilledPdfUrl] = useState(null);
+  const [filledPdfBytes, setFilledPdfBytes] = useState(null);
   const canvasRef = useRef(null);
 
   // Debug effect to log PDF URL changes
   useEffect(() => {
     console.log('PDFViewer: PDF URL changed to:', pdfUrl);
-    console.log('PDFViewer: Using local worker:', pdfWorker);
     if (pdfUrl) {
       loadPDF();
     }
@@ -38,10 +38,17 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false 
 
   // Update PDF with form data when formData changes and preview is enabled
   useEffect(() => {
-    if (showPreview && pdfUrl && Object.keys(formData).some(key => formData[key])) {
+    // Only update if there's meaningful form data and preview is enabled
+    const hasFormData = Object.keys(formData).some(key => 
+      formData[key] !== null && formData[key] !== undefined && formData[key] !== ''
+    );
+    
+    if (showPreview && pdfUrl && hasFormData) {
+      console.log('PDFViewer: Form data changed, updating PDF preview');
       fillPDFWithFormData();
     } else if (!showPreview && filledPdfUrl) {
       // Reset to original PDF when preview is disabled
+      console.log('PDFViewer: Preview disabled, resetting to original PDF');
       setFilledPdfUrl(null);
       loadPDF();
     }
@@ -87,271 +94,97 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false 
       
       // Get the form from the PDF
       const form = pdfDoc.getForm();
-      
-      // First, let's inspect all the fields in the PDF to understand the structure
       const fields = form.getFields();
-      console.log(`PDFViewer: Found ${fields.length} form fields in PDF:`);
       
-      const fieldInfo = fields.map(field => {
-        const fieldType = field.constructor.name;
-        let additionalInfo = {};
-        
-        try {
-          if (fieldType === 'PDFDropdown') {
-            additionalInfo.options = field.getOptions();
-          } else if (fieldType === 'PDFRadioGroup') {
-            additionalInfo.options = field.getOptions();
-          } else if (fieldType === 'PDFCheckBox') {
-            additionalInfo.isChecked = field.isChecked();
-          }
-        } catch (e) {
-          // Ignore errors when getting additional info
-        }
-        
-        return {
-          name: field.getName(),
-          type: fieldType,
-          ...additionalInfo
-        };
-      });
+      console.log(`PDFViewer: Found ${fields.length} form fields in PDF`);
       
-      // Log all fields for debugging
-      console.table(fieldInfo);
+      // Log all actual PDF field names for debugging
+      const allPdfFieldNames = fields.map(field => ({
+        name: field.getName(),
+        type: field.constructor.name
+      }));
+      console.log('PDFViewer: All PDF fields:', allPdfFieldNames);
       
-      // Group fields by type for easier analysis
-      const fieldsByType = fieldInfo.reduce((acc, field) => {
-        if (!acc[field.type]) acc[field.type] = [];
-        acc[field.type].push(field.name);
-        return acc;
-      }, {});
+      // Log TEXT FIELDS specifically
+      const textFields = fields.filter(field => field.constructor.name === 'PDFTextField');
+      console.log('PDFViewer: TEXT FIELDS ONLY:', textFields.map(field => field.getName()));
       
-      console.log('PDFViewer: Fields grouped by type:', fieldsByType);
-
-      // Map form data to PDF fields with multiple field name variations
-      const fieldMappings = {
-        // Student Information - try multiple field name variations
-        'Student': formData.student_name,
-        'student_name': formData.student_name,
-        'Student Name': formData.student_name,
-        'STUDENT NAME': formData.student_name,
-        'Name': formData.student_name,
-        'name': formData.student_name,
-        
-        'OEN': formData.oen,
-        'oen': formData.oen,
-        'Ontario Education Number': formData.oen,
-        
-        'Grade': formData.grade,
-        'grade': formData.grade,
-        'GRADE': formData.grade,
-        
-        'Term': formData.term,
-        'term': formData.term,
-        'TERM': formData.term,
-        'Reporting Period': formData.term,
-        
-        'Teacher': formData.teacher_name,
-        'teacher': formData.teacher_name,
-        'teacher_name': formData.teacher_name,
-        'Teacher Name': formData.teacher_name,
-        'TEACHER': formData.teacher_name,
-        
-        'School Year': formData.school_year,
-        'school_year': formData.school_year,
-        'SCHOOL YEAR': formData.school_year,
-        'Year': formData.school_year,
-        
-        'Date': formData.date,
-        'date': formData.date,
-        'DATE': formData.date,
-        'Report Date': formData.date,
-        
-        'Parent': formData.parent_name,
-        'parent': formData.parent_name,
-        'parent_name': formData.parent_name,
-        'Parent Name': formData.parent_name,
-        'Parent/Guardian': formData.parent_name,
-        
-        // School Information
-        'Board': formData.board,
-        'board': formData.board,
-        'BOARD': formData.board,
-        'School Board': formData.board,
-        
-        'School': formData.school,
-        'school': formData.school,
-        'SCHOOL': formData.school,
-        'School Name': formData.school,
-        
-        'Address': formData.address_1,
-        'address': formData.address_1,
-        'address_1': formData.address_1,
-        'Address 1': formData.address_1,
-        'School Address': formData.address_1,
-        
-        'Address2': formData.address_2,
-        'address_2': formData.address_2,
-        'Address 2': formData.address_2,
-        'City Province Postal': formData.address_2,
-        
-        'Principal': formData.principal,
-        'principal': formData.principal,
-        'PRINCIPAL': formData.principal,
-        'Principal Name': formData.principal,
-        
-        'Telephone': formData.telephone,
-        'telephone': formData.telephone,
-        'TELEPHONE': formData.telephone,
-        'Phone': formData.telephone,
-        
-        // Attendance
-        'Days Absent': formData.days_absent,
-        'days_absent': formData.days_absent,
-        'DAYS ABSENT': formData.days_absent,
-        'Absent': formData.days_absent,
-        
-        'Total Days Absent': formData.total_days_absent,
-        'total_days_absent': formData.total_days_absent,
-        'TOTAL DAYS ABSENT': formData.total_days_absent,
-        'Total Absent': formData.total_days_absent,
-        
-        'Times Late': formData.times_late,
-        'times_late': formData.times_late,
-        'TIMES LATE': formData.times_late,
-        'Late': formData.times_late,
-        
-        'Total Times Late': formData.total_times_late,
-        'total_times_late': formData.total_times_late,
-        'TOTAL TIMES LATE': formData.total_times_late,
-        'Total Late': formData.total_times_late,
-        
-        // Learning Skills and Work Habits
-        'Responsibility': formData.responsibility,
-        'responsibility': formData.responsibility,
-        'RESPONSIBILITY': formData.responsibility,
-        
-        'Organization': formData.organization,
-        'organization': formData.organization,
-        'ORGANIZATION': formData.organization,
-        
-        'Independent Work': formData.independent_work,
-        'independent_work': formData.independent_work,
-        'INDEPENDENT WORK': formData.independent_work,
-        'Independent': formData.independent_work,
-        
-        'Collaboration': formData.collaboration,
-        'collaboration': formData.collaboration,
-        'COLLABORATION': formData.collaboration,
-        
-        'Initiative': formData.initiative,
-        'initiative': formData.initiative,
-        'INITIATIVE': formData.initiative,
-        
-        'Self-Regulation': formData.self_regulation,
-        'self_regulation': formData.self_regulation,
-        'SELF-REGULATION': formData.self_regulation,
-        'Self Regulation': formData.self_regulation,
-        
-        // Comments and Signatures
-        'Strengths and Next Steps': formData.strengths_next_steps,
-        'strengths_next_steps': formData.strengths_next_steps,
-        'STRENGTHS AND NEXT STEPS': formData.strengths_next_steps,
-        'Strengths': formData.strengths_next_steps,
-        'Next Steps': formData.strengths_next_steps,
-        'Comments': formData.strengths_next_steps,
-        
-        'Teacher Comments': formData.teacher_comments,
-        'teacher_comments': formData.teacher_comments,
-        'TEACHER COMMENTS': formData.teacher_comments,
-        'Additional Comments': formData.teacher_comments,
-        
-        'Teacher Signature': formData.teacher_signature,
-        'teacher_signature': formData.teacher_signature,
-        'TEACHER SIGNATURE': formData.teacher_signature,
-        'Teacher Sig': formData.teacher_signature,
-        
-        'Parent Signature': formData.parent_signature,
-        'parent_signature': formData.parent_signature,
-        'PARENT SIGNATURE': formData.parent_signature,
-        'Parent Sig': formData.parent_signature,
-        
-        'Principal Signature': formData.principal_signature,
-        'principal_signature': formData.principal_signature,
-        'PRINCIPAL SIGNATURE': formData.principal_signature,
-        'Principal Sig': formData.principal_signature
-      };
+      // Log all form data keys for comparison
+      const formDataKeys = Object.keys(formData).filter(key => 
+        formData[key] !== null && formData[key] !== undefined && formData[key] !== ''
+      );
+      console.log('PDFViewer: Form data keys with values:', formDataKeys);
+      console.log('PDFViewer: Form data values:', formData);
       
-      // Fill the form fields
-      let filledFieldsCount = 0;
+      // Track filling statistics and page information
+      let filledCount = 0;
       let matchedFields = [];
-      let unmatchedFields = [];
+      let unmatchedFormData = [];
+      let lastFilledFieldPage = null;
       
-      Object.entries(fieldMappings).forEach(([fieldName, value]) => {
-        try {
-          const field = form.getFieldMaybe(fieldName);
-          if (field && value && value.toString().trim() !== '') {
-            // Handle different field types
-            const fieldType = field.constructor.name;
-            
-            switch (fieldType) {
-              case 'PDFTextField':
-                field.setText(value.toString());
-                filledFieldsCount++;
-                matchedFields.push({ name: fieldName, type: fieldType, value: value.toString() });
-                break;
+      // Fill fields based on form data
+      Object.entries(formData).forEach(([formKey, value]) => {
+        // Skip empty values but allow false for checkboxes
+        if (value === null || value === undefined || value === '') return;
+        
+        let fieldFilled = false;
+        
+        // Try to find matching PDF field by various name patterns
+        const possibleFieldNames = generateFieldNameVariations(formKey);
+        console.log(`PDFViewer: Trying to fill field "${formKey}" with value "${value}". Possible field names:`, possibleFieldNames);
+        
+        for (const fieldName of possibleFieldNames) {
+          try {
+            const field = form.getFieldMaybe(fieldName);
+            if (field) {
+              console.log(`PDFViewer: Found matching PDF field "${fieldName}" for form key "${formKey}"`);
+              const success = fillPDFField(field, value);
+              if (success) {
+                filledCount++;
                 
-              case 'PDFCheckBox':
-                // For checkboxes, check if the value indicates it should be checked
-                const checkValue = value.toString().toLowerCase();
-                if (['true', 'yes', '1', 'checked', 'x', 'e', 'g', 's', 'n'].includes(checkValue)) {
-                  field.check();
-                  filledFieldsCount++;
-                  matchedFields.push({ name: fieldName, type: fieldType, value: 'checked' });
-                }
-                break;
-                
-              case 'PDFDropdown':
-                // For dropdowns, try to set the value if it's in the options
-                const options = field.getOptions();
-                if (options.includes(value.toString())) {
-                  field.select(value.toString());
-                  filledFieldsCount++;
-                  matchedFields.push({ name: fieldName, type: fieldType, value: value.toString() });
-                }
-                break;
-                
-              case 'PDFRadioGroup':
-                // For radio groups, try to select the option
+                // Try to get the page where this field is located
                 try {
-                  field.select(value.toString());
-                  filledFieldsCount++;
-                  matchedFields.push({ name: fieldName, type: fieldType, value: value.toString() });
-                } catch (radioError) {
-                  // Ignore radio selection errors for now
+                  const fieldPages = field.acroField.getWidgets().map(widget => {
+                    const pageRef = widget.getP();
+                    const pageIndex = pdfDoc.catalog.getPages().findIndex(page => page.ref === pageRef);
+                    return pageIndex + 1; // Convert to 1-based page number
+                  });
+                  
+                  if (fieldPages.length > 0) {
+                    lastFilledFieldPage = fieldPages[0];
+                  }
+                } catch (pageError) {
+                  console.warn('Could not determine page for field:', fieldName);
                 }
-                break;
                 
-              default:
-                // Try to set as text for unknown field types
-                if (field.setText) {
-                  field.setText(value.toString());
-                  filledFieldsCount++;
-                  matchedFields.push({ name: fieldName, type: fieldType, value: value.toString() });
-                }
+                matchedFields.push({ 
+                  formKey, 
+                  pdfField: fieldName, 
+                  value: value.toString(),
+                  type: field.constructor.name,
+                  page: lastFilledFieldPage
+                });
+                fieldFilled = true;
                 break;
+              }
             }
-          } else if (!field) {
-            unmatchedFields.push(fieldName);
+          } catch (error) {
+            console.warn(`PDFViewer: Error trying field ${fieldName}:`, error.message);
           }
-        } catch (error) {
-          // Ignore individual field errors to prevent breaking the whole process
-          console.warn(`PDFViewer: Error filling field ${fieldName}:`, error);
+        }
+        
+        if (!fieldFilled) {
+          unmatchedFormData.push(formKey);
+          console.warn(`PDFViewer: Could not find PDF field for form key "${formKey}" with value "${value}"`);
         }
       });
       
-      console.log(`PDFViewer: Filled ${filledFieldsCount} form fields out of ${fields.length} total fields`);
-      console.log('PDFViewer: Successfully matched fields:', matchedFields);
-      console.log('PDFViewer: Unmatched field names we tried:', unmatchedFields);
+      console.log(`PDFViewer: Successfully filled ${filledCount} fields`);
+      console.log('PDFViewer: Matched fields:', matchedFields);
+      if (unmatchedFormData.length > 0) {
+        console.log('PDFViewer: Unmatched form data keys:', unmatchedFormData);
+        console.log('PDFViewer: Consider adding these field names to the specific mappings in generateFieldNameVariations()');
+      }
       
       // Generate the filled PDF bytes
       const filledPdfBytes = await pdfDoc.save();
@@ -366,15 +199,300 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false 
       }
       
       setFilledPdfUrl(newFilledPdfUrl);
+      setFilledPdfBytes(filledPdfBytes);
+      
+      // Notify parent component about the filled PDF bytes
+      if (onFilledPdfGenerated) {
+        onFilledPdfGenerated(filledPdfBytes);
+      }
       
       // Load the filled PDF
       await loadPDF(newFilledPdfUrl);
+      
+      // Navigate to the page of the last filled field if available
+      if (lastFilledFieldPage && lastFilledFieldPage !== pageNumber) {
+        console.log(`PDFViewer: Navigating to page ${lastFilledFieldPage} where field was updated`);
+        setPageNumber(lastFilledFieldPage);
+      }
       
     } catch (error) {
       console.error('PDFViewer: Error filling PDF with form data:', error);
       // Fall back to original PDF if filling fails
       loadPDF();
     }
+  };
+
+  // Generate possible field name variations for a form key
+  const generateFieldNameVariations = (formKey) => {
+    const variations = [formKey];
+    
+    // Add exact mappings based on the exact PDF field names provided by the user
+    const exactFieldMappings = {
+      // The form uses the exact PDF field names, so map them to themselves first
+      // Basic Information - Using actual PDF field names as keys
+      'student': ['student'],
+      'grade': ['grade'],
+      'teacher': ['teacher'],
+      'OEN': ['OEN'],
+      'board': ['board'],
+      'school': ['school'],
+      'schoolAddress': ['schoolAddress'],
+      'boardAddress': ['boardAddress'],
+      'principal': ['principal'],
+      'telephone': ['telephone'],
+      
+      // Attendance - Using actual PDF field names
+      'daysAbsent': ['daysAbsent'],
+      'totalDaysAbsent': ['totalDaysAbsent'],
+      'timesLate': ['timesLate'],
+      'totalTimesLate': ['totalTimesLate'],
+      
+      // Learning Skills - Using actual PDF field names
+      'responsibility1': ['responsibility1'],
+      'responsibility2': ['responsibility2'],
+      'organization1': ['organization1'],
+      'organization2': ['organization2'],
+      'independentWork1': ['independentWork1'],
+      'independentWork2': ['independentWork2'],
+      'collaboration1': ['collaboration1'],
+      'collaboration2': ['collaboration2'],
+      'initiative1': ['initiative1'],
+      'initiative2': ['initiative2'],
+      'selfRegulation1': ['selfRegulation1'],
+      'selfRegulation2': ['selfRegulation2'],
+      
+      // Comments and Next Steps
+      'strengthsAndNextStepsForImprovement': ['strengthsAndNextStepsForImprovement'],
+      'nextGrade': ['nextGrade'],
+      
+      // Language - Using actual PDF field names
+      'nativeLanguage': ['nativeLanguage'],
+      'languageStrengthAndNextStepsForImprovement': ['languageStrengthAndNextStepsForImprovement'],
+      'languageMarkReport1': ['languageMarkReport1'],
+      'languageMarkReport2': ['languageMarkReport2'],
+      
+      // French - Using actual PDF field names
+      'frenchStrengthAndNextStepsForImprovement': ['frenchStrengthAndNextStepsForImprovement'],
+      'frenchListeningMarkReport1': ['frenchListeningMarkReport1'],
+      'frenchListeningMarkReport2': ['frenchListeningMarkReport2'],
+      'frenchSpeakingMarkReport1': ['frenchSpeakingMarkReport1'],
+      'frenchSpeakingMarkReport2': ['frenchSpeakingMarkReport2'],
+      'frenchReadingMarkReport1': ['frenchReadingMarkReport1'],
+      'frenchReadingMarkReport2': ['frenchReadingMarkReport2'],
+      'frenchWritingMarkReport1': ['frenchWritingMarkReport1'],
+      'frenchWritingMarkReport2': ['frenchWritingMarkReport2'],
+      
+      // Native Language - Using actual PDF field names
+      'nativeLanguageStrengthAndNextStepsForImprovement': ['nativeLanguageStrengthAndNextStepsForImprovement'],
+      'nativeLanguageMarkReport1': ['nativeLanguageMarkReport1'],
+      'nativeLanguageMarkReport2': ['nativeLanguageMarkReport2'],
+      
+      // Math - Using actual PDF field names
+      'mathStrengthAndNextStepsForImprovement': ['mathStrengthAndNextStepsForImprovement'],
+      'mathMarkReport1': ['mathMarkReport1'],
+      'mathMarkReport2': ['mathMarkReport2'],
+      
+      // Science - Using actual PDF field names
+      'scienceAndNextStepsForImprovement': ['scienceAndNextStepsForImprovement'],
+      'scienceMarkReport1': ['scienceMarkReport1'],
+      'scienceMarkReport2': ['scienceMarkReport2'],
+      
+      // Social Studies - Using actual PDF field names
+      'socialStudiesStrengthAndNextStepsForImprovement': ['socialStudiesStrengthAndNextStepsForImprovement'],
+      'socialStudiesMarkReport1': ['socialStudiesMarkReport1'],
+      'socialStudiesMarkReport2': ['socialStudiesMarkReport2'],
+      
+      // Health and PE - Using actual PDF field names
+      'healthAndPEStrengthsAndNextStepsForImprovement': ['healthAndPEStrengthsAndNextStepsForImprovement'],
+      'healthMarkReport1': ['healthMarkReport1'],
+      'healthMarkReport2': ['healthMarkReport2'],
+      'peMarkReport1': ['peMarkReport1'],
+      'peMarkReport2': ['peMarkReport2'],
+      
+      // Arts - Using actual PDF field names
+      'artsStrengthAndNextStepsForImprovement': ['artsStrengthAndNextStepsForImprovement'],
+      'danceMarkReport1': ['danceMarkReport1'],
+      'danceMarkReport2': ['danceMarkReport2'],
+      'dramaMarkReport1': ['dramaMarkReport1'],
+      'dramaMarkReport2': ['dramaMarkReport2'],
+      'musicMarkReport1': ['musicMarkReport1'],
+      'musicMarkReport2': ['musicMarkReport2'],
+      'visualArtsMarkReport1': ['visualArtsMarkReport1'],
+      'visualArtsMarkReport2': ['visualArtsMarkReport2'],
+      
+      // Other - Using actual PDF field names
+      'other': ['other'],
+      'otherStrengthAndNextStepsForImprovement': ['otherStrengthAndNextStepsForImprovement'],
+      'otherMarkReport1': ['otherMarkReport1'],
+      'otherMarkReport2': ['otherMarkReport2'],
+      
+      // ERS Date - Using actual PDF field names
+      'ERSYear': ['ERSYear'],
+      'ERSMonth': ['ERSMonth'],
+      'ERSDay': ['ERSDay'],
+      
+      // Keep existing checkbox mappings - these are already correct
+      'languageNA': ['Language Na', 'languageNA', 'Language NA', 'Language_NA'],
+      'languageESL': ['Language Esl', 'languageESL', 'Language ESL', 'Language_ESL'],
+      'languageIEP': ['Language Iep', 'languageIEP', 'Language IEP', 'Language_IEP'],
+      'ERSBenchmarkNo': ['ERSBenchmarkNo', 'ERS Benchmark No', 'ERS_Benchmark_No'],
+      
+      // Add mappings for any legacy form field names that might still be used
+      'student_name': ['student'],
+      'teacher_name': ['teacher'],
+      'oen': ['OEN'],
+      'school_address': ['schoolAddress'],
+      'board_address': ['boardAddress'],
+      'days_absent': ['daysAbsent'],
+      'total_days_absent': ['totalDaysAbsent'],
+      'times_late': ['timesLate'],
+      'total_times_late': ['totalTimesLate']
+    };
+    
+    // Add exact mappings if they exist
+    if (exactFieldMappings[formKey]) {
+      variations.push(...exactFieldMappings[formKey]);
+    }
+    
+    // Convert underscores to spaces and title case
+    const titleCase = formKey
+      .replace(/[_-]/g, ' ')
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+    variations.push(titleCase);
+    
+    // All uppercase
+    variations.push(formKey.toUpperCase());
+    variations.push(titleCase.toUpperCase());
+    
+    // Remove underscores and hyphens
+    variations.push(formKey.replace(/[_-]/g, ''));
+    
+    // CamelCase
+    const camelCase = formKey
+      .split(/[_-]/)
+      .map((word, index) => 
+        index === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1)
+      )
+      .join('');
+    variations.push(camelCase);
+    
+    // PascalCase
+    const pascalCase = formKey
+      .split(/[_-]/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join('');
+    variations.push(pascalCase);
+    
+    // Add common field name patterns
+    if (formKey.includes('name')) {
+      variations.push('Name', 'NAME', 'Student', 'STUDENT');
+    }
+    if (formKey.includes('grade')) {
+      variations.push('Grade', 'GRADE');
+    }
+    if (formKey.includes('school')) {
+      variations.push('School', 'SCHOOL');
+    }
+    
+    return [...new Set(variations)]; // Remove duplicates
+  };
+
+  // Fill a specific PDF field with a value
+  const fillPDFField = (field, value) => {
+    try {
+      const fieldType = field.constructor.name;
+      const fieldName = field.getName();
+      
+      console.log(`PDFViewer: Attempting to fill field "${fieldName}" (${fieldType}) with value:`, value, typeof value);
+      
+      switch (fieldType) {
+        case 'PDFTextField':
+          const stringValue = value.toString();
+          field.setText(stringValue);
+          console.log(`PDFViewer: ✅ Successfully filled text field "${fieldName}" with: "${stringValue}"`);
+          return true;
+          
+        case 'PDFCheckBox':
+        case 'PDFCheckBox2':  // Add support for PDFCheckBox2 type
+          // Handle boolean values correctly
+          let shouldCheck = false;
+          
+          if (typeof value === 'boolean') {
+            shouldCheck = value;
+          } else if (typeof value === 'string') {
+            const lowerValue = value.toLowerCase().trim();
+            shouldCheck = ['true', 'yes', '1', 'checked', 'x', 'on'].includes(lowerValue);
+          } else if (typeof value === 'number') {
+            shouldCheck = value === 1;
+          }
+          
+          if (shouldCheck) {
+            field.check();
+            console.log(`PDFViewer: ✅ Successfully checked checkbox "${fieldName}" (${fieldType})`);
+          } else {
+            field.uncheck();
+            console.log(`PDFViewer: ✅ Successfully unchecked checkbox "${fieldName}" (${fieldType})`);
+          }
+          return true;
+          
+        case 'PDFDropdown':
+          const stringVal = value.toString();
+          const options = field.getOptions();
+          if (options.includes(stringVal)) {
+            field.select(stringVal);
+            console.log(`PDFViewer: ✅ Successfully selected dropdown option "${stringVal}" for field "${fieldName}"`);
+            return true;
+          }
+          // Try case-insensitive match
+          const matchingOption = options.find(opt => 
+            opt.toLowerCase() === stringVal.toLowerCase()
+          );
+          if (matchingOption) {
+            field.select(matchingOption);
+            console.log(`PDFViewer: ✅ Successfully selected dropdown option "${matchingOption}" (case-insensitive) for field "${fieldName}"`);
+            return true;
+          }
+          console.warn(`PDFViewer: ❌ Could not match dropdown value "${stringVal}" for field "${fieldName}". Available options:`, options);
+          break;
+          
+        case 'PDFRadioGroup':
+          try {
+            const radioVal = value.toString();
+            field.select(radioVal);
+            console.log(`PDFViewer: ✅ Successfully selected radio option "${radioVal}" for field "${fieldName}"`);
+            return true;
+          } catch (radioError) {
+            // Try with available options
+            const radioOptions = field.getOptions();
+            const matchingRadioOption = radioOptions.find(opt => 
+              opt.toLowerCase() === value.toString().toLowerCase()
+            );
+            if (matchingRadioOption) {
+              field.select(matchingRadioOption);
+              console.log(`PDFViewer: ✅ Successfully selected radio option "${matchingRadioOption}" (case-insensitive) for field "${fieldName}"`);
+              return true;
+            }
+            console.warn(`PDFViewer: ❌ Could not match radio value "${value}" for field "${fieldName}". Available options:`, radioOptions);
+          }
+          break;
+          
+        default:
+          // Try to set as text for unknown field types
+          if (field.setText) {
+            field.setText(value.toString());
+            console.log(`PDFViewer: ✅ Successfully filled unknown field type "${fieldName}" (${fieldType}) as text`);
+            return true;
+          }
+          console.warn(`PDFViewer: ❌ Unknown field type "${fieldType}" for field "${fieldName}"`);
+          break;
+      }
+    } catch (error) {
+      console.error(`PDFViewer: ❌ Error filling field "${field.getName()}" of type ${field.constructor.name}:`, error);
+    }
+    
+    return false;
   };
 
   const renderPage = async () => {
@@ -506,7 +624,10 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false 
         
         <div className="pdf-zoom" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {showPreview && (
-            <span className="badge bg-success me-2">Live Form Filling</span>
+            <span className="badge bg-success me-2">
+              Live Preview {Object.keys(formData).filter(k => formData[k] && formData[k].toString().trim() !== '').length > 0 && 
+                `(${Object.keys(formData).filter(k => formData[k] && formData[k].toString().trim() !== '').length} fields filled)`}
+            </span>
           )}
           <CButton
             variant="outline"
@@ -570,7 +691,8 @@ PDFViewer.propTypes = {
   pdfUrl: PropTypes.string,
   className: PropTypes.string,
   formData: PropTypes.object,
-  showPreview: PropTypes.bool
+  showPreview: PropTypes.bool,
+  onFilledPdfGenerated: PropTypes.func
 };
 
 export default PDFViewer; 
