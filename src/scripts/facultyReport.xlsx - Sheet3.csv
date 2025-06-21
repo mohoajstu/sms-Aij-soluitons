@@ -1,0 +1,57 @@
+Active,Primary Role,SchoolID,Last Name,First Name,MiddleName,NickName,Salutation,DOB,Gender,Father,Mother,Nationality,NationalID,NationalIDExpiry,Email,Phone1,Phone2,POBox,Address,ResidentialArea,PrimaryLanguage,SecondaryLanguage,DaySchoolEmployer,Programme,EmergencyPhone,PrimaryInstrument,PrimaryInstrumentGrade,SecondaryInstrument,SecondaryInstrumentGrade,TertiaryInstrument,ReturningStudentYear,CustodyDetails,Notes
+true,Faculty,TL425924,Mohamed,Abdusalam,,,Mr.,5/28/1988,M,,,Canada,,12/31/1861,abdizalon.mohamed@tarbiyahlearning.ca,6138691519,0000,,"538 Arosa Way,  K2V0R8","Stittsvile, Ottawa",English,Other,Tarbiyah Learning Academy,Grade 7,,,0,,0,,0,,New 2020
+true,Faculty,TL636204,Jihan,Adiba,,,Mrs.,6/6/1962,F,,,Canada,,12/31/1861,adiba.jihan@tarbiyahlearning.ca,613-421-1700,,,3990 old richmond road,Unknown,English,English,Tarbiyah Learning Academy,SK,,,0,,0,,0,,
+true,Faculty,TL996513,Khawaja,Aisha ,,,Ms.,10/21/1982,F,,,Canada,,12/31/1861,aisha.khawaja@tarbiyahlearning.ca,6138637512,6138786469,,3990 Old Richmond Rd,Unknown,English,English,Tarbiyah Learning Academy,Grade 5,,,0,,0,,0,,
+true,Faculty,TL516214,Pitre,Aisha,,,Ms.,6/6/1962,F,,,Canada,,12/31/1861,aisha.pitre@tarbiyahlearning.ca,613-590-1637,613-291-2241,,"272 Flodden Way Ottawa, On K2C 5H6",Unknown,English,English,Tarbiyah Learning Academy,Grade 1,,,0,,0,,0,,
+true,Faculty,TLA0001,Akhtar,Ali,,,Mr.,12/28/1861,M,,,Canada,,12/31/1861,ali.akhtar@tarbiyahlearning.ca,613-355-0122,0000000,,132 Lanceleaf Way Stittsville ON K2V 0J9,Ottawa,English,English,Tarbiyah Learning,Grade 4,,,0,,0,,0,,
+true,Faculty,TL316505,Alkoujak,Amani ,,,Mrs.,3/6/1983,F,,,Canada,,12/31/1861,amani.alkoujak@tarbiyahlearning.ca,6134211700,8196657734,,3990 old richmond rd,Unknown,Arabic,English,Tarbiyah Learning Academy,Grade 6,,,0,,0,,0,,
+true,Faculty,TLA0002,Syed,Amera,,,Ms.,12/31/1861,F,,,Canada,,12/31/1861,amera.syed@tarbiyahlearning.ca,613-606-3713,343-997-2719,,"107 Danzig Terrace Stittsville, ON K2V0C3",Ottawa,English,English,Tarbiyah Learning,JK,,,0,,0,,0,,
+true,Faculty,TL976432,Gul,Areesha ,,,Mrs.,6/6/1962,F,,,Canada,,12/31/1861,areesha.gul@tarbiyahlearning.ca,6134211700,,,"3990 Old Richmond Rd
+2nd Floor",Unknown,English,English,Tarbiyah Learning Academy,Other,,,0,,0,,0,,
+true,Faculty,TLA0003,Aqalinle,Ayan,,,Ms.,12/28/1861,F,,,Canada,,12/31/1861,ayan.aqalinle@tarbiyahlearning.ca,819-539-1628,0000000,,2077 Helene Campbell Road Ottawa ON K2J0R1,Ottawa,English,English,Tarbiyah Learning,Quran Studies,,,0,,0,,0,,
+true,Faculty,TLA0004,Fatima,Farheen,,,Ms.,12/31/1861,F,,,Canada,,12/31/1861,farheen.fatima@tarbiyahlearning.ca,613 217 8182,613 207 6207,,"534 Meadowcreek Crescent
+   Kanata ON K2M 3A6",Unknown,English,English,Tarbiyah Learning,Grade 8,,,0,,0,,0,,
+true,Faculty,TL455923,Roble,Fatouma,,,Ms.,11/3/1993,F,,,Canada,,12/31/1861,fatouma.roble@tarbiyahlearning.ca,613-862-9229,0000,,"44 Tapadero Ave 
+   Kanata ON K2V 0E2",Ottawa,English,English,Tarbiyah Learning Academy,Grade 7,,,0,,0,,0,,New 2020
+true,Faculty,TL926690,Camlibel,Filiz,,,Ms.,6/6/1962,F,,,Canada,,12/31/1861,filiz.camlibel@tarbiyahlearning.ca ,6134211700,,,"3990 Old Richmond Rd
+2nd floor",Unknown,English,English,Tarbiyah Learning Academy,Grade 2,,,0,,0,,0,,
+true,Faculty,TL566503,Khan,Hafsa,,,Mrs.,6/6/1962,F,,,Canada,,12/31/1861,hafsa.khan@tarbiyahlearning.ca,613-421-1700,,,3990 old richmond rd,Unknown,English,English,Tarbiyah Learning Academy,Grade 7,,,0,,0,,0,,
+true,Faculty,TL416234,Alanqar,Hanaa,,,Mr.,6/6/1962,M,,,Canada,,12/31/1861,hanaa.alanqar@tarbiyahlearning.ca,6134211700,,,"3990 Old Richmond Rd
+2nd Floor",Unknown,English,English,Tarbiyah Learning Academy,SK,,,0,,0,,0,,
+true,Faculty,TL606515,Charanek,Hasna,,,Mrs.,6/7/1988,F,,,Canada,,12/31/1861,hasna.charanek@tarbiyahlearning.ca,6135017534,,,3990 Old Richmond Rd,Unknown,English,English,Tarbiyah Learning Academy,Grade 6,,,0,,0,,0,,
+true,Faculty,TL825922,Omar,Hodan,,,Mr.,4/4/1986,M,,,Canada,,12/31/1861,hodan.omar@tarbiyahlearning.ca,647-514-0404,0000,,"251 Bradwell Way 
+   Ottawa ON K1T 4J2",Ottawa,English,English,Tarbiyah Learning Academy,Grade 3,,,0,,0,,0,,New in 2020
+true,Faculty,TL745920,Ismaili,Houda,,,Ms.,8/10/1997,F,,,Canada,,12/31/1861,houda.ismaili@tarbiyahlearning.ca,613-355-8324,0000,,"2 Milner Downs Crescent
+   Kanata ON K2M 2S6 
+",Ottawa,English,English,Tarbiyah Learning Academy,French,,,0,,0,,0,,New French Teacher for 2020-2021
+true,Faculty,TL516693,Murtuza,Ibrahim,,,Mr.,6/6/1962,M,,,Canada,,12/31/1861,ibrahim.murtuza@tarbiyahlearning.ca,6134211700,,,"3990 Old Richmond Rd
+2nd floor",Unknown,English,English,Tarbiyah Learning Academy,Grade 1,,,0,,0,,0,,
+true,Faculty,TL336504,Rohani,karima,,,Mrs.,6/6/1962,F,,,Canada,,12/31/1861,karima.rohani@tarbiyahlearning.ca,613-421-1700,,,3990 old richmond rd,Unknown,English,English,Tarbiyah Learning Academy,JK,,,0,,0,,0,,
+true,Faculty,TL736448,Khan,Maimoona,,,Ms.,6/6/1962,F,,,Canada,,12/31/1861,maimoona.khan@tarbiyahlearning.ca,6134211700,,,3990 Old Richmond Road,Unknown,English,English,Tarbiyah Learning Academy,JK,,,0,,0,,0,,
+true,Faculty,TL946000,Hussein,Manal,,,Ms.,6/5/1962,F,,,Canada,,12/31/1861,manal.hussein@tarbiyahlearning.ca,613-552-3447,,,Unknown,Ottawa,English,English,Tarbiyah Learning Academy,Quran Studies,,,0,,0,,0,,Volunteer for Arabic
+true,Faculty,TLA0011,Ghaznavi,Margena,,,Ms.,12/31/1861,F,,,Canada,,12/31/1861,margena.ghaznavi@tarbiyahlearning.ca,613-700-4997,0000000,,86 E Seyton Drive Ottawa ON K2H 8W5,Ottawa,English,English,Tarbiyah Learning,SK,(819)3288802,,0,,0,,0,,
+true,Faculty,TLA0012,Ghani,Mariam,,,Ms.,5/29/1985,F,,,Canada,0430-1-5809,12/31/1861,mariam.ghani@tarbiyahlearning.ca,613-710-6916,0000000,,171 Celestial Grove Ottawa ON K2J 6R6,Ottawa,English,English,Tarbiyah Learning,Grade 3,,,0,,0,,0,,
+true,Faculty,TS976186,Rizvi,Maryam,,,Ms.,6/6/1980,F,,,Canada,,12/31/1861,maryam.rizvi@tarbiyahlearning.ca,6134211700,,,3990 old richmond,Unknown,English,English,Tarbiyah Learning Academy,Grade 5,,,0,,0,,0,,
+true,Faculty,TL665921,Nur,Muna,,,Ms.,3/15/1983,F,,,Canada,,12/31/1861,muna.nur@tarbiyahlearning.ca,613-600-9434,0000,,"2080 Russel Rd, Apt 310 
+   Ottawa ON K1G3W6 
+",Ottawa,English,English,Tarbiyah Learning Academy,Grade 2,,,0,,0,,0,,New in 2020
+true,Faculty,TL3752537,AlMeera,Muna,Anne,,Ms.,12/31/1861,F,,,Canada,,12/31/1861,muna.almeera@tarbiyahlearning.ca,55732806,66010670,,67 Main Street Ottawa Ont M5W1K9,Ottawa,English,English,Tarbiyah Learning,Grade 8,,,0,,0,,0,,
+true,Faculty,TL536458,Hamadene,Nabila,,,Ms.,6/6/1962,F,,,Canada,,12/31/1861,nabila.hamadene@tarbiyahlearning.ca,6134211700,,,3990 old Richmond rd,Unknown,English,English,Tarbiyah Learning Academy,Grade 1,,,0,,0,,0,,
+true,Faculty,TS126187,Rahim Mirza,Nadia,,,Mrs.,4/3/1985,F,,,Canada,,12/31/1861,nadia.mirza@tarbiyahlearning.ca,4373441356,,,426 Warmstone Drive,Unknown,English,English,Tarbiyah Learning Academy,Grade 3,,,0,,0,,0,,
+true,Faculty,TS626190,Hacil,Nadjoua ,,,Ms.,6/6/1980,F,,,Canada,,12/31/1861,hacilnadjoua@yahoo.fr,6134211700,,,3990 Old Richmond Road,Unknown,English,English,Tarbiyah Learning Academy,French,,,0,,0,,0,,
+true,Faculty,TLA0008,Nour,Naheda,,,Ms.,8/3/1966,F,,,Canada,0333-9-0022,12/31/1861,naheda.nour@tarbiyahlearning.ca,613-447-4988,0000000,,587 Barrick Hill Road Kanata ON K2M 0B4,Ottawa,English,English,Tarbiyah Learning,Quran Studies,,,0,,0,,0,,
+true,Faculty,TLA0009,Shalluf,Najat,,,Ms.,3/12/1960,F,,,Canada,,12/31/1861,najat.shallouf@tarbiyahlearning.ca,343-202-5322,613- 890-7898,K2B8A2,2901 Dumaurier Avenue Ottawa ON K2B8A2,Ottawa,Arabic,English,Tarbiyah Learning,Quran Studies,,,0,,0,,0,,
+true,Faculty,TLA0010,Islam,Nazrul,,,Mr.,6/10/1990,M,,,Canada,,12/31/1861,nazrul.islam@tarbiyahlearning.ca,819-360-5936,0000000,,"1545 Alta Vista Drive, Apt 906 
+   Ottawa ON K1G 3",Ottawa,English,English,Tarbiyah Learning,Quran Studies,,,0,,0,,0,,
+true,Faculty,TLA0013,Faris,Omaima,,,Ms.,11/25/1962,F,,,Canada,0282-3-3096,12/31/1861,omaima.faris@tarbiyahlearning.ca,613-858-5200,0000000,,1180 Chemin DAylmer Gatineau QC J9H0G5,Ottawa,English,English,Tarbiyah Learning,Grade 2,,,0,,0,,0,,
+true,Faculty,TLA0014,Najmaoui,Rachida,,,Ms.,12/31/1861,F,,,Canada,,12/31/1861,rachida.najmaoui@tarbiyahlearning.ca,519-870-9998,0000000,,53 Hawks Landing Crescent Ottawa ON K2S1W1,Ottawa,English,English,Tarbiyah Learning,French,,,0,,0,,0,,
+true,Faculty,TLA0015,Husain,Rafia,,,Ms.,11/7/1972,F,,,Canada,,12/31/1861,rafia.husain@tarbiyahlearning.ca,613-276-4191,0000000,,217 Roy Errington Way Kanata ON K2W 0C5,Ottawa,English,English,Tarbiyah Learning,SK,,,0,,0,,0,,
+true,Faculty,TLA0016,Issa,Rana,,,Ms.,2/4/1972,F,,,Canada,0267-1-3974,12/31/1861,rana.issa@tarbiyahlearning.ca,613-322-8651,0000000,,57 Roberge Crescent Kanata ON K2L4G7,Ottawa,Arabic,English,Tarbiyah Learning,Art,,,0,,0,,0,,
+true,Faculty,TS586189,Zatini,Raya ,,,Ms.,6/6/1980,F,,,Canada,,12/31/1861,raya.zatini@gmail.com,6134211700,,,3990 Old Richmond Road,Unknown,English,English,Tarbiyah Learning Academy,Quran Studies,,,0,,0,,0,,
+true,Faculty,TLA0017,Zarka,Rima,,,Ms.,3/31/1969,F,,,Canada,,12/31/1861,rima.zarka@tarbiyahlearning.ca,613-261-2071,0000000,,612 Dundonald Drive Ottawa ON K2J 5Y8,Ottawa,English,English,Tarbiyah Learning,Quran Studies,,,0,,0,,0,,
+true,Faculty,TL186544,Fournier,Ryan,,,Mr.,12/31/1861,M,,,Canada,,12/31/1861,rfawesome@gmail.com,5877074892,,,3990 Old Richmond Rd,Unknown,English,English,Tarbiyah Learning Academy,Grade 6,,,0,,0,,0,,
+true,Faculty,TLA0018,Alvi,Saba,,,Dr.,9/15/1983,F,,,Canada,,12/31/1861,saba.alvi@tarbiyahlearning.ca,873-353-1947,0000000,,260 Ponderosa Street,Stittsville ,English,English,Tarbiyah Learning,Grade 6,,,0,,0,,0,,
+true,Faculty,TL336502,Salim,Sabrina,,,Mrs.,6/6/1962,F,,,Canada,,12/31/1861,sabrina.salim@tarbiyahlearning.ca,613-888-6382,,,3990 old richmond rd,Unknown,English,English,Tarbiyah Learning Academy,Grade 2,,,0,,0,,0,,
+true,Faculty,TL746215,Bouraleh,Safia,,,Ms.,6/6/1962,F,,,Canada,,12/31/1861,Kbouraleh@gmail.com,613-709-7661,,,"13 Len Lunney Cres, Ottawa on",Unknown,English,English,Tarbiyah Learning Academy,Other,,,0,,0,,0,,
+true,Faculty,TL486514,Qureshi,Saima,,,Mrs.,11/20/1979,F,,,Canada,,12/31/1861,saima.qureshi@tarbiyahlearning.ca,6132919124,,K2M 0H2,653 Bridleglen Crescent,Kanata,English,English,Tarbiyah Learning Academy,Grade 4,,,0,,0,,0,,
+true,Faculty,TS816188,Addi,Sajeda,,,Ms.,6/6/1980,F,,,Canada,,12/31/1861,sajeda.addi@gmail.com,6134211700,,,3990 Old Richmond Road,Unknown,English,English,Tarbiyah Learning Academy,Quran Studies,,,0,,0,,0,,
