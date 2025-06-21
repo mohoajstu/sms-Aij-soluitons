@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import coursesData from '../../Data/coursesData.json'
+import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore'
+import { firestore } from '../../firebase'
 import {
   CCard,
   CCardBody,
@@ -14,88 +15,164 @@ import {
 
 export default function BudgetPage() {
   const { id } = useParams()
-  const courseId = Number(id)
   const [course, setCourse] = useState(null)
   const [budgetEntries, setBudgetEntries] = useState([])
   const [newExpense, setNewExpense] = useState('')
   const [newAmount, setNewAmount] = useState('')
   const [isExpense, setIsExpense] = useState(true)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Find the course data
-    const foundCourse = coursesData.find((c) => c.id === courseId)
-    if (foundCourse) {
-      setCourse(foundCourse)
+    const fetchCourseData = async () => {
+      if (!id) return
+      setLoading(true)
+      try {
+        const courseDocRef = doc(firestore, 'courses', id)
+        const courseDoc = await getDoc(courseDocRef)
 
-      // Load budget entries from localStorage
-      const savedEntries = localStorage.getItem(`budget-entries-${courseId}`)
-      if (savedEntries) {
-        setBudgetEntries(JSON.parse(savedEntries))
+        if (courseDoc.exists()) {
+          const courseData = courseDoc.data()
+          setCourse({ id: courseDoc.id, ...courseData })
+
+          if (courseData.budget && courseData.budget.itemList) {
+            const formattedEntries = courseData.budget.itemList.map((item) => ({
+              id: `${item.itemName}-${item.itemDate.seconds}`,
+              description: item.itemName,
+              amount: item.itemCost,
+              type: item.itemType,
+              date: item.itemDate.toDate().toLocaleDateString(),
+              firestoreDate: item.itemDate,
+            }))
+            setBudgetEntries(formattedEntries)
+          }
+        } else {
+          console.log('No such course!')
+        }
+      } catch (error) {
+        console.error('Error fetching course details:', error)
+      } finally {
+        setLoading(false)
       }
     }
-  }, [courseId])
 
-  // Save budget entries to localStorage when they change
-  useEffect(() => {
-    if (budgetEntries.length > 0) {
-      localStorage.setItem(`budget-entries-${courseId}`, JSON.stringify(budgetEntries))
-    }
-  }, [budgetEntries, courseId])
+    fetchCourseData()
+  }, [id])
 
-  if (!course) {
+  if (loading) {
     return <div>Loading course information...</div>
   }
 
-  // Calculate budget
-  const initialBudget = course.budget || 500 // Default annual budget of $500
+  if (!course) {
+    return <div>Course not found.</div>
+  }
+
+  const initialBudget = course.budget?.totalBudget || 500
 
   const calculateRemainingBudget = () => {
-    const spent = budgetEntries.reduce((total, entry) => {
+    const totalFromEntries = budgetEntries.reduce((total, entry) => {
       return entry.type === 'expense'
         ? total + parseFloat(entry.amount)
         : total - parseFloat(entry.amount)
     }, 0)
 
-    return initialBudget - spent
+    const baseSpent = course?.budget?.accumulatedCost || 0
+    const initialItemsCount = course?.budget?.itemList?.length || 0
+    if (budgetEntries.length === initialItemsCount) {
+      return initialBudget - baseSpent
+    }
+    return initialBudget - totalFromEntries
   }
 
-  // Calculate budget percentage used
   const percentageUsed = () => {
+    if (!course || !course.budget || !course.budget.totalBudget) return 0
     const remaining = calculateRemainingBudget()
-    return 100 - (remaining / initialBudget) * 100
+    const used = course.budget.totalBudget - remaining
+    return Math.min(100, Math.max(0, (used / course.budget.totalBudget) * 100))
   }
 
-  // Handle form submission for new budget entry
-  const handleAddEntry = (e) => {
+  const handleAddEntry = async (e) => {
     e.preventDefault()
-
     if (!newExpense || !newAmount || isNaN(parseFloat(newAmount)) || parseFloat(newAmount) <= 0) {
       alert('Please enter a valid description and amount')
       return
     }
 
-    const newEntry = {
-      id: Date.now(),
-      description: newExpense,
-      amount: parseFloat(newAmount),
-      type: isExpense ? 'expense' : 'refund',
-      date: new Date().toLocaleDateString(),
+    const newFirestoreEntry = {
+      itemName: newExpense,
+      itemCost: parseFloat(newAmount),
+      itemType: isExpense ? 'expense' : 'refund',
+      itemDate: Timestamp.fromDate(new Date()),
     }
 
-    setBudgetEntries([...budgetEntries, newEntry])
+    const currentItemList = course.budget.itemList || []
+    const newItemList = [...currentItemList, newFirestoreEntry]
+
+    const newAccumulatedCost = newItemList.reduce((total, item) => {
+      const cost = item.itemType === 'expense' ? item.itemCost : -item.itemCost
+      return total + cost
+    }, 0)
+
+    const courseDocRef = doc(firestore, 'courses', id)
+    try {
+      await updateDoc(courseDocRef, {
+        'budget.itemList': newItemList,
+        'budget.accumulatedCost': newAccumulatedCost,
+      })
+      setBudgetEntries((prev) => [
+        ...prev,
+        {
+          id: `${newFirestoreEntry.itemName}-${newFirestoreEntry.itemDate.seconds}`,
+          description: newFirestoreEntry.itemName,
+          amount: newFirestoreEntry.itemCost,
+          type: newFirestoreEntry.itemType,
+          date: newFirestoreEntry.itemDate.toDate().toLocaleDateString(),
+          firestoreDate: newFirestoreEntry.itemDate,
+        },
+      ])
+      setCourse((prev) => ({
+        ...prev,
+        budget: { ...prev.budget, accumulatedCost: newAccumulatedCost },
+      }))
+    } catch (error) {
+      console.error('Error adding budget entry:', error)
+      alert('Failed to add budget entry.')
+    }
+
     setNewExpense('')
     setNewAmount('')
   }
 
-  // Handle removing an entry
-  const handleRemoveEntry = (entryId) => {
-    setBudgetEntries(budgetEntries.filter((entry) => entry.id !== entryId))
+  const handleRemoveEntry = async (entryToRemove) => {
+    const updatedItemList = (course.budget.itemList || []).filter(
+      (item) => item.itemDate.seconds !== entryToRemove.firestoreDate.seconds,
+    )
+
+    const newAccumulatedCost = updatedItemList.reduce((total, item) => {
+      const cost = item.itemType === 'expense' ? item.itemCost : -item.itemCost
+      return total + cost
+    }, 0)
+
+    const courseDocRef = doc(firestore, 'courses', id)
+    try {
+      await updateDoc(courseDocRef, {
+        'budget.itemList': updatedItemList,
+        'budget.accumulatedCost': newAccumulatedCost,
+      })
+      setBudgetEntries((prev) => prev.filter((entry) => entry.id !== entryToRemove.id))
+      setCourse((prev) => ({
+        ...prev,
+        budget: { ...prev.budget, accumulatedCost: newAccumulatedCost },
+      }))
+    } catch (error) {
+      console.error('Error removing budget entry:', error)
+      alert('Failed to remove budget entry.')
+    }
   }
 
   return (
     <div style={{ padding: 20 }}>
       <h2>Budget for {course.title}</h2>
-      <p className="text-muted">Course ID: {courseId}</p>
+      <p className="text-muted">Course ID: {id}</p>
 
       <CCard className="mb-4">
         <CCardHeader>
@@ -225,7 +302,7 @@ export default function BudgetPage() {
                           color="danger"
                           size="sm"
                           variant="ghost"
-                          onClick={() => handleRemoveEntry(entry.id)}
+                          onClick={() => handleRemoveEntry(entry)}
                         >
                           Delete
                         </CButton>
