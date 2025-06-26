@@ -91,3 +91,50 @@
   font-size: 16px;
   border-radius: 100px;
 }
+
+.attendance-responsive-table .attendance-codes-col {
+  max-width: 120px;
+  min-width: 80px;
+  width: 1%;
+  white-space: nowrap;
+  text-align: center;
+  flex-shrink: 1;
+}
+
+.attendance-responsive-table .comments-col {
+  min-width: 160px;
+  max-width: 500px;
+  width: auto;
+  white-space: normal;
+  word-break: break-word;
+  flex-grow: 2;
+}
+
+@media (max-width: 900px) {
+  .attendance-responsive-table .comments-col {
+    min-width: 100px;
+    max-width: 100vw;
+  }
+  .attendance-responsive-table .attendance-codes-col {
+    max-width: 80px;
+    min-width: 60px;
+  }
+}
+
+@media (max-width: 600px) {
+  .attendance-responsive-table th,
+  .attendance-responsive-table td {
+    font-size: 13px;
+    padding: 6px 4px;
+  }
+  .attendance-responsive-table .comments-col {
+    min-width: 60px;
+    max-width: 100vw;
+    font-size: 12px;
+  }
+  .attendance-responsive-table .attendance-codes-col {
+    max-width: 60px;
+    min-width: 40px;
+    font-size: 12px;
+  }
+}

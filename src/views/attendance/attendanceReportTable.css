@@ -30,7 +30,7 @@
   /* Container for the export buttons */
   .export-buttons {
     display: flex;
-    gap: 12px;
+    gap: 16px;
   }
   
   /* Base style for both export buttons */
@@ -39,6 +39,7 @@
     font-weight: 500 !important;
     border-radius: 20px !important;
     padding: 6px 16px !important;
+    margin-left: 0 !important;
   }
   
   /* Excel export button */
@@ -87,6 +88,10 @@
     background-color: #fffde7; /* light yellow */
   }
   
+  .status-row.excused {
+    background-color: #e3f2fd;
+  }
+  
   /* Base styling for the status chips (MUI Chips) */
   .status-chip {
     font-size: 0.875rem !important;
@@ -116,6 +121,12 @@
   .status-chip.late {
     background-color: #fff59d !important; /* soft yellow background */
     color: #f57f17 !important;           /* deeper amber text */
+  }
+  
+  /* Excused chip styling */
+  .status-chip.excused {
+    background-color: #b3e5fc !important;
+    color: #01579b !important;
   }
   
   /* Style for cells where there is no note */
@@ -148,5 +159,27 @@
   .record-count {
     color: #424242;
     font-weight: 500;
+  }
+  
+  /* Clear button styling */
+  .clear-button {
+    color: #c62828 !important;
+  }
+  
+  /* DataGrid header bold */
+  .MuiDataGrid-columnHeaders {
+    background-color: #f5f5f5 !important;
+    font-weight: bold !important;
+    font-size: 1rem !important;
+  }
+  
+  .MuiDataGrid-columnHeaderTitle {
+    font-weight: bold !important;
+  }
+  
+  /* DataGrid footer right align */
+  .MuiDataGrid-footerContainer {
+    justify-content: flex-end !important;
+    padding-right: 16px !important;
   }
   

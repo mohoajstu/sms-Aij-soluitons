@@ -21,60 +21,17 @@ import CIcon from '@coreui/icons-react'
 import { cilChatBubble, cilBell, cilBellExclamation } from '@coreui/icons'
 import NotificationService from '../../services/notificationService'
 import { toast } from 'react-hot-toast'
-
-// Enhanced students data with parent phone numbers
-const students = [
-  {
-    id: 1,
-    name: 'Arthur Boucher',
-    grade: 9,
-    avatar: 'https://i.pravatar.cc/40?img=1',
-    parentPhoneNumber: '+16812215667',
-    parentName: 'Sarah Boucher',
-  },
-  {
-    id: 2,
-    name: 'Danny Anderson',
-    grade: 9,
-    avatar: 'https://i.pravatar.cc/40?img=2',
-    parentPhoneNumber: '+16812215667',
-    parentName: 'Michael Anderson',
-  },
-  {
-    id: 3,
-    name: 'Justin Aponte',
-    grade: 9,
-    avatar: 'https://i.pravatar.cc/40?img=3',
-    parentPhoneNumber: '+16812215667',
-    parentName: 'Maria Aponte',
-  },
-  {
-    id: 4,
-    name: 'Emily Johnson',
-    grade: 9,
-    avatar: 'https://i.pravatar.cc/40?img=4',
-    parentPhoneNumber: '+16812215667',
-    parentName: 'Robert Johnson',
-  },
-  {
-    id: 5,
-    name: 'Lucas Smith',
-    grade: 9,
-    avatar: 'https://i.pravatar.cc/40?img=5',
-    parentPhoneNumber: '+16812215667',
-    parentName: 'Jessica Smith',
-  },
-  {
-    id: 6,
-    name: 'Sophia Williams',
-    grade: 9,
-    avatar: 'https://i.pravatar.cc/40?img=6',
-    parentPhoneNumber: '+16812215667',
-    parentName: 'David Williams',
-  },
-]
+import { useLocation, useNavigate } from 'react-router-dom'
+import { doc, getDoc, collection, setDoc, serverTimestamp, getDocs } from 'firebase/firestore'
+import { firestore } from '../../Firebase/firebase'
+import useAuth from '../../Firebase/useAuth'
+import './attendanceTable.css'
 
 const AttendanceTable = () => {
+  const location = useLocation()
+  const selectedCourse = location.state?.selectedCourse
+  const [students, setStudents] = useState([])
+  const [studentsLoading, setStudentsLoading] = useState(false)
   const [attendanceData, setAttendanceData] = useState({})
   const [showModal, setShowModal] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState(null)
@@ -86,6 +43,133 @@ const AttendanceTable = () => {
   const [smsNotificationEnabled, setSmsNotificationEnabled] = useState(true)
   const [showSmsErrorModal, setShowSmsErrorModal] = useState(false)
   const [smsErrorDetails, setSmsErrorDetails] = useState('')
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [attendanceLoaded, setAttendanceLoaded] = useState(false)
+  const [attendanceExists, setAttendanceExists] = useState(false)
+
+  useEffect(() => {
+    const fetchEnrolledStudents = async () => {
+      if (selectedCourse && (selectedCourse.enrolledList || selectedCourse.students)) {
+        setStudentsLoading(true)
+        const ids = selectedCourse.enrolledList || selectedCourse.students || []
+        try {
+          const studentDocs = await Promise.all(
+            ids.map(async (id) => {
+              const docRef = doc(firestore, 'students', id)
+              const docSnap = await getDoc(docRef)
+              if (docSnap.exists()) {
+                return { id: docSnap.id, ...docSnap.data() }
+              } else {
+                return null
+              }
+            })
+          )
+          setStudents(studentDocs.filter(Boolean))
+        } catch (err) {
+          setStudents([])
+          console.error('Error fetching enrolled students:', err)
+        } finally {
+          setStudentsLoading(false)
+        }
+      } else {
+        // fallback to hardcoded students if no course selected
+        setStudents([
+          {
+            id: 1,
+            name: 'Arthur Boucher',
+            grade: 9,
+            avatar: 'https://i.pravatar.cc/40?img=1',
+            parentPhoneNumber: '+16812215667',
+            parentName: 'Sarah Boucher',
+          },
+          {
+            id: 2,
+            name: 'Danny Anderson',
+            grade: 9,
+            avatar: 'https://i.pravatar.cc/40?img=2',
+            parentPhoneNumber: '+16812215667',
+            parentName: 'Michael Anderson',
+          },
+          {
+            id: 3,
+            name: 'Justin Aponte',
+            grade: 9,
+            avatar: 'https://i.pravatar.cc/40?img=3',
+            parentPhoneNumber: '+16812215667',
+            parentName: 'Maria Aponte',
+          },
+          {
+            id: 4,
+            name: 'Emily Johnson',
+            grade: 9,
+            avatar: 'https://i.pravatar.cc/40?img=4',
+            parentPhoneNumber: '+16812215667',
+            parentName: 'Robert Johnson',
+          },
+          {
+            id: 5,
+            name: 'Lucas Smith',
+            grade: 9,
+            avatar: 'https://i.pravatar.cc/40?img=5',
+            parentPhoneNumber: '+16812215667',
+            parentName: 'Jessica Smith',
+          },
+          {
+            id: 6,
+            name: 'Sophia Williams',
+            grade: 9,
+            avatar: 'https://i.pravatar.cc/40?img=6',
+            parentPhoneNumber: '+16812215667',
+            parentName: 'David Williams',
+          },
+        ])
+      }
+    }
+    fetchEnrolledStudents()
+  }, [selectedCourse])
+
+  // Load existing attendance for this date/course
+  useEffect(() => {
+    const loadAttendance = async () => {
+      setAttendanceLoaded(false)
+      setAttendanceExists(false)
+      if (!selectedCourse) return
+      const dateId = attendanceDate.toISOString().split('T')[0]
+      const courseId = selectedCourse.id
+      const studentsColRef = collection(
+        firestore,
+        'attendance',
+        dateId,
+        'courses',
+        courseId,
+        'students'
+      )
+      try {
+        const snapshot = await getDocs(studentsColRef)
+        if (!snapshot.empty) {
+          const loadedAttendance = {}
+          snapshot.forEach((doc) => {
+            const data = doc.data()
+            loadedAttendance[doc.id] = {
+              status: data.status,
+              comment: data.note || '',
+            }
+          })
+          setAttendanceData(loadedAttendance)
+          setAttendanceExists(true)
+        } else {
+          setAttendanceData({})
+        }
+      } catch (err) {
+        console.error('Error loading attendance:', err)
+      } finally {
+        setAttendanceLoaded(true)
+      }
+    }
+    loadAttendance()
+    // Only reload if course or date changes
+  }, [selectedCourse, attendanceDate])
 
   useEffect(() => {
     // Check if SMS notification is properly configured
@@ -201,18 +285,45 @@ const AttendanceTable = () => {
     setShowModal(false)
   }
 
-  const handleComplete = () => {
-    // Count how many students are marked absent
+  const handleComplete = async () => {
+    if (!selectedCourse) {
+      toast.error('No course selected!')
+      return
+    }
+    if (!user) {
+      toast.error('You must be logged in to record attendance.')
+      return
+    }
+    const dateId = attendanceDate.toISOString().split('T')[0] // YYYY-MM-DD
+    const courseId = selectedCourse.id
+    const attendanceRef = doc(collection(firestore, 'attendance'), dateId)
+    const courseRef = doc(collection(attendanceRef, 'courses'), courseId)
+    const studentsCollectionRef = collection(courseRef, 'students')
+    try {
+      // Set course-level doc with timestamp
+      await setDoc(courseRef, { timestamp: serverTimestamp() }, { merge: true })
+      // Set each student's attendance
+      const promises = Object.entries(attendanceData).map(([studentId, data]) => {
+        const studentRef = doc(studentsCollectionRef, studentId)
+        return setDoc(studentRef, {
+          status: data.status,
+          note: data.comment || '',
+          recordedBy: user.uid,
+        })
+      })
+      await Promise.all(promises)
+      toast.success('Attendance saved!')
+      navigate('/attendance')
+    } catch (err) {
+      console.error('Error saving attendance:', err)
+      toast.error('Failed to save attendance.')
+    }
+    // ... existing summary logic ...
     const absentCount = Object.values(attendanceData).filter(
       (data) => data.status === 'Absent',
     ).length
-
-    // Prepare a summary message
     let summaryMessage = `Attendance complete: ${students.length - absentCount} present, ${absentCount} absent`
-
-    // Display summary in toast notification
     toast.success(summaryMessage)
-
     console.log('Attendance Completed:', attendanceData)
   }
 
@@ -251,6 +362,16 @@ const AttendanceTable = () => {
 
   return (
     <div style={{ position: 'relative', paddingBottom: '60px' }}>
+      {/* Attendance already exists alert */}
+      {attendanceExists && (
+        <CAlert color="warning" className="d-flex align-items-center mb-3">
+          <CIcon icon={cilBellExclamation} className="flex-shrink-0 me-2" />
+          <div>
+            Attendance for this class and date has already been taken. You may update and resubmit if needed.
+          </div>
+        </CAlert>
+      )}
+
       {/* SMS Notification Status */}
       {!smsNotificationEnabled && (
         <CAlert color="warning" className="d-flex align-items-center mb-3">
@@ -282,122 +403,130 @@ const AttendanceTable = () => {
       <CTable striped bordered responsive>
         <CTableHead>
           <CTableRow>
-            <CTableHeaderCell>Students</CTableHeaderCell>
-            <CTableHeaderCell>Attendance Codes</CTableHeaderCell>
-            <CTableHeaderCell>Status</CTableHeaderCell>
-            <CTableHeaderCell>Comments</CTableHeaderCell>
+            <CTableHeaderCell style={{ width: '22%' }}>Students</CTableHeaderCell>
+            <CTableHeaderCell style={{ width: '18%' }}>Attendance Codes</CTableHeaderCell>
+            <CTableHeaderCell style={{ width: '18%' }}>Status</CTableHeaderCell>
+            <CTableHeaderCell style={{ width: '42%' }}>Comments</CTableHeaderCell>
           </CTableRow>
         </CTableHead>
-
         <CTableBody>
-          {students.map((student) => (
-            <CTableRow key={student.id}>
-              <CTableDataCell style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <img src={student.avatar} alt={student.name} style={{ borderRadius: '50%' }} />
-                <div>
-                  {student.name}
-                  <br />
-                  <small>
-                    #{student.id} • Grade {student.grade}
-                  </small>
-                </div>
-              </CTableDataCell>
-
-              <CTableDataCell>
-                <CButton
-                  color="success"
-                  variant="outline"
-                  onClick={() => handleAttendanceChange(student, 'Present')}
-                  style={{
-                    marginRight: '5px',
-                    backgroundColor:
-                      attendanceData[student.id]?.status === 'Present' ? '#28a745' : 'white',
-                    color: attendanceData[student.id]?.status === 'Present' ? 'white' : 'black',
-                    border: '1px solid #28a745',
-                  }}
-                >
-                  ✅ Present
-                </CButton>
-
-                <CButton
-                  color="danger"
-                  variant="outline"
-                  onClick={() => handleAttendanceChange(student, 'Absent')}
-                  style={{
-                    marginRight: '5px',
-                    backgroundColor:
-                      attendanceData[student.id]?.status === 'Absent' ? '#dc3545' : 'white',
-                    color: attendanceData[student.id]?.status === 'Absent' ? 'white' : 'black',
-                    border: '1px solid #dc3545',
-                  }}
-                >
-                  ❌ Absent
-                </CButton>
-
-                <CButton
-                  color="warning"
-                  variant="outline"
-                  onClick={() => handleAttendanceChange(student, 'Late')}
-                  style={{
-                    backgroundColor:
-                      attendanceData[student.id]?.status === 'Late' ? '#ffc107' : 'white',
-                    color: attendanceData[student.id]?.status === 'Late' ? 'black' : 'black',
-                    border: '1px solid #ffc107',
-                  }}
-                >
-                  ⏳ Late
-                </CButton>
-              </CTableDataCell>
-
-              <CTableDataCell>
-                {attendanceData[student.id]?.status === 'Absent' && smsNotificationEnabled && (
-                  <div className="d-flex align-items-center">
-                    {getNotificationStatusIcon(student.id) || (
-                      <CButton
-                        color="info"
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => sendAbsenceNotification(student)}
-                      >
-                        <CIcon icon={cilBell} /> Notify
-                      </CButton>
-                    )}
+          {students.map((student) => {
+            // Prefer Firestore fields if present
+            const fullName = student.personalInfo
+              ? `${student.personalInfo.firstName || ''} ${student.personalInfo.lastName || ''}`.trim()
+              : student.name
+            const grade = student.schooling?.program || student.grade || ''
+            const avatar = student.avatar || 'https://i.pravatar.cc/40?img=1'
+            return (
+              <CTableRow key={student.id}>
+                <CTableDataCell style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {/* <img src={avatar} alt={fullName} style={{ borderRadius: '50%' }} /> */}
+                  <div>
+                    {fullName}
+                    <br />
+                    <small>
+                      #{student.id} • {grade}
+                    </small>
                   </div>
-                )}
-                {attendanceData[student.id]?.status &&
-                  attendanceData[student.id]?.status !== 'Absent' && (
-                    <CBadge
-                      color={
-                        attendanceData[student.id]?.status === 'Present'
-                          ? 'success'
-                          : attendanceData[student.id]?.status === 'Late'
-                            ? 'warning'
-                            : 'primary'
-                      }
-                    >
-                      {attendanceData[student.id]?.status}
-                    </CBadge>
-                  )}
-              </CTableDataCell>
+                </CTableDataCell>
 
-              <CTableDataCell>
-                <CIcon
-                  icon={cilChatBubble}
-                  size="lg"
-                  style={{
-                    color: attendanceData[student.id]?.comment ? 'green' : 'black',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => openCommentModal(student)}
-                />
-                {attendanceData[student.id]?.comment && (
-                  <small className="ms-2 text-muted">
-                    {attendanceData[student.id]?.comment.substring(0, 20)}...
-                  </small>
-                )}
-              </CTableDataCell>
-            </CTableRow>
-          ))}
+                <CTableDataCell>
+                  <div style={{ display: 'flex', flexDirection: 'row', gap: '5px' }}>
+                    <CButton
+                      color="success"
+                      variant="outline"
+                      onClick={() => handleAttendanceChange(student, 'Present')}
+                      style={{
+                        width: 110,
+                        backgroundColor:
+                          attendanceData[student.id]?.status === 'Present' ? '#28a745' : 'white',
+                        color: attendanceData[student.id]?.status === 'Present' ? 'white' : 'black',
+                        border: '1px solid #28a745',
+                      }}
+                    >
+                      ✅ Present
+                    </CButton>
+
+                    <CButton
+                      color="danger"
+                      variant="outline"
+                      onClick={() => handleAttendanceChange(student, 'Absent')}
+                      style={{
+                        width: 110,
+                        backgroundColor:
+                          attendanceData[student.id]?.status === 'Absent' ? '#dc3545' : 'white',
+                        color: attendanceData[student.id]?.status === 'Absent' ? 'white' : 'black',
+                        border: '1px solid #dc3545',
+                      }}
+                    >
+                      ❌ Absent
+                    </CButton>
+
+                    <CButton
+                      color="warning"
+                      variant="outline"
+                      onClick={() => handleAttendanceChange(student, 'Late')}
+                      style={{
+                        width: 110,
+                        backgroundColor:
+                          attendanceData[student.id]?.status === 'Late' ? '#ffc107' : 'white',
+                        color: attendanceData[student.id]?.status === 'Late' ? 'black' : 'black',
+                        border: '1px solid #ffc107',
+                      }}
+                    >
+                      ⏳ Late
+                    </CButton>
+                  </div>
+                </CTableDataCell>
+                <CTableDataCell>
+                  {attendanceData[student.id]?.status === 'Absent' && smsNotificationEnabled && (
+                    <div className="d-flex align-items-center">
+                      {getNotificationStatusIcon(student.id) || (
+                        <CButton
+                          color="info"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => sendAbsenceNotification(student)}
+                        >
+                          <CIcon icon={cilBell} /> Notify
+                        </CButton>
+                      )}
+                    </div>
+                  )}
+                  {attendanceData[student.id]?.status &&
+                    attendanceData[student.id]?.status !== 'Absent' && (
+                      <CBadge
+                        color={
+                          attendanceData[student.id]?.status === 'Present'
+                            ? 'success'
+                            : attendanceData[student.id]?.status === 'Late'
+                              ? 'warning'
+                              : 'primary'
+                        }
+                      >
+                        {attendanceData[student.id]?.status}
+                      </CBadge>
+                    )}
+                </CTableDataCell>
+                <CTableDataCell style={{ minWidth: 200, maxWidth: 400, whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                  <CIcon
+                    icon={cilChatBubble}
+                    size="lg"
+                    style={{
+                      color: attendanceData[student.id]?.comment ? 'green' : 'black',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => openCommentModal(student)}
+                  />
+                  {attendanceData[student.id]?.comment && (
+                    <small className="ms-2 text-muted">
+                      {attendanceData[student.id]?.comment.substring(0, 120)}
+                    </small>
+                  )}
+                </CTableDataCell>
+              </CTableRow>
+            )
+          })}
         </CTableBody>
       </CTable>
 
