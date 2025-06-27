@@ -17,27 +17,49 @@ function CoursesPage() {
         try {
           const userDocRef = doc(firestore, 'users', user.uid)
           const userDoc = await getDoc(userDocRef)
-          const userRole = userDoc.exists() ? userDoc.data().role : null
+          let userRole = null
+          if (userDoc.exists()) {
+            const userData = userDoc.data()
+            userRole = userData.personalInfo?.role || userData.role || null
+          }
 
           const coursesCollectionRef = collection(firestore, 'courses')
           let coursesQuery
 
           if (userRole?.toLowerCase() === 'admin') {
             coursesQuery = coursesCollectionRef
-          } else if (userRole?.toLowerCase() === 'teacher') {
-            coursesQuery = query(
-              coursesCollectionRef,
-              where('teacherIds', 'array-contains', user.uid),
+            const coursesSnapshot = await getDocs(coursesQuery)
+            const userCourses = coursesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+            setCourses(userCourses)
+          } else if (userRole?.toLowerCase() === 'faculty') {
+            // Fetch the faculty doc from the 'faculty' collection
+            const facultyDocRef = doc(firestore, 'faculty', user.uid)
+            const facultyDoc = await getDoc(facultyDocRef)
+            if (!facultyDoc.exists()) {
+              setCourses([])
+              setLoading(false)
+              return
+            }
+            const facultyData = facultyDoc.data()
+            const facultyCourses = facultyData.courses || []
+            if (facultyCourses.length === 0) {
+              setCourses([])
+              setLoading(false)
+              return
+            }
+            // Fetch each course by ID from the 'courses' collection
+            const courseDocs = await Promise.all(
+              facultyCourses.map((courseId) => getDoc(doc(coursesCollectionRef, courseId))),
             )
+            const userCourses = courseDocs
+              .filter((doc) => doc.exists())
+              .map((doc) => ({ id: doc.id, ...doc.data() }))
+            setCourses(userCourses)
           } else {
             setCourses([])
             setLoading(false)
             return
           }
-
-          const coursesSnapshot = await getDocs(coursesQuery)
-          const userCourses = coursesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-          setCourses(userCourses)
         } catch (error) {
           console.error('Error fetching courses:', error)
           setCourses([])
