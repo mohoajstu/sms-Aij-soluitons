@@ -18,21 +18,53 @@ import "./ReportCardLovable.css";
 import { PDFDocument } from 'pdf-lib';
 import { saveAs } from 'file-saver';
 import DynamicReportCardForm from './Componenets/DynamicReportCardForm';
+import { useNavigate } from 'react-router-dom';
 
-// Report card types configuration
+// NOTE: All PDF assets are served from the public folder so we can access them by URL at runtime.
+// The folder name "Report Cards" contains a space, so we encode it (`Report%20Cards`).
 const REPORT_CARD_TYPES = [
   {
-    id: 'kindergarten-initial-observations',
-    name: 'Kindergarten Communication of Learning - Initial Observations',
-    pdfPath: '/src/assets/ReportCards/kg-cl-initial-Observations.pdf',
-    description: 'Initial observations form for kindergarten students'
+    id: 'kg-initial-observations',
+    name: 'Kindergarten – Communication of Learning (Initial Observations)',
+    pdfPath: '/assets/Report%20Cards/kg-cl-initial-Observations.pdf',
+    description: 'Kindergarten progress report – initial observations',
+    route: '/reportcards/kg-initial',
   },
   {
-    id: 'elementary-provincial-report-card',
-    name: 'Elementary Provincial Report Card (Grades 1-6)',
-    pdfPath: '/src/assets/ReportCards/edu-elementary-provincial-report-card-public-schools-1-6.pdf',
-    description: 'Official provincial report card for elementary students grades 1-6'
-  }
+    id: 'kg-report-card',
+    name: 'Kindergarten – Communication of Learning (Report Card)',
+    pdfPath: '/assets/Report%20Cards/edu-Kindergarten-Communication-of-Learning-public-schools.pdf',
+    description: 'Kindergarten formal report card',
+    route: '/reportcards/kg-report',
+  },
+  {
+    id: '1-6-progress',
+    name: 'Grades 1–6 – Elementary Progress Report',
+    pdfPath: '/assets/Report%20Cards/1-6-edu-elementary-progress-report-card-public-schools.pdf',
+    description: 'Elementary progress report card for grades 1-6',
+    route: '/reportcards/1-6-progress',
+  },
+  {
+    id: '1-6-report-card',
+    name: 'Grades 1–6 – Elementary Provincial Report Card',
+    pdfPath: '/assets/Report%20Cards/1-6-edu-elementary-provincial-report-card-public-schools.pdf',
+    description: 'Elementary provincial report card for grades 1-6',
+    route: '/reportcards/1-6-report',
+  },
+  {
+    id: '7-8-progress',
+    name: 'Grades 7–8 – Elementary Progress Report',
+    pdfPath: '/assets/Report%20Cards/7-8-edu-elementary-progress-report-card-public-schools.pdf',
+    description: 'Elementary progress report card for grades 7-8',
+    route: '/reportcards/7-8-progress',
+  },
+  {
+    id: '7-8-report-card',
+    name: 'Grades 7–8 – Elementary Provincial Report Card',
+    pdfPath: '/assets/Report%20Cards/7-8-edu-elementary-provincial-report-card-public-schools.pdf',
+    description: 'Elementary provincial report card for grades 7-8',
+    route: '/reportcards/7-8-report',
+  },
 ];
 
 // Define the structure of our form data with JSDoc
@@ -66,14 +98,18 @@ const REPORT_CARD_TYPES = [
  * @property {string} principal_signature - Principal signature
  */
 
-const ReportCardLovable = () => {
-  const [selectedReportCard, setSelectedReportCard] = useState('');
+// Accept an optional presetReportCardId. If provided the dropdown is hidden and the supplied
+// template will be used immediately. This lets us reuse this component inside wrapper pages.
+const ReportCardLovable = ({ presetReportCardId = null }) => {
+  const [selectedReportCard, setSelectedReportCard] = useState(presetReportCardId || '');
   const [formData, setFormData] = useState({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [fields, setFields] = useState([]);
   const [filledPdfBytes, setFilledPdfBytes] = useState(null);
   const [currentTab, setCurrentTab] = useState('form');
   const [showFieldInspector, setShowFieldInspector] = useState(false);
+
+  const navigate = useNavigate();
 
   // Get current report card configuration
   const getCurrentReportType = () => {
@@ -88,7 +124,14 @@ const ReportCardLovable = () => {
 
   // Handle report card type change
   const handleReportTypeChange = (e) => {
-    setSelectedReportCard(e.target.value);
+    const id = e.target.value;
+    setSelectedReportCard(id);
+
+    // Find route and navigate
+    const config = REPORT_CARD_TYPES.find(t => t.id === id);
+    if (config?.route) {
+      navigate(config.route);
+    }
   };
 
   // Handle field inspection results
@@ -133,29 +176,31 @@ const ReportCardLovable = () => {
         <CCol>
           <h2>Report Card Generator</h2>
 
-          {/* Report Card Type Selector */}
-          <CCard className="mb-4">
-            <CCardBody>
-              <div className="report-card-type-selector">
-                <label htmlFor="reportCardType" className="form-label">
-                  Select Report Card Type:
-                </label>
-                <CFormSelect
-                  id="reportCardType"
-                  value={selectedReportCard}
-                  onChange={handleReportTypeChange}
-                  className="mb-3"
-                >
-                  <option value="">Choose a report card type...</option>
-                  {REPORT_CARD_TYPES.map((type) => (
-                    <option key={type.id} value={type.id}>
-                      {type.name}
-                    </option>
-                  ))}
-                </CFormSelect>
-              </div>
-            </CCardBody>
-          </CCard>
+          {/* Report Card Type Selector – hide if a preset report card was supplied */}
+          {!presetReportCardId && (
+            <CCard className="mb-4">
+              <CCardBody>
+                <div className="report-card-type-selector">
+                  <label htmlFor="reportCardType" className="form-label">
+                    Select Report Card Type:
+                  </label>
+                  <CFormSelect
+                    id="reportCardType"
+                    value={selectedReportCard}
+                    onChange={handleReportTypeChange}
+                    className="mb-3"
+                  >
+                    <option value="">Choose a report card type...</option>
+                    {REPORT_CARD_TYPES.map((type) => (
+                      <option key={type.id} value={type.id}>
+                        {type.name}
+                      </option>
+                    ))}
+                  </CFormSelect>
+                </div>
+              </CCardBody>
+            </CCard>
+          )}
 
           {/* Toggle Field Inspector */}
           {selectedReportCard && (
