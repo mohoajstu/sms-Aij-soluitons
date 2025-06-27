@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import {
   Box,
   Button,
@@ -18,6 +18,8 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import Autocomplete from '@mui/material/Autocomplete'
 import TextField from '@mui/material/TextField'
 import dayjs from 'dayjs'
+import { collection, getDocs, query, where, documentId } from 'firebase/firestore'
+import { firestore } from '../../Firebase/firebase'
 import './attendanceReportTable.css'
 
 const getStatusClass = (status) => {
@@ -38,38 +40,127 @@ const getStatusClass = (status) => {
 const defaultFilters = {
   startDate: null,
   endDate: null,
-  semester: null,
   class: null,
   student: null,
   status: null,
 }
 
-const AttendanceReportTable = ({ attendanceData, reportParams }) => {
+const AttendanceReportTable = () => {
   const [filterModalOpen, setFilterModalOpen] = useState(false)
   const [filters, setFilters] = useState(defaultFilters)
   const [pendingFilters, setPendingFilters] = useState(defaultFilters)
+  const [displayRows, setDisplayRows] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [searched, setSearched] = useState(false)
 
-  // Extract unique options for dropdowns
-  const semesterOptions = useMemo(
-    () => Array.from(new Set(attendanceData.map((row) => row.semester))).filter(Boolean),
-    [attendanceData],
-  )
-  const classOptions = useMemo(
-    () => Array.from(new Set(attendanceData.map((row) => row.class))).filter(Boolean),
-    [attendanceData],
-  )
-  const studentOptions = useMemo(
-    () => Array.from(new Set(attendanceData.map((row) => row.student))).filter(Boolean),
-    [attendanceData],
-  )
-  const statusOptions = useMemo(
-    () => Array.from(new Set(attendanceData.map((row) => row.status))).filter(Boolean),
-    [attendanceData],
-  )
-  const dateOptions = useMemo(
-    () => Array.from(new Set(attendanceData.map((row) => row.date))).filter(Boolean),
-    [attendanceData],
-  )
+  // State for filter dropdowns
+  const [classOptions, setClassOptions] = useState([])
+  const [studentOptions, setStudentOptions] = useState([])
+  const statusOptions = useMemo(() => ['Present', 'Absent', 'Late', 'Excused'], [])
+
+  useEffect(() => {
+    const fetchOptions = async () => {
+      try {
+        // Fetch classes from attendance records
+        const attendanceCol = collection(firestore, 'attendance')
+        const attendanceSnapshot = await getDocs(attendanceCol)
+        const coursesMap = new Map()
+
+        attendanceSnapshot.forEach((doc) => {
+          const dailyData = doc.data()
+          dailyData.courses?.forEach((course) => {
+            if (!coursesMap.has(course.courseId)) {
+              coursesMap.set(course.courseId, {
+                id: course.courseId,
+                label: course.courseTitle,
+              })
+            }
+          })
+        })
+        setClassOptions(Array.from(coursesMap.values()))
+
+        // Fetch students
+        const studentsCol = collection(firestore, 'students')
+        const studentSnapshot = await getDocs(studentsCol)
+        const students = studentSnapshot.docs.map((doc) => {
+          const data = doc.data()
+          const name = data.personalInfo
+            ? `${data.personalInfo.firstName} ${data.personalInfo.lastName}`.trim()
+            : data.name
+          return { id: doc.id, label: name }
+        })
+        setStudentOptions(students)
+      } catch (error) {
+        console.error('Error fetching filter options:', error)
+      }
+    }
+    fetchOptions()
+  }, [])
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const hasFilters = Object.values(filters).some((v) => v !== null)
+
+      if (!hasFilters) {
+        setDisplayRows([])
+        setSearched(false)
+        return
+      }
+
+      setLoading(true)
+      setSearched(true)
+
+      try {
+        let q = query(collection(firestore, 'attendance'))
+
+        if (filters.startDate) {
+          q = query(q, where(documentId(), '>=', dayjs(filters.startDate).format('YYYY-MM-DD')))
+        }
+        if (filters.endDate) {
+          q = query(q, where(documentId(), '<=', dayjs(filters.endDate).format('YYYY-MM-DD')))
+        }
+
+        const querySnapshot = await getDocs(q)
+        let allRecords = []
+        let idCounter = 0
+
+        querySnapshot.forEach((doc) => {
+          const dailyData = doc.data()
+          const date = dailyData.date
+          dailyData.courses?.forEach((course) => {
+            course.students?.forEach((student) => {
+              allRecords.push({
+                id: idCounter++,
+                date: date,
+                class: course.courseTitle,
+                classId: course.courseId,
+                student: student.studentName,
+                studentId: student.studentId,
+                status: student.status,
+                note: student.note,
+              })
+            })
+          })
+        })
+
+        const filteredRecords = allRecords.filter((row) => {
+          if (filters.class && row.classId !== filters.class.id) return false
+          if (filters.student && row.studentId !== filters.student.id) return false
+          if (filters.status && row.status !== filters.status) return false
+          return true
+        })
+
+        setDisplayRows(filteredRecords)
+      } catch (error) {
+        console.error('Error fetching attendance data: ', error)
+        setDisplayRows([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [filters])
 
   // DataGrid columns
   const columns = [
@@ -110,22 +201,10 @@ const AttendanceReportTable = ({ attendanceData, reportParams }) => {
     },
   ]
 
-  // DataGrid expects each row to have a unique id
-  const rows = attendanceData.map((row, idx) => ({ id: idx, ...row }))
-
-  // Filtering logic
-  const filteredRows = useMemo(() => {
-    return rows.filter((row) => {
-      // Date range filter
-      if (filters.startDate && dayjs(row.date).isBefore(dayjs(filters.startDate), 'day')) return false
-      if (filters.endDate && dayjs(row.date).isAfter(dayjs(filters.endDate), 'day')) return false
-      if (filters.semester && row.semester !== filters.semester) return false
-      if (filters.class && row.class !== filters.class) return false
-      if (filters.student && row.student !== filters.student) return false
-      if (filters.status && row.status !== filters.status) return false
-      return true
-    })
-  }, [rows, filters])
+  const handleApplyFiltersFromModal = () => {
+    setFilters(pendingFilters)
+    setFilterModalOpen(false)
+  }
 
   const exportToExcel = () => {
     // Placeholder for Excel export functionality
@@ -142,10 +221,14 @@ const AttendanceReportTable = ({ attendanceData, reportParams }) => {
   const noDataDisplay = (
     <Box className="no-data-container">
       <Typography variant="body1" className="no-data-text">
-        No attendance records match your search criteria.
+        {searched
+          ? 'No attendance records match your search criteria.'
+          : 'Please apply filters to see the report.'}
       </Typography>
       <Typography variant="body2" color="textSecondary">
-        Try adjusting your filters or selecting different dates.
+        {searched
+          ? 'Try adjusting your filters or selecting different dates.'
+          : 'Start by clicking the "Filters" button.'}
       </Typography>
     </Box>
   )
@@ -159,7 +242,7 @@ const AttendanceReportTable = ({ attendanceData, reportParams }) => {
   // Filter modal content
   const filterModal = (
     <Modal open={filterModalOpen} onClose={() => setFilterModalOpen(false)}>
-      <Box sx={{
+      <Box className="filter-modal-content" sx={{
         position: 'absolute',
         top: '50%',
         left: '50%',
@@ -169,13 +252,12 @@ const AttendanceReportTable = ({ attendanceData, reportParams }) => {
         borderRadius: 2,
         boxShadow: 24,
         p: 4,
-        display: 'flex',
-        flexDirection: 'column',
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
         gap: 3,
       }}>
-        <Typography variant="h6" mb={2}>Filter Attendance</Typography>
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'auto 1fr 1fr', gap: 2 }}>
-          {/* Date Fields Column */}
+        <Typography variant="h6" mb={2} sx={{ gridColumn: '1 / span 2' }}>Filter Attendance</Typography>
+        {/* Dates and Class Column */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <DatePicker
@@ -197,20 +279,10 @@ const AttendanceReportTable = ({ attendanceData, reportParams }) => {
                 format="YYYY-MM-DD"
               />
             </LocalizationProvider>
-          </Box>
-          {/* Middle Column */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Autocomplete
-              options={semesterOptions}
-              value={pendingFilters.semester}
-              onChange={(_, value) => setPendingFilters((f) => ({ ...f, semester: value }))}
-              renderInput={(params) => <TextField {...params} label="Semester" variant="outlined" fullWidth />}
-              clearOnEscape
-              autoHighlight
-              freeSolo={false}
-            />
             <Autocomplete
               options={classOptions}
+            getOptionLabel={(option) => option.label || ''}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
               value={pendingFilters.class}
               onChange={(_, value) => setPendingFilters((f) => ({ ...f, class: value }))}
               renderInput={(params) => <TextField {...params} label="Class" variant="outlined" fullWidth />}
@@ -219,10 +291,12 @@ const AttendanceReportTable = ({ attendanceData, reportParams }) => {
               freeSolo={false}
             />
           </Box>
-          {/* Right Column */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {/* Student and Status Column */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: '29px' }}>
             <Autocomplete
               options={studentOptions}
+            getOptionLabel={(option) => option.label || ''}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
               value={pendingFilters.student}
               onChange={(_, value) => setPendingFilters((f) => ({ ...f, student: value }))}
               renderInput={(params) => <TextField {...params} label="Student" variant="outlined" fullWidth />}
@@ -240,10 +314,9 @@ const AttendanceReportTable = ({ attendanceData, reportParams }) => {
               freeSolo={false}
             />
           </Box>
-        </Box>
-        <Box display="flex" justifyContent="flex-end" gap={1} mt={3}>
+        <Box sx={{ gridColumn: '1 / span 2', display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 3 }}>
           <Button onClick={() => setPendingFilters(defaultFilters)} sx={{ color: '#c62828' }}>Clear</Button>
-          <Button variant="contained" onClick={() => { setFilters(pendingFilters); setFilterModalOpen(false); }}>Apply</Button>
+          <Button variant="contained" onClick={handleApplyFiltersFromModal}>Apply</Button>
         </Box>
       </Box>
     </Modal>
@@ -258,20 +331,17 @@ const AttendanceReportTable = ({ attendanceData, reportParams }) => {
       {filters.endDate && (
         <Chip label={`To: ${dayjs(filters.endDate).format('YYYY-MM-DD')}`} onDelete={() => setFilters(f => ({ ...f, endDate: null }))} />
       )}
-      {filters.semester && (
-        <Chip label={`Semester: ${filters.semester}`} onDelete={() => setFilters(f => ({ ...f, semester: null }))} />
-      )}
       {filters.class && (
-        <Chip label={`Class: ${filters.class}`} onDelete={() => setFilters(f => ({ ...f, class: null }))} />
+        <Chip label={`Class: ${filters.class.label}`} onDelete={() => setFilters(f => ({ ...f, class: null }))} />
       )}
       {filters.student && (
-        <Chip label={`Student: ${filters.student}`} onDelete={() => setFilters(f => ({ ...f, student: null }))} />
+        <Chip label={`Student: ${filters.student.label}`} onDelete={() => setFilters(f => ({ ...f, student: null }))} />
       )}
       {filters.status && (
         <Chip label={`Status: ${filters.status}`} onDelete={() => setFilters(f => ({ ...f, status: null }))} />
       )}
-      {(filters.startDate || filters.endDate || filters.semester || filters.class || filters.student || filters.status) && (
-        <IconButton size="small" onClick={() => setFilters(defaultFilters)} title="Clear all filters">
+      {(filters.startDate || filters.endDate || filters.class || filters.student || filters.status) && (
+        <IconButton size="small" onClick={() => { setFilters(defaultFilters) }} title="Clear all filters">
           <ClearIcon fontSize="small" />
         </IconButton>
       )}
@@ -284,9 +354,6 @@ const AttendanceReportTable = ({ attendanceData, reportParams }) => {
       <Box className="report-header" sx={{ mb: 2, flexDirection: 'column', alignItems: 'stretch', gap: 2 }}>
         <Typography variant="h5" className="report-title" sx={{ fontWeight: 700 }}>
           Attendance Report
-          {reportParams.semester && (
-            <span className="report-subtitle"> - {reportParams.semester}</span>
-          )}
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1, gap: 2 }}>
           <Button
@@ -323,8 +390,9 @@ const AttendanceReportTable = ({ attendanceData, reportParams }) => {
       {activeFilterChips}
       <Box className="table-container" sx={{ height: 500, width: '100%', overflowX: 'auto' }}>
         <DataGrid
-          rows={filteredRows}
+          rows={displayRows}
           columns={columns}
+          loading={loading}
           pageSize={10}
           rowsPerPageOptions={[10, 25, 50]}
           disableRowSelectionOnClick
@@ -415,7 +483,7 @@ const AttendanceReportTable = ({ attendanceData, reportParams }) => {
       </Box>
       <Box className="report-footer">
         <Typography variant="body2" className="record-count">
-          Showing {filteredRows.length} record{filteredRows.length !== 1 ? 's' : ''}
+          Showing {displayRows.length} record{displayRows.length !== 1 ? 's' : ''}
         </Typography>
       </Box>
     </Box>

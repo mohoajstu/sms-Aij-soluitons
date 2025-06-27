@@ -41,6 +41,7 @@
   font-size: 14px;
   cursor: pointer;
   background-color: white;
+
 }
 
 /* Present button styles */
@@ -137,4 +138,40 @@
     min-width: 40px;
     font-size: 12px;
   }
+}
+
+/* Fixed table container for scrollable attendance table */
+.attendance-table-container-fixed {
+  max-height: 80vh;
+  min-height: 300px;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom: 24px;
+}
+
+.attendance-fixed-table {
+  border-radius: 8px !important;
+  overflow: hidden;
+  background: #fff;
+}
+
+/* Remove alternating row backgrounds, keep all rows white */
+.attendance-fixed-table tr, .attendance-fixed-table td, .attendance-fixed-table th {
+  background: #fff !important;
+}
+
+/* Excused button style (blue, rounded) */
+.c-excused-btn {
+  border: 1px solid #2196f3 !important;
+  background: #2196f3 !important;
+  color: #fff !important;
+  border-radius: 20px !important;
+}
+.c-excused-btn-outline {
+  border: 1px solid #2196f3 !important;
+  background: #fff !important;
+  color: #2196f3 !important;
+  border-radius: 20px !important;
 }

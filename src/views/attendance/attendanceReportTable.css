@@ -183,3 +183,25 @@
     padding-right: 16px !important;
   }
   
+  /* Ensure filter modal uses grid layout and is not affected by global flex styles */
+  .filter-modal-content {
+    display: grid !important;
+    grid-template-columns: none !important;
+    gap: 24px !important;
+    width: 600px !important;
+    background: #fff !important;
+    border-radius: 16px !important;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.12) !important;
+    padding: 32px !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+  }
+  
+  .filter-modal-content > .MuiBox-root {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+  
