@@ -34,17 +34,19 @@ const Dashboard = () => {
   const [userFirstName, setUserFirstName] = useState('')
   const [userRole, setUserRole] = useState('')
   const [loading, setLoading] = useState(true)
+  const [userId, setUserId] = useState('')
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        setUserId(user.uid)
         try {
           const userDocRef = doc(firestore, 'users', user.uid)
           const userDoc = await getDoc(userDocRef)
           if (userDoc.exists()) {
             const userData = userDoc.data()
-            setUserFirstName(userData.firstName || 'User')
-            setUserRole(userData.role || '')
+            setUserFirstName(userData.personalInfo?.firstName || userData.firstName || 'User')
+            setUserRole(userData.personalInfo?.role || userData.role || '')
           }
         } catch (error) {
           console.error('Error fetching user data:', error)
@@ -110,17 +112,29 @@ const Dashboard = () => {
       <div className="enhanced-welcome-banner">
         <div className="welcome-banner-content">
           <div className="welcome-header">
-            <h2>Welcome Back, {userFirstName}!</h2>
-            <div className="welcome-date">
-              <CIcon icon={cilCalendar} className="me-2" />
-              <span>
-                {new Date().toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </span>
+            <div className="welcome-header-left">
+              <h2>Welcome Back, {userFirstName}!</h2>
+              {userId && (
+                <div
+                  className="user-id-display"
+                  style={{ fontSize: '1rem', color: '#bbb', marginTop: 8 }}
+                >
+                  {userId}
+                </div>
+              )}
+            </div>
+            <div className="welcome-header-date">
+              <div className="welcome-date">
+                <CIcon icon={cilCalendar} className="me-2" />
+                <span>
+                  {new Date().toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -168,7 +182,7 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Row */}
-      {userRole?.toLowerCase() !== 'teacher' && (
+      {userRole?.toLowerCase() !== 'faculty' && (
         <div className="stats-row">
           <CRow>
             <CCol lg={3} md={6} sm={12}>
