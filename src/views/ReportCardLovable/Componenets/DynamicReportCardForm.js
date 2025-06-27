@@ -46,6 +46,7 @@ const DynamicReportCardForm = ({ reportCardType, onFormDataChange }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sectionOrder, setSectionOrder] = useState([]);
 
   // Debounce form data changes to avoid excessive PDF updates
   const debouncedFormData = useDebounce(formData, 500);
@@ -100,6 +101,8 @@ const DynamicReportCardForm = ({ reportCardType, onFormDataChange }) => {
           }
         }
         
+        const section = determineSection(fieldName, reportCardType);
+        
         const processedField = {
           id: `field_${index}`,
           name: fieldName,
@@ -108,8 +111,8 @@ const DynamicReportCardForm = ({ reportCardType, onFormDataChange }) => {
           options,
           inputType: determineInputType(fieldName, fieldType),
           size: determineFieldSize(fieldName, fieldType),
-          maxLength: determineMaxLength(fieldName, fieldType),
-          section: determineSection(fieldName, reportCardType)
+          maxLength: determineMaxLength(fieldName, fieldType, section, reportCardType),
+          section,
         };
         
         console.log(`DynamicReportCardForm: Processed field:`, processedField);
@@ -120,15 +123,25 @@ const DynamicReportCardForm = ({ reportCardType, onFormDataChange }) => {
       console.log('DynamicReportCardForm: All processed fields:', processedFields);
       
       setFields(processedFields);
-      
+
+      // Compute dynamic section order based on first appearance in PDF
+      const dynamicSectionOrder = [];
+      processedFields.forEach((field) => {
+        if (!dynamicSectionOrder.includes(field.section)) {
+          dynamicSectionOrder.push(field.section);
+        }
+      });
+
+      setSectionOrder(dynamicSectionOrder);
+
       // Initialize form data with empty values
       const initialFormData = {};
       processedFields.forEach(field => {
         initialFormData[field.name] = field.inputType === 'checkbox' ? false : '';
       });
-      
+
       console.log('DynamicReportCardForm: Initial form data:', initialFormData);
-      
+
       setFormData(initialFormData);
       
     } catch (err) {
@@ -165,11 +178,25 @@ const DynamicReportCardForm = ({ reportCardType, onFormDataChange }) => {
       'visualArtsESL', 'otherESL', 'otherFrench', 'dramaIEP', 'musicFrench', 'musicIEP',
       'Checkbox_39', 'visualArtsIEP', 'otherIEP', 'otherNA', 'danceNA', 'dramaNA', 'musicNA',
       'visualArtsNA', 'ERSCompletedYes', 'ERSCompletedNo', 'ERSCompletedNA', 'ERSBenchmarkYes',
-      'ERSBenchmarkNo'
+      'ERSBenchmarkNo',
+      // Year checkboxes
+      'year1', 'year2', 'Year1', 'Year2',
+      // Key Learning flags
+      'keyLearningESL', 'keyLearningIEP', 'keyLearning2ESL', 'keyLearning2IEP',
+      'placementInSeptemberGrade1', 'placementInSeptemberKg2'
     ];
     
     // Check if this field is in our specific checkbox list
     if (checkboxFields.includes(fieldName)) {
+      return 'checkbox';
+    }
+    
+    // Generic rule: any field that includes ESL or IEP (but not "comment" etc.) is likely a checkbox
+    if ((lowerName.includes('esl') || lowerName.includes('iep')) &&
+        !lowerName.includes('comment') &&
+        !lowerName.includes('note') &&
+        !lowerName.includes('observation') &&
+        !lowerName.includes('description')) {
       return 'checkbox';
     }
     
@@ -194,7 +221,7 @@ const DynamicReportCardForm = ({ reportCardType, onFormDataChange }) => {
     // Date fields
     if (lowerName.includes('date') || lowerName.includes('birth')) return 'date';
     
-    // Text area for comments and long text
+    // Text area for comments, key learning and other long text
     if (lowerName.includes('comment') || 
         lowerName.includes('note') || 
         lowerName.includes('observation') ||
@@ -202,6 +229,7 @@ const DynamicReportCardForm = ({ reportCardType, onFormDataChange }) => {
         lowerName.includes('goal') ||
         lowerName.includes('strength') ||
         lowerName.includes('next') ||
+        lowerName.includes('keylearning') ||
         lowerName.includes('improvement') ||
         lowerName.includes('areas') ||
         lowerName.includes('feedback')) {
@@ -215,7 +243,7 @@ const DynamicReportCardForm = ({ reportCardType, onFormDataChange }) => {
   const determineFieldSize = (fieldName, fieldType) => {
     const lowerName = fieldName.toLowerCase();
     
-    if (fieldType === 'PDFCheckBox') return 'sm';
+    if (fieldType === 'PDFCheckBox' || determineInputType(fieldName, fieldType) === 'checkbox') return 'sm';
     
     // Extra small for initials, codes
     if (lowerName.includes('initial') || lowerName.includes('code')) return 'xs';
@@ -249,11 +277,60 @@ const DynamicReportCardForm = ({ reportCardType, onFormDataChange }) => {
     return 'md'; // Default medium size
   };
 
-  // Determine maximum character length for fields
-  const determineMaxLength = (fieldName, fieldType) => {
+  // Determine maximum character length for fields, incorporating ministry guidelines.
+  const determineMaxLength = (fieldName, fieldType, section, reportCardType) => {
     const lowerName = fieldName.toLowerCase();
     
+    // Checkbox fields have no character limit.
     if (fieldType === 'PDFCheckBox') return null;
+    
+    // Ministry guidelines – template-specific rules
+    const templateId = reportCardType?.id || '';
+
+    // Helper to detect Kindergarten templates
+    const isKindergarten = templateId.startsWith('kg');
+    const isProgress = templateId.includes('progress') || templateId.includes('initial');
+
+    // Kindergarten – Progress report (Initial Observations)
+    if (isKindergarten && isProgress) {
+      // Whole report single comment block → generous limit
+      if (section === 'Comments and Observations' || section === 'Learning Skills and Work Habits') {
+        return 1500;
+      }
+    }
+
+    // Kindergarten – Formal report card
+    if (isKindergarten && !isProgress) {
+      if (lowerName.includes('keylearning') || section === 'Comments and Observations') {
+        return 1000;
+      }
+    }
+
+    const isGrades1to6 = templateId.startsWith('1-6');
+    const isGrades7to8 = templateId.startsWith('7-8');
+
+    // Progress reports (Grades 1-8)
+    if (isProgress && (isGrades1to6 || isGrades7to8)) {
+      if (section === 'Learning Skills and Work Habits') {
+        return 1000;
+      }
+      if (section.startsWith('Subjects')) {
+        // 2-5 lines ≈ 350 chars @ 11-pt – we pick 400 as ceiling.
+        return 400;
+      }
+    }
+
+    // Formal report cards (Grades 1-8)
+    if (!isProgress && (isGrades1to6 || isGrades7to8)) {
+      if (section === 'Learning Skills and Work Habits') {
+        return 1000;
+      }
+      if (section.startsWith('Subjects')) {
+        return 800;
+      }
+    }
+
+    // --- Generic fallback rules below ---
     
     // Short fields
     if (lowerName.includes('initial') || lowerName.includes('code')) return 5;
@@ -266,7 +343,7 @@ const DynamicReportCardForm = ({ reportCardType, onFormDataChange }) => {
     if (lowerName.includes('telephone') || lowerName.includes('phone')) return 20;
     if (lowerName.includes('email')) return 100;
     
-    // Large text fields (strength/improvement areas)
+    // Large text fields (comments etc.)
     if (lowerName.includes('strength') || 
         lowerName.includes('next') ||
         lowerName.includes('improvement') ||
@@ -595,14 +672,27 @@ const DynamicReportCardForm = ({ reportCardType, onFormDataChange }) => {
             <label htmlFor={name} className="form-label">
               {label}:
             </label>
-            <CFormTextarea
-              id={name}
-              value={value}
-              onChange={(e) => handleFieldChange(name, e.target.value)}
-              rows={size === 'lg' ? 4 : 3}
-              maxLength={maxLength}
-              placeholder={`Enter ${label.toLowerCase()} (max ${maxLength} characters)`}
-            />
+            <div className="position-relative">
+              <CFormTextarea
+                id={name}
+                value={value}
+                onChange={(e) => handleFieldChange(name, e.target.value)}
+                rows={size === 'lg' ? 4 : 3}
+                maxLength={maxLength}
+                placeholder={`Enter ${label.toLowerCase()} (max ${maxLength} characters)`}
+              />
+              {/* Placeholder button for future AI generation */}
+              <CButton
+                color="light"
+                size="sm"
+                title="AI generate (coming soon)"
+                className="position-absolute"
+                style={{ top: '5px', right: '5px' }}
+                disabled
+              >
+                🤖
+              </CButton>
+            </div>
             <small className="text-muted">
               {value.length || 0}/{maxLength} characters | {name}
             </small>
@@ -707,27 +797,6 @@ const DynamicReportCardForm = ({ reportCardType, onFormDataChange }) => {
     return groups;
   }, {});
 
-  // Define section order
-  const sectionOrder = [
-    'Student/School Information',
-    'Attendance',
-    'Learning Skills and Work Habits',
-    'Subjects - Language',
-    'Subjects - French',
-    'Subjects - Mathematics',
-    'Subjects - Science',
-    'Subjects - Social Studies',
-    'Subjects - Health Education',
-    'Subjects - Physical Education',
-    'Subjects - Arts',
-    'Subjects',
-    'Early Reading Screening',
-    'Comments and Observations',
-    'Signatures',
-    'Other Checkboxes',
-    'Other'
-  ];
-
   if (!reportCardType) {
     return (
       <CAlert color="info">
@@ -780,7 +849,7 @@ const DynamicReportCardForm = ({ reportCardType, onFormDataChange }) => {
 
       <CForm>
         <CAccordion activeItemKey={0} flush>
-          {sectionOrder.map((sectionName, index) => {
+          {(sectionOrder.length > 0 ? sectionOrder : Object.keys(groupedFields)).map((sectionName, index) => {
             const sectionFields = groupedFields[sectionName];
             if (!sectionFields || sectionFields.length === 0) return null;
 
