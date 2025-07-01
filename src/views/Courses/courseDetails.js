@@ -1,7 +1,7 @@
 // CourseDetailPage.jsx
 import React, { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { firestore } from '../../firebase'
 import './courseDetails.css'
 import { CButton, CCard, CCardBody, CRow, CCol } from '@coreui/react'
@@ -13,6 +13,7 @@ import {
   assignmentToEvent,
   isAuthenticated,
 } from '../../services/calendarService'
+import { auth } from '../../firebase'
 
 function CourseDetailPage() {
   const { id } = useParams()
@@ -24,6 +25,9 @@ function CourseDetailPage() {
   const [isGoogleApiInitialized, setGoogleApiInitialized] = useState(false)
   const [isGisInitialized, setGisInitialized] = useState(false)
   const [isAuthed, setAuthed] = useState(false)
+  const [editingBudget, setEditingBudget] = useState(false)
+  const [newBudget, setNewBudget] = useState('')
+  const [userRole, setUserRole] = useState('')
 
   useEffect(() => {
     const initApis = async () => {
@@ -86,6 +90,31 @@ function CourseDetailPage() {
     fetchCourseData()
   }, [id])
 
+  useEffect(() => {
+    // Fetch user role for admin check
+    const unsub = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        const userDoc = await getDoc(doc(firestore, 'users', user.uid))
+        if (userDoc.exists()) {
+          const data = userDoc.data()
+          let role = data.personalInfo?.role?.toLowerCase() || data.role?.toLowerCase() || ''
+          // Check for primaryRole as well
+          if (!role && data.personalInfo?.primaryRole) {
+            const primaryRole = data.personalInfo.primaryRole.toLowerCase()
+            // Treat 'schooladmin' as 'admin'
+            if (primaryRole === 'schooladmin' || primaryRole === 'admin') {
+              role = 'admin'
+            } else {
+              role = primaryRole
+            }
+          }
+          setUserRole(role)
+        }
+      }
+    })
+    return () => unsub()
+  }, [])
+
   const getTextColor = (bgColor) => {
     if (bgColor && bgColor.startsWith('hsl')) {
       try {
@@ -145,6 +174,19 @@ function CourseDetailPage() {
   const courseColor = course.color || getColorFromId(course.id)
   const textColor = getTextColor(courseColor)
   const lightColor = getLighterColor(courseColor)
+
+  // Use teacher and students arrays from course doc
+  const staffList = Array.isArray(course.teacher) ? course.teacher : []
+  const studentList = Array.isArray(course.students) ? course.students : []
+
+  // Use this for all budget calculations and display
+  const initialBudget =
+    typeof course?.budget?.totalBudget === 'number' ? course.budget.totalBudget : 0
+
+  // Calculate remaining budget and used percent
+  const accumulatedCost = course?.budget?.accumulatedCost || 0
+  const remainingBudget = (initialBudget - accumulatedCost).toFixed(2)
+  const usedPercent = initialBudget > 0 ? ((accumulatedCost / initialBudget) * 100).toFixed(1) : 0
 
   return (
     <div className="course-detail-container">
@@ -240,95 +282,85 @@ function CourseDetailPage() {
       <CCard className="mt-4">
         <CCardBody>
           <h3 style={{ borderBottom: `2px solid ${courseColor}` }}>Course Overview</h3>
-          <CRow className="mt-4">
-            <CCol md={6}>
-              <div className="section">
+          <div className="course-overview-section mt-4">
+            <h2 className="mb-3">Course Overview</h2>
+            <CRow>
+              <CCol md={6}>
                 <h4>Staff</h4>
-                <div className="table-container">
-                  <table className="members-table">
-                    <thead>
+                <table className="members-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Name</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {staffList.length === 0 ? (
                       <tr>
-                        <th style={{ backgroundColor: lightColor }}>ID</th>
-                        <th style={{ backgroundColor: lightColor }}>Name</th>
-                        <th style={{ backgroundColor: lightColor }}>Role</th>
+                        <td colSpan={2}>No staff listed</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {staff.map((person, index) => (
-                        <tr key={index}>
-                          <td>{index + 1}</td>
-                          <td>{person}</td>
-                          <td>Instructor</td>
+                    ) : (
+                      staffList.map((t, idx) => (
+                        <tr key={idx}>
+                          <td>{t.schoolId || '-'}</td>
+                          <td>{t.name || '-'}</td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </CCol>
-
-            <CCol md={6}>
-              <div className="section">
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </CCol>
+              <CCol md={6}>
                 <h4>Students</h4>
-                <div className="table-container">
-                  <table className="members-table">
-                    <thead>
+                <table className="members-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Name</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {studentList.length === 0 ? (
                       <tr>
-                        <th style={{ backgroundColor: lightColor }}>ID</th>
-                        <th style={{ backgroundColor: lightColor }}>Name</th>
-                        <th style={{ backgroundColor: lightColor }}>Status</th>
+                        <td colSpan={2}>No students listed</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {students.map((student, index) => (
-                        <tr key={index}>
-                          <td>{index + 1}</td>
-                          <td>{student}</td>
-                          <td>Enrolled</td>
+                    ) : (
+                      studentList.map((s, idx) => (
+                        <tr key={idx}>
+                          <td>{s.id || '-'}</td>
+                          <td>{s.name || '-'}</td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </CCol>
-          </CRow>
-
-          <CRow className="mt-4">
-            <CCol>
-              <div className="course-stats-card">
-                <h4>Course Statistics</h4>
-                <div className="stats-content">
-                  <div className="stat-item">
-                    <div className="stat-label">Enrollment</div>
-                    <div className="stat-value">{students.length} students</div>
-                  </div>
-                  <div className="stat-item">
-                    <div className="stat-label">Staff</div>
-                    <div className="stat-value">{staff.length} instructors</div>
-                  </div>
-                  <div className="stat-item">
-                    <div className="stat-label">Assignments</div>
-                    <div className="stat-value">{course.assignments?.length || 0} total</div>
-                  </div>
-                  <div className="stat-item">
-                    <div className="stat-label">Schedule</div>
-                    <div className="stat-value">{course.schedule?.classDays?.join(', ')}</div>
-                  </div>
-                  <div className="stat-item">
-                    <div className="stat-label">Times</div>
-                    <div className="stat-value">
-                      {course.schedule?.startTime} - {course.schedule?.endTime}
-                    </div>
-                  </div>
-                  <div className="stat-item">
-                    <div className="stat-label">Location</div>
-                    <div className="stat-value">{course.schedule?.room}</div>
-                  </div>
-                </div>
-              </div>
-            </CCol>
-          </CRow>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </CCol>
+            </CRow>
+            <div className="course-statistics mt-4">
+              <h4>Course Statistics</h4>
+              <ul>
+                <li>Enrollment: {studentList.length} students</li>
+                <li>Staff: {staffList.length} instructors</li>
+                <li>
+                  Assignments: {Array.isArray(course.assignments) ? course.assignments.length : 0}{' '}
+                  total
+                </li>
+                <li>
+                  Schedule:{' '}
+                  {course.schedule && course.schedule.days
+                    ? course.schedule.days.join(', ')
+                    : 'N/A'}{' '}
+                  {course.schedule && course.schedule.startTime
+                    ? `${course.schedule.startTime} - ${course.schedule.endTime}`
+                    : ''}
+                </li>
+                <li>
+                  Location:{' '}
+                  {course.schedule && course.schedule.location ? course.schedule.location : 'N/A'}
+                </li>
+              </ul>
+            </div>
+          </div>
         </CCardBody>
       </CCard>
     </div>

@@ -154,6 +154,22 @@ function CoursesPage() {
           const textColor = getTextColor(bgColor)
           const linkUrl = `/courses/${course.id}`
 
+          // Robust field extraction
+          const courseTitle = course.title || course.name || 'Untitled Course'
+          const courseDesc = course.description || ''
+          const courseGrade = course.gradeLevel || (course.grade ? `Grade ${course.grade}` : '')
+          const courseSubject = course.subject || ''
+          const teacherNames = Array.isArray(course.teacher)
+            ? course.teacher.map((t) => t.name).join(', ')
+            : Array.isArray(course.teachers)
+              ? course.teachers.join(', ')
+              : ''
+          const studentCount = Array.isArray(course.students)
+            ? course.students.length
+            : Array.isArray(course.enrolledList)
+              ? course.enrolledList.length
+              : 0
+
           return (
             <Link key={course.id} to={linkUrl} style={{ textDecoration: 'none' }}>
               <div
@@ -164,24 +180,8 @@ function CoursesPage() {
                 }}
               >
                 <div className="course-tile-body">
-                  <h2 className="course-tile-title">{course.title}</h2>
-                  <p className="course-tile-description">{course.description}</p>
-                  {course.schedule && (
-                    <div className="course-schedule-info">
-                      <div className="course-schedule-days">
-                        {course.schedule.classDays.join(', ')}
-                      </div>
-                      <div className="course-schedule-time">
-                        {course.schedule.startTime} - {course.schedule.endTime}
-                      </div>
-                    </div>
-                  )}
-                  {course.assignments && course.assignments.length > 0 && (
-                    <div className="assignment-badge">
-                      {course.assignments.length}{' '}
-                      {course.assignments.length === 1 ? 'Assignment' : 'Assignments'}
-                    </div>
-                  )}
+                  <h2 className="course-tile-title">{courseTitle}</h2>
+                  {/* All meta info removed as per user request */}
                 </div>
                 <div className="course-tile-footer">
                   {[...Array(3)].map((_, i) => (

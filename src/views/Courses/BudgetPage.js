@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore'
 import { firestore } from '../../firebase'
+import { auth } from '../../firebase'
 import {
   CCard,
   CCardBody,
@@ -21,6 +22,9 @@ export default function BudgetPage() {
   const [newAmount, setNewAmount] = useState('')
   const [isExpense, setIsExpense] = useState(true)
   const [loading, setLoading] = useState(true)
+  const [userRole, setUserRole] = useState('')
+  const [editingBudget, setEditingBudget] = useState(false)
+  const [newBudget, setNewBudget] = useState('')
 
   useEffect(() => {
     const fetchCourseData = async () => {
@@ -58,6 +62,29 @@ export default function BudgetPage() {
     fetchCourseData()
   }, [id])
 
+  useEffect(() => {
+    // Fetch user role for admin check
+    const unsub = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        const userDoc = await getDoc(doc(firestore, 'users', user.uid))
+        if (userDoc.exists()) {
+          const data = userDoc.data()
+          let role = data.personalInfo?.role?.toLowerCase() || data.role?.toLowerCase() || ''
+          if (!role && data.personalInfo?.primaryRole) {
+            const primaryRole = data.personalInfo.primaryRole.toLowerCase()
+            if (primaryRole === 'schooladmin' || primaryRole === 'admin') {
+              role = 'admin'
+            } else {
+              role = primaryRole
+            }
+          }
+          setUserRole(role)
+        }
+      }
+    })
+    return () => unsub()
+  }, [])
+
   if (loading) {
     return <div>Loading course information...</div>
   }
@@ -66,7 +93,8 @@ export default function BudgetPage() {
     return <div>Course not found.</div>
   }
 
-  const initialBudget = course.budget?.totalBudget || 500
+  const initialBudget =
+    typeof course.budget?.totalBudget === 'number' ? course.budget.totalBudget : 0
 
   const calculateRemainingBudget = () => {
     const totalFromEntries = budgetEntries.reduce((total, entry) => {
@@ -182,7 +210,65 @@ export default function BudgetPage() {
           <div className="d-flex justify-content-between mb-4">
             <div>
               <h5>Initial Budget</h5>
-              <h3>${initialBudget.toFixed(2)}</h3>
+              {userRole === 'admin' && editingBudget ? (
+                <>
+                  <input
+                    type="number"
+                    min="0"
+                    value={newBudget}
+                    onChange={(e) => setNewBudget(e.target.value)}
+                    style={{ width: 100, marginRight: 8 }}
+                  />
+                  <CButton
+                    size="sm"
+                    color="success"
+                    onClick={async () => {
+                      const courseDocRef = doc(firestore, 'courses', id)
+                      await updateDoc(courseDocRef, { 'budget.totalBudget': Number(newBudget) })
+                      setCourse((prev) => ({
+                        ...prev,
+                        budget: { ...prev.budget, totalBudget: Number(newBudget) },
+                      }))
+                      setEditingBudget(false)
+                    }}
+                  >
+                    Save
+                  </CButton>
+                  <CButton
+                    size="sm"
+                    color="secondary"
+                    onClick={() => setEditingBudget(false)}
+                    style={{ marginLeft: 4 }}
+                  >
+                    Cancel
+                  </CButton>
+                </>
+              ) : (
+                <>
+                  <h3>${initialBudget.toFixed(2)}</h3>
+                  {userRole === 'admin' && (
+                    <CButton
+                      size="sm"
+                      color="primary"
+                      onClick={() => {
+                        setNewBudget(initialBudget)
+                        setEditingBudget(true)
+                      }}
+                      style={{
+                        marginLeft: 8,
+                        fontWeight: 'bold',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <span style={{ marginRight: 4 }}>
+                        <i className="bi bi-pencil-square"></i>
+                      </span>
+                      Edit Initial Budget
+                    </CButton>
+                  )}
+                </>
+              )}
             </div>
             <div>
               <h5>Remaining</h5>
