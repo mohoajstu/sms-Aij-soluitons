@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import { Autocomplete, TextField, Box, Button } from '@mui/material';
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import Grid from '@mui/material/Grid2';
+import GoogleIcon from '@mui/icons-material/Google';
 import ClassSelector from '../../components/classSelector';
 import DateSelector from '../../components/DateSelector';
 import AttendanceReportTable from './attendenceReportTable';
@@ -13,6 +13,8 @@ import attendanceData from './tempData';
 import dayjs from 'dayjs';
 import './attendanceTabs.css';
 import useAuth from '../../Firebase/useAuth';
+import { createBlankSpreadsheet, initializeSheetsApi, isSheetsAuthenticated } from '../../services/googleSheetsService';
+import { toast } from 'react-hot-toast';
 
 
 const AttendanceTabs = () => {
@@ -73,6 +75,34 @@ const AttendanceTabs = () => {
       )
     })
     setFilteredData(filtered)
+  }
+
+  const handleCreateBlankSpreadsheet = async () => {
+    try {
+      // Initialize Google Sheets API if not already done
+      await initializeSheetsApi()
+      
+      // Check if user is authenticated
+      if (!isSheetsAuthenticated()) {
+        toast.error('Please sign in with Google to create spreadsheets')
+        return
+      }
+
+      // Create a blank attendance spreadsheet template
+      const title = `Attendance Template - ${new Date().toLocaleDateString()}`
+      const headers = ['Date', 'Semester', 'Section', 'Class', 'Student', 'Status', 'Note']
+      
+      const result = await createBlankSpreadsheet(title, headers)
+      
+      toast.success('Blank attendance spreadsheet created! Opening in new tab...')
+      
+      // Open the spreadsheet in a new tab
+      window.open(result.spreadsheetUrl, '_blank')
+      
+    } catch (error) {
+      console.error('Error creating blank spreadsheet:', error)
+      toast.error(`Failed to create spreadsheet: ${error.message}`)
+    }
   }
 
   return (
@@ -226,6 +256,22 @@ const AttendanceTabs = () => {
             </Grid>
             <Button variant="contained" className="at-action-button" onClick={handleViewReport}>
               View Report
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<GoogleIcon />}
+              onClick={handleCreateBlankSpreadsheet}
+              sx={{
+                marginLeft: 2,
+                color: '#1a73e8',
+                borderColor: '#1a73e8',
+                '&:hover': {
+                  backgroundColor: '#e8f0fe',
+                  borderColor: '#1a73e8',
+                },
+              }}
+            >
+              Create Blank Spreadsheet
             </Button>
             <AttendanceReportTable attendanceData={filteredData} reportParams={reportParams} />
           </Box>

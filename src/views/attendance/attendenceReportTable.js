@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   Box,
   Table,
@@ -11,12 +11,24 @@ import {
   Button,
   Typography,
   Chip,
+  CircularProgress,
+  Alert,
+  Snackbar,
 } from '@mui/material'
 import DownloadIcon from '@mui/icons-material/Download'
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
+import GoogleIcon from '@mui/icons-material/Google'
+import { exportAttendanceToSheets, initializeSheetsApi, isSheetsAuthenticated } from '../../services/googleSheetsService'
 import './attendanceReportTable.css'
 
 const AttendanceReportTable = ({ attendanceData, reportParams }) => {
+  const [isExporting, setIsExporting] = useState(false)
+  const [notification, setNotification] = useState({
+    open: false,
+    message: '',
+    severity: 'success',
+  })
+
   const exportToExcel = () => {
     // Placeholder for Excel export functionality
     console.log('Exporting to Excel...')
@@ -27,6 +39,53 @@ const AttendanceReportTable = ({ attendanceData, reportParams }) => {
     // Placeholder for PDF export functionality
     console.log('Exporting to PDF...')
     alert('PDF export feature will be implemented with actual library')
+  }
+
+  const exportToSheets = async () => {
+    setIsExporting(true)
+    
+    try {
+      // Initialize Google Sheets API if not already done
+      await initializeSheetsApi()
+      
+      // Check if user is authenticated
+      if (!isSheetsAuthenticated()) {
+        setNotification({
+          open: true,
+          message: 'Please sign in with Google to export to Google Sheets',
+          severity: 'warning',
+        })
+        setIsExporting(false)
+        return
+      }
+
+      // Export data to Google Sheets
+      const result = await exportAttendanceToSheets(attendanceData, reportParams)
+      
+      // Show success notification with link to spreadsheet
+      setNotification({
+        open: true,
+        message: `Successfully exported to Google Sheets! Opening in new tab...`,
+        severity: 'success',
+      })
+      
+      // Open the spreadsheet in a new tab
+      window.open(result.spreadsheetUrl, '_blank')
+      
+    } catch (error) {
+      console.error('Error exporting to Google Sheets:', error)
+      setNotification({
+        open: true,
+        message: `Failed to export to Google Sheets: ${error.message}`,
+        severity: 'error',
+      })
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false })
   }
 
   const getStatusChip = (status) => {
@@ -81,6 +140,23 @@ const AttendanceReportTable = ({ attendanceData, reportParams }) => {
               >
                 Export PDF
               </Button>
+              <Button
+                variant="outlined"
+                startIcon={isExporting ? <CircularProgress size={16} /> : <GoogleIcon />}
+                className="export-button sheets-button"
+                onClick={exportToSheets}
+                disabled={isExporting}
+                sx={{
+                  color: '#1a73e8',
+                  borderColor: '#1a73e8',
+                  '&:hover': {
+                    backgroundColor: '#e8f0fe',
+                    borderColor: '#1a73e8',
+                  },
+                }}
+              >
+                {isExporting ? 'Exporting...' : 'Export to Sheets'}
+              </Button>
             </Box>
           </Box>
 
@@ -120,6 +196,22 @@ const AttendanceReportTable = ({ attendanceData, reportParams }) => {
       ) : (
         noDataDisplay
       )}
+
+      {/* Notification Snackbar */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={handleCloseNotification}
+          severity={notification.severity}
+          sx={{ width: '100%' }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   )
 }
