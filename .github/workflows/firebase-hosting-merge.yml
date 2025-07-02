@@ -15,7 +15,7 @@ jobs:
         with:
           node-version: 20
           cache: 'yarn'
-      - run: yarn install --frozen-lockfile
+      - run: yarn install --non-interactive --no-progress
       - run: yarn build
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
