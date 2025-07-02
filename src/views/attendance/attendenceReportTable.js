@@ -18,7 +18,11 @@ import {
 import DownloadIcon from '@mui/icons-material/Download'
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import GoogleIcon from '@mui/icons-material/Google'
-import { exportAttendanceToSheets, initializeSheetsApi, isSheetsAuthenticated } from '../../services/googleSheetsService'
+import {
+  exportAttendanceToSheets,
+  initializeSheetsApi,
+  isSheetsAuthenticated,
+} from '../../services/googleSheetsService'
 import './attendanceReportTable.css'
 
 const AttendanceReportTable = ({ attendanceData, reportParams }) => {
@@ -43,11 +47,11 @@ const AttendanceReportTable = ({ attendanceData, reportParams }) => {
 
   const exportToSheets = async () => {
     setIsExporting(true)
-    
+
     try {
       // Initialize Google Sheets API if not already done
       await initializeSheetsApi()
-      
+
       // Check if user is authenticated
       if (!isSheetsAuthenticated()) {
         setNotification({
@@ -61,17 +65,16 @@ const AttendanceReportTable = ({ attendanceData, reportParams }) => {
 
       // Export data to Google Sheets
       const result = await exportAttendanceToSheets(attendanceData, reportParams)
-      
+
       // Show success notification with link to spreadsheet
       setNotification({
         open: true,
         message: `Successfully exported to Google Sheets! Opening in new tab...`,
         severity: 'success',
       })
-      
+
       // Open the spreadsheet in a new tab
       window.open(result.spreadsheetUrl, '_blank')
-      
     } catch (error) {
       console.error('Error exporting to Google Sheets:', error)
       setNotification({

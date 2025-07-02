@@ -84,7 +84,7 @@ const routes = [
   { path: '/', exact: true, name: 'Home' },
 
   { path: '/dashboard', name: 'Dashboard', element: DashboardSwitch },
-  { path: '/attendance', name: 'Attendance', element: AttendanceTabs},
+  { path: '/attendance', name: 'Attendance', element: AttendanceTabs },
 
   { path: '/reportcards', name: 'Report Cards', element: ReportCardUI },
   { path: '/registration', name: 'Registration', element: RegistrationPage },

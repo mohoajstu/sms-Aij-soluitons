@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import './ThankYouPage.css'
+import './thankYouPage.css'
 
 function ThankYouPage() {
   return (
