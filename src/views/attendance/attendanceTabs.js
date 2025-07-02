@@ -1,21 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from "react-router-dom";
-import { Autocomplete, TextField, Box, Button } from '@mui/material';
-import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import Grid from '@mui/material/Grid2';
-import GoogleIcon from '@mui/icons-material/Google';
-import ClassSelector from '../../components/ClassSelector';
-import DateSelector from '../../components/DateSelector';
-import AttendanceReportTable from './attendenceReportTable';
-import ManualSmsNotification from './ManualSmsNotification';
-import attendanceData from './tempData';
-import dayjs from 'dayjs';
-import './attendanceTabs.css';
-import useAuth from '../../Firebase/useAuth';
-import { createBlankSpreadsheet, initializeSheetsApi, isSheetsAuthenticated } from '../../services/googleSheetsService';
-import { toast } from 'react-hot-toast';
-
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Autocomplete, TextField, Box, Button } from '@mui/material'
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
+import Grid from '@mui/material/Grid2'
+import GoogleIcon from '@mui/icons-material/Google'
+import ClassSelector from '../../components/ClassSelector'
+import DateSelector from '../../components/DateSelector'
+import AttendanceReportTable from './attendenceReportTable'
+import ManualSmsNotification from './ManualSmsNotification'
+import attendanceData from './tempData'
+import dayjs from 'dayjs'
+import './attendanceTabs.css'
+import useAuth from '../../Firebase/useAuth'
+import {
+  createBlankSpreadsheet,
+  initializeSheetsApi,
+  isSheetsAuthenticated,
+} from '../../services/googleSheetsService'
+import { toast } from 'react-hot-toast'
 
 const AttendanceTabs = () => {
   const [activeTab, setActiveTab] = useState(0) // Default to "Take Attendance"
@@ -26,10 +29,8 @@ const AttendanceTabs = () => {
     students: [],
     startDate: dayjs(),
     endDate: dayjs(),
-
-  });
-  const { role } = useAuth();
-
+  })
+  const { role } = useAuth()
 
   // Reset state when the component mounts or navigates back
   useEffect(() => {
@@ -43,14 +44,13 @@ const AttendanceTabs = () => {
     setFilteredData(attendanceData)
   }, [])
 
-
   useEffect(() => {
     if (role === 'parent') {
-      setActiveTab(1); // Force attendance report tab for parents
+      setActiveTab(1) // Force attendance report tab for parents
     }
-  }, [role]);
+  }, [role])
 
-  const [filteredData, setFilteredData] = useState(attendanceData);
+  const [filteredData, setFilteredData] = useState(attendanceData)
 
   const semesters = [...new Set(attendanceData.map((row) => row.semester))]
   const sections = [...new Set(attendanceData.map((row) => row.section))]
@@ -81,7 +81,7 @@ const AttendanceTabs = () => {
     try {
       // Initialize Google Sheets API if not already done
       await initializeSheetsApi()
-      
+
       // Check if user is authenticated
       if (!isSheetsAuthenticated()) {
         toast.error('Please sign in with Google to create spreadsheets')
@@ -91,14 +91,13 @@ const AttendanceTabs = () => {
       // Create a blank attendance spreadsheet template
       const title = `Attendance Template - ${new Date().toLocaleDateString()}`
       const headers = ['Date', 'Semester', 'Section', 'Class', 'Student', 'Status', 'Note']
-      
+
       const result = await createBlankSpreadsheet(title, headers)
-      
+
       toast.success('Blank attendance spreadsheet created! Opening in new tab...')
-      
+
       // Open the spreadsheet in a new tab
       window.open(result.spreadsheetUrl, '_blank')
-      
     } catch (error) {
       console.error('Error creating blank spreadsheet:', error)
       toast.error(`Failed to create spreadsheet: ${error.message}`)
@@ -110,10 +109,9 @@ const AttendanceTabs = () => {
       {/* Tab Navigation - Modified to show only relevant tabs based on role */}
       <div className="at-tab-wrapper">
         <div className="at-tab-navigation">
-
           {role !== 'parent' && (
             <>
-              <div 
+              <div
                 className={`at-tab-link ${activeTab === 0 ? 'at-active' : ''}`}
                 onClick={() => setActiveTab(0)}
               >
@@ -122,8 +120,7 @@ const AttendanceTabs = () => {
               <div className="at-tab-separator"></div>
             </>
           )}
-          <div 
-
+          <div
             className={`at-tab-link ${activeTab === 1 ? 'at-active' : ''}`}
             onClick={() => setActiveTab(1)}
           >
@@ -133,7 +130,7 @@ const AttendanceTabs = () => {
           {role !== 'parent' && (
             <>
               <div className="at-tab-separator"></div>
-              <div 
+              <div
                 className={`at-tab-link ${activeTab === 2 ? 'at-active' : ''}`}
                 onClick={() => setActiveTab(2)}
               >
@@ -141,7 +138,6 @@ const AttendanceTabs = () => {
               </div>
             </>
           )}
-
         </div>
       </div>
 

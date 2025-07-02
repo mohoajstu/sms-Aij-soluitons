@@ -1,5 +1,10 @@
 // Google Sheets Service for handling Google Sheets API interactions
-import { initializeGoogleApi, initializeGIS, authenticate, isAuthenticated } from './calendarService'
+import {
+  initializeGoogleApi,
+  initializeGIS,
+  authenticate,
+  isAuthenticated,
+} from './calendarService'
 
 // Google Sheets API configuration
 const SHEETS_DISCOVERY_DOC = 'https://sheets.googleapis.com/$discovery/rest?version=v4'
@@ -13,11 +18,11 @@ export const initializeSheetsApi = async () => {
     // First initialize the base Google API (reusing from calendar service)
     await initializeGoogleApi()
     await initializeGIS()
-    
+
     // Load the additional discovery documents for Sheets and Drive
     await gapi.client.load(SHEETS_DISCOVERY_DOC)
     await gapi.client.load(DRIVE_DISCOVERY_DOC)
-    
+
     console.log('Google Sheets API initialized successfully')
     return true
   } catch (error) {
@@ -74,7 +79,7 @@ export const createBlankSpreadsheet = async (title = 'Attendance Export', header
     if (headers && headers.length > 0) {
       await addHeadersToSpreadsheet(spreadsheetId, headers)
     }
-    
+
     return {
       spreadsheetId,
       spreadsheetUrl,
@@ -94,7 +99,7 @@ export const createBlankSpreadsheet = async (title = 'Attendance Export', header
 const addHeadersToSpreadsheet = async (spreadsheetId, headers) => {
   try {
     const range = 'A1:' + String.fromCharCode(64 + headers.length) + '1' // A1:E1 for 5 headers, etc.
-    
+
     await gapi.client.sheets.spreadsheets.values.update({
       spreadsheetId: spreadsheetId,
       range: range,
@@ -188,7 +193,7 @@ export const exportAttendanceToSheets = async (attendanceData, reportParams = {}
 const addDataToSpreadsheet = async (spreadsheetId, attendanceData) => {
   try {
     // Convert attendance data to rows
-    const rows = attendanceData.map(record => [
+    const rows = attendanceData.map((record) => [
       record.date || '',
       record.semester || '',
       record.section || '',
@@ -200,7 +205,7 @@ const addDataToSpreadsheet = async (spreadsheetId, attendanceData) => {
 
     // Add data starting from row 2 (after headers)
     const range = `A2:G${rows.length + 1}`
-    
+
     await gapi.client.sheets.spreadsheets.values.update({
       spreadsheetId: spreadsheetId,
       range: range,
@@ -250,17 +255,17 @@ export const createAttendanceTemplate = async (className, students = [], dates =
     }
 
     const title = `${className} - Attendance Template - ${new Date().toLocaleDateString()}`
-    
+
     // Create headers: Student Name, then dates
-    const headers = ['Student Name', ...dates.map(date => new Date(date).toLocaleDateString())]
-    
+    const headers = ['Student Name', ...dates.map((date) => new Date(date).toLocaleDateString())]
+
     const result = await createBlankSpreadsheet(title, headers)
-    
+
     // Add student names in the first column
     if (students.length > 0) {
-      const studentRows = students.map(student => [student])
+      const studentRows = students.map((student) => [student])
       const range = `A2:A${students.length + 1}`
-      
+
       await gapi.client.sheets.spreadsheets.values.update({
         spreadsheetId: result.spreadsheetId,
         range: range,
@@ -285,4 +290,4 @@ export default {
   createBlankSpreadsheet,
   exportAttendanceToSheets,
   createAttendanceTemplate,
-} 
+}

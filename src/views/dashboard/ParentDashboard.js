@@ -1,15 +1,7 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  CButton,
-  CCard,
-  CCardBody,
-  CCardFooter,
-  CCardHeader,
-  CCol,
-  CRow,
-} from "@coreui/react";
-import CIcon from "@coreui/icons-react";
+import React from 'react'
+import { useNavigate } from 'react-router-dom'
+import { CButton, CCard, CCardBody, CCardFooter, CCardHeader, CCol, CRow } from '@coreui/react'
+import CIcon from '@coreui/icons-react'
 import {
   cilUser,
   cilArrowRight,
@@ -19,107 +11,106 @@ import {
   cilCheckCircle,
   cilClock,
   cilMoney,
-} from "@coreui/icons";
+} from '@coreui/icons'
 import './ParentDashboard.css'
-import sygnet from '../../assets/brand/TLA_logo_simple.svg'; 
+import sygnet from '../../assets/brand/TLA_logo_simple.svg'
 
 const ParentDashboard = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   // Sample student data - works for 1, 2, 3+ children
   const studentData = [
     {
       id: 1,
-      name: "Aisha Khan",
-      grade: "Grade 5",
+      name: 'Aisha Khan',
+      grade: 'Grade 5',
       attendance: 94,
     },
     {
       id: 2,
-      name: "Omar Khan", 
-      grade: "Grade 3",
+      name: 'Omar Khan',
+      grade: 'Grade 3',
       attendance: 97,
     },
     {
       id: 3,
-      name: "Fatima Khan",
-      grade: "Grade 1",
+      name: 'Fatima Khan',
+      grade: 'Grade 1',
       attendance: 98,
     },
-
-  ];
+  ]
 
   // Simplified announcements
   const announcements = [
     {
       id: 1,
-      title: "Parent-Teacher Meetings - February 14th",
-      date: "January 20, 2025",
-      priority: "high",
+      title: 'Parent-Teacher Meetings - February 14th',
+      date: 'January 20, 2025',
+      priority: 'high',
     },
     {
       id: 2,
-      title: "Term 1 Report Cards Available February 7th",
-      date: "January 25, 2025",
-      priority: "medium",
+      title: 'Term 1 Report Cards Available February 7th',
+      date: 'January 25, 2025',
+      priority: 'medium',
     },
     {
       id: 3,
-      title: "Winter Break - February 17-21",
-      date: "January 30, 2025",
-      priority: "low",
+      title: 'Winter Break - February 17-21',
+      date: 'January 30, 2025',
+      priority: 'low',
     },
-  ];
+  ]
 
   // Upcoming events data
   const upcomingEvents = [
     {
       id: 1,
-      title: "Science Fair",
-      date: "Feb 10",
-      type: "academic",
+      title: 'Science Fair',
+      date: 'Feb 10',
+      type: 'academic',
     },
     {
       id: 2,
-      title: "Parent-Teacher Meeting",
-      date: "Feb 14",
-      type: "meeting",
+      title: 'Parent-Teacher Meeting',
+      date: 'Feb 14',
+      type: 'meeting',
     },
     {
       id: 3,
-      title: "Winter Break",
-      date: "Feb 17",
-      type: "holiday",
+      title: 'Winter Break',
+      date: 'Feb 17',
+      type: 'holiday',
     },
     {
       id: 4,
-      title: "Sports Day",
-      date: "Feb 28",
-      type: "activity",
+      title: 'Sports Day',
+      date: 'Feb 28',
+      type: 'activity',
     },
-  ];
+  ]
 
   // Simplified quick actions
   const quickActions = [
-    { id: 1, title: "View Report Cards", icon: cilFile, path: "/parent/reportcards" },
-    { id: 2, title: "Check Attendance", icon: cilCheckCircle, path: "/parent/attendance" },
-    { id: 3, title: "Schedule Meeting", icon: cilCalendar, path: "/parent/meetings" },
-    { id: 4, title: "Pay Fees", icon: cilMoney, path: "/parent/payments" },
-  ];
+    { id: 1, title: 'View Report Cards', icon: cilFile, path: '/parent/reportcards' },
+    { id: 2, title: 'Check Attendance', icon: cilCheckCircle, path: '/parent/attendance' },
+    { id: 3, title: 'Schedule Meeting', icon: cilCalendar, path: '/parent/meetings' },
+    { id: 4, title: 'Pay Fees', icon: cilMoney, path: '/parent/payments' },
+  ]
 
   // Calculate totals for multiple children
-  const totalChildren = studentData.length;
+  const totalChildren = studentData.length
   const averageAttendance = Math.round(
-    studentData.reduce((sum, student) => sum + student.attendance, 0) / totalChildren
-  );
+    studentData.reduce((sum, student) => sum + student.attendance, 0) / totalChildren,
+  )
 
   // Determine grid class based on number of children
   const getGridClass = (childCount) => {
-    if (childCount === 1) return 'one-child';
-    if (childCount === 2) return 'two-children';
-    if (childCount === 3) return 'three-children';
-    return 'many-children';
-  };
+    if (childCount === 1) return 'one-child'
+    if (childCount === 2) return 'two-children'
+    if (childCount === 3) return 'three-children'
+    return 'many-children'
+  }
 
   return (
     <div className="parent-dashboard-container">
@@ -141,14 +132,14 @@ const ParentDashboard = () => {
       <div className="children-overview-banner">
         <div className="banner-content">
           <div className="banner-header">
-            <h2>Your {totalChildren === 1 ? 'Child\'s' : 'Children\'s'} Progress</h2>
+            <h2>Your {totalChildren === 1 ? "Child's" : "Children's"} Progress</h2>
             <div className="current-date">
               <CIcon icon={cilCalendar} className="me-2" />
               <span>
-                {new Date().toLocaleDateString("en-US", {
-                  weekday: "long",
-                  month: "long", 
-                  day: "numeric",
+                {new Date().toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  month: 'long',
+                  day: 'numeric',
                 })}
               </span>
             </div>
@@ -194,7 +185,7 @@ const ParentDashboard = () => {
                 <p className="stat-label">OUTSTANDING FEES</p>
               </div>
             </CCardBody>
-            <CCardFooter className="stat-footer" onClick={() => navigate("/parent/payments")}>
+            <CCardFooter className="stat-footer" onClick={() => navigate('/parent/payments')}>
               <span>View Payments</span>
               <CIcon icon={cilArrowRight} />
             </CCardFooter>
@@ -212,7 +203,7 @@ const ParentDashboard = () => {
                 <p className="stat-label">AVERAGE ATTENDANCE</p>
               </div>
             </CCardBody>
-            <CCardFooter className="stat-footer" onClick={() => navigate("/parent/attendance")}>
+            <CCardFooter className="stat-footer" onClick={() => navigate('/parent/attendance')}>
               <span>View Attendance</span>
               <CIcon icon={cilArrowRight} />
             </CCardFooter>
@@ -230,7 +221,7 @@ const ParentDashboard = () => {
                 <p className="stat-label">UPCOMING MEETING</p>
               </div>
             </CCardBody>
-            <CCardFooter className="stat-footer" onClick={() => navigate("/parent/meetings")}>
+            <CCardFooter className="stat-footer" onClick={() => navigate('/parent/meetings')}>
               <span>Schedule Meeting</span>
               <CIcon icon={cilArrowRight} />
             </CCardFooter>
@@ -248,7 +239,7 @@ const ParentDashboard = () => {
                 <p className="stat-label">{totalChildren === 1 ? 'CHILD' : 'CHILDREN'}</p>
               </div>
             </CCardBody>
-            <CCardFooter className="stat-footer" onClick={() => navigate("/parent/children")}>
+            <CCardFooter className="stat-footer" onClick={() => navigate('/parent/children')}>
               <span>View Details</span>
               <CIcon icon={cilArrowRight} />
             </CCardFooter>
@@ -319,10 +310,7 @@ const ParentDashboard = () => {
               </div>
             </CCardBody>
             <CCardFooter className="text-center">
-              <CButton
-                color="link"
-                onClick={() => navigate("/parent/announcements")}
-              >
+              <CButton color="link" onClick={() => navigate('/parent/announcements')}>
                 View All Announcements
                 <CIcon icon={cilArrowRight} className="ms-1" />
               </CButton>
@@ -345,24 +333,17 @@ const ParentDashboard = () => {
               <div className="events-grid">
                 {upcomingEvents.map((event) => (
                   <div key={event.id} className="event-item">
-                    <div className="event-date">
-                      {event.date}
-                    </div>
+                    <div className="event-date">{event.date}</div>
                     <div className="event-details">
                       <h5>{event.title}</h5>
-                      <span className={`event-type ${event.type}`}>
-                        {event.type}
-                      </span>
+                      <span className={`event-type ${event.type}`}>{event.type}</span>
                     </div>
                   </div>
                 ))}
               </div>
             </CCardBody>
             <CCardFooter className="text-center">
-              <CButton
-                color="link"
-                onClick={() => navigate("/parent/calendar")}
-              >
+              <CButton color="link" onClick={() => navigate('/parent/calendar')}>
                 View Full Calendar
                 <CIcon icon={cilArrowRight} className="ms-1" />
               </CButton>
@@ -373,12 +354,10 @@ const ParentDashboard = () => {
 
       {/* Footer */}
       <div className="dashboard-footer">
-        <p className="footer-text">
-          © 2025 Tarbiyah Learning Academy. All rights reserved.
-        </p>
+        <p className="footer-text">© 2025 Tarbiyah Learning Academy. All rights reserved.</p>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default ParentDashboard;
+export default ParentDashboard
