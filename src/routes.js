@@ -15,7 +15,7 @@ const AttendanceTable = React.lazy(() => import('./views/attendance/attendanceTa
 //Report Cards
 const ReportCardUI = React.lazy(() => import('./views/ReportCard/ReportCardUI'))
 // Courses
-const Courses = React.lazy(() => import('./views/Courses/Courses'))
+const Courses = React.lazy(() => import('./views/Courses/courses'))
 const CourseDetailPage = React.lazy(() => import('./views/Courses/courseDetails'))
 const CourseForm = React.lazy(() => import('./views/Courses/CourseForm'))
 const Timetable = React.lazy(() => import('./views/Courses/Timetable'))
