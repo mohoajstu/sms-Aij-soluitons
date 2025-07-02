@@ -5,7 +5,7 @@ import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import Grid from '@mui/material/Grid2';
 import GoogleIcon from '@mui/icons-material/Google';
-import ClassSelector from '../../components/classSelector';
+import ClassSelector from '../../components/ClassSelector';
 import DateSelector from '../../components/DateSelector';
 import AttendanceReportTable from './attendenceReportTable';
 import ManualSmsNotification from './ManualSmsNotification';
