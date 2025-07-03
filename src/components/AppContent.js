@@ -7,8 +7,15 @@ import routes from '../routes'
 
 const AppContent = () => {
   const location = useLocation() // get the current location
+  
+  // Routes that should use full width
+  const fullWidthRoutes = ['/reportcards']
+  const shouldUseFullWidth = fullWidthRoutes.some(route => 
+    location.pathname.startsWith(route)
+  )
+  
   return (
-    <CContainer className="px-4" lg>
+    <CContainer className="px-4" lg={!shouldUseFullWidth} fluid={shouldUseFullWidth}>
       <Suspense fallback={<CSpinner color="primary" />}>
         <Routes>
           {routes.map((route, idx) => {
