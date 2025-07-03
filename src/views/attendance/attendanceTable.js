@@ -49,17 +49,28 @@ const AttendanceTable = () => {
 
   useEffect(() => {
     const fetchEnrolledStudents = async () => {
-      if (selectedCourse && (selectedCourse.enrolledList || selectedCourse.students)) {
-        setStudentsLoading(true)
-        const ids = selectedCourse.enrolledList || selectedCourse.students || []
+      setStudentsLoading(true)
+      let studentIds = []
+
+      // Check for the 'students' array in the course object first
+      if (selectedCourse?.students && Array.isArray(selectedCourse.students)) {
+        studentIds = selectedCourse.students.map((student) => student.id).filter(Boolean)
+      }
+      // Fallback to 'enrolledList' if 'students' isn't there
+      else if (selectedCourse?.enrolledList) {
+        studentIds = selectedCourse.enrolledList
+      }
+
+      if (studentIds.length > 0) {
         try {
           const studentDocs = await Promise.all(
-            ids.map(async (id) => {
+            studentIds.map(async (id) => {
               const docRef = doc(firestore, 'students', id)
               const docSnap = await getDoc(docRef)
               if (docSnap.exists()) {
                 return { id: docSnap.id, ...docSnap.data() }
               } else {
+                console.warn(`Student with ID ${id} could not be found.`)
                 return null
               }
             }),
@@ -72,57 +83,9 @@ const AttendanceTable = () => {
           setStudentsLoading(false)
         }
       } else {
-        // fallback to hardcoded students if no course selected
-        setStudents([
-          {
-            id: 1,
-            name: 'Arthur Boucher',
-            grade: 9,
-            avatar: 'https://i.pravatar.cc/40?img=1',
-            parentPhoneNumber: '+16812215667',
-            parentName: 'Sarah Boucher',
-          },
-          {
-            id: 2,
-            name: 'Danny Anderson',
-            grade: 9,
-            avatar: 'https://i.pravatar.cc/40?img=2',
-            parentPhoneNumber: '+16812215667',
-            parentName: 'Michael Anderson',
-          },
-          {
-            id: 3,
-            name: 'Justin Aponte',
-            grade: 9,
-            avatar: 'https://i.pravatar.cc/40?img=3',
-            parentPhoneNumber: '+16812215667',
-            parentName: 'Maria Aponte',
-          },
-          {
-            id: 4,
-            name: 'Emily Johnson',
-            grade: 9,
-            avatar: 'https://i.pravatar.cc/40?img=4',
-            parentPhoneNumber: '+16812215667',
-            parentName: 'Robert Johnson',
-          },
-          {
-            id: 5,
-            name: 'Lucas Smith',
-            grade: 9,
-            avatar: 'https://i.pravatar.cc/40?img=5',
-            parentPhoneNumber: '+16812215667',
-            parentName: 'Jessica Smith',
-          },
-          {
-            id: 6,
-            name: 'Sophia Williams',
-            grade: 9,
-            avatar: 'https://i.pravatar.cc/40?img=6',
-            parentPhoneNumber: '+16812215667',
-            parentName: 'David Williams',
-          },
-        ])
+        // If no course is selected or it has no students, clear the list
+        setStudents([])
+        setStudentsLoading(false)
       }
     }
     fetchEnrolledStudents()
