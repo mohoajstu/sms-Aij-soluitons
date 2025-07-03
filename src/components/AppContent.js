@@ -9,7 +9,7 @@ const AppContent = () => {
   const location = useLocation() // get the current location
   
   // Routes that should use full width
-  const fullWidthRoutes = ['/reportcards/lovable']
+  const fullWidthRoutes = ['/reportcards']
   const shouldUseFullWidth = fullWidthRoutes.some(route => 
     location.pathname.startsWith(route)
   )
