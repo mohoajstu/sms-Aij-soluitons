@@ -28,6 +28,9 @@ googleProvider.addScope('https://www.googleapis.com/auth/drive.file')
 // Add Google Calendar scopes
 googleProvider.addScope('https://www.googleapis.com/auth/calendar.readonly')
 googleProvider.addScope('https://www.googleapis.com/auth/calendar.events')
+// Add Google Sheets scopes
+googleProvider.addScope('https://www.googleapis.com/auth/spreadsheets')
+googleProvider.addScope('https://www.googleapis.com/auth/drive')
 
 const db = getFirestore()
 const SHARED_GOOGLE_AUTH_TOKEN_KEY = 'firebase_google_auth_token'

@@ -1,5 +1,18 @@
 {
   "projects": {
     "default": "tarbiyah-sms"
-  }
+  },
+  "targets": {
+    "tarbiyah-sms": {
+      "hosting": {
+        "tlasms": [
+          "tlasms"
+        ],
+        "tarbiyah-sms": [
+          "tarbiyah-sms"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
