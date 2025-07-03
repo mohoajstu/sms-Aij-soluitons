@@ -77,9 +77,11 @@ const AttendanceReportTable = ({ attendanceData, reportParams }) => {
       window.open(result.spreadsheetUrl, '_blank')
     } catch (error) {
       console.error('Error exporting to Google Sheets:', error)
+      const errorMessage =
+        error.message || 'An unexpected error occurred. Please try again or check the console.'
       setNotification({
         open: true,
-        message: `Failed to export to Google Sheets: ${error.message}`,
+        message: `Failed to export to Google Sheets: ${errorMessage}`,
         severity: 'error',
       })
     } finally {

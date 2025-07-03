@@ -18,6 +18,10 @@ let gisInited = false
  */
 const storeToken = (token) => {
   if (token) {
+    // If the token has an 'expires_in' value, calculate the absolute expiration time
+    if (token.expires_in) {
+      token.expires_at = Date.now() + token.expires_in * 1000
+    }
     localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token))
   }
 }
@@ -27,17 +31,26 @@ const storeToken = (token) => {
  * @returns {object|null} The stored token or null
  */
 const getStoredToken = () => {
-  // Try to get the token from our storage
+  // Try to get the token from our primary storage
   const tokenStr = localStorage.getItem(TOKEN_STORAGE_KEY)
   if (tokenStr) {
     try {
-      return JSON.parse(tokenStr)
+      const token = JSON.parse(tokenStr)
+      // Check if the token has an expiration time and if it has passed
+      if (token.expires_at && Date.now() > token.expires_at) {
+        console.warn('Stored Google API token has expired.')
+        localStorage.removeItem(TOKEN_STORAGE_KEY) // Clean up expired token
+        return null
+      }
+      return token
     } catch (e) {
       console.error('Error parsing stored token:', e)
+      localStorage.removeItem(TOKEN_STORAGE_KEY) // Clean up corrupted token
+      return null
     }
   }
 
-  // If no token found, check if we have one from Firebase authentication
+  // Fallback to check for a token from Firebase authentication
   const firebaseTokenStr = localStorage.getItem(SHARED_GOOGLE_AUTH_TOKEN_KEY)
   if (firebaseTokenStr) {
     try {
@@ -69,6 +82,8 @@ const getStoredToken = () => {
  */
 export const isAuthenticated = () => {
   try {
+    // This check is now reliable because initializeGoogleApi uses getStoredToken,
+    // which validates the token's expiration.
     return gapi.client.getToken() !== null
   } catch (e) {
     return false
@@ -208,7 +223,7 @@ export const signOut = () => {
 }
 
 // Add this wrapper function
-const callGoogleApi = async (apiCallFunction) => {
+export const callGoogleApi = async (apiCallFunction) => {
   try {
     // Ensure GAPI client is loaded and initialized before making a call
     if (!gapi.client) {
@@ -446,4 +461,5 @@ export default {
   assignmentToEvent,
   hijriToGregorian,
   gregorianToHijri,
+  callGoogleApi,
 }
