@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   CButton, 
   CCard, 
@@ -19,6 +19,11 @@ import { PDFDocument } from 'pdf-lib';
 import { saveAs } from 'file-saver';
 import DynamicReportCardForm from './Componenets/DynamicReportCardForm';
 import { useNavigate } from 'react-router-dom';
+// Firebase Storage & Firestore
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { storage, firestore } from '../../Firebase/firebase';
+import useAuth from '../../Firebase/useAuth';
 
 // NOTE: All PDF assets are served from the public folder so we can access them by URL at runtime.
 // The folder name "Report Cards" contains a space, so we encode it (`Report%20Cards`).
@@ -109,6 +114,9 @@ const ReportCard = ({ presetReportCardId = null }) => {
   const [currentTab, setCurrentTab] = useState('form');
   const [showFieldInspector, setShowFieldInspector] = useState(false);
 
+  // Current authenticated user (needed for storage path)
+  const { user } = useAuth();
+
   const navigate = useNavigate();
 
   // Get current report card configuration
@@ -140,6 +148,34 @@ const ReportCard = ({ presetReportCardId = null }) => {
     setFields(fields);
   };
 
+  /* ------------------------------------------------------------------
+     LocalStorage persistence
+     ------------------------------------------------------------------ */
+  // Load saved form when report card type changes
+  useEffect(() => {
+    if (!selectedReportCard) return;
+    try {
+      const saved = localStorage.getItem(`reportcard_form_${selectedReportCard}`);
+      if (saved) {
+        setFormData(JSON.parse(saved));
+      } else {
+        setFormData({});
+      }
+    } catch (err) {
+      console.warn('Unable to parse saved form data:', err);
+    }
+  }, [selectedReportCard]);
+
+  // Auto-save current form on every change
+  useEffect(() => {
+    if (!selectedReportCard) return;
+    try {
+      localStorage.setItem(`reportcard_form_${selectedReportCard}`, JSON.stringify(formData));
+    } catch (err) {
+      console.warn('Unable to save form data to localStorage:', err);
+    }
+  }, [formData, selectedReportCard]);
+
   // Download the filled PDF
   const downloadFilledPDF = async () => {
     setIsGenerating(true);
@@ -154,6 +190,34 @@ const ReportCard = ({ presetReportCardId = null }) => {
       
       // Create download using the already-filled PDF bytes
       const blob = new Blob([filledPdfBytes], { type: 'application/pdf' });
+
+      /* ------------------------------------------------------------
+         Upload to Firebase Storage so the PDF can be accessed later
+         ------------------------------------------------------------ */
+      try {
+        if (user) {
+          const timestamp = Date.now();
+          const filePath = `reportCards/${user.uid}/${selectedReportCard || 'report'}-${timestamp}.pdf`;
+          const storageRef = ref(storage, filePath);
+          await uploadBytes(storageRef, blob);
+          const downloadURL = await getDownloadURL(storageRef);
+
+          // Store a Firestore record for easy retrieval later
+          await addDoc(collection(firestore, 'reportCards'), {
+            uid: user.uid,
+            type: selectedReportCard,
+            filePath,
+            url: downloadURL,
+            createdAt: serverTimestamp(),
+          });
+
+          console.log('✅ Report card uploaded to Firebase Storage:', downloadURL);
+        } else {
+          console.warn('User not authenticated. Skipping Firebase upload.');
+        }
+      } catch (uploadErr) {
+        console.error('Error uploading PDF to Firebase Storage:', uploadErr);
+      }
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
