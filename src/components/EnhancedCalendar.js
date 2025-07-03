@@ -437,9 +437,9 @@ const EnhancedCalendar = ({ courseId }) => {
   const handleDeleteEvent = async () => {
     if (!selectedEvent) return
     setLoading(true)
+    let errorOccurred = null
     try {
       await deleteEvent(selectedCalendar, selectedEvent.id)
-
       // Remove the event from the events list
       setEvents((prevEvents) => prevEvents.filter((event) => event.id !== selectedEvent.id))
       setNotification({
@@ -448,6 +448,7 @@ const EnhancedCalendar = ({ courseId }) => {
         severity: 'success',
       })
     } catch (error) {
+      errorOccurred = error
       console.error('Error deleting event:', error)
       if (error.reAuthRequired) {
         setAuthRequired(true)
@@ -468,7 +469,7 @@ const EnhancedCalendar = ({ courseId }) => {
     } finally {
       setLoading(false)
       // Only close dialogs if not an auth error
-      if (!error || !error.reAuthRequired) {
+      if (!errorOccurred || !errorOccurred.reAuthRequired) {
         setOpenDeleteDialog(false)
         setOpenEventDialog(false)
         setSelectedEvent(null)

@@ -1,6 +1,7 @@
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended'
 import eslintPluginReact from 'eslint-plugin-react'
 import eslintPluginReactHooks from 'eslint-plugin-react-hooks'
+import eslintPluginImport from 'eslint-plugin-import'
 import globals from 'globals'
 
 export default [
@@ -12,6 +13,7 @@ export default [
     plugins: {
       eslintPluginReact,
       'react-hooks': eslintPluginReactHooks,
+      import: eslintPluginImport,
     },
     languageOptions: {
       globals: {
@@ -30,9 +32,17 @@ export default [
       react: {
         version: 'detect',
       },
+      'import/resolver': {
+        alias: {
+          map: [['src', './src']],
+          extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
+        },
+      },
     },
     rules: {
       ...eslintPluginReactHooks.configs.recommended.rules,
+      'import/no-unresolved': ['error', { commonjs: true, caseSensitive: true }],
+      'import/no-extraneous-dependencies': ['warn', { devDependencies: true }],
     },
   },
   eslintPluginPrettierRecommended,

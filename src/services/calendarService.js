@@ -4,7 +4,7 @@ const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'
 const SCOPES =
-  'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events'
+  'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file'
 const TOKEN_STORAGE_KEY = 'google_calendar_api_token' // This is our internal token storage
 const SHARED_GOOGLE_AUTH_TOKEN_KEY = 'firebase_google_auth_token' // Token shared with Firebase auth
 

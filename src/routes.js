@@ -1,5 +1,7 @@
 import React from 'react'
+const ParentDashboard = React.lazy(() => import('./views/dashboard/ParentDashboard'))
 
+const DashboardSwitch = React.lazy(() => import('./views/dashboard/DashboardSwitch'))
 const Dashboard = React.lazy(() => import('./views/dashboard/Dashboard'))
 const Colors = React.lazy(() => import('./views/theme/colors/Colors'))
 const Typography = React.lazy(() => import('./views/theme/typography/Typography'))
@@ -13,7 +15,7 @@ const AttendanceTable = React.lazy(() => import('./views/attendance/attendanceTa
 //Report Cards
 const ReportCard = React.lazy(() => import('./views/ReportCard/index.js'))
 // Courses
-const Courses = React.lazy(() => import('./views/Courses/Courses'))
+const Courses = React.lazy(() => import('./views/Courses/courses'))
 const CourseDetailPage = React.lazy(() => import('./views/Courses/courseDetails'))
 const CourseForm = React.lazy(() => import('./views/Courses/CourseForm'))
 const Timetable = React.lazy(() => import('./views/Courses/Timetable'))
@@ -88,7 +90,8 @@ const Grades7to8ReportCardPage = React.lazy(() => import('./views/ReportCard/Rep
 
 const routes = [
   { path: '/', exact: true, name: 'Home' },
-  { path: '/dashboard', name: 'Dashboard', element: Dashboard },
+
+  { path: '/dashboard', name: 'Dashboard', element: DashboardSwitch },
   { path: '/attendance', name: 'Attendance', element: AttendanceTabs },
   { path: '/reportcards', name: 'Report Cards', element: ReportCard },
   { path: '/registration', name: 'Registration', element: RegistrationPage },
