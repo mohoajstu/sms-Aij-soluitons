@@ -14,7 +14,7 @@ import { ReportCardForm } from "./Componenets/ReportCardForm";
 import { ReportCardPreview } from "./Componenets/ReportCardPreview";
 import PDFViewer from "./Componenets/PDFViewer";
 import PDFFieldInspector from './Componenets/PDFFieldInspector';
-import "./ReportCardLovable.css";
+import "./ReportCard.css";
 import { PDFDocument } from 'pdf-lib';
 import { saveAs } from 'file-saver';
 import DynamicReportCardForm from './Componenets/DynamicReportCardForm';
@@ -100,7 +100,7 @@ const REPORT_CARD_TYPES = [
 
 // Accept an optional presetReportCardId. If provided the dropdown is hidden and the supplied
 // template will be used immediately. This lets us reuse this component inside wrapper pages.
-const ReportCardLovable = ({ presetReportCardId = null }) => {
+const ReportCard = ({ presetReportCardId = null }) => {
   const [selectedReportCard, setSelectedReportCard] = useState(presetReportCardId || '');
   const [formData, setFormData] = useState({});
   const [isGenerating, setIsGenerating] = useState(false);
@@ -287,4 +287,4 @@ const ReportCardLovable = ({ presetReportCardId = null }) => {
   );
 };
 
-export default ReportCardLovable;
+export default ReportCard;

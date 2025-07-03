@@ -11,8 +11,7 @@ const CalendarDemo = React.lazy(() => import('./views/CalendarDemo'))
 const AttendanceTabs = React.lazy(() => import('./views/attendance/attendanceTabs'))
 const AttendanceTable = React.lazy(() => import('./views/attendance/attendanceTable'))
 //Report Cards
-const ReportCardUI = React.lazy(() => import('./views/ReportCard/ReportCardUI'))
-const ReportCardLovable = React.lazy(() => import('./views/ReportCardLovable'))
+const ReportCard = React.lazy(() => import('./views/ReportCard/index.js'))
 // Courses
 const Courses = React.lazy(() => import('./views/Courses/Courses'))
 const CourseDetailPage = React.lazy(() => import('./views/Courses/courseDetails'))
@@ -73,12 +72,12 @@ const Toasts = React.lazy(() => import('./views/notifications/toasts/Toasts'))
 const Widgets = React.lazy(() => import('./views/widgets/Widgets'))
 
 // Report Card templates (one component per PDF)
-const KindergartenInitialPage = React.lazy(() => import('./views/ReportCards/KindergartenInitialPage'));
-const KindergartenReportCardPage = React.lazy(() => import('./views/ReportCards/KindergartenReportCardPage'));
-const Grades1to6ProgressPage = React.lazy(() => import('./views/ReportCards/Grades1to6ProgressPage'));
-const Grades1to6ReportCardPage = React.lazy(() => import('./views/ReportCards/Grades1to6ReportCardPage'));
-const Grades7to8ProgressPage = React.lazy(() => import('./views/ReportCards/Grades7to8ProgressPage'));
-const Grades7to8ReportCardPage = React.lazy(() => import('./views/ReportCards/Grades7to8ReportCardPage'));
+const KindergartenInitialPage = React.lazy(() => import('./views/ReportCard/ReportCards/KindergartenInitialPage.js'));
+const KindergartenReportCardPage = React.lazy(() => import('./views/ReportCard/ReportCards/KindergartenReportCardPage.js'));
+const Grades1to6ProgressPage = React.lazy(() => import('./views/ReportCard/ReportCards/Grades1to6ProgressPage.js'));
+const Grades1to6ReportCardPage = React.lazy(() => import('./views/ReportCard/ReportCards/Grades1to6ReportCardPage.js'));
+const Grades7to8ProgressPage = React.lazy(() => import('./views/ReportCard/ReportCards/Grades7to8ProgressPage.js'));
+const Grades7to8ReportCardPage = React.lazy(() => import('./views/ReportCard/ReportCards/Grades7to8ReportCardPage.js'));
 
 // const routes = [
 //   { path: '/', exact: true, name: 'Home' },
@@ -91,8 +90,7 @@ const routes = [
   { path: '/', exact: true, name: 'Home' },
   { path: '/dashboard', name: 'Dashboard', element: Dashboard },
   { path: '/attendance', name: 'Attendance', element: AttendanceTabs },
-  { path: '/reportcards', name: 'Report Cards', element: ReportCardUI },
-  { path: '/reportcards/lovable', name: 'Lovable Report Cards', element: ReportCardLovable },
+  { path: '/reportcards', name: 'Report Cards', element: ReportCard },
   { path: '/registration', name: 'Registration', element: RegistrationPage },
   { path: '/registration/thankYouPage', name: 'Thank You', element: ThankYouPage },
   { path: '/courses', name: 'Courses', element: Courses },
