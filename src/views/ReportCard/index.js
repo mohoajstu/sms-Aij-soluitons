@@ -27,7 +27,7 @@ import useAuth from '../../Firebase/useAuth';
 
 // NOTE: All PDF assets are served from the public folder so we can access them by URL at runtime.
 // The folder name "Report Cards" contains a space, so we encode it (`Report%20Cards`).
-const REPORT_CARD_TYPES = [
+export const REPORT_CARD_TYPES = [
   {
     id: 'kg-initial-observations',
     name: 'Kindergarten – Communication of Learning (Initial Observations)',
@@ -199,7 +199,27 @@ const ReportCard = ({ presetReportCardId = null }) => {
           const timestamp = Date.now();
           const filePath = `reportCards/${user.uid}/${selectedReportCard || 'report'}-${timestamp}.pdf`;
           const storageRef = ref(storage, filePath);
-          await uploadBytes(storageRef, blob);
+
+          // Attempt to derive student name from current formData flexibly
+          const extractStudentName = () => {
+            if (formData.student_name) return formData.student_name
+            if (formData.student) return formData.student
+            if (formData.StudentName) return formData.StudentName
+            // Fallback: search for a field containing both "student" and "name"
+            const entry = Object.entries(formData).find(([key]) =>
+              key.toLowerCase().includes('student') && key.toLowerCase().includes('name')
+            )
+            return entry ? entry[1] : ''
+          }
+
+          const studentNameMeta = extractStudentName() || ''
+
+          await uploadBytes(storageRef, blob, {
+            contentType: 'application/pdf',
+            customMetadata: {
+              student: studentNameMeta,
+            },
+          });
           const downloadURL = await getDownloadURL(storageRef);
 
           // Store a Firestore record for easy retrieval later
