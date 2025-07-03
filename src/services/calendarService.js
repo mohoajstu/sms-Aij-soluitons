@@ -49,8 +49,8 @@ const getStoredToken = () => {
       return null
     }
   }
-  
-  // If no token found, check if we have one from Firebase authentication
+
+  // Fallback to check for a token from Firebase authentication
   const firebaseTokenStr = localStorage.getItem(SHARED_GOOGLE_AUTH_TOKEN_KEY)
   if (firebaseTokenStr) {
     try {
@@ -62,17 +62,17 @@ const getStoredToken = () => {
           access_token: firebaseToken.accessToken,
           expires_in: Math.floor((firebaseToken.expiresAt - Date.now()) / 1000),
         }
-        
+
         // Also save it in our format for future use
         storeToken(gapiToken)
-        
+
         return gapiToken
       }
     } catch (e) {
       console.error('Error parsing Firebase token:', e)
     }
   }
-  
+
   return null
 }
 
@@ -103,7 +103,7 @@ export const initializeGoogleApi = () => {
             apiKey: API_KEY,
             discoveryDocs: [DISCOVERY_DOC],
           })
-          
+
           // Try to restore previously saved token
           const storedToken = getStoredToken()
           if (storedToken) {
@@ -114,7 +114,7 @@ export const initializeGoogleApi = () => {
               console.warn('Could not restore previous session:', e)
             }
           }
-          
+
           gapiInited = true
           resolve(true)
         } catch (error) {
@@ -363,7 +363,7 @@ export const getCalendarList = async () => {
  */
 export const assignmentToEvent = (assignment, course) => {
   const deadlineDate = new Date(assignment.deadline)
-  
+
   return {
     summary: `${course.title} - ${assignment.title} Due`,
     description: assignment.description,
@@ -387,7 +387,7 @@ export const assignmentToEvent = (assignment, course) => {
 
 /**
  * Convert Hijri date to Gregorian date
- * @param {number} year - Hijri year 
+ * @param {number} year - Hijri year
  * @param {number} month - Hijri month (1-12)
  * @param {number} day - Hijri day
  * @returns {Date} - JavaScript Date object (Gregorian)
@@ -425,7 +425,7 @@ export const gregorianToHijri = (date) => {
   const year = date.getFullYear()
   const month = date.getMonth() + 1
   const day = date.getDate()
-  
+
   // This is a simple approximation - for production use, consider using a proper Hijri calendar library
   const jd = Math.floor(365.25 * (year + 4716)) + Math.floor(30.6001 * (month + 1)) + day - 1524.5
 
