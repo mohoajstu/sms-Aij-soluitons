@@ -8,18 +8,38 @@ import AttendanceReportTable from './attendenceReportTable'
 import ManualSmsNotification from './ManualSmsNotification'
 import './attendanceTabs.css'
 import useAuth from '../../Firebase/useAuth'
+import { collection, getDocs } from 'firebase/firestore'
+import { firestore } from '../../Firebase/firebase'
 
 const AttendanceTabs = () => {
   const [activeTab, setActiveTab] = useState(0) // Default to "Take Attendance"
   const navigate = useNavigate()
   const { role } = useAuth()
   const [selectedCourse, setSelectedCourse] = useState(null)
+  const [courses, setCourses] = useState([])
 
   useEffect(() => {
     if (role === 'parent') {
       setActiveTab(1) // Force attendance report tab for parents
     }
   }, [role])
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const coursesCollection = collection(firestore, 'courses')
+        const coursesSnapshot = await getDocs(coursesCollection)
+        const coursesList = coursesSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }))
+        setCourses(coursesList)
+      } catch (error) {
+        console.error('Error fetching courses:', error)
+      }
+    }
+    fetchCourses()
+  }, [])
 
   return (
     <div className="at-container">
@@ -72,6 +92,7 @@ const AttendanceTabs = () => {
                     fullWidth
                     value={selectedCourse}
                     onChange={(e, val) => setSelectedCourse(val)}
+                    options={courses}
                   />
                 </Grid>
               </Grid>
