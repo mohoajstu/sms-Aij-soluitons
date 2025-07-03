@@ -4,6 +4,7 @@ import {
   initializeGIS,
   authenticate,
   isAuthenticated,
+  callGoogleApi,
 } from './calendarService'
 
 // Google Sheets API configuration
@@ -57,17 +58,20 @@ export const authenticateSheets = async () => {
  * @returns {Object} - Object containing spreadsheet ID and URL
  */
 export const createBlankSpreadsheet = async (title = 'Attendance Export', headers = []) => {
-  try {
-    if (!isSheetsAuthenticated()) {
-      throw new Error('User not authenticated for Google Sheets')
-    }
+  if (!isSheetsAuthenticated()) {
+    // This could be improved by attempting to authenticate first.
+    throw new Error('User not authenticated for Google Sheets')
+  }
 
-    // Create a new spreadsheet using the simpler API structure
-    const response = await gapi.client.sheets.spreadsheets.create({
-      properties: {
-        title: title,
-      },
-    })
+  try {
+    // Create a new spreadsheet using the simpler API structure and the API wrapper
+    const response = await callGoogleApi(() =>
+      gapi.client.sheets.spreadsheets.create({
+        properties: {
+          title: title,
+        },
+      }),
+    )
 
     const spreadsheetId = response.result.spreadsheetId
     const spreadsheetUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`
@@ -87,7 +91,12 @@ export const createBlankSpreadsheet = async (title = 'Attendance Export', header
     }
   } catch (error) {
     console.error('Error creating blank spreadsheet:', error)
-    throw error
+    // Re-throw the error to be handled by the calling component
+    const errorMessage =
+      error.result?.error?.message ||
+      error.message ||
+      'Failed to create spreadsheet. Please try again.'
+    throw new Error(errorMessage)
   }
 }
 
@@ -97,20 +106,23 @@ export const createBlankSpreadsheet = async (title = 'Attendance Export', header
  * @param {Array} headers - Array of header strings
  */
 const addHeadersToSpreadsheet = async (spreadsheetId, headers) => {
-  try {
-    const range = 'A1:' + String.fromCharCode(64 + headers.length) + '1' // A1:E1 for 5 headers, etc.
+  const range = 'A1:' + String.fromCharCode(64 + headers.length) + '1'
 
-    await gapi.client.sheets.spreadsheets.values.update({
+  // Update sheet values for the headers
+  await callGoogleApi(() =>
+    gapi.client.sheets.spreadsheets.values.update({
       spreadsheetId: spreadsheetId,
       range: range,
       valueInputOption: 'RAW',
       resource: {
         values: [headers],
       },
-    })
+    }),
+  )
 
-    // Format the header row (bold, background color)
-    await gapi.client.sheets.spreadsheets.batchUpdate({
+  // Format the header row (bold, background color)
+  await callGoogleApi(() =>
+    gapi.client.sheets.spreadsheets.batchUpdate({
       spreadsheetId: spreadsheetId,
       resource: {
         requests: [
@@ -140,13 +152,10 @@ const addHeadersToSpreadsheet = async (spreadsheetId, headers) => {
           },
         ],
       },
-    })
+    }),
+  )
 
-    console.log('Headers added to spreadsheet')
-  } catch (error) {
-    console.error('Error adding headers to spreadsheet:', error)
-    throw error
-  }
+  console.log('Headers added to spreadsheet')
 }
 
 /**
@@ -191,32 +200,34 @@ export const exportAttendanceToSheets = async (attendanceData, reportParams = {}
  * @param {Array} attendanceData - Array of attendance records
  */
 const addDataToSpreadsheet = async (spreadsheetId, attendanceData) => {
-  try {
-    // Convert attendance data to rows
-    const rows = attendanceData.map((record) => [
-      record.date || '',
-      record.semester || '',
-      record.section || '',
-      record.class || '',
-      record.student || '',
-      record.status || '',
-      record.note || '',
-    ])
+  // Convert attendance data to rows
+  const rows = attendanceData.map((record) => [
+    record.date || '',
+    record.semester || '',
+    record.section || '',
+    record.class || '',
+    record.student || '',
+    record.status || '',
+    record.note || '',
+  ])
 
-    // Add data starting from row 2 (after headers)
-    const range = `A2:G${rows.length + 1}`
+  // Add data starting from row 2 (after headers)
+  const range = `A2:G${rows.length + 1}`
 
-    await gapi.client.sheets.spreadsheets.values.update({
+  await callGoogleApi(() =>
+    gapi.client.sheets.spreadsheets.values.update({
       spreadsheetId: spreadsheetId,
       range: range,
       valueInputOption: 'RAW',
       resource: {
         values: rows,
       },
-    })
+    }),
+  )
 
-    // Auto-resize columns for better readability
-    await gapi.client.sheets.spreadsheets.batchUpdate({
+  // Auto-resize columns for better readability
+  await callGoogleApi(() =>
+    gapi.client.sheets.spreadsheets.batchUpdate({
       spreadsheetId: spreadsheetId,
       resource: {
         requests: [
@@ -232,13 +243,10 @@ const addDataToSpreadsheet = async (spreadsheetId, attendanceData) => {
           },
         ],
       },
-    })
+    }),
+  )
 
-    console.log(`Added ${rows.length} rows of data to spreadsheet`)
-  } catch (error) {
-    console.error('Error adding data to spreadsheet:', error)
-    throw error
-  }
+  console.log(`Added ${rows.length} rows of data to spreadsheet`)
 }
 
 /**
@@ -266,14 +274,16 @@ export const createAttendanceTemplate = async (className, students = [], dates =
       const studentRows = students.map((student) => [student])
       const range = `A2:A${students.length + 1}`
 
-      await gapi.client.sheets.spreadsheets.values.update({
-        spreadsheetId: result.spreadsheetId,
-        range: range,
-        valueInputOption: 'RAW',
-        resource: {
-          values: studentRows,
-        },
-      })
+      await callGoogleApi(() =>
+        gapi.client.sheets.spreadsheets.values.update({
+          spreadsheetId: result.spreadsheetId,
+          range: range,
+          valueInputOption: 'RAW',
+          resource: {
+            values: studentRows,
+          },
+        }),
+      )
     }
 
     return result
