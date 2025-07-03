@@ -13,7 +13,7 @@ const CalendarDemo = React.lazy(() => import('./views/CalendarDemo'))
 const AttendanceTabs = React.lazy(() => import('./views/attendance/attendanceTabs'))
 const AttendanceTable = React.lazy(() => import('./views/attendance/attendanceTable'))
 //Report Cards
-const ReportCardUI = React.lazy(() => import('./views/ReportCard/ReportCardUI'))
+const ReportCard = React.lazy(() => import('./views/ReportCard/index.js'))
 // Courses
 const Courses = React.lazy(() => import('./views/Courses/courses'))
 const CourseDetailPage = React.lazy(() => import('./views/Courses/courseDetails'))
@@ -73,6 +73,14 @@ const Toasts = React.lazy(() => import('./views/notifications/toasts/Toasts'))
 
 const Widgets = React.lazy(() => import('./views/widgets/Widgets'))
 
+// Report Card templates (one component per PDF)
+const KindergartenInitialPage = React.lazy(() => import('./views/ReportCard/ReportCards/KindergartenInitialPage.js'));
+const KindergartenReportCardPage = React.lazy(() => import('./views/ReportCard/ReportCards/KindergartenReportCardPage.js'));
+const Grades1to6ProgressPage = React.lazy(() => import('./views/ReportCard/ReportCards/Grades1to6ProgressPage.js'));
+const Grades1to6ReportCardPage = React.lazy(() => import('./views/ReportCard/ReportCards/Grades1to6ReportCardPage.js'));
+const Grades7to8ProgressPage = React.lazy(() => import('./views/ReportCard/ReportCards/Grades7to8ProgressPage.js'));
+const Grades7to8ReportCardPage = React.lazy(() => import('./views/ReportCard/ReportCards/Grades7to8ReportCardPage.js'));
+
 // const routes = [
 //   { path: '/', exact: true, name: 'Home' },
 //   { path: '/dashboard', name: 'Dashboard', element: Dashboard },
@@ -85,8 +93,7 @@ const routes = [
 
   { path: '/dashboard', name: 'Dashboard', element: DashboardSwitch },
   { path: '/attendance', name: 'Attendance', element: AttendanceTabs },
-
-  { path: '/reportcards', name: 'Report Cards', element: ReportCardUI },
+  { path: '/reportcards', name: 'Report Cards', element: ReportCard },
   { path: '/registration', name: 'Registration', element: RegistrationPage },
   { path: '/registration/thankYouPage', name: 'Thank You', element: ThankYouPage },
   { path: '/courses', name: 'Courses', element: Courses },
@@ -100,6 +107,14 @@ const routes = [
   { path: '/courses/:id/timetable', name: 'Course Timetable', element: TimetablePage },
   { path: '/courses/:id', name: 'Course Detail', element: CourseDetailPage },
   { path: '/attendance/attendance-table-page', name: 'Attendance Table', element: AttendanceTable },
+
+  // Template-specific report-card routes
+  { path: '/reportcards/kg-initial', name: 'KG Initial Observations', element: KindergartenInitialPage },
+  { path: '/reportcards/kg-report', name: 'KG Report Card', element: KindergartenReportCardPage },
+  { path: '/reportcards/1-6-progress', name: 'Gr 1-6 Progress', element: Grades1to6ProgressPage },
+  { path: '/reportcards/1-6-report', name: 'Gr 1-6 Report Card', element: Grades1to6ReportCardPage },
+  { path: '/reportcards/7-8-progress', name: 'Gr 7-8 Progress', element: Grades7to8ProgressPage },
+  { path: '/reportcards/7-8-report', name: 'Gr 7-8 Report Card', element: Grades7to8ReportCardPage },
 
   // { path: '/theme', name: 'Theme', element: Colors, exact: true },
   // { path: '/theme/colors', name: 'Colors', element: Colors },
