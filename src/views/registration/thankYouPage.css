@@ -1,47 +1,73 @@
-.thank-you-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    background: #fff;
-    text-align: center;
-    padding: 2rem;
-  }
-  
-  .thank-you-container h1 {
-    color: var(--primary-color);
-    margin-bottom: 1rem;
-  }
-  
-  .thank-you-container p {
-    font-size: 1.2rem;
-    color: var(--text-color);
-    margin-bottom: 2rem;
-  }
-  
-  .home-link {
-    text-decoration: none;
-    background-color: var(--primary-color);
-    color: #fff;
-    padding: 0.75rem 1.5rem;
-    border-radius: 4px;
-    font-weight: 600;
-    transition: background-color 0.2s ease;
-  }
-  
-  .home-link:hover {
-    background-color: #6aa52c;
-  }
-  
-  /* Responsive */
-  @media (max-width: 600px) {
-    .thank-you-container h1 {
-      font-size: 1.8rem;
-    }
-    
-    .thank-you-container p {
-      font-size: 1rem;
-    }
-  }
-  
+
+/* src/views/registration/thankYouPage.css */
+
+.thank-you-page-container {
+  background-color: #f3f4f6; /* A light gray background */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+.thank-you-card {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  max-width: 42rem; /* Equivalent to max-w-lg */
+  width: 100%;
+  text-align: center;
+  overflow: hidden; /* To make sure border-radius on header works */
+}
+
+.thank-you-card-header {
+  background-color: #0f172a; /* bg-slate-900 */
+  color: white;
+  padding: 1.5rem;
+}
+
+.thank-you-card-header-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: white;
+}
+
+.thank-you-card-body {
+  padding: 2.5rem; /* p-10 */
+}
+
+.thank-you-icon {
+  width: 3rem; /* h-12 w-12 */
+  height: 3rem;
+  color: #34d399; /* A nice green color */
+  margin: 0 auto 1.5rem;
+}
+
+.thank-you-title {
+  font-size: 1.5rem; /* text-2xl */
+  font-weight: 600;
+  color: #1f2937; /* text-gray-800 */
+  margin-bottom: 0.75rem;
+}
+
+.thank-you-text {
+  color: #4b5563; /* text-gray-600 */
+  margin-bottom: 2rem;
+  max-width: 28rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.thank-you-button {
+  background-color: #6366f1; /* An indigo color */
+  color: white;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.375rem;
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+.thank-you-button:hover {
+  background-color: #4f46e5;
+} 
