@@ -26,7 +26,7 @@ const BudgetPage = React.lazy(() => import('./views/Courses/BudgetPage'))
 const TimetablePage = React.lazy(() => import('./views/Courses/TimetablePage'))
 //Registration
 const RegistrationPage = React.lazy(() => import('./views/registration/registrationPage'))
-const ThankYouPage = React.lazy(() => import('./views/registration/thankYouPage.js'))
+const ThankYouPage = React.lazy(() => import('./views/registration/thankYouPage'))
 // Base
 const Accordion = React.lazy(() => import('./views/base/accordion/Accordion'))
 const Breadcrumbs = React.lazy(() => import('./views/base/breadcrumbs/Breadcrumbs'))
