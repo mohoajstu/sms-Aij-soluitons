@@ -13,18 +13,26 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false, onFilledPdfGenerated = null }) => {
   const [numPages, setNumPages] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
-  const [scale, setScale] = useState(0.8);
+  const [scale, setScale] = useState(1.2);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pdfDocument, setPdfDocument] = useState(null);
   const [filledPdfUrl, setFilledPdfUrl] = useState(null);
   const [filledPdfBytes, setFilledPdfBytes] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
   const canvasRef = useRef(null);
+  const retryTimeoutRef = useRef(null);
+
+  // Auto-retry configuration
+  const MAX_RETRIES = 3;
+  const RETRY_DELAYS = [1000, 2000, 4000]; // 1s, 2s, 4s exponential backoff
 
   // Debug effect to log PDF URL changes
   useEffect(() => {
     console.log('PDFViewer: PDF URL changed to:', pdfUrl);
     if (pdfUrl) {
+      setRetryCount(0); // Reset retry count on new PDF
       loadPDF();
     }
   }, [pdfUrl]);
@@ -54,10 +62,24 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false,
     }
   }, [formData, showPreview, pdfUrl]);
 
-  const loadPDF = async (urlOverride = null) => {
+  // Cleanup retry timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const loadPDF = async (urlOverride = null, isAutoRetry = false) => {
     try {
       setLoading(true);
-      setError(null);
+      if (!isAutoRetry) {
+        setError(null);
+        setIsRetrying(false);
+      } else {
+        setIsRetrying(true);
+      }
       
       const urlToLoad = urlOverride || filledPdfUrl || pdfUrl;
       console.log('PDFViewer: Loading PDF from:', urlToLoad);
@@ -71,17 +93,53 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false,
       setNumPages(pdf.numPages);
       setPageNumber(1);
       setLoading(false);
+      setError(null);
+      setRetryCount(0); // Reset retry count on success
+      setIsRetrying(false);
       
     } catch (error) {
       console.error('PDFViewer: Error loading PDF:', error);
-      setError(error.message || 'Failed to load PDF');
       setLoading(false);
+      setIsRetrying(false);
+      
+      // Check if this is a temporary network error that we should retry
+      const isRetryableError = error.message.includes('ERR_FILE_NOT_FOUND') || 
+                              error.message.includes('UnexpectedResponseException') ||
+                              error.message.includes('network') ||
+                              error.status === 0;
+      
+      if (isRetryableError && retryCount < MAX_RETRIES && !isAutoRetry) {
+        console.log(`PDFViewer: Retryable error detected, scheduling retry ${retryCount + 1}/${MAX_RETRIES}`);
+        setRetryCount(prev => prev + 1);
+        
+        // Schedule automatic retry with exponential backoff
+        const delay = RETRY_DELAYS[retryCount] || RETRY_DELAYS[RETRY_DELAYS.length - 1];
+        retryTimeoutRef.current = setTimeout(() => {
+          loadPDF(urlOverride, true);
+        }, delay);
+        
+        // Show a less alarming message for automatic retries
+        setError(`Loading PDF... (retry ${retryCount + 1}/${MAX_RETRIES})`);
+      } else {
+        // Only show full error after all retries exhausted or for non-retryable errors
+        setError(error.message || 'Failed to load PDF');
+      }
     }
   };
 
   const fillPDFWithFormData = async () => {
     try {
-      console.log('PDFViewer: Filling PDF with form data:', formData);
+      // Reduce console spam - only log when there's meaningful form data
+      const formDataKeys = Object.keys(formData).filter(key => 
+        formData[key] !== null && formData[key] !== undefined && formData[key] !== ''
+      );
+      
+      if (formDataKeys.length === 0) {
+        console.log('PDFViewer: No form data to fill');
+        return;
+      }
+      
+      console.log(`PDFViewer: Filling PDF with ${formDataKeys.length} form fields`);
       
       // Fetch the original PDF
       const response = await fetch(pdfUrl);
@@ -96,27 +154,19 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false,
       const form = pdfDoc.getForm();
       const fields = form.getFields();
       
-      console.log(`PDFViewer: Found ${fields.length} form fields in PDF`);
+      // Only log field details in debug mode or when there are issues
+      const isDebugMode = localStorage.getItem('pdfDebug') === 'true';
       
-      // Log all actual PDF field names for debugging
-      const allPdfFieldNames = fields.map(field => ({
-        name: field.getName(),
-        type: field.constructor.name
-      }));
-      console.log('PDFViewer: All PDF fields:', allPdfFieldNames);
+      if (isDebugMode) {
+        console.log(`PDFViewer: Found ${fields.length} form fields in PDF`);
+        const allPdfFieldNames = fields.map(field => ({
+          name: field.getName(),
+          type: field.constructor.name
+        }));
+        console.log('PDFViewer: All PDF fields:', allPdfFieldNames);
+      }
       
-      // Log TEXT FIELDS specifically
-      const textFields = fields.filter(field => field.constructor.name === 'PDFTextField');
-      console.log('PDFViewer: TEXT FIELDS ONLY:', textFields.map(field => field.getName()));
-      
-      // Log all form data keys for comparison
-      const formDataKeys = Object.keys(formData).filter(key => 
-        formData[key] !== null && formData[key] !== undefined && formData[key] !== ''
-      );
-      console.log('PDFViewer: Form data keys with values:', formDataKeys);
-      console.log('PDFViewer: Form data values:', formData);
-      
-      // Track filling statistics and page information
+      // Track filling statistics
       let filledCount = 0;
       let matchedFields = [];
       let unmatchedFormData = [];
@@ -131,13 +181,11 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false,
         
         // Try to find matching PDF field by various name patterns
         const possibleFieldNames = generateFieldNameVariations(formKey);
-        console.log(`PDFViewer: Trying to fill field "${formKey}" with value "${value}". Possible field names:`, possibleFieldNames);
         
         for (const fieldName of possibleFieldNames) {
           try {
             const field = form.getFieldMaybe(fieldName);
             if (field) {
-              console.log(`PDFViewer: Found matching PDF field "${fieldName}" for form key "${formKey}"`);
               const success = fillPDFField(field, value);
               if (success) {
                 filledCount++;
@@ -154,7 +202,7 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false,
                     lastFilledFieldPage = fieldPages[0];
                   }
                 } catch (pageError) {
-                  console.warn('Could not determine page for field:', fieldName);
+                  // Silently handle page detection errors
                 }
                 
                 matchedFields.push({ 
@@ -169,19 +217,21 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false,
               }
             }
           } catch (error) {
-            console.warn(`PDFViewer: Error trying field ${fieldName}:`, error.message);
+            if (isDebugMode) {
+              console.warn(`PDFViewer: Error trying field ${fieldName}:`, error.message);
+            }
           }
         }
         
         if (!fieldFilled) {
           unmatchedFormData.push(formKey);
-          console.warn(`PDFViewer: Could not find PDF field for form key "${formKey}" with value "${value}"`);
         }
       });
       
-      console.log(`PDFViewer: Successfully filled ${filledCount} fields`);
-      console.log('PDFViewer: Matched fields:', matchedFields);
-      if (unmatchedFormData.length > 0) {
+      console.log(`PDFViewer: Successfully filled ${filledCount}/${formDataKeys.length} fields`);
+      
+      // Only log unmatched fields if in debug mode or if there are many unmatched
+      if (isDebugMode || unmatchedFormData.length > 5) {
         console.log('PDFViewer: Unmatched form data keys:', unmatchedFormData);
         console.log('PDFViewer: Consider adding these field names to the specific mappings in generateFieldNameVariations()');
       }
@@ -211,7 +261,6 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false,
       
       // Navigate to the page of the last filled field if available
       if (lastFilledFieldPage && lastFilledFieldPage !== pageNumber) {
-        console.log(`PDFViewer: Navigating to page ${lastFilledFieldPage} where field was updated`);
         setPageNumber(lastFilledFieldPage);
       }
       
@@ -543,7 +592,11 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false,
   };
 
   const handleRetry = () => {
-    console.log('PDFViewer: Retrying PDF load for:', pdfUrl);
+    console.log('PDFViewer: Manual retry requested for:', pdfUrl);
+    setRetryCount(0); // Reset retry count for manual retry
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+    }
     loadPDF();
   };
 
@@ -568,20 +621,37 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false,
     );
   }
 
-  if (error) {
+  if (error && !isRetrying) {
+    const isRetryableError = error.includes('Loading PDF...') || 
+                            error.includes('ERR_FILE_NOT_FOUND') || 
+                            error.includes('UnexpectedResponseException');
+    
     return (
       <div className={`pdf-viewer-container ${className}`}>
         <div className="pdf-error" style={{ padding: '20px', textAlign: 'center' }}>
-          <h5>PDF Loading Error</h5>
-          <p>{error}</p>
-          <p><small>PDF URL: {pdfUrl}</small></p>
-            <CButton 
-              color="primary" 
-              onClick={handleRetry}
-              className="me-2"
-            >
-            Retry
-            </CButton>
+          {isRetryableError ? (
+            <>
+              <h5>PDF Loading</h5>
+              <p>{error}</p>
+              <div className="d-flex justify-content-center align-items-center mt-3">
+                <CSpinner size="sm" className="me-2" />
+                <span>Retrying automatically...</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <h5>PDF Loading Error</h5>
+              <p>{error}</p>
+              <p><small>PDF URL: {pdfUrl}</small></p>
+              <CButton 
+                color="primary" 
+                onClick={handleRetry}
+                className="me-2"
+              >
+                Retry
+              </CButton>
+            </>
+          )}
         </div>
       </div>
     );
@@ -664,7 +734,13 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false,
         {loading && (
           <div className="pdf-loading" style={{ padding: '50px' }}>
             <CSpinner color="primary" />
-            <p>Loading PDF...</p>
+            <p>
+              {isRetrying ? (
+                <>Loading PDF... (retry {retryCount}/{MAX_RETRIES})</>
+              ) : (
+                <>Loading PDF...</>
+              )}
+            </p>
             {showPreview && <p><small>Filling form fields...</small></p>}
           </div>
         )}

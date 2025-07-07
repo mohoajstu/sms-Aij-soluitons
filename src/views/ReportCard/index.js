@@ -14,7 +14,9 @@ import { ReportCardForm } from "./Componenets/ReportCardForm";
 import { ReportCardPreview } from "./Componenets/ReportCardPreview";
 import PDFViewer from "./Componenets/PDFViewer";
 import PDFFieldInspector from './Componenets/PDFFieldInspector';
+import ModernReportCardForm from './Componenets/ModernReportCardForm';
 import "./ReportCard.css";
+import "./ModernReportCard.css";
 import { PDFDocument } from 'pdf-lib';
 import { saveAs } from 'file-saver';
 import DynamicReportCardForm from './Componenets/DynamicReportCardForm';
@@ -113,6 +115,9 @@ const ReportCard = ({ presetReportCardId = null }) => {
   const [filledPdfBytes, setFilledPdfBytes] = useState(null);
   const [currentTab, setCurrentTab] = useState('form');
   const [showFieldInspector, setShowFieldInspector] = useState(false);
+  const [useModernForm, setUseModernForm] = useState(true);
+  const [formLoading, setFormLoading] = useState(false);
+  const [formError, setFormError] = useState(null);
 
   // Current authenticated user (needed for storage path)
   const { user } = useAuth();
@@ -147,6 +152,213 @@ const ReportCard = ({ presetReportCardId = null }) => {
     console.log('PDF fields inspected:', fields);
     setFields(fields);
   };
+
+  // Load PDF fields for modern form
+  const loadPDFFields = async (reportCardType) => {
+    if (!reportCardType || !reportCardType.pdfPath) {
+      setFields([]);
+      setFormData({});
+      return;
+    }
+
+    setFormLoading(true);
+    setFormError(null);
+    
+    try {
+      console.log('Loading PDF fields from:', reportCardType.pdfPath);
+      
+      const response = await fetch(reportCardType.pdfPath);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch PDF: ${response.status}`);
+      }
+      
+      const pdfBytes = await response.arrayBuffer();
+      const pdfDoc = await PDFDocument.load(pdfBytes);
+      const form = pdfDoc.getForm();
+      const pdfFields = form.getFields();
+      
+      console.log(`Found ${pdfFields.length} fields in PDF`);
+      
+      // Process fields for form generation (using same logic as DynamicReportCardForm)
+      const processedFields = pdfFields.map((field, index) => {
+        const fieldName = field.getName();
+        const fieldType = field.constructor.name;
+        
+        let options = [];
+        if (fieldType === 'PDFDropdown' || fieldType === 'PDFRadioGroup') {
+          try {
+            options = field.getOptions();
+          } catch (e) {
+            console.warn(`Could not get options for field ${fieldName}:`, e);
+          }
+        }
+        
+        const section = determineSection(fieldName, reportCardType);
+        
+        return {
+          id: `field_${index}`,
+          name: fieldName,
+          type: fieldType,
+          label: generateFieldLabel(fieldName),
+          options,
+          inputType: determineInputType(fieldName, fieldType),
+          size: determineFieldSize(fieldName, fieldType),
+          maxLength: determineMaxLength(fieldName, fieldType, section, reportCardType),
+          section,
+        };
+      });
+      
+      setFields(processedFields);
+
+      // Initialize form data with empty values
+      const initialFormData = {};
+      processedFields.forEach(field => {
+        initialFormData[field.name] = field.inputType === 'checkbox' ? false : '';
+      });
+
+      setFormData(initialFormData);
+      
+    } catch (err) {
+      console.error('Error loading PDF fields:', err);
+      setFormError(`Failed to load PDF fields: ${err.message}`);
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  // Helper functions (same as DynamicReportCardForm)
+  const generateFieldLabel = (fieldName) => {
+    return fieldName
+      .replace(/[_-]/g, ' ')
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  const determineInputType = (fieldName, fieldType) => {
+    const lowerName = fieldName.toLowerCase();
+    
+    // Specific checkbox fields from the report card
+    const checkboxFields = [
+      'languageNA', 'languageESL', 'languageIEP', 'frenchListeningESL', 'frenchSpeakingESL',
+      'frenchReadingESL', 'frenchWritingESL', 'frenchCore', 'nativeLanguageESL', 'nativeLanguageIEP',
+      'nativeLanguageNA', 'mathESL', 'mathIEP', 'mathFrench', 'scienceESL', 'scienceIEP',
+      'scienceFrench', 'frenchNA', 'frenchListeningIEP', 'frenchSpeakingIEP', 'frenchReadingIEP',
+      'frenchWritingIEP', 'frenchImmersion', 'frenchExtended', 'socialStudiesESL', 'socialStudiesIEP',
+      'socialStudiesFrench', 'healthEdESL', 'healthEdFrench', 'peESL', 'peFrench', 'healthEdIEP',
+      'peIEP', 'danceFrench', 'danceIEP', 'Checkbox_29', 'danceESL', 'dramaESL', 'musicESL',
+      'visualArtsESL', 'otherESL', 'otherFrench', 'dramaIEP', 'musicFrench', 'musicIEP',
+      'Checkbox_39', 'visualArtsIEP', 'otherIEP', 'otherNA', 'danceNA', 'dramaNA', 'musicNA',
+      'visualArtsNA', 'ERSCompletedYes', 'ERSCompletedNo', 'ERSCompletedNA', 'ERSBenchmarkYes',
+      'ERSBenchmarkNo', 'year1', 'year2', 'Year1', 'Year2',
+      'keyLearningESL', 'keyLearningIEP', 'keyLearning2ESL', 'keyLearning2IEP',
+      'placementInSeptemberGrade1', 'placementInSeptemberKg2'
+    ];
+    
+    if (checkboxFields.includes(fieldName)) {
+      return 'checkbox';
+    }
+    
+    if (fieldType === 'PDFTextField') {
+      if (lowerName.includes('comment') || lowerName.includes('note') || lowerName.includes('observation') || lowerName.includes('strength') || lowerName.includes('next') || lowerName.includes('goal')) {
+        return 'textarea';
+      }
+      if (lowerName.includes('phone') || lowerName.includes('number') || lowerName.includes('absent') || lowerName.includes('late')) {
+        return 'number';
+      }
+      return 'text';
+    }
+    
+    if (fieldType === 'PDFDropdown') {
+      return 'select';
+    }
+    
+    if (fieldType === 'PDFCheckBox') {
+      return 'checkbox';
+    }
+    
+    return 'text';
+  };
+
+  const determineFieldSize = (fieldName, fieldType) => {
+    const lowerName = fieldName.toLowerCase();
+    
+    // Large fields
+    if (lowerName.includes('comment') || lowerName.includes('note') || lowerName.includes('observation') || lowerName.includes('strength') || lowerName.includes('next') || lowerName.includes('goal')) {
+      return 'full';
+    }
+    
+    // Small fields
+    if (lowerName.includes('grade') || lowerName.includes('term') || lowerName.includes('absent') || lowerName.includes('late') || lowerName.includes('year') || fieldType === 'PDFCheckBox') {
+      return 'small';
+    }
+    
+    // Medium fields
+    if (lowerName.includes('name') || lowerName.includes('teacher') || lowerName.includes('principal') || lowerName.includes('school') || lowerName.includes('phone') || lowerName.includes('telephone')) {
+      return 'medium';
+    }
+    
+    return 'medium';
+  };
+
+  const determineMaxLength = (fieldName, fieldType, section, reportCardType) => {
+    const lowerName = fieldName.toLowerCase();
+    
+    if (lowerName.includes('comment') || lowerName.includes('note') || lowerName.includes('observation') || lowerName.includes('strength') || lowerName.includes('next') || lowerName.includes('goal')) {
+      return 500;
+    }
+    
+    if (lowerName.includes('name') || lowerName.includes('school') || lowerName.includes('address')) {
+      return 100;
+    }
+    
+    if (lowerName.includes('phone') || lowerName.includes('telephone') || lowerName.includes('oen')) {
+      return 20;
+    }
+    
+    return 50;
+  };
+
+  const determineSection = (fieldName, reportCardType) => {
+    const lowerName = fieldName.toLowerCase();
+    
+    if (lowerName.includes('student') || lowerName.includes('name') || lowerName.includes('grade') || lowerName.includes('oen') || lowerName.includes('school') || lowerName.includes('board') || lowerName.includes('address') || lowerName.includes('principal') || lowerName.includes('telephone') || lowerName.includes('phone')) {
+      return 'Student Information';
+    }
+    
+    if (lowerName.includes('responsibility') || lowerName.includes('organization') || lowerName.includes('independent') || lowerName.includes('collaboration') || lowerName.includes('initiative') || lowerName.includes('regulation')) {
+      return 'Learning Skills';
+    }
+    
+    if (lowerName.includes('strength') || lowerName.includes('next') || lowerName.includes('goal') || lowerName.includes('improvement')) {
+      return 'Next Steps';
+    }
+    
+    if (lowerName.includes('comment') || lowerName.includes('note') || lowerName.includes('observation')) {
+      return 'Comments';
+    }
+    
+    if (lowerName.includes('signature') || lowerName.includes('teacher') || lowerName.includes('parent') || lowerName.includes('guardian')) {
+      return 'Signatures';
+    }
+    
+    if (lowerName.includes('math') || lowerName.includes('language') || lowerName.includes('science') || lowerName.includes('social') || lowerName.includes('french') || lowerName.includes('art') || lowerName.includes('music') || lowerName.includes('drama') || lowerName.includes('dance') || lowerName.includes('health') || lowerName.includes('physical')) {
+      return 'Academic Performance';
+    }
+    
+    return 'Other';
+  };
+
+  // Load fields when report card type changes and modern form is selected
+  useEffect(() => {
+    if (useModernForm && selectedReportCard) {
+      const reportType = getCurrentReportType();
+      if (reportType) {
+        loadPDFFields(reportType);
+      }
+    }
+  }, [useModernForm, selectedReportCard]);
 
   /* ------------------------------------------------------------------
      LocalStorage persistence
@@ -292,9 +504,18 @@ const ReportCard = ({ presetReportCardId = null }) => {
               <CButton 
                 variant="outline" 
                 onClick={() => setShowFieldInspector(!showFieldInspector)}
-                className="mb-3"
+                className="mb-3 me-2"
               >
                 {showFieldInspector ? 'Hide' : 'Show'} PDF Field Inspector
+              </CButton>
+              
+              <CButton 
+                variant="outline"
+                color={useModernForm ? 'primary' : 'secondary'}
+                onClick={() => setUseModernForm(!useModernForm)}
+                className="mb-3"
+              >
+                {useModernForm ? 'Switch to Classic Form' : 'Switch to Modern Form'}
               </CButton>
               
               {showFieldInspector && (
@@ -330,38 +551,70 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
               {/* Form Section */}
               <CCol lg={6} className="form-section">
-                <CCard>
-                  <CCardHeader>
-                    <h5>Fill out the form to see live preview on the left</h5>
-                    <small className="text-muted">
-                      Form fields are dynamically generated based on the selected PDF document
-                    </small>
-                  </CCardHeader>
-                  <CCardBody>
-                    <DynamicReportCardForm 
-                      reportCardType={getCurrentReportType()}
-                      onFormDataChange={handleFormDataChange}
-                    />
-                    
-                    <div className="mt-4">
-                      <CButton 
-                        color="success" 
-                        onClick={downloadFilledPDF}
-                        disabled={isGenerating}
-                        className="me-2"
-                      >
-                        {isGenerating ? (
-                          <>
-                            <CSpinner size="sm" className="me-2" />
-                            Downloading PDF...
-                          </>
-                        ) : (
-                          'Download Filled PDF'
-                        )}
-                      </CButton>
-                    </div>
-                  </CCardBody>
-                </CCard>
+                {useModernForm ? (
+                  <ModernReportCardForm 
+                    fields={fields}
+                    formData={formData}
+                    onFormDataChange={handleFormDataChange}
+                    loading={formLoading}
+                    error={formError}
+                  />
+                ) : (
+                  <CCard>
+                    <CCardHeader>
+                      <h5>Fill out the form to see live preview on the left</h5>
+                      <small className="text-muted">
+                        Form fields are dynamically generated based on the selected PDF document
+                      </small>
+                    </CCardHeader>
+                    <CCardBody>
+                      <DynamicReportCardForm 
+                        reportCardType={getCurrentReportType()}
+                        onFormDataChange={handleFormDataChange}
+                      />
+                      
+                      <div className="mt-4">
+                        <CButton 
+                          color="success" 
+                          onClick={downloadFilledPDF}
+                          disabled={isGenerating}
+                          className="me-2"
+                        >
+                          {isGenerating ? (
+                            <>
+                              <CSpinner size="sm" className="me-2" />
+                              Downloading PDF...
+                            </>
+                          ) : (
+                            'Download Filled PDF'
+                          )}
+                        </CButton>
+                      </div>
+                    </CCardBody>
+                  </CCard>
+                )}
+                
+                {/* Download Button for Modern Form */}
+                {useModernForm && (
+                  <div className="mt-4">
+                    <CButton 
+                      color="success" 
+                      onClick={downloadFilledPDF}
+                      disabled={isGenerating}
+                      className="me-2"
+                      size="lg"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <CSpinner size="sm" className="me-2" />
+                          Downloading PDF...
+                        </>
+                      ) : (
+                        'Download Filled PDF'
+                      )}
+                    </CButton>
+                  </div>
+                )}
               </CCol>
             </CRow>
           )}
