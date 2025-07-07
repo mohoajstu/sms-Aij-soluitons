@@ -1,16 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min?url';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { CButton, CSpinner } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
 import { cilChevronLeft, cilChevronRight, cilZoomIn, cilZoomOut } from '@coreui/icons';
 import PropTypes from 'prop-types';
+import { debounce } from 'lodash';
 
 // Set up the worker for PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
-const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false, onFilledPdfGenerated = null }) => {
+const PDFViewer = React.memo(({ pdfUrl, className = '', formData = {}, showPreview = false, onFilledPdfGenerated = null }) => {
   const [numPages, setNumPages] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(1.2);
@@ -23,12 +24,19 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false,
   const [isRetrying, setIsRetrying] = useState(false);
   const canvasRef = useRef(null);
   const retryTimeoutRef = useRef(null);
+  const fillPdfTimeoutRef = useRef(null);
+  const latestFormData = useRef(formData);
 
   // Auto-retry configuration
   const MAX_RETRIES = 3;
   const RETRY_DELAYS = [1000, 2000, 4000]; // 1s, 2s, 4s exponential backoff
 
-  // Debug effect to log PDF URL changes
+  // Keep the latest form data in a ref to avoid re-triggering effects too often
+  useEffect(() => {
+    latestFormData.current = formData;
+  }, [formData]);
+
+  // Auto-retry configuration
   useEffect(() => {
     console.log('PDFViewer: PDF URL changed to:', pdfUrl);
     if (pdfUrl) {
@@ -44,22 +52,37 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false,
     }
   }, [pageNumber, scale, pdfDocument]);
 
-  // Update PDF with form data when formData changes and preview is enabled
+  // Debounced effect to update PDF with form data
   useEffect(() => {
-    // Only update if there's meaningful form data and preview is enabled
-    const hasFormData = Object.keys(formData).some(key => 
-      formData[key] !== null && formData[key] !== undefined && formData[key] !== ''
+    const hasFormData = Object.keys(latestFormData.current).some(key => 
+      latestFormData.current[key] !== null && latestFormData.current[key] !== undefined && latestFormData.current[key] !== ''
     );
-    
+
     if (showPreview && pdfUrl && hasFormData) {
-      console.log('PDFViewer: Form data changed, updating PDF preview');
-      fillPDFWithFormData();
+      // Clear any pending fill operations before starting a new one
+      if (fillPdfTimeoutRef.current) {
+        clearTimeout(fillPdfTimeoutRef.current);
+      }
+      
+      // Debounce the call to fillPDFWithFormData
+      fillPdfTimeoutRef.current = setTimeout(() => {
+        console.log('PDFViewer: Debounced form data change detected, updating PDF preview');
+        fillPDFWithFormData();
+      }, 300); // 300ms debounce delay
+
     } else if (!showPreview && filledPdfUrl) {
       // Reset to original PDF when preview is disabled
       console.log('PDFViewer: Preview disabled, resetting to original PDF');
       setFilledPdfUrl(null);
       loadPDF();
     }
+
+    // Cleanup timeout on unmount or when dependencies change
+    return () => {
+      if (fillPdfTimeoutRef.current) {
+        clearTimeout(fillPdfTimeoutRef.current);
+      }
+    };
   }, [formData, showPreview, pdfUrl]);
 
   // Cleanup retry timeout on unmount
@@ -71,6 +94,10 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false,
     };
   }, []);
 
+  const isValidUrl = (url) => {
+    return url && (url.startsWith('blob:') || url.startsWith('http') || url.startsWith('/'));
+  };
+  
   const loadPDF = async (urlOverride = null, isAutoRetry = false) => {
     try {
       setLoading(true);
@@ -82,6 +109,13 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false,
       }
       
       const urlToLoad = urlOverride || filledPdfUrl || pdfUrl;
+      if (!isValidUrl(urlToLoad)) {
+        console.warn('PDFViewer: Aborting load, invalid or missing URL:', urlToLoad);
+        setLoading(false);
+        // Don't set an error here, the initial state will be handled by the render logic
+        return;
+      }
+      
       console.log('PDFViewer: Loading PDF from:', urlToLoad);
       
       const loadingTask = pdfjsLib.getDocument(urlToLoad);
@@ -109,17 +143,18 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false,
                               error.status === 0;
       
       if (isRetryableError && retryCount < MAX_RETRIES && !isAutoRetry) {
-        console.log(`PDFViewer: Retryable error detected, scheduling retry ${retryCount + 1}/${MAX_RETRIES}`);
-        setRetryCount(prev => prev + 1);
+        const attempt = isAutoRetry ? retryCount : retryCount + 1;
+        console.log(`PDFViewer: Retryable error detected, scheduling retry ${attempt}/${MAX_RETRIES}`);
+        setRetryCount(attempt);
         
         // Schedule automatic retry with exponential backoff
-        const delay = RETRY_DELAYS[retryCount] || RETRY_DELAYS[RETRY_DELAYS.length - 1];
+        const delay = RETRY_DELAYS[attempt - 1] || RETRY_DELAYS[RETRY_DELAYS.length - 1];
         retryTimeoutRef.current = setTimeout(() => {
           loadPDF(urlOverride, true);
         }, delay);
         
         // Show a less alarming message for automatic retries
-        setError(`Loading PDF... (retry ${retryCount + 1}/${MAX_RETRIES})`);
+        setError(`Loading PDF... (retry ${attempt}/${MAX_RETRIES})`);
       } else {
         // Only show full error after all retries exhausted or for non-retryable errors
         setError(error.message || 'Failed to load PDF');
@@ -127,11 +162,49 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false,
     }
   };
 
-  const fillPDFWithFormData = async () => {
+  /**
+   * Renders text to a canvas and returns it as a PNG data URL.
+   */
+  const convertTextToImage = async (text, font = '48px "Dancing Script"', color = '#000000') => {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    
+    context.font = font;
+    const textMetrics = context.measureText(text);
+    
+    // Set canvas dimensions with some padding
+    canvas.width = textMetrics.width + 40; 
+    canvas.height = 80;
+
+    // Redraw text on the sized canvas
+    context.font = font;
+    context.fillStyle = color;
+    context.fillText(text, 20, 50);
+
+    return canvas.toDataURL('image/png');
+  };
+
+  /**
+   * Scales image dimensions to fit within a bounding box while maintaining aspect ratio.
+   */
+  const scaleToFit = (imgWidth, imgHeight, boxWidth, boxHeight) => {
+    const widthRatio = boxWidth / imgWidth;
+    const heightRatio = boxHeight / imgHeight;
+    const scale = Math.min(widthRatio, heightRatio);
+    return {
+      width: imgWidth * scale,
+      height: imgHeight * scale,
+    };
+  };
+
+  const fillPDFWithFormData = useCallback(debounce(async () => {
+    // Use the most up-to-date form data from the ref
+    const currentFormData = latestFormData.current;
+
     try {
       // Reduce console spam - only log when there's meaningful form data
-      const formDataKeys = Object.keys(formData).filter(key => 
-        formData[key] !== null && formData[key] !== undefined && formData[key] !== ''
+      const formDataKeys = Object.keys(currentFormData).filter(key => 
+        currentFormData[key] !== null && currentFormData[key] !== undefined && currentFormData[key] !== ''
       );
       
       if (formDataKeys.length === 0) {
@@ -154,16 +227,28 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false,
       const form = pdfDoc.getForm();
       const fields = form.getFields();
       
-      // Only log field details in debug mode or when there are issues
+      // Only log field details in debug mode
       const isDebugMode = localStorage.getItem('pdfDebug') === 'true';
       
       if (isDebugMode) {
-        console.log(`PDFViewer: Found ${fields.length} form fields in PDF`);
+        console.log('--- PDF Form Field Debug Mode ---');
         const allPdfFieldNames = fields.map(field => ({
           name: field.getName(),
           type: field.constructor.name
         }));
-        console.log('PDFViewer: All PDF fields:', allPdfFieldNames);
+        console.log('PDFViewer: All available fields in the PDF template:', allPdfFieldNames);
+        console.log('---------------------------------');
+      }
+      
+      // Embed the "Dancing Script" font for any potential text operations, though we prefer stamping images
+      // This is a fallback and good practice.
+      let dancingScriptFont;
+      try {
+        const fontBytes = await fetch('/fonts/DancingScript-Bold.ttf').then(res => res.arrayBuffer());
+        dancingScriptFont = await pdfDoc.embedFont(fontBytes);
+      } catch(e) {
+        console.warn("Could not load custom cursive font, falling back to default. Place 'DancingScript-Bold.ttf' in the public/fonts folder.");
+        dancingScriptFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
       }
       
       // Track filling statistics
@@ -173,9 +258,84 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false,
       let lastFilledFieldPage = null;
       
       // Fill fields based on form data
-      Object.entries(formData).forEach(([formKey, value]) => {
+      for (const [formKey, value] of Object.entries(currentFormData)) {
         // Skip empty values but allow false for checkboxes
-        if (value === null || value === undefined || value === '') return;
+        if (value === null || value === undefined || value === '') continue;
+        
+        // --- SPECIAL SIGNATURE HANDLING ---
+        if (formKey === 'teacherSignature' || formKey === 'principalSignature') {
+          if (!value.type || !value.value) continue; // Skip if signature object is incomplete
+
+          const signatureFieldMappings = {
+            teacherSignature: ["teacherSignature", "Teacher's Signature", "Teacher Signature", "Signature1"],
+            principalSignature: ["principalSignature", "Principal's Signature", "Principal Signature", "Signature2"]
+          };
+
+          try {
+            let sigField = null;
+            const possibleNames = signatureFieldMappings[formKey] || [formKey];
+            
+            for (const name of possibleNames) {
+              sigField = form.getFieldMaybe(name);
+              if (sigField) {
+                console.log(`PDFViewer: Found signature field for "${formKey}" with name "${name}"`);
+                break;
+              }
+            }
+
+            if (!sigField) {
+              console.warn(`PDFViewer: Could not find signature field for "${formKey}" using possible names:`, possibleNames);
+              continue; // Skip if field not found
+            }
+
+            let signatureImageBytes;
+            if (value.type === 'typed') {
+              // Convert typed text to an image
+              const dataUrl = await convertTextToImage(value.value);
+              signatureImageBytes = await fetch(dataUrl).then(res => res.arrayBuffer());
+            } else { // 'drawn' or 'image'
+              signatureImageBytes = await fetch(value.value).then(res => res.arrayBuffer());
+            }
+            
+            const signatureImage = await pdfDoc.embedPng(signatureImageBytes);
+
+            const widgets = sigField.acroField.getWidgets();
+            if (widgets.length > 0) {
+              const rect = widgets[0].getRectangle();
+              const pageRef = widgets[0].P(); // Get page reference from the widget
+              const page = pdfDoc.getPages().find(p => p.ref === pageRef);
+
+              if (page) {
+                const { width, height } = scaleToFit(signatureImage.width, signatureImage.height, rect.width, rect.height - 5); // Use scaleToFit
+                
+                // Center the image in the box
+                const x = rect.x + (rect.width - width) / 2;
+                const y = rect.y + (rect.height - height) / 2;
+                
+                page.drawImage(signatureImage, { x, y, width, height });
+                
+              } else {
+                 console.warn(`PDFViewer: Could not find page for signature widget "${sigField.getName()}"`);
+              }
+            } else {
+              console.warn(`PDFViewer: Signature field "${sigField.getName()}" has no widgets.`);
+            }
+            
+            // The safest method is to flatten just this one field. This bakes the appearance
+            // of the field into the page and removes the interactive element, preventing corruption.
+            try {
+              sigField.flatten();
+              console.log(`PDFViewer: Successfully flattened signature field "${sigField.getName()}".`);
+            } catch (flattenError) {
+              console.warn(`PDFViewer: Could not flatten signature field "${sigField.getName()}". This might leave an interactive box.`, flattenError);
+            }
+            
+          } catch (e) {
+            console.error(`Failed to process signature for ${formKey}:`, e);
+          }
+
+          continue; // Move to next form item
+        }
         
         let fieldFilled = false;
         
@@ -226,38 +386,31 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false,
         if (!fieldFilled) {
           unmatchedFormData.push(formKey);
         }
-      });
+      }
       
       console.log(`PDFViewer: Successfully filled ${filledCount}/${formDataKeys.length} fields`);
       
-      // Only log unmatched fields if in debug mode or if there are many unmatched
-      if (isDebugMode || unmatchedFormData.length > 5) {
-        console.log('PDFViewer: Unmatched form data keys:', unmatchedFormData);
-        console.log('PDFViewer: Consider adding these field names to the specific mappings in generateFieldNameVariations()');
-      }
-      
-      // Generate the filled PDF bytes
+      // Save the modified PDF to a new Uint8Array
       const filledPdfBytes = await pdfDoc.save();
-      
-      // Create a blob URL for the filled PDF
+      setFilledPdfBytes(filledPdfBytes); // Store for download
+
+      // Create a blob URL for the filled PDF to render in the viewer
       const blob = new Blob([filledPdfBytes], { type: 'application/pdf' });
-      const newFilledPdfUrl = URL.createObjectURL(blob);
       
-      // Clean up previous blob URL
+      // Revoke the previous blob URL to prevent memory leaks
       if (filledPdfUrl) {
         URL.revokeObjectURL(filledPdfUrl);
       }
-      
+
+      const newFilledPdfUrl = URL.createObjectURL(blob);
       setFilledPdfUrl(newFilledPdfUrl);
-      setFilledPdfBytes(filledPdfBytes);
       
-      // Notify parent component about the filled PDF bytes
-      if (onFilledPdfGenerated) {
-        onFilledPdfGenerated(filledPdfBytes);
-      }
-      
-      // Load the filled PDF
+      // Trigger a re-load of the PDF viewer with the new blob URL
       await loadPDF(newFilledPdfUrl);
+
+      if (onFilledPdfGenerated) {
+        onFilledPdfGenerated(newFilledPdfUrl, filledPdfBytes);
+      }
       
       // Navigate to the page of the last filled field if available
       if (lastFilledFieldPage && lastFilledFieldPage !== pageNumber) {
@@ -265,14 +418,15 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false,
       }
       
     } catch (error) {
-      console.error('PDFViewer: Error filling PDF with form data:', error);
-      // Fall back to original PDF if filling fails
-      loadPDF();
+      console.error('PDFViewer: Failed to fill PDF:', error);
+      setError('Could not update PDF preview. Please try again.');
     }
-  };
+  }, 300), [pdfUrl]); // useCallback with debounce and dependencies
 
   // Generate possible field name variations for a form key
   const generateFieldNameVariations = (formKey) => {
+    if (!formKey) return [];
+    
     const variations = [formKey];
     
     // Add exact mappings based on the exact PDF field names provided by the user
@@ -761,7 +915,7 @@ const PDFViewer = ({ pdfUrl, className = '', formData = {}, showPreview = false,
       </div>
     </div>
   );
-};
+});
 
 PDFViewer.propTypes = {
   pdfUrl: PropTypes.string,

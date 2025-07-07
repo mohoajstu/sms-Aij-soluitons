@@ -129,6 +129,17 @@ const ReportCard = ({ presetReportCardId = null }) => {
     return REPORT_CARD_TYPES.find(type => type.id === selectedReportCard);
   };
 
+  /**
+   * This callback receives the generated PDF data from the viewer component.
+   * @param {string} url - A temporary blob URL for the preview (managed by PDFViewer).
+   * @param {Uint8Array} bytes - The raw byte data of the filled PDF.
+   */
+  const handlePdfGenerated = (url, bytes) => {
+    // We only need to store the raw bytes for downloading and uploading.
+    // The URL is handled internally by the PDFViewer for the live preview.
+    setFilledPdfBytes(bytes);
+  };
+
   // Handle form data changes with improved structure
   const handleFormDataChange = (newFormData) => {
     console.log('Form data changed:', newFormData);
@@ -391,76 +402,57 @@ const ReportCard = ({ presetReportCardId = null }) => {
   // Download the filled PDF
   const downloadFilledPDF = async () => {
     setIsGenerating(true);
-    
-    try {
-      if (!filledPdfBytes) {
-        alert('No filled PDF available. Please make sure the preview is loaded and contains filled data.');
-        return;
-      }
-      
-      console.log('Downloading filled PDF directly from preview...');
-      
-      // Create download using the already-filled PDF bytes
-      const blob = new Blob([filledPdfBytes], { type: 'application/pdf' });
 
-      /* ------------------------------------------------------------
-         Upload to Firebase Storage so the PDF can be accessed later
-         ------------------------------------------------------------ */
-      try {
-        if (user) {
+    if (!filledPdfBytes) {
+      alert("The PDF has not been generated yet. Please fill out the form and wait for the preview to update.");
+      console.error("Download failed: filledPdfBytes is null.");
+      setIsGenerating(false);
+      return;
+    }
+
+    try {
+      const blob = new Blob([filledPdfBytes], { type: 'application/pdf' });
+      const reportCardType = getCurrentReportType();
+      const studentName = (formData.student_name || formData.student || 'student').replace(/\\s+/g, '-');
+      const fileName = `${reportCardType?.name || 'report-card'}-${studentName}-filled.pdf`;
+
+      // Upload to Firebase first
+      if (user) {
+        try {
           const timestamp = Date.now();
           const filePath = `reportCards/${user.uid}/${selectedReportCard || 'report'}-${timestamp}.pdf`;
           const storageRef = ref(storage, filePath);
 
-          // Attempt to derive student name from current formData flexibly
-          const extractStudentName = () => {
-            if (formData.student_name) return formData.student_name
-            if (formData.student) return formData.student
-            if (formData.StudentName) return formData.StudentName
-            // Fallback: search for a field containing both "student" and "name"
-            const entry = Object.entries(formData).find(([key]) =>
-              key.toLowerCase().includes('student') && key.toLowerCase().includes('name')
-            )
-            return entry ? entry[1] : ''
-          }
-
-          const studentNameMeta = extractStudentName() || ''
-
-          await uploadBytes(storageRef, blob, {
-            contentType: 'application/pdf',
-            customMetadata: {
-              student: studentNameMeta,
-            },
-          });
+          await uploadBytes(storageRef, blob);
           const downloadURL = await getDownloadURL(storageRef);
 
-          // Store a Firestore record for easy retrieval later
+          // Store a reference in Firestore
           await addDoc(collection(firestore, 'reportCards'), {
             uid: user.uid,
             type: selectedReportCard,
             filePath,
             url: downloadURL,
+            studentName: studentName,
             createdAt: serverTimestamp(),
           });
 
           console.log('✅ Report card uploaded to Firebase Storage:', downloadURL);
-        } else {
-          console.warn('User not authenticated. Skipping Firebase upload.');
+
+        } catch (uploadError) {
+          console.error('Error uploading PDF to Firebase Storage:', uploadError);
+          alert('Failed to save the report card to the cloud, but the file will be downloaded locally.');
         }
-      } catch (uploadErr) {
-        console.error('Error uploading PDF to Firebase Storage:', uploadErr);
+      } else {
+        console.warn('User not authenticated. Skipping Firebase upload.');
       }
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${getCurrentReportType()?.name || 'report-card'}-filled.pdf`;
-      link.click();
       
-      URL.revokeObjectURL(url);
-      
+      // Then trigger the local download
+      saveAs(blob, fileName);
+      console.log(`✅ Successfully triggered download for: ${fileName}`);
+
     } catch (error) {
-      console.error('Error downloading filled PDF:', error);
-      alert('Error downloading PDF: ' + error.message);
+      console.error('Error during PDF processing and download:', error);
+      alert('An error occurred while trying to process or download the PDF.');
     } finally {
       setIsGenerating(false);
     }
@@ -543,7 +535,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
                       className="report-card-pdf-viewer"
                       formData={formData}
                       showPreview={true}
-                      onFilledPdfGenerated={setFilledPdfBytes}
+                      onFilledPdfGenerated={handlePdfGenerated}
                     />
                   </CCardBody>
                 </CCard>

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
+
 /* Modern Report Card Form Styles */
 
 /* Main form container */
@@ -6,6 +8,7 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   overflow: hidden;
   transition: all 0.3s ease;
+  background-color: #f8f9fa;
 }
 
 .modern-report-card-form:hover {
