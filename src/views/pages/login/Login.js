@@ -40,6 +40,8 @@ const Login = () => {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [facultyMode, setFacultyMode] = useState(false)
+  const [facultyId, setFacultyId] = useState('')
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
@@ -47,8 +49,13 @@ const Login = () => {
     setError('')
     setLoading(true)
 
+    let loginEmail = email
+    if (facultyMode) {
+      loginEmail = facultyId.trim() + '@gmail.com'
+    }
+
     try {
-      await signInWithEmailAndPassword(auth, email, password)
+      await signInWithEmailAndPassword(auth, loginEmail, password)
       navigate('/')
     } catch (err) {
       handleAuthError(err)
@@ -127,19 +134,48 @@ const Login = () => {
                     <p className="text-body-secondary">Sign In to your account</p>
                     {error && <CAlert color="danger">{error}</CAlert>}
 
-                    <CInputGroup className="mb-3">
-                      <CInputGroupText>
-                        <CIcon icon={cilUser} />
-                      </CInputGroupText>
-                      <CFormInput
-                        type="email"
-                        placeholder="Email"
-                        autoComplete="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
+                    <div className="mb-2 d-flex align-items-center">
+                      <input
+                        type="checkbox"
+                        id="facultyMode"
+                        checked={facultyMode}
+                        onChange={() => setFacultyMode((v) => !v)}
+                        style={{ marginRight: 8 }}
                       />
-                    </CInputGroup>
+                      <label htmlFor="facultyMode" style={{ marginBottom: 0, cursor: 'pointer' }}>
+                        Faculty Login
+                      </label>
+                    </div>
+
+                    {facultyMode ? (
+                      <CInputGroup className="mb-3">
+                        <CInputGroupText>
+                          <CIcon icon={cilUser} />
+                        </CInputGroupText>
+                        <CFormInput
+                          type="text"
+                          placeholder="Faculty ID"
+                          autoComplete="username"
+                          value={facultyId}
+                          onChange={(e) => setFacultyId(e.target.value)}
+                          required
+                        />
+                      </CInputGroup>
+                    ) : (
+                      <CInputGroup className="mb-3">
+                        <CInputGroupText>
+                          <CIcon icon={cilUser} />
+                        </CInputGroupText>
+                        <CFormInput
+                          type="email"
+                          placeholder="Email"
+                          autoComplete="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                        />
+                      </CInputGroup>
+                    )}
 
                     <CInputGroup className="mb-4">
                       <CInputGroupText>

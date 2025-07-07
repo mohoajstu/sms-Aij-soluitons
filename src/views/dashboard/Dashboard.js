@@ -1,5 +1,8 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { auth, firestore } from '../../firebase'
+import { doc, getDoc } from 'firebase/firestore'
+import { onAuthStateChanged } from 'firebase/auth'
 import {
   CButton,
   CCard,
@@ -28,6 +31,34 @@ import sygnet from '../../assets/brand/TLA_logo_simple.svg'
 
 const Dashboard = () => {
   const navigate = useNavigate()
+  const [userFirstName, setUserFirstName] = useState('')
+  const [userRole, setUserRole] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [userId, setUserId] = useState('')
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setUserId(user.uid)
+        try {
+          const userDocRef = doc(firestore, 'users', user.uid)
+          const userDoc = await getDoc(userDocRef)
+          if (userDoc.exists()) {
+            const userData = userDoc.data()
+            setUserFirstName(userData.personalInfo?.firstName || userData.firstName || 'User')
+            setUserRole(userData.personalInfo?.role || userData.role || '')
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error)
+          setUserFirstName('User')
+          setUserRole('')
+        }
+      }
+      setLoading(false)
+    })
+
+    return () => unsubscribe()
+  }, [])
 
   // Sample announcements data
   const announcements = [
@@ -55,7 +86,7 @@ const Dashboard = () => {
   const quickLinks = [
     { id: 1, title: 'Take Attendance', icon: cilCheckCircle, path: '/attendance' },
     { id: 2, title: 'Create Report Cards', icon: cilFile, path: '/reportcards' },
-    { id: 3, title: 'View Student Directory', icon: cilUser, path: '/students' },
+    { id: 3, title: 'View Calendar', icon: cilCalendar, path: '/calendar' },
     { id: 4, title: 'Manage Courses', icon: cilBook, path: '/courses' },
   ]
 
@@ -81,17 +112,29 @@ const Dashboard = () => {
       <div className="enhanced-welcome-banner">
         <div className="welcome-banner-content">
           <div className="welcome-header">
-            <h2>Welcome Back, Mohammad!</h2>
-            <div className="welcome-date">
-              <CIcon icon={cilCalendar} className="me-2" />
-              <span>
-                {new Date().toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </span>
+            <div className="welcome-header-left">
+              <h2>Welcome Back, {userFirstName}!</h2>
+              {userId && (
+                <div
+                  className="user-id-display"
+                  style={{ fontSize: '1rem', color: '#bbb', marginTop: 8 }}
+                >
+                  {userId}
+                </div>
+              )}
+            </div>
+            <div className="welcome-header-date">
+              <div className="welcome-date">
+                <CIcon icon={cilCalendar} className="me-2" />
+                <span>
+                  {new Date().toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -139,81 +182,83 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Row */}
-      <div className="stats-row">
-        <CRow>
-          <CCol lg={3} md={6} sm={12}>
-            <CCard className="stat-card stat-students">
-              <CCardBody className="d-flex align-items-center">
-                <div className="stat-icon">
-                  <CIcon icon={cilUser} size="3xl" />
-                </div>
-                <div className="stat-content">
-                  <h3 className="stat-number">259</h3>
-                  <p className="stat-label">ACTIVE STUDENTS</p>
-                </div>
-              </CCardBody>
-              <CCardFooter className="stat-footer" onClick={() => navigate('/students')}>
-                <span>View Student Directory</span>
-                <CIcon icon={cilArrowRight} />
-              </CCardFooter>
-            </CCard>
-          </CCol>
+      {userRole?.toLowerCase() !== 'faculty' && (
+        <div className="stats-row">
+          <CRow>
+            <CCol lg={3} md={6} sm={12}>
+              <CCard className="stat-card stat-students">
+                <CCardBody className="d-flex align-items-center">
+                  <div className="stat-icon">
+                    <CIcon icon={cilUser} size="3xl" />
+                  </div>
+                  <div className="stat-content">
+                    <h3 className="stat-number">259</h3>
+                    <p className="stat-label">ACTIVE STUDENTS</p>
+                  </div>
+                </CCardBody>
+                <CCardFooter className="stat-footer" onClick={() => navigate('/students')}>
+                  <span>View Student Directory</span>
+                  <CIcon icon={cilArrowRight} />
+                </CCardFooter>
+              </CCard>
+            </CCol>
 
-          <CCol lg={3} md={6} sm={12}>
-            <CCard className="stat-card stat-faculty">
-              <CCardBody className="d-flex align-items-center">
-                <div className="stat-icon">
-                  <CIcon icon={cilSettings} size="3xl" />
-                </div>
-                <div className="stat-content">
-                  <h3 className="stat-number">34</h3>
-                  <p className="stat-label">ACTIVE FACULTY</p>
-                </div>
-              </CCardBody>
-              <CCardFooter className="stat-footer" onClick={() => navigate('/faculty')}>
-                <span>View Faculty</span>
-                <CIcon icon={cilArrowRight} />
-              </CCardFooter>
-            </CCard>
-          </CCol>
+            <CCol lg={3} md={6} sm={12}>
+              <CCard className="stat-card stat-faculty">
+                <CCardBody className="d-flex align-items-center">
+                  <div className="stat-icon">
+                    <CIcon icon={cilSettings} size="3xl" />
+                  </div>
+                  <div className="stat-content">
+                    <h3 className="stat-number">34</h3>
+                    <p className="stat-label">ACTIVE FACULTY</p>
+                  </div>
+                </CCardBody>
+                <CCardFooter className="stat-footer" onClick={() => navigate('/faculty')}>
+                  <span>View Faculty</span>
+                  <CIcon icon={cilArrowRight} />
+                </CCardFooter>
+              </CCard>
+            </CCol>
 
-          <CCol lg={3} md={6} sm={12}>
-            <CCard className="stat-card stat-classes">
-              <CCardBody className="d-flex align-items-center">
-                <div className="stat-icon">
-                  <CIcon icon={cilBook} size="3xl" />
-                </div>
-                <div className="stat-content">
-                  <h3 className="stat-number">63</h3>
-                  <p className="stat-label">ACTIVE CLASSES</p>
-                </div>
-              </CCardBody>
-              <CCardFooter className="stat-footer" onClick={() => navigate('/courses')}>
-                <span>View Classes</span>
-                <CIcon icon={cilArrowRight} />
-              </CCardFooter>
-            </CCard>
-          </CCol>
+            <CCol lg={3} md={6} sm={12}>
+              <CCard className="stat-card stat-classes">
+                <CCardBody className="d-flex align-items-center">
+                  <div className="stat-icon">
+                    <CIcon icon={cilBook} size="3xl" />
+                  </div>
+                  <div className="stat-content">
+                    <h3 className="stat-number">63</h3>
+                    <p className="stat-label">ACTIVE CLASSES</p>
+                  </div>
+                </CCardBody>
+                <CCardFooter className="stat-footer" onClick={() => navigate('/courses')}>
+                  <span>View Classes</span>
+                  <CIcon icon={cilArrowRight} />
+                </CCardFooter>
+              </CCard>
+            </CCol>
 
-          <CCol lg={3} md={6} sm={12}>
-            <CCard className="stat-card stat-applications">
-              <CCardBody className="d-flex align-items-center">
-                <div className="stat-icon">
-                  <CIcon icon={cilPencil} size="3xl" />
-                </div>
-                <div className="stat-content">
-                  <h3 className="stat-number">601</h3>
-                  <p className="stat-label">NEW APPLICATIONS</p>
-                </div>
-              </CCardBody>
-              <CCardFooter className="stat-footer" onClick={() => navigate('/registration')}>
-                <span>View Applications</span>
-                <CIcon icon={cilArrowRight} />
-              </CCardFooter>
-            </CCard>
-          </CCol>
-        </CRow>
-      </div>
+            <CCol lg={3} md={6} sm={12}>
+              <CCard className="stat-card stat-applications">
+                <CCardBody className="d-flex align-items-center">
+                  <div className="stat-icon">
+                    <CIcon icon={cilPencil} size="3xl" />
+                  </div>
+                  <div className="stat-content">
+                    <h3 className="stat-number">601</h3>
+                    <p className="stat-label">NEW APPLICATIONS</p>
+                  </div>
+                </CCardBody>
+                <CCardFooter className="stat-footer" onClick={() => navigate('/registration')}>
+                  <span>View Applications</span>
+                  <CIcon icon={cilArrowRight} />
+                </CCardFooter>
+              </CCard>
+            </CCol>
+          </CRow>
+        </div>
+      )}
 
       {/* Quick Links and Announcements */}
       <CRow className="mt-4">
