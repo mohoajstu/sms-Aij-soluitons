@@ -10,6 +10,11 @@
   margin-bottom: 1.5rem;
 }
 
+.courses-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .courses-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));

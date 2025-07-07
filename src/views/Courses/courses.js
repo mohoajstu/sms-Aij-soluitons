@@ -8,6 +8,7 @@ import './courses.css'
 import { CButton, CButtonGroup, CCard, CCardBody, CCardHeader, CCol, CRow } from '@coreui/react'
 
 function CoursesPage() {
+  console.log('CoursesPage rendered');
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -115,14 +116,12 @@ function CoursesPage() {
       <div className="courses-header">
         <h1>Courses</h1>
         <div className="courses-actions">
-          <CButtonGroup>
-            <CButton color="primary" component={Link} to="/courses/new">
-              Create Course
-            </CButton>
-            <CButton color="success" component={Link} to="/courses/timetable">
-              View Timetable
-            </CButton>
-          </CButtonGroup>
+          <Link to="/courses/new" className="btn btn-primary">
+            Create Course
+          </Link>
+          <Link to="/courses/timetable" className="btn btn-success">
+            View Timetable
+          </Link>
         </div>
       </div>
 

@@ -25,14 +25,7 @@ import {
   CCol,
 } from '@coreui/react'
 import {
-  cilPlus,
-  cilPencil,
-  cilTrash,
-  cilSearch,
-  cilFilter,
-  cilCalendar,
-  cilListRich,
-  cilSpreadsheet,
+
 } from '@coreui/icons-react'
 import coursesData from '../../Data/coursesData.json'
 import './CoursesView.css'
@@ -203,7 +196,7 @@ const CoursesView = () => {
               <CTableDataCell>
                 <div className="d-flex gap-2">
                   <CButton color="light" size="sm" onClick={() => handleEditCourse(course.id)}>
-                    <cilPencil />
+                    Edit
                   </CButton>
                   <CButton
                     color="danger"
@@ -211,7 +204,7 @@ const CoursesView = () => {
                     size="sm"
                     onClick={() => handleDeleteCourse(course.id)}
                   >
-                    <cilTrash />
+                    Delete
                   </CButton>
                 </div>
               </CTableDataCell>
@@ -240,7 +233,7 @@ const CoursesView = () => {
               <div className="d-flex gap-3">
                 <CInputGroup>
                   <CInputGroupText>
-                    <cilSearch />
+                    Search
                   </CInputGroupText>
                   <CFormInput
                     placeholder="Search courses..."
@@ -251,7 +244,7 @@ const CoursesView = () => {
 
                 <CInputGroup>
                   <CInputGroupText>
-                    <cilFilter />
+                    Filter
                   </CInputGroupText>
                   <CFormSelect value={filterGrade} onChange={(e) => setFilterGrade(e.target.value)}>
                     <option value="">All Grades</option>
@@ -283,7 +276,7 @@ const CoursesView = () => {
                 className="d-flex align-items-center gap-2"
                 onClick={handleCreateCourse}
               >
-                <cilPlus /> New Course
+                New Course
               </CButton>
             </div>
 
@@ -308,7 +301,7 @@ const CoursesView = () => {
                 }
               }}
             >
-              <cilListRich className="me-2" /> View All Assignments
+                              View All Assignments
             </CButton>
           </div>
         )
@@ -319,7 +312,7 @@ const CoursesView = () => {
             <h4>Class Schedule</h4>
             <p className="text-muted">View the complete class timetable</p>
             <CButton color="primary" className="mt-3" onClick={handleViewTimetable}>
-              <cilCalendar className="me-2" /> View Timetable
+                              View Timetable
             </CButton>
           </div>
         )

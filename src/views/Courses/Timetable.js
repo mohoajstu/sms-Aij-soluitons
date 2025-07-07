@@ -3,131 +3,91 @@ import {
   CCard,
   CCardBody,
   CCardHeader,
-  CNav,
-  CNavItem,
-  CNavLink,
-  CButton,
   CSpinner,
   CAlert,
   CRow,
   CCol,
-  CDropdown,
-  CDropdownToggle,
-  CDropdownMenu,
-  CDropdownItem,
-  CFormCheck,
 } from '@coreui/react'
-import { cilSync, cilCalendar } from '@coreui/icons-react'
-import coursesData from '../../Data/coursesData.json'
-import calendarService from '../../services/calendarService'
+import { firestore, auth } from '../../firebase'
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
+import { onAuthStateChanged } from 'firebase/auth'
 import './Timetable.css'
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 const TIME_SLOTS = Array.from({ length: 14 }, (_, i) => `${i + 8}:00`) // 8:00 to 21:00
 
 const Timetable = () => {
-  const [activeView, setActiveView] = useState('timetable')
-  const [isLoadingCalendar, setIsLoadingCalendar] = useState(false)
-  const [calendarEvents, setCalendarEvents] = useState([])
-  const [error, setError] = useState('')
-  const [currentUser, setCurrentUser] = useState('all') // 'all', 'student', 'teacher'
-  const [selectedCalendars, setSelectedCalendars] = useState(['school'])
-  const [showHijriDates, setShowHijriDates] = useState(false)
-  const [currentHijriDate, setCurrentHijriDate] = useState({ year: 0, month: 0, day: 0 })
-  const [loadingStatus, setLoadingStatus] = useState('idle') // idle, loading, success, error
-  const [apiInitialized, setApiInitialized] = useState(false)
+  // Fetch courses for the current user from Firestore
+  const [courses, setCourses] = useState([])
+  const [loadingCourses, setLoadingCourses] = useState(true)
 
-  // Initialize Google APIs when component mounts
   useEffect(() => {
-    const initApis = async () => {
-      try {
-        // Load API client and initialize GIS
-        await calendarService.initializeGoogleApi()
-        await calendarService.initializeGIS()
-        setApiInitialized(true)
-      } catch (error) {
-        console.error('Failed to initialize Google APIs:', error)
-        setError('Failed to initialize Google APIs. Please try again later.')
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDocRef = doc(firestore, 'users', user.uid)
+          const userDoc = await getDoc(userDocRef)
+          let userRole = null
+          if (userDoc.exists()) {
+            const userData = userDoc.data()
+            userRole = userData.personalInfo?.role || userData.role || null
+          }
+
+          const coursesCollectionRef = collection(firestore, 'courses')
+          let coursesQuery
+
+          if (userRole?.toLowerCase() === 'admin') {
+            coursesQuery = coursesCollectionRef
+            const coursesSnapshot = await getDocs(coursesQuery)
+            const userCourses = coursesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+            setCourses(userCourses)
+          } else if (userRole?.toLowerCase() === 'faculty' || userRole?.toLowerCase() === 'teacher') {
+            // Fetch the faculty doc from the 'faculty' collection
+            const facultyDocRef = doc(firestore, 'faculty', user.uid)
+            const facultyDoc = await getDoc(facultyDocRef)
+            if (!facultyDoc.exists()) {
+              setCourses([])
+              setLoadingCourses(false)
+              return
+            }
+            const facultyData = facultyDoc.data()
+            const facultyCourses = facultyData.courses || []
+            if (facultyCourses.length === 0) {
+              setCourses([])
+              setLoadingCourses(false)
+              return
+            }
+            // Fetch each course by ID from the 'courses' collection
+            const courseDocs = await Promise.all(
+              facultyCourses.map((courseId) => getDoc(doc(coursesCollectionRef, courseId))),
+            )
+            const userCourses = courseDocs
+              .filter((doc) => doc.exists())
+              .map((doc) => ({ id: doc.id, ...doc.data() }))
+            setCourses(userCourses)
+          } else {
+            setCourses([])
+            setLoadingCourses(false)
+            return
+          }
+        } catch (error) {
+          console.error('Error fetching courses:', error)
+          setCourses([])
+        } finally {
+          setLoadingCourses(false)
+        }
+      } else {
+        setCourses([])
+        setLoadingCourses(false)
       }
-    }
-
-    if (!calendarService.isInitialized()) {
-      initApis()
-    } else {
-      setApiInitialized(true)
-    }
+    })
+    return () => unsubscribe()
   }, [])
-
-  // Initial setup - get Hijri date for today
-  useEffect(() => {
-    const today = new Date()
-    const hijriDate = calendarService.gregorianToHijri(today)
-    setCurrentHijriDate(hijriDate)
-  }, [])
-
-  // Load timetable data
-  const loadTimetableData = () => {
-    // In a real app, this would come from an API
-    // For now, we'll use the courses data from our JSON
-    return coursesData.map((course) => ({
-      id: course.id,
-      title: course.title,
-      days: course.schedule.classDays,
-      startTime: course.schedule.startTime,
-      endTime: course.schedule.endTime,
-      room: course.schedule.room,
-      staff: course.staff.join(', '),
-      color: getColorFromId(course.id),
-    }))
-  }
 
   // Function to get a color based on course ID
   const getColorFromId = (id) => {
     const hue = (id * 271.019) % 360
     return `hsl(${hue}, 70%, 45%)`
-  }
-
-  // Load Google Calendar events
-  const loadCalendarEvents = async () => {
-    setIsLoadingCalendar(true)
-    setLoadingStatus('loading')
-    setError('')
-
-    try {
-      if (!apiInitialized) {
-        await calendarService.initializeGoogleApi()
-        await calendarService.initializeGIS()
-        setApiInitialized(true)
-      }
-
-      // Authenticate with Google
-      await calendarService.authenticate()
-
-      // Get events for the next 7 days
-      const events = await calendarService.getEvents('primary', {
-        timeMin: new Date().toISOString(),
-        timeMax: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        maxResults: 50,
-      })
-
-      setCalendarEvents(events)
-      setLoadingStatus('success')
-    } catch (error) {
-      console.error('Error loading calendar events:', error)
-      setError('Failed to load calendar events. ' + (error.message || 'Please try again.'))
-      setLoadingStatus('error')
-    } finally {
-      setIsLoadingCalendar(false)
-    }
-  }
-
-  // Toggle calendar selection
-  const toggleCalendar = (calendarId) => {
-    if (selectedCalendars.includes(calendarId)) {
-      setSelectedCalendars(selectedCalendars.filter((id) => id !== calendarId))
-    } else {
-      setSelectedCalendars([...selectedCalendars, calendarId])
-    }
   }
 
   // Format time for display
@@ -142,18 +102,19 @@ const Timetable = () => {
     return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`
   }
 
-  // Function to check if a course should be displayed in the timetable
-  const shouldShowCourse = (course) => {
-    if (currentUser === 'all') return true
-
-    // In a real app, you would check if the current user is a student/teacher for this course
-    // For demo, we'll just return true
-    return true
-  }
-
   // Generate the timetable grid
   const renderTimetable = () => {
-    const courses = loadTimetableData()
+    if (loadingCourses) {
+      return (
+        <div className="text-center my-5">
+          <CSpinner color="primary" />
+          <p className="mt-3">Loading courses...</p>
+        </div>
+      )
+    }
+    if (courses.length === 0) {
+      return <CAlert color="info">No courses found for your account.</CAlert>
+    }
 
     return (
       <div className="timetable-container">
@@ -173,16 +134,28 @@ const Timetable = () => {
 
               {DAYS_OF_WEEK.map((day) => {
                 const coursesInSlot = courses.filter((course) => {
-                  if (!shouldShowCourse(course)) return false
-
-                  // Check if course is on this day
-                  if (!course.days.includes(day)) return false
-
+                  if (!course.schedule || !course.schedule.classDays) return false
+                  if (!course.schedule.classDays.includes(day)) return false
                   // Check if course overlaps with this time slot
+                  // Support both 24h and 12h time formats
                   const slotHour = parseInt(timeSlot.split(':')[0], 10)
-                  const courseStartHour = parseInt(course.startTime.split(':')[0], 10)
-                  const courseEndHour = parseInt(course.endTime.split(':')[0], 10)
-
+                  let courseStartHour = 0
+                  let courseEndHour = 0
+                  if (course.schedule.startTime && course.schedule.endTime) {
+                    if (course.schedule.startTime.includes('AM') || course.schedule.startTime.includes('PM')) {
+                      // 12h format
+                      const [start, startPeriod] = course.schedule.startTime.split(' ')
+                      const [end, endPeriod] = course.schedule.endTime.split(' ')
+                      courseStartHour = parseInt(start.split(':')[0], 10)
+                      courseEndHour = parseInt(end.split(':')[0], 10)
+                      if (startPeriod === 'PM' && courseStartHour !== 12) courseStartHour += 12
+                      if (endPeriod === 'PM' && courseEndHour !== 12) courseEndHour += 12
+                    } else {
+                      // 24h format
+                      courseStartHour = parseInt(course.schedule.startTime.split(':')[0], 10)
+                      courseEndHour = parseInt(course.schedule.endTime.split(':')[0], 10)
+                    }
+                  }
                   return slotHour >= courseStartHour && slotHour < courseEndHour
                 })
 
@@ -192,14 +165,14 @@ const Timetable = () => {
                       <div
                         key={course.id}
                         className="course-item"
-                        style={{ backgroundColor: course.color }}
+                        style={{ backgroundColor: getColorFromId(course.id), color: 'white', borderRadius: 6, padding: 6, fontWeight: 'bold', marginBottom: 4 }}
                       >
                         <div className="course-title">{course.title}</div>
                         <div className="course-details">
                           <span>
-                            {formatTime(course.startTime)} - {formatTime(course.endTime)}
+                            {formatTime(course.schedule?.startTime)} - {formatTime(course.schedule?.endTime)}
                           </span>
-                          <span>{course.room}</span>
+                          <span>{course.schedule?.room}</span>
                         </div>
                       </div>
                     ))}
@@ -213,103 +186,6 @@ const Timetable = () => {
     )
   }
 
-  // Render Google Calendar view
-  const renderCalendar = () => {
-    if (loadingStatus === 'loading') {
-      return (
-        <div className="text-center py-5">
-          <CSpinner color="primary" />
-          <p className="mt-3">Loading calendar events...</p>
-        </div>
-      )
-    }
-
-    if (loadingStatus === 'error') {
-      return (
-        <CAlert color="danger" className="my-4">
-          {error}
-          <div className="mt-3">
-            <CButton color="primary" onClick={loadCalendarEvents} size="sm">
-              Try Again
-            </CButton>
-          </div>
-        </CAlert>
-      )
-    }
-
-    if (loadingStatus === 'success' && calendarEvents.length === 0) {
-      return (
-        <CAlert color="info" className="my-4">
-          No upcoming events found in your calendar.
-        </CAlert>
-      )
-    }
-
-    return (
-      <div className="calendar-events">
-        {loadingStatus === 'success' && (
-          <ul className="event-list">
-            {calendarEvents.map((event, index) => {
-              const startDate = new Date(event.start.dateTime || event.start.date)
-              const endDate = new Date(event.end.dateTime || event.end.date)
-
-              // Format date and time
-              const dateOptions = { weekday: 'short', month: 'short', day: 'numeric' }
-              const timeOptions = { hour: 'numeric', minute: 'numeric' }
-
-              const dateStr = startDate.toLocaleDateString('en-US', dateOptions)
-              const startTimeStr = event.start.dateTime
-                ? startDate.toLocaleTimeString('en-US', timeOptions)
-                : 'All day'
-              const endTimeStr = event.end.dateTime
-                ? endDate.toLocaleTimeString('en-US', timeOptions)
-                : ''
-
-              // If showing Hijri dates, also display Hijri date
-              let hijriDateStr = ''
-              if (showHijriDates) {
-                const hijriDate = calendarService.gregorianToHijri(startDate)
-                hijriDateStr = `${hijriDate.day}/${hijriDate.month}/${hijriDate.year} H`
-              }
-
-              return (
-                <li key={index} className="event-item">
-                  <div className="event-date">
-                    <div>{dateStr}</div>
-                    {hijriDateStr && <div className="hijri-date">{hijriDateStr}</div>}
-                  </div>
-                  <div className="event-content">
-                    <h3 className="event-title">{event.summary}</h3>
-                    <div className="event-time">
-                      {startTimeStr}
-                      {endTimeStr ? ` - ${endTimeStr}` : ''}
-                    </div>
-                    {event.description && (
-                      <div className="event-description">{event.description}</div>
-                    )}
-                    {event.location && (
-                      <div className="event-location">
-                        <strong>Location:</strong> {event.location}
-                      </div>
-                    )}
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </div>
-    )
-  }
-
-  // Handle sign out from Google
-  const handleSignOut = () => {
-    if (calendarService.signOut()) {
-      setCalendarEvents([])
-      setLoadingStatus('idle')
-    }
-  }
-
   return (
     <div className="timetable-view-container">
       <CCard>
@@ -318,119 +194,11 @@ const Timetable = () => {
             <CCol>
               <h2 className="mb-0">Class Schedule</h2>
             </CCol>
-            <CCol xs="auto">
-              <CDropdown>
-                <CDropdownToggle color="primary">View As</CDropdownToggle>
-                <CDropdownMenu>
-                  <CDropdownItem
-                    active={currentUser === 'all'}
-                    onClick={() => setCurrentUser('all')}
-                  >
-                    All Classes
-                  </CDropdownItem>
-                  <CDropdownItem
-                    active={currentUser === 'student'}
-                    onClick={() => setCurrentUser('student')}
-                  >
-                    Student View
-                  </CDropdownItem>
-                  <CDropdownItem
-                    active={currentUser === 'teacher'}
-                    onClick={() => setCurrentUser('teacher')}
-                  >
-                    Teacher View
-                  </CDropdownItem>
-                </CDropdownMenu>
-              </CDropdown>
-            </CCol>
           </CRow>
         </CCardHeader>
 
         <CCardBody>
-          <CNav variant="tabs" className="mb-4">
-            <CNavItem>
-              <CNavLink
-                active={activeView === 'timetable'}
-                onClick={() => setActiveView('timetable')}
-                href="#"
-              >
-                Timetable View
-              </CNavLink>
-            </CNavItem>
-            <CNavItem>
-              <CNavLink
-                active={activeView === 'calendar'}
-                onClick={() => {
-                  setActiveView('calendar')
-                  if (loadingStatus === 'idle') {
-                    loadCalendarEvents()
-                  }
-                }}
-                href="#"
-              >
-                Google Calendar
-              </CNavLink>
-            </CNavItem>
-          </CNav>
-
-          {/* Hijri Calendar Option */}
-          {activeView === 'calendar' && loadingStatus === 'success' && (
-            <div className="mb-3 d-flex align-items-center">
-              <CFormCheck
-                id="hijriDates"
-                label="Show Hijri dates"
-                checked={showHijriDates}
-                onChange={(e) => setShowHijriDates(e.target.checked)}
-              />
-
-              <div className="ms-auto">
-                <CButton
-                  color="link"
-                  className="me-2"
-                  onClick={loadCalendarEvents}
-                  disabled={isLoadingCalendar}
-                >
-                  <cilSync className="me-1" /> Refresh
-                </CButton>
-
-                <CButton color="link" onClick={handleSignOut}>
-                  Sign Out
-                </CButton>
-              </div>
-            </div>
-          )}
-
-          {/* Current Hijri Date Display */}
-          {showHijriDates && activeView === 'calendar' && (
-            <div className="hijri-date-display mb-3">
-              <cilCalendar className="me-2" />
-              Today's Hijri date: {currentHijriDate.day}/{currentHijriDate.month}/
-              {currentHijriDate.year} H
-            </div>
-          )}
-
-          {/* Error Message */}
-          {error && <CAlert color="danger">{error}</CAlert>}
-
-          {/* Content Based on Active View */}
-          {activeView === 'timetable' ? renderTimetable() : renderCalendar()}
-
-          {/* Google Calendar Integration Button */}
-          {activeView === 'calendar' && loadingStatus === 'idle' && (
-            <div className="text-center py-4">
-              <p>Connect to Google Calendar to view your schedule</p>
-              <CButton color="primary" onClick={loadCalendarEvents} disabled={isLoadingCalendar}>
-                {isLoadingCalendar ? (
-                  <>
-                    <CSpinner size="sm" className="me-2" />
-                    Connecting...
-                  </>
-                ) : (
-                  'Connect to Google Calendar'
-                )}
-              </CButton>
-            </div>
-          )}
+          {renderTimetable()}
         </CCardBody>
       </CCard>
     </div>

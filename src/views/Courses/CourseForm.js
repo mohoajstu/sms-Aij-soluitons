@@ -20,7 +20,7 @@ import {
 } from '@coreui/react'
 import coursesData from '../../Data/coursesData.json'
 import './CourseForm.css'
-import { cilClock, cilUser, cilSettings, cilCalendar } from '@coreui/icons-react'
+
 import { initializeGoogleApi, initializeGIS, authenticate } from '../../services/calendarService'
 
 // Mock data for instructor options
@@ -476,7 +476,7 @@ const CourseForm = () => {
 
               <CCol md={6}>
                 <CFormLabel>
-                  <cilClock className="me-1" /> Class Schedule
+                  Class Schedule
                 </CFormLabel>
                 <div className="mb-3 d-flex flex-wrap gap-2">
                   {DAYS_OF_WEEK.map((day) => (
@@ -602,7 +602,7 @@ const CourseForm = () => {
 
               <CCol md={6}>
                 <CFormLabel>
-                  <cilCalendar className="me-1" /> Course Materials
+                  Course Materials
                 </CFormLabel>
                 <CInputGroup className="mb-3">
                   <CFormInput
