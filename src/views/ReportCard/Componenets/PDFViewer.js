@@ -57,7 +57,7 @@ const PDFViewer = React.memo(({ pdfUrl, className = '', formData = {}, showPrevi
     const hasFormData = Object.keys(latestFormData.current).some(key => 
       latestFormData.current[key] !== null && latestFormData.current[key] !== undefined && latestFormData.current[key] !== ''
     );
-
+    
     if (showPreview && pdfUrl && hasFormData) {
       // Clear any pending fill operations before starting a new one
       if (fillPdfTimeoutRef.current) {
@@ -67,7 +67,7 @@ const PDFViewer = React.memo(({ pdfUrl, className = '', formData = {}, showPrevi
       // Debounce the call to fillPDFWithFormData
       fillPdfTimeoutRef.current = setTimeout(() => {
         console.log('PDFViewer: Debounced form data change detected, updating PDF preview');
-        fillPDFWithFormData();
+      fillPDFWithFormData();
       }, 300); // 300ms debounce delay
 
     } else if (!showPreview && filledPdfUrl) {
@@ -102,7 +102,7 @@ const PDFViewer = React.memo(({ pdfUrl, className = '', formData = {}, showPrevi
     try {
       setLoading(true);
       if (!isAutoRetry) {
-        setError(null);
+      setError(null);
         setIsRetrying(false);
       } else {
         setIsRetrying(true);
@@ -232,10 +232,10 @@ const PDFViewer = React.memo(({ pdfUrl, className = '', formData = {}, showPrevi
       
       if (isDebugMode) {
         console.log('--- PDF Form Field Debug Mode ---');
-        const allPdfFieldNames = fields.map(field => ({
-          name: field.getName(),
-          type: field.constructor.name
-        }));
+      const allPdfFieldNames = fields.map(field => ({
+        name: field.getName(),
+        type: field.constructor.name
+      }));
         console.log('PDFViewer: All available fields in the PDF template:', allPdfFieldNames);
         console.log('---------------------------------');
       }
@@ -378,7 +378,7 @@ const PDFViewer = React.memo(({ pdfUrl, className = '', formData = {}, showPrevi
             }
           } catch (error) {
             if (isDebugMode) {
-              console.warn(`PDFViewer: Error trying field ${fieldName}:`, error.message);
+            console.warn(`PDFViewer: Error trying field ${fieldName}:`, error.message);
             }
           }
         }
@@ -390,10 +390,89 @@ const PDFViewer = React.memo(({ pdfUrl, className = '', formData = {}, showPrevi
       
       console.log(`PDFViewer: Successfully filled ${filledCount}/${formDataKeys.length} fields`);
       
+      // Add TLA logo to the "Board Logo" area in the top right
+      try {
+        const logoResponse = await fetch('/assets/brand/TLA_logo_simple.svg');
+        if (logoResponse.ok) {
+          const svgText = await logoResponse.text();
+          
+          // Create SVG blob and convert to PNG
+          const svgBlob = new Blob([svgText], { type: 'image/svg+xml' });
+          const svgUrl = URL.createObjectURL(svgBlob);
+          
+          // Use Promise to handle the async image loading
+          await new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = async () => {
+              try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Set canvas size for good quality
+                canvas.width = 240;
+                canvas.height = 120;
+                
+                // Draw SVG onto canvas
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                // Convert to PNG and embed in PDF
+                canvas.toBlob(async (blob) => {
+                  try {
+                    const logoBytes = await blob.arrayBuffer();
+                    const logoImage = await pdfDoc.embedPng(logoBytes);
+                    
+                    // Get the first page to place the logo
+                    const firstPage = pdfDoc.getPages()[0];
+                    const pageHeight = firstPage.getHeight();
+                    
+                    // Position the logo in the top-right "Board Logo" area
+                    const logoWidth = 60;  // Reduced from 80
+                    const logoHeight = 30; // Reduced from 40
+                    const logoX = firstPage.getWidth() - logoWidth - 5; // Reduced margin from 10 to 5
+                    const logoY = pageHeight - logoHeight - 5; // Reduced margin from 10 to 5
+                    
+                    firstPage.drawImage(logoImage, {
+                      x: logoX,
+                      y: logoY,
+                      width: logoWidth,
+                      height: logoHeight,
+                    });
+                    
+                    console.log('✅ TLA logo successfully added to Board Logo area');
+                    URL.revokeObjectURL(svgUrl);
+                    resolve();
+                  } catch (error) {
+                    URL.revokeObjectURL(svgUrl);
+                    reject(error);
+                  }
+                }, 'image/png');
+              } catch (error) {
+                URL.revokeObjectURL(svgUrl);
+                reject(error);
+              }
+            };
+            img.onerror = () => {
+              URL.revokeObjectURL(svgUrl);
+              reject(new Error('Failed to load SVG image'));
+            };
+            img.src = svgUrl;
+          });
+        } else {
+          console.warn('TLA logo not found at /assets/brand/TLA_logo_simple.svg');
+        }
+      } catch (logoError) {
+        console.warn('Could not add TLA logo:', logoError);
+      }
+      
+      // Only log unmatched fields if in debug mode or if there are many unmatched
+      if (isDebugMode || unmatchedFormData.length > 5) {
+        console.warn(`PDFViewer: Unmatched form data keys:`, unmatchedFormData);
+      }
+      
       // Save the modified PDF to a new Uint8Array
       const filledPdfBytes = await pdfDoc.save();
       setFilledPdfBytes(filledPdfBytes); // Store for download
-
+      
       // Create a blob URL for the filled PDF to render in the viewer
       const blob = new Blob([filledPdfBytes], { type: 'application/pdf' });
       
@@ -401,7 +480,7 @@ const PDFViewer = React.memo(({ pdfUrl, className = '', formData = {}, showPrevi
       if (filledPdfUrl) {
         URL.revokeObjectURL(filledPdfUrl);
       }
-
+      
       const newFilledPdfUrl = URL.createObjectURL(blob);
       setFilledPdfUrl(newFilledPdfUrl);
       
@@ -794,16 +873,16 @@ const PDFViewer = React.memo(({ pdfUrl, className = '', formData = {}, showPrevi
             </>
           ) : (
             <>
-              <h5>PDF Loading Error</h5>
-              <p>{error}</p>
-              <p><small>PDF URL: {pdfUrl}</small></p>
-              <CButton 
-                color="primary" 
-                onClick={handleRetry}
-                className="me-2"
-              >
-                Retry
-              </CButton>
+          <h5>PDF Loading Error</h5>
+          <p>{error}</p>
+          <p><small>PDF URL: {pdfUrl}</small></p>
+            <CButton 
+              color="primary" 
+              onClick={handleRetry}
+              className="me-2"
+            >
+            Retry
+            </CButton>
             </>
           )}
         </div>

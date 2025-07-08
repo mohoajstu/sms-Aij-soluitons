@@ -18,7 +18,8 @@ import {
   CAccordionBody,
   CSpinner,
   CAlert,
-  CButtonGroup
+  CButtonGroup,
+  CFormCheck
 } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
 import { cilStar, cilLightbulb, cilUser, cilBook, cilCommentSquare, cilArrowRight, cilPencil, cilMenu } from '@coreui/icons';
@@ -225,6 +226,14 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
     onFormDataChange(newFormData);
   };
 
+  // Set default date to today if not already set
+  React.useEffect(() => {
+    if (!formData.date) {
+      const today = new Date().toISOString().split('T')[0];
+      onFormDataChange({ ...formData, date: today });
+    }
+  }, []);
+
   return (
     <CCard className="mb-4 shadow-sm">
       <CCardHeader className="bg-primary text-white">
@@ -234,6 +243,24 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
         </div>
       </CCardHeader>
       <CCardBody className="p-4">
+        {/* Date Field - First at the top */}
+        <CRow className="mb-3">
+          <CCol md={6}>
+            <CFormLabel htmlFor="date" className="fw-semibold text-dark">
+              Date <span className="text-danger">*</span>
+            </CFormLabel>
+            <CFormInput
+              type="date"
+              id="date"
+              name="date"
+              value={formData.date || ''}
+              onChange={handleInputChange}
+              style={{ borderRadius: '8px', border: '2px solid #e9ecef' }}
+              required
+            />
+          </CCol>
+        </CRow>
+
         {/* First Row: Student Name, OEN, Days Absent, Total Days Absent */}
         <CRow className="mb-3">
           <CCol md={4}>
@@ -600,6 +627,7 @@ const KeyLearningSection = ({ formData, onFormDataChange, onGenerate, isGenerati
         </div>
       </CCardHeader>
       <CCardBody className="p-4">
+        {/* Existing Student Information Fields */}
         <AICommentField
           name="keyLearning"
           value={formData.keyLearning || ''}
