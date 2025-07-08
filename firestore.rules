@@ -16,7 +16,13 @@ service cloud.firestore {
         return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.lower() == 'parent';
     }
 
-    // Admins can read and write all data
+    // Announcements: anyone can read, only admins can write
+    match /announcements/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Admins can read and write all other data
     match /{document=**} {
       allow read, write: if isAdmin();
     }
