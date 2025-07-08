@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { auth, firestore } from '../../firebase'
-import { doc, getDoc, collection, getDocs } from 'firebase/firestore'
+import { doc, getDoc, collection, getDocs, query, orderBy, deleteDoc } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
 import {
   CButton,
@@ -12,6 +12,11 @@ import {
   CCol,
   CRow,
   CProgress,
+  CSpinner,
+  CModal,
+  CModalHeader,
+  CModalBody,
+  CModalFooter,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import {
@@ -24,9 +29,11 @@ import {
   cilBullhorn,
   cilCalendar,
   cilPencil,
+  cilTrash,
 } from '@coreui/icons'
 
 import './Dashboard.css'
+import '../Announcements/AllAnnouncements.css'
 import sygnet from '../../assets/brand/TLA_logo_simple.svg'
 
 const Dashboard = () => {
@@ -44,6 +51,12 @@ const Dashboard = () => {
     newApplications: 0
   })
   const [statsLoading, setStatsLoading] = useState(false)
+
+  const [announcements, setAnnouncements] = useState([])
+  const [announcementsLoading, setAnnouncementsLoading] = useState(true)
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [announcementToDelete, setAnnouncementToDelete] = useState(null)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -70,7 +83,8 @@ const Dashboard = () => {
       }
       setLoading(false)
     })
-
+    // Fetch announcements from Firestore
+    fetchAnnouncements()
     return () => unsubscribe()
   }, [])
 
@@ -117,27 +131,47 @@ const Dashboard = () => {
     }
   }
 
-  // Sample announcements data
-  const announcements = [
-    {
-      id: 1,
-      title: 'Term 1 Report Cards due on Monday, January 27th',
-      date: 'January 20, 2025',
-      priority: 'high',
-    },
-    {
-      id: 2,
-      title: 'Term 1 Report Cards released to parents on Friday, February 7th',
-      date: 'January 25, 2025',
-      priority: 'medium',
-    },
-    {
-      id: 3,
-      title: 'Parent-Teacher Meetings on Friday, February 14th',
-      date: 'January 30, 2025',
-      priority: 'medium',
-    },
-  ]
+  // Fetch announcements from Firestore
+  const fetchAnnouncements = async () => {
+    setAnnouncementsLoading(true)
+    try {
+      const announcementsRef = collection(firestore, 'announcements')
+      const q = query(announcementsRef, orderBy('date', 'desc'))
+      const snapshot = await getDocs(q)
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      setAnnouncements(data)
+    } catch (error) {
+      console.error('Error fetching announcements:', error)
+      setAnnouncements([])
+    } finally {
+      setAnnouncementsLoading(false)
+    }
+  }
+
+  const handleDeleteAnnouncement = async (id) => {
+    setAnnouncementToDelete(id)
+    setShowDeleteModal(true)
+  }
+
+  const confirmDeleteAnnouncement = async () => {
+    if (!announcementToDelete) return
+    setAnnouncementsLoading(true)
+    try {
+      await deleteDoc(doc(firestore, 'announcements', announcementToDelete))
+      setAnnouncements((prev) => prev.filter((a) => a.id !== announcementToDelete))
+      setShowDeleteModal(false)
+      setAnnouncementToDelete(null)
+    } catch (err) {
+      alert('Failed to delete announcement.')
+    } finally {
+      setAnnouncementsLoading(false)
+    }
+  }
+
+  const cancelDeleteAnnouncement = () => {
+    setShowDeleteModal(false)
+    setAnnouncementToDelete(null)
+  }
 
   // Quick links data
   const quickLinks = [
@@ -363,39 +397,78 @@ const Dashboard = () => {
                 <CIcon icon={cilBullhorn} className="me-2" />
                 Announcements & Important Dates
               </h3>
-              <CButton
-                color="primary"
-                size="sm"
-                className="add-announcement-btn"
-                onClick={() => navigate('/announcements/new')}
-              >
-                <CIcon icon={cilPencil} className="me-1" />
-                New
-              </CButton>
+              {userRole?.toLowerCase() === 'admin' && (
+                <CButton
+                  color="primary"
+                  size="sm"
+                  className="add-announcement-btn"
+                  onClick={() => navigate('/announcements/new')}
+                >
+                  <CIcon icon={cilPencil} className="me-1" />
+                  New
+                </CButton>
+              )}
             </CCardHeader>
             <CCardBody className="announcements-body">
+              <CModal visible={showDeleteModal} onClose={cancelDeleteAnnouncement} alignment="center">
+                <CModalHeader onClose={cancelDeleteAnnouncement}>Confirm Delete</CModalHeader>
+                <CModalBody>
+                  Are you sure you want to delete this announcement?
+                </CModalBody>
+                <CModalFooter>
+                  <CButton color="secondary" onClick={cancelDeleteAnnouncement} disabled={announcementsLoading}>
+                    Cancel
+                  </CButton>
+                  <CButton color="danger" onClick={confirmDeleteAnnouncement} disabled={announcementsLoading}>
+                    {announcementsLoading ? <CSpinner size="sm" /> : 'Delete'}
+                  </CButton>
+                </CModalFooter>
+              </CModal>
               <div className="announcements-container">
-                {announcements.map((announcement) => (
-                  <div
-                    key={announcement.id}
-                    className={`announcement-item priority-${announcement.priority}`}
-                  >
-                    <div className="announcement-content">
-                      <h4 className="announcement-title">{announcement.title}</h4>
+                {announcementsLoading ? (
+                  <div className="text-center py-4">
+                    <CSpinner color="primary" />
+                  </div>
+                ) : announcements.length === 0 ? (
+                  <div className="text-center py-4 text-muted">No announcements found.</div>
+                ) : (
+                  announcements.map((announcement) => (
+                    <div
+                      key={announcement.id}
+                      className={`announcement-item priority-${announcement.priority}`}
+                    >
+                      <div className="announcement-header-row">
+                        <div className="announcement-title-row">
+                          <h4 className="announcement-title">{announcement.title}</h4>
+                        </div>
+                        <div className="announcement-actions">
+                          <span className={`announcement-priority priority-${announcement.priority}`}>
+                            {announcement.priority?.toUpperCase()} PRIORITY
+                          </span>
+                          {userRole?.toLowerCase() === 'admin' && (
+                            <button
+                              className="announcement-delete-btn"
+                              title="Delete announcement"
+                              onClick={() => handleDeleteAnnouncement(announcement.id)}
+                              disabled={announcementsLoading}
+                            >
+                              <CIcon icon={cilTrash} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
                       <div className="announcement-meta">
                         <span className="announcement-date">
                           <CIcon icon={cilCalendar} className="me-1" />
                           {announcement.date}
                         </span>
-                        <span className={`announcement-priority priority-${announcement.priority}`}>
-                          {announcement.priority.charAt(0).toUpperCase() +
-                            announcement.priority.slice(1)}{' '}
-                          Priority
-                        </span>
                       </div>
+                      {announcement.description && (
+                        <div className="announcement-description mt-2">{announcement.description}</div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </CCardBody>
             <CCardFooter className="announcements-footer">

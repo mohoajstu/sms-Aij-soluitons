@@ -24,6 +24,7 @@ const SchedulePage = React.lazy(() => import('./views/Courses/SchedulePage'))
 const AssignmentsPage = React.lazy(() => import('./views/Courses/AssignmentsPage'))
 const BudgetPage = React.lazy(() => import('./views/Courses/BudgetPage'))
 const TimetablePage = React.lazy(() => import('./views/Courses/TimetablePage'))
+const AllAssignments = React.lazy(() => import('./views/Courses/AllAssignments'))
 //Registration
 const RegistrationPage = React.lazy(() => import('./views/registration/registrationPage'))
 const ThankYouPage = React.lazy(() => import('./views/registration/thankYouPage.js'))
@@ -82,6 +83,9 @@ const Grades1to6ReportCardPage = React.lazy(() => import('./views/ReportCard/Rep
 const Grades7to8ProgressPage = React.lazy(() => import('./views/ReportCard/ReportCards/Grades7to8ProgressPage.js'));
 const Grades7to8ReportCardPage = React.lazy(() => import('./views/ReportCard/ReportCards/Grades7to8ReportCardPage.js'));
 
+const NewAnnouncement = React.lazy(() => import('./views/Announcements/NewAnnouncement'))
+const AllAnnouncements = React.lazy(() => import('./views/Announcements/AllAnnouncements'))
+
 // const routes = [
 //   { path: '/', exact: true, name: 'Home' },
 //   { path: '/dashboard', name: 'Dashboard', element: Dashboard },
@@ -108,6 +112,9 @@ const routes = [
   { path: '/courses/:id/timetable', name: 'Course Timetable', element: TimetablePage },
   { path: '/courses/:id', name: 'Course Detail', element: CourseDetailPage },
   { path: '/attendance/attendance-table-page', name: 'Attendance Table', element: AttendanceTable },
+  { path: '/announcements/new', name: 'New Announcement', element: NewAnnouncement },
+  { path: '/announcements', name: 'All Announcements', element: AllAnnouncements },
+  { path: '/assignments', name: 'All Assignments', element: AllAssignments },
 
   // Template-specific report-card routes
   { path: '/reportcards/kg-initial', name: 'KG Initial Observations', element: KindergartenInitialPage },
