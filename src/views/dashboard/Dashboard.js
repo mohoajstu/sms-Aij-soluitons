@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { auth, firestore } from '../../firebase'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, collection, getDocs } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
 import {
   CButton,
@@ -35,6 +35,15 @@ const Dashboard = () => {
   const [userRole, setUserRole] = useState('')
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState('')
+  
+  // Dashboard statistics state
+  const [stats, setStats] = useState({
+    activeStudents: 0,
+    activeFaculty: 0,
+    activeClasses: 0,
+    newApplications: 0
+  })
+  const [statsLoading, setStatsLoading] = useState(false)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -47,6 +56,11 @@ const Dashboard = () => {
             const userData = userDoc.data()
             setUserFirstName(userData.personalInfo?.firstName || userData.firstName || 'User')
             setUserRole(userData.personalInfo?.role || userData.role || '')
+            
+            // If user is admin, fetch dashboard statistics
+            if (userData.personalInfo?.role?.toLowerCase() === 'admin' || userData.role?.toLowerCase() === 'admin') {
+              await fetchDashboardStats()
+            }
           }
         } catch (error) {
           console.error('Error fetching user data:', error)
@@ -59,6 +73,49 @@ const Dashboard = () => {
 
     return () => unsubscribe()
   }, [])
+
+  // Function to fetch dashboard statistics for admin users
+  const fetchDashboardStats = async () => {
+    setStatsLoading(true)
+    try {
+      // Fetch active students count
+      const studentsCollection = collection(firestore, 'students')
+      const studentsSnapshot = await getDocs(studentsCollection)
+      const activeStudentsCount = studentsSnapshot.docs.length
+
+      // Fetch active faculty count
+      const facultyCollection = collection(firestore, 'faculty')
+      const facultySnapshot = await getDocs(facultyCollection)
+      const activeFacultyCount = facultySnapshot.docs.length
+
+      // Fetch active courses count
+      const coursesCollection = collection(firestore, 'courses')
+      const coursesSnapshot = await getDocs(coursesCollection)
+      const activeClassesCount = coursesSnapshot.docs.length
+
+      // For now, we'll use a placeholder for applications
+      // In a real app, you'd have an applications collection
+      const newApplicationsCount = 0
+
+      setStats({
+        activeStudents: activeStudentsCount,
+        activeFaculty: activeFacultyCount,
+        activeClasses: activeClassesCount,
+        newApplications: newApplicationsCount
+      })
+    } catch (error) {
+      console.error('Error fetching dashboard statistics:', error)
+      // Set default values if there's an error
+      setStats({
+        activeStudents: 0,
+        activeFaculty: 0,
+        activeClasses: 0,
+        newApplications: 0
+      })
+    } finally {
+      setStatsLoading(false)
+    }
+  }
 
   // Sample announcements data
   const announcements = [
@@ -192,7 +249,9 @@ const Dashboard = () => {
                     <CIcon icon={cilUser} size="3xl" />
                   </div>
                   <div className="stat-content">
-                    <h3 className="stat-number">259</h3>
+                    <h3 className="stat-number">
+                      {statsLoading ? '...' : stats.activeStudents}
+                    </h3>
                     <p className="stat-label">ACTIVE STUDENTS</p>
                   </div>
                 </CCardBody>
@@ -210,7 +269,9 @@ const Dashboard = () => {
                     <CIcon icon={cilSettings} size="3xl" />
                   </div>
                   <div className="stat-content">
-                    <h3 className="stat-number">34</h3>
+                    <h3 className="stat-number">
+                      {statsLoading ? '...' : stats.activeFaculty}
+                    </h3>
                     <p className="stat-label">ACTIVE FACULTY</p>
                   </div>
                 </CCardBody>
@@ -228,7 +289,9 @@ const Dashboard = () => {
                     <CIcon icon={cilBook} size="3xl" />
                   </div>
                   <div className="stat-content">
-                    <h3 className="stat-number">63</h3>
+                    <h3 className="stat-number">
+                      {statsLoading ? '...' : stats.activeClasses}
+                    </h3>
                     <p className="stat-label">ACTIVE CLASSES</p>
                   </div>
                 </CCardBody>
@@ -246,7 +309,9 @@ const Dashboard = () => {
                     <CIcon icon={cilPencil} size="3xl" />
                   </div>
                   <div className="stat-content">
-                    <h3 className="stat-number">601</h3>
+                    <h3 className="stat-number">
+                      {statsLoading ? '...' : stats.newApplications}
+                    </h3>
                     <p className="stat-label">NEW APPLICATIONS</p>
                   </div>
                 </CCardBody>
