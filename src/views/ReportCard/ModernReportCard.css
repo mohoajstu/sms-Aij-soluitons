@@ -1,0 +1,379 @@
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
+
+/* Modern Report Card Form Styles */
+
+/* Main form container */
+.modern-report-card-form {
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  background-color: #f8f9fa;
+}
+
+.modern-report-card-form:hover {
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.12);
+}
+
+/* Header styling */
+.modern-report-card-form .card-header {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  padding: 2rem;
+  border-bottom: none;
+}
+
+.modern-report-card-form .card-header h4 {
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+
+.modern-report-card-form .card-header p {
+  opacity: 0.9;
+  font-size: 0.95rem;
+}
+
+/* Accordion styling */
+.modern-report-card-form .accordion {
+  --cui-accordion-border-width: 0;
+  --cui-accordion-border-radius: 0;
+}
+
+.modern-report-card-form .accordion-item {
+  border: none;
+  border-bottom: 1px solid #e9ecef;
+  background: transparent;
+}
+
+.modern-report-card-form .accordion-item:last-child {
+  border-bottom: none;
+}
+
+.modern-accordion-header {
+  background: #f8f9fa;
+  border: none;
+  padding: 1.5rem 2rem;
+  border-radius: 0;
+  transition: all 0.3s ease;
+}
+
+.modern-accordion-header:hover {
+  background: #e9ecef;
+}
+
+.modern-accordion-header .section-icon {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.modern-accordion-header:hover .section-icon {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.modern-accordion-header h5 {
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.modern-accordion-header small {
+  color: #718096;
+  font-size: 0.85rem;
+}
+
+/* Accordion body */
+.modern-report-card-form .accordion-body {
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 0;
+}
+
+/* Form field styling */
+.modern-report-card-form .form-label {
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  letter-spacing: -0.1px;
+}
+
+.modern-report-card-form .form-control,
+.modern-report-card-form .form-select {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  background: #ffffff;
+}
+
+.modern-report-card-form .form-control:focus,
+.modern-report-card-form .form-select:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+  outline: none;
+}
+
+.modern-report-card-form .form-control:hover,
+.modern-report-card-form .form-select:hover {
+  border-color: #cbd5e0;
+}
+
+/* AI Input Field Styling */
+.ai-input-field {
+  margin-bottom: 1.5rem;
+}
+
+.ai-input-container {
+  position: relative;
+}
+
+.ai-input-textarea {
+  padding-right: 50px !important;
+  border-radius: 12px !important;
+  border: 2px solid #e2e8f0 !important;
+  background: #ffffff;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.ai-input-textarea:focus {
+  border-color: #007bff !important;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15) !important;
+  outline: none !important;
+}
+
+.ai-input-textarea.generating {
+  background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%) !important;
+  border-color: #007bff !important;
+}
+
+.ai-input-textarea.focused {
+  border-color: #007bff !important;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15) !important;
+}
+
+.ai-generate-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  padding: 8px !important;
+  color: #718096 !important;
+  transition: all 0.2s ease !important;
+  backdrop-filter: blur(8px);
+  z-index: 10;
+}
+
+.ai-generate-button:hover {
+  background: rgba(0, 123, 255, 0.1) !important;
+  color: #007bff !important;
+  border-color: #007bff !important;
+  transform: scale(1.05);
+}
+
+.ai-generate-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ai-generating-text {
+  color: #007bff;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+}
+
+/* Checkbox styling */
+.modern-report-card-form .MuiFormControlLabel-root {
+  margin-bottom: 0.5rem;
+}
+
+.modern-report-card-form .MuiFormControlLabel-label {
+  font-weight: 500 !important;
+  color: #2d3748 !important;
+  font-size: 0.9rem !important;
+}
+
+.modern-report-card-form .MuiCheckbox-root {
+  padding: 6px !important;
+}
+
+/* Grid spacing */
+.modern-report-card-form .row {
+  margin-left: -0.75rem;
+  margin-right: -0.75rem;
+}
+
+.modern-report-card-form .row > * {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+/* Loading and error states */
+.modern-report-card-form .spinner-border {
+  width: 3rem;
+  height: 3rem;
+  border-width: 0.25em;
+}
+
+.modern-report-card-form .alert {
+  border-radius: 12px;
+  border: none;
+  padding: 1.5rem;
+  margin-bottom: 0;
+}
+
+.modern-report-card-form .alert-danger {
+  background: linear-gradient(135deg, #fee 0%, #fdd 100%);
+  color: #c53030;
+}
+
+.modern-report-card-form .alert h5 {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .modern-report-card-form .card-header {
+    padding: 1.5rem;
+  }
+  
+  .modern-report-card-form .accordion-body {
+    padding: 1.5rem;
+  }
+  
+  .modern-accordion-header {
+    padding: 1rem 1.5rem;
+  }
+  
+  .modern-accordion-header .section-icon {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .modern-accordion-header h5 {
+    font-size: 1rem;
+  }
+  
+  .modern-accordion-header small {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .modern-report-card-form .card-header {
+    padding: 1rem;
+  }
+  
+  .modern-report-card-form .accordion-body {
+    padding: 1rem;
+  }
+  
+  .modern-accordion-header {
+    padding: 0.75rem 1rem;
+  }
+  
+  .modern-accordion-header .section-icon {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .modern-accordion-header h5 {
+    font-size: 0.9rem;
+  }
+  
+  .ai-generate-button {
+    top: 8px !important;
+    right: 8px !important;
+    padding: 6px !important;
+  }
+}
+
+/* Animation for loading states */
+@keyframes pulse-light {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse-light {
+  animation: pulse-light 1.5s ease-in-out infinite;
+}
+
+/* Enhanced focus indicators */
+.modern-report-card-form .form-control:focus,
+.modern-report-card-form .form-select:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+}
+
+/* Required field indicator */
+.text-danger {
+  color: #e53e3e !important;
+}
+
+/* Section icons background colors */
+.bg-primary {
+  background-color: #007bff !important;
+}
+
+.bg-success {
+  background-color: #28a745 !important;
+}
+
+.bg-info {
+  background-color: #17a2b8 !important;
+}
+
+.bg-warning {
+  background-color: #ffc107 !important;
+}
+
+.bg-secondary {
+  background-color: #6c757d !important;
+}
+
+.bg-dark {
+  background-color: #343a40 !important;
+}
+
+.bg-light {
+  background-color: #f8f9fa !important;
+  color: #495057 !important;
+}
+
+/* Smooth transitions */
+* {
+  transition: all 0.2s ease;
+}
+
+/* Print styles */
+@media print {
+  .modern-report-card-form {
+    box-shadow: none;
+    border: 1px solid #000;
+  }
+  
+  .ai-generate-button {
+    display: none !important;
+  }
+  
+  .modern-report-card-form .card-header {
+    background: #000 !important;
+    color: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+} 
