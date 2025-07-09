@@ -23,9 +23,12 @@ const AppSidebar = () => {
 
   if (loading) return null
 
-  const filteredNavigation = navigation.filter(
-    (item) => !item.hideFor || !item.hideFor.includes(role),
-  )
+  const filteredNavigation = navigation
+    .filter((item) => !item.hideFor || !item.hideFor.includes(role))
+    .map((item) => {
+      const { hideFor, ...rest } = item;
+      return rest;
+    });
 
   return (
     <CSidebar

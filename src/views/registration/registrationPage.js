@@ -2,54 +2,60 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, User, Phone, CreditCard, FileText } from 'lucide-react';
+import { getFirestore, collection, doc, setDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import FileUpload from 'src/components/FileUpload';
+import { firestore, storage } from 'src/firebase';
 import './registrationPage.css';
 
 const RegistrationForm = () => {
-  const [formData, setFormData] = useState({
-    schoolYear: '2025',
-    grade: '',
-    firstName: '',
-    nickName: '',
-    middleName: '',
-    lastName: '',
-    gender: '',
-    oen: '',
-    dateOfBirth: '',
-    previousSchool: '',
-    allergies: '',
-    photoPermission: '',
-    primaryPhone: '',
-    emergencyPhone: '',
-    primaryEmail: '',
-    studentAddress: '',
-    motherFirstName: '',
-    motherNickName: '',
-    motherMiddleName: '',
-    motherLastName: '',
-    motherContactSame: false,
-    motherPhone: '',
-    motherEmail: '',
-    motherAddressSame: false,
-    motherAddress: '',
-    fatherFirstName: '',
-    fatherNickName: '',
-    fatherMiddleName: '',
-    fatherLastName: '',
-    fatherContactSame: false,
-    fatherPhone: '',
-    fatherEmail: '',
-    fatherAddressSame: false,
-    fatherAddress: '',
-    paymentMethod: 'cash',
-    cardNumber: '',
-    expiryDate: '',
-    cvv: '',
-    cardholderName: '',
-    billingAddress: '',
-    billingCity: '',
-    billingProvince: '',
-    billingPostalCode: '',
+  const [formData, setFormData] = useState(() => {
+    const savedData = localStorage.getItem('registrationFormData');
+    return savedData ? JSON.parse(savedData) : {
+      schoolYear: '2025',
+      grade: '',
+      firstName: '',
+      nickName: '',
+      middleName: '',
+      lastName: '',
+      gender: '',
+      oen: '',
+      dateOfBirth: '',
+      previousSchool: '',
+      allergies: '',
+      photoPermission: '',
+      primaryPhone: '',
+      emergencyPhone: '',
+      primaryEmail: '',
+      studentAddress: '',
+      motherFirstName: '',
+      motherNickName: '',
+      motherMiddleName: '',
+      motherLastName: '',
+      motherContactSame: false,
+      motherPhone: '',
+      motherEmail: '',
+      motherAddressSame: false,
+      motherAddress: '',
+      fatherFirstName: '',
+      fatherNickName: '',
+      fatherMiddleName: '',
+      fatherLastName: '',
+      fatherContactSame: false,
+      fatherPhone: '',
+      fatherEmail: '',
+      fatherAddressSame: false,
+      fatherAddress: '',
+      paymentMethod: 'cash',
+      cardNumber: '',
+      expiryDate: '',
+      cvv: '',
+      cardholderName: '',
+      billingAddress: '',
+      billingCity: '',
+      billingProvince: '',
+      billingPostalCode: '',
+    };
   });
 
   const [uploadedFiles, setUploadedFiles] = useState({
@@ -59,7 +65,12 @@ const RegistrationForm = () => {
     governmentId: null,
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    localStorage.setItem('registrationFormData', JSON.stringify(formData));
+  }, [formData]);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -69,12 +80,114 @@ const RegistrationForm = () => {
     setUploadedFiles((prev) => ({ ...prev, [type]: file }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-    console.log('Uploaded files:', uploadedFiles);
-    // Redirect to thank you page
-    navigate('/registration/thankYouPage');
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
+    try {
+      // 1. Get the next registration ID using a transaction
+      const counterRef = doc(firestore, 'counters', 'registrations');
+      const newRegistrationId = await runTransaction(firestore, async (transaction) => {
+        const counterDoc = await transaction.get(counterRef);
+        
+        let newCount = 0;
+        if (counterDoc.exists()) {
+          newCount = counterDoc.data().currentCount + 1;
+        }
+        
+        transaction.set(counterRef, { currentCount: newCount });
+        
+        // Format the ID to TLRXXXXX
+        return `TLR${String(newCount).padStart(5, '0')}`;
+      });
+
+      // 2. Create a list of file upload tasks to run in parallel
+      const uploadTasks = Object.entries(uploadedFiles)
+        .filter(([, file]) => file) // Filter out any empty file slots
+        .map(async ([key, file]) => {
+          const filePath = `registrations/${newRegistrationId}/${key}_${file.name}`;
+          const storageRef = ref(storage, filePath);
+          await uploadBytes(storageRef, file);
+          const downloadURL = await getDownloadURL(storageRef);
+          return [key, downloadURL]; // Return a key-value pair for Object.fromEntries
+        });
+
+      // 3. Execute all uploads and get the URLs
+      const uploadedFileEntries = await Promise.all(uploadTasks);
+      const uploadedFileUrls = Object.fromEntries(uploadedFileEntries);
+
+
+      // 4. Structure the data
+      const structuredData = {
+        registrationId: newRegistrationId,
+        schoolYear: formData.schoolYear,
+        grade: formData.grade,
+        student: {
+          firstName: formData.firstName,
+          middleName: formData.middleName,
+          lastName: formData.lastName,
+          gender: formData.gender,
+          oen: formData.oen,
+          dateOfBirth: formData.dateOfBirth,
+          previousSchool: formData.previousSchool,
+          allergies: formData.allergies,
+          photoPermission: formData.photoPermission,
+        },
+        contact: {
+          primaryPhone: formData.primaryPhone,
+          emergencyPhone: formData.emergencyPhone,
+          primaryEmail: formData.primaryEmail,
+          studentAddress: formData.studentAddress,
+        },
+        mother: {
+          firstName: formData.motherFirstName,
+          nickName: formData.motherNickName,
+          middleName: formData.motherMiddleName,
+          lastName: formData.motherLastName,
+          contactSameAsStudent: formData.motherContactSame,
+          phone: formData.motherPhone,
+          email: formData.motherEmail,
+          addressSameAsStudent: formData.motherAddressSame,
+          address: formData.motherAddress,
+        },
+        father: {
+          firstName: formData.fatherFirstName,
+          nickName: formData.fatherNickName,
+          middleName: formData.fatherMiddleName,
+          lastName: formData.fatherLastName,
+          contactSameAsStudent: formData.fatherContactSame,
+          phone: formData.fatherPhone,
+          email: formData.fatherEmail,
+          addressSameAsStudent: formData.fatherAddressSame,
+          address: formData.fatherAddress,
+        },
+        payment: {
+          method: formData.paymentMethod,
+          cardholderName: formData.cardholderName,
+          billingAddress: formData.billingAddress,
+          billingCity: formData.billingCity,
+          billingProvince: formData.billingProvince,
+          billingPostalCode: formData.billingPostalCode,
+        },
+        uploadedFiles: uploadedFileUrls,
+        timestamp: serverTimestamp(),
+      };
+
+      // 5. Save to Firestore using the custom ID
+      const registrationRef = doc(firestore, 'registrations', newRegistrationId);
+      await setDoc(registrationRef, structuredData);
+
+      // 6. Clean up and navigate
+      localStorage.removeItem('registrationFormData');
+      navigate('/registration/thankYouPage');
+
+    } catch (error) {
+      console.error("Error submitting registration:", error);
+      alert("There was an error submitting your application. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   useEffect(() => {
@@ -539,8 +652,8 @@ const RegistrationForm = () => {
             </div>
 
           <div className="submit-button-container">
-              <button type="submit" className="submit-button">
-                  Submit Registration Application
+              <button type="submit" className="submit-button" disabled={isSubmitting}>
+                  {isSubmitting ? 'Submitting...' : 'Submit Registration Application'}
             </button>
         </div>
       </form>
