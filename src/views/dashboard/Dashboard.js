@@ -1,5 +1,8 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { auth, firestore } from '../../firebase'
+import { doc, getDoc, collection, getDocs, query, orderBy, deleteDoc } from 'firebase/firestore'
+import { onAuthStateChanged } from 'firebase/auth'
 import {
   CButton,
   CCard,
@@ -9,6 +12,11 @@ import {
   CCol,
   CRow,
   CProgress,
+  CSpinner,
+  CModal,
+  CModalHeader,
+  CModalBody,
+  CModalFooter,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import {
@@ -21,41 +29,155 @@ import {
   cilBullhorn,
   cilCalendar,
   cilPencil,
+  cilTrash,
 } from '@coreui/icons'
 
 import './Dashboard.css'
+import '../Announcements/AllAnnouncements.css'
 import sygnet from '../../assets/brand/TLA_logo_simple.svg'
 
 const Dashboard = () => {
   const navigate = useNavigate()
+  const [userFirstName, setUserFirstName] = useState('')
+  const [userRole, setUserRole] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [userId, setUserId] = useState('')
+  
+  // Dashboard statistics state
+  const [stats, setStats] = useState({
+    activeStudents: 0,
+    activeFaculty: 0,
+    activeClasses: 0,
+    newApplications: 0
+  })
+  const [statsLoading, setStatsLoading] = useState(false)
 
-  // Sample announcements data
-  const announcements = [
-    {
-      id: 1,
-      title: 'Term 1 Report Cards due on Monday, January 27th',
-      date: 'January 20, 2025',
-      priority: 'high',
-    },
-    {
-      id: 2,
-      title: 'Term 1 Report Cards released to parents on Friday, February 7th',
-      date: 'January 25, 2025',
-      priority: 'medium',
-    },
-    {
-      id: 3,
-      title: 'Parent-Teacher Meetings on Friday, February 14th',
-      date: 'January 30, 2025',
-      priority: 'medium',
-    },
-  ]
+  const [announcements, setAnnouncements] = useState([])
+  const [announcementsLoading, setAnnouncementsLoading] = useState(true)
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [announcementToDelete, setAnnouncementToDelete] = useState(null)
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setUserId(user.uid)
+        try {
+          const userDocRef = doc(firestore, 'users', user.uid)
+          const userDoc = await getDoc(userDocRef)
+          if (userDoc.exists()) {
+            const userData = userDoc.data()
+            setUserFirstName(userData.personalInfo?.firstName || userData.firstName || 'User')
+            setUserRole(userData.personalInfo?.role || userData.role || '')
+            
+            // If user is admin, fetch dashboard statistics
+            if (userData.personalInfo?.role?.toLowerCase() === 'admin' || userData.role?.toLowerCase() === 'admin') {
+              await fetchDashboardStats()
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error)
+          setUserFirstName('User')
+          setUserRole('')
+        }
+      }
+      setLoading(false)
+    })
+    // Fetch announcements from Firestore
+    fetchAnnouncements()
+    return () => unsubscribe()
+  }, [])
+
+  // Function to fetch dashboard statistics for admin users
+  const fetchDashboardStats = async () => {
+    setStatsLoading(true)
+    try {
+      // Fetch active students count
+      const studentsCollection = collection(firestore, 'students')
+      const studentsSnapshot = await getDocs(studentsCollection)
+      const activeStudentsCount = studentsSnapshot.docs.length
+
+      // Fetch active faculty count
+      const facultyCollection = collection(firestore, 'faculty')
+      const facultySnapshot = await getDocs(facultyCollection)
+      const activeFacultyCount = facultySnapshot.docs.length
+
+      // Fetch active courses count
+      const coursesCollection = collection(firestore, 'courses')
+      const coursesSnapshot = await getDocs(coursesCollection)
+      const activeClassesCount = coursesSnapshot.docs.length
+
+      // For now, we'll use a placeholder for applications
+      // In a real app, you'd have an applications collection
+      const newApplicationsCount = 0
+
+      setStats({
+        activeStudents: activeStudentsCount,
+        activeFaculty: activeFacultyCount,
+        activeClasses: activeClassesCount,
+        newApplications: newApplicationsCount
+      })
+    } catch (error) {
+      console.error('Error fetching dashboard statistics:', error)
+      // Set default values if there's an error
+      setStats({
+        activeStudents: 0,
+        activeFaculty: 0,
+        activeClasses: 0,
+        newApplications: 0
+      })
+    } finally {
+      setStatsLoading(false)
+    }
+  }
+
+  // Fetch announcements from Firestore
+  const fetchAnnouncements = async () => {
+    setAnnouncementsLoading(true)
+    try {
+      const announcementsRef = collection(firestore, 'announcements')
+      const q = query(announcementsRef, orderBy('date', 'desc'))
+      const snapshot = await getDocs(q)
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      setAnnouncements(data)
+    } catch (error) {
+      console.error('Error fetching announcements:', error)
+      setAnnouncements([])
+    } finally {
+      setAnnouncementsLoading(false)
+    }
+  }
+
+  const handleDeleteAnnouncement = async (id) => {
+    setAnnouncementToDelete(id)
+    setShowDeleteModal(true)
+  }
+
+  const confirmDeleteAnnouncement = async () => {
+    if (!announcementToDelete) return
+    setAnnouncementsLoading(true)
+    try {
+      await deleteDoc(doc(firestore, 'announcements', announcementToDelete))
+      setAnnouncements((prev) => prev.filter((a) => a.id !== announcementToDelete))
+      setShowDeleteModal(false)
+      setAnnouncementToDelete(null)
+    } catch (err) {
+      alert('Failed to delete announcement.')
+    } finally {
+      setAnnouncementsLoading(false)
+    }
+  }
+
+  const cancelDeleteAnnouncement = () => {
+    setShowDeleteModal(false)
+    setAnnouncementToDelete(null)
+  }
 
   // Quick links data
   const quickLinks = [
     { id: 1, title: 'Take Attendance', icon: cilCheckCircle, path: '/attendance' },
     { id: 2, title: 'Create Report Cards', icon: cilFile, path: '/reportcards' },
-    { id: 3, title: 'View Student Directory', icon: cilUser, path: '/students' },
+    { id: 3, title: 'View Calendar', icon: cilCalendar, path: '/calendar' },
     { id: 4, title: 'Manage Courses', icon: cilBook, path: '/courses' },
   ]
 
@@ -81,17 +203,29 @@ const Dashboard = () => {
       <div className="enhanced-welcome-banner">
         <div className="welcome-banner-content">
           <div className="welcome-header">
-            <h2>Welcome Back, Mohammad!</h2>
-            <div className="welcome-date">
-              <CIcon icon={cilCalendar} className="me-2" />
-              <span>
-                {new Date().toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </span>
+            <div className="welcome-header-left">
+              <h2>Welcome Back, {userFirstName}!</h2>
+              {userId && (
+                <div
+                  className="user-id-display"
+                  style={{ fontSize: '1rem', color: '#bbb', marginTop: 8 }}
+                >
+                  {userId}
+                </div>
+              )}
+            </div>
+            <div className="welcome-header-date">
+              <div className="welcome-date">
+                <CIcon icon={cilCalendar} className="me-2" />
+                <span>
+                  {new Date().toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -139,81 +273,91 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Row */}
-      <div className="stats-row">
-        <CRow>
-          <CCol lg={3} md={6} sm={12}>
-            <CCard className="stat-card stat-students">
-              <CCardBody className="d-flex align-items-center">
-                <div className="stat-icon">
-                  <CIcon icon={cilUser} size="3xl" />
-                </div>
-                <div className="stat-content">
-                  <h3 className="stat-number">259</h3>
-                  <p className="stat-label">ACTIVE STUDENTS</p>
-                </div>
-              </CCardBody>
-              <CCardFooter className="stat-footer" onClick={() => navigate('/students')}>
-                <span>View Student Directory</span>
-                <CIcon icon={cilArrowRight} />
-              </CCardFooter>
-            </CCard>
-          </CCol>
+      {userRole?.toLowerCase() !== 'faculty' && (
+        <div className="stats-row">
+          <CRow>
+            <CCol lg={3} md={6} sm={12}>
+              <CCard className="stat-card stat-students">
+                <CCardBody className="d-flex align-items-center">
+                  <div className="stat-icon">
+                    <CIcon icon={cilUser} size="3xl" />
+                  </div>
+                  <div className="stat-content">
+                    <h3 className="stat-number">
+                      {statsLoading ? '...' : stats.activeStudents}
+                    </h3>
+                    <p className="stat-label">ACTIVE STUDENTS</p>
+                  </div>
+                </CCardBody>
+                <CCardFooter className="stat-footer" onClick={() => navigate('/students')}>
+                  <span>View Student Directory</span>
+                  <CIcon icon={cilArrowRight} />
+                </CCardFooter>
+              </CCard>
+            </CCol>
 
-          <CCol lg={3} md={6} sm={12}>
-            <CCard className="stat-card stat-faculty">
-              <CCardBody className="d-flex align-items-center">
-                <div className="stat-icon">
-                  <CIcon icon={cilSettings} size="3xl" />
-                </div>
-                <div className="stat-content">
-                  <h3 className="stat-number">34</h3>
-                  <p className="stat-label">ACTIVE FACULTY</p>
-                </div>
-              </CCardBody>
-              <CCardFooter className="stat-footer" onClick={() => navigate('/faculty')}>
-                <span>View Faculty</span>
-                <CIcon icon={cilArrowRight} />
-              </CCardFooter>
-            </CCard>
-          </CCol>
+            <CCol lg={3} md={6} sm={12}>
+              <CCard className="stat-card stat-faculty">
+                <CCardBody className="d-flex align-items-center">
+                  <div className="stat-icon">
+                    <CIcon icon={cilSettings} size="3xl" />
+                  </div>
+                  <div className="stat-content">
+                    <h3 className="stat-number">
+                      {statsLoading ? '...' : stats.activeFaculty}
+                    </h3>
+                    <p className="stat-label">ACTIVE FACULTY</p>
+                  </div>
+                </CCardBody>
+                <CCardFooter className="stat-footer" onClick={() => navigate('/faculty')}>
+                  <span>View Faculty</span>
+                  <CIcon icon={cilArrowRight} />
+                </CCardFooter>
+              </CCard>
+            </CCol>
 
-          <CCol lg={3} md={6} sm={12}>
-            <CCard className="stat-card stat-classes">
-              <CCardBody className="d-flex align-items-center">
-                <div className="stat-icon">
-                  <CIcon icon={cilBook} size="3xl" />
-                </div>
-                <div className="stat-content">
-                  <h3 className="stat-number">63</h3>
-                  <p className="stat-label">ACTIVE CLASSES</p>
-                </div>
-              </CCardBody>
-              <CCardFooter className="stat-footer" onClick={() => navigate('/courses')}>
-                <span>View Classes</span>
-                <CIcon icon={cilArrowRight} />
-              </CCardFooter>
-            </CCard>
-          </CCol>
+            <CCol lg={3} md={6} sm={12}>
+              <CCard className="stat-card stat-classes">
+                <CCardBody className="d-flex align-items-center">
+                  <div className="stat-icon">
+                    <CIcon icon={cilBook} size="3xl" />
+                  </div>
+                  <div className="stat-content">
+                    <h3 className="stat-number">
+                      {statsLoading ? '...' : stats.activeClasses}
+                    </h3>
+                    <p className="stat-label">ACTIVE CLASSES</p>
+                  </div>
+                </CCardBody>
+                <CCardFooter className="stat-footer" onClick={() => navigate('/courses')}>
+                  <span>View Classes</span>
+                  <CIcon icon={cilArrowRight} />
+                </CCardFooter>
+              </CCard>
+            </CCol>
 
-          <CCol lg={3} md={6} sm={12}>
-            <CCard className="stat-card stat-applications">
-              <CCardBody className="d-flex align-items-center">
-                <div className="stat-icon">
-                  <CIcon icon={cilPencil} size="3xl" />
-                </div>
-                <div className="stat-content">
-                  <h3 className="stat-number">601</h3>
-                  <p className="stat-label">NEW APPLICATIONS</p>
-                </div>
-              </CCardBody>
-              <CCardFooter className="stat-footer" onClick={() => navigate('/registration')}>
-                <span>View Applications</span>
-                <CIcon icon={cilArrowRight} />
-              </CCardFooter>
-            </CCard>
-          </CCol>
-        </CRow>
-      </div>
+            <CCol lg={3} md={6} sm={12}>
+              <CCard className="stat-card stat-applications">
+                <CCardBody className="d-flex align-items-center">
+                  <div className="stat-icon">
+                    <CIcon icon={cilPencil} size="3xl" />
+                  </div>
+                  <div className="stat-content">
+                    <h3 className="stat-number">
+                      {statsLoading ? '...' : stats.newApplications}
+                    </h3>
+                    <p className="stat-label">NEW APPLICATIONS</p>
+                  </div>
+                </CCardBody>
+                <CCardFooter className="stat-footer" onClick={() => navigate('/registration')}>
+                  <span>View Applications</span>
+                  <CIcon icon={cilArrowRight} />
+                </CCardFooter>
+              </CCard>
+            </CCol>
+          </CRow>
+        </div>
+      )}
 
       {/* Quick Links and Announcements */}
       <CRow className="mt-4">
@@ -253,39 +397,78 @@ const Dashboard = () => {
                 <CIcon icon={cilBullhorn} className="me-2" />
                 Announcements & Important Dates
               </h3>
-              <CButton
-                color="primary"
-                size="sm"
-                className="add-announcement-btn"
-                onClick={() => navigate('/announcements/new')}
-              >
-                <CIcon icon={cilPencil} className="me-1" />
-                New
-              </CButton>
+              {userRole?.toLowerCase() === 'admin' && (
+                <CButton
+                  color="primary"
+                  size="sm"
+                  className="add-announcement-btn"
+                  onClick={() => navigate('/announcements/new')}
+                >
+                  <CIcon icon={cilPencil} className="me-1" />
+                  New
+                </CButton>
+              )}
             </CCardHeader>
             <CCardBody className="announcements-body">
+              <CModal visible={showDeleteModal} onClose={cancelDeleteAnnouncement} alignment="center">
+                <CModalHeader onClose={cancelDeleteAnnouncement}>Confirm Delete</CModalHeader>
+                <CModalBody>
+                  Are you sure you want to delete this announcement?
+                </CModalBody>
+                <CModalFooter>
+                  <CButton color="secondary" onClick={cancelDeleteAnnouncement} disabled={announcementsLoading}>
+                    Cancel
+                  </CButton>
+                  <CButton color="danger" onClick={confirmDeleteAnnouncement} disabled={announcementsLoading}>
+                    {announcementsLoading ? <CSpinner size="sm" /> : 'Delete'}
+                  </CButton>
+                </CModalFooter>
+              </CModal>
               <div className="announcements-container">
-                {announcements.map((announcement) => (
-                  <div
-                    key={announcement.id}
-                    className={`announcement-item priority-${announcement.priority}`}
-                  >
-                    <div className="announcement-content">
-                      <h4 className="announcement-title">{announcement.title}</h4>
+                {announcementsLoading ? (
+                  <div className="text-center py-4">
+                    <CSpinner color="primary" />
+                  </div>
+                ) : announcements.length === 0 ? (
+                  <div className="text-center py-4 text-muted">No announcements found.</div>
+                ) : (
+                  announcements.map((announcement) => (
+                    <div
+                      key={announcement.id}
+                      className={`announcement-item priority-${announcement.priority}`}
+                    >
+                      <div className="announcement-header-row">
+                        <div className="announcement-title-row">
+                          <h4 className="announcement-title">{announcement.title}</h4>
+                        </div>
+                        <div className="announcement-actions">
+                          <span className={`announcement-priority priority-${announcement.priority}`}>
+                            {announcement.priority?.toUpperCase()} PRIORITY
+                          </span>
+                          {userRole?.toLowerCase() === 'admin' && (
+                            <button
+                              className="announcement-delete-btn"
+                              title="Delete announcement"
+                              onClick={() => handleDeleteAnnouncement(announcement.id)}
+                              disabled={announcementsLoading}
+                            >
+                              <CIcon icon={cilTrash} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
                       <div className="announcement-meta">
                         <span className="announcement-date">
                           <CIcon icon={cilCalendar} className="me-1" />
                           {announcement.date}
                         </span>
-                        <span className={`announcement-priority priority-${announcement.priority}`}>
-                          {announcement.priority.charAt(0).toUpperCase() +
-                            announcement.priority.slice(1)}{' '}
-                          Priority
-                        </span>
                       </div>
+                      {announcement.description && (
+                        <div className="announcement-description mt-2">{announcement.description}</div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </CCardBody>
             <CCardFooter className="announcements-footer">

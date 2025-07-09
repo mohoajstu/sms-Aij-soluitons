@@ -86,9 +86,20 @@
   
   .welcome-header {
     display: flex;
+    flex-direction: row;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
+    align-items: flex-start;
+  }
+  
+  .welcome-header-left {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .welcome-header-date {
+    display: flex;
+    align-items: flex-start;
   }
   
   .welcome-header h2 {

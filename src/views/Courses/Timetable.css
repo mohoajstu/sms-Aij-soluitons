@@ -10,6 +10,7 @@
   border: 1px solid #e0e0e0;
   border-radius: 5px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  position: relative;
 }
 
 .timetable-header {
@@ -28,6 +29,15 @@
   text-align: center;
   border-bottom: 2px solid #dee2e6;
   border-right: 1px solid #dee2e6;
+}
+
+.header-cell:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 20;
+  background-color: #f8f9fa;
+  min-width: 80px;
+  flex: 0 0 80px;
 }
 
 .header-cell:last-child {
@@ -54,6 +64,9 @@
   flex: 0 0 80px;
   border-right: 2px solid #dee2e6;
   background-color: #f8f9fa;
+  position: sticky;
+  left: 0;
+  z-index: 15;
 }
 
 .day-column {
@@ -76,6 +89,7 @@
   color: #555;
   border-right: 2px solid #dee2e6;
   background-color: #f8f9fa;
+  height: 100%;
 }
 
 .schedule-cell {
@@ -196,6 +210,20 @@
   
   .timetable-view-container {
     overflow-x: auto;
+  }
+  
+  .time-column {
+    min-width: 60px;
+    flex: 0 0 60px;
+  }
+  
+  .header-cell:first-child {
+    min-width: 60px;
+    flex: 0 0 60px;
+  }
+  
+  .day-column {
+    min-width: 120px;
   }
 }
 
