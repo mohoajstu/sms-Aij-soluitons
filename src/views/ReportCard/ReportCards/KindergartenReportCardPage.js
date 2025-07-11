@@ -1,8 +1,8 @@
 import React from 'react';
-import ReportCard from '..';
+import ReportCard from '../utils';
 
 const KindergartenReportCardPage = () => {
-  return <ReportCard presetReportCardId="kg-report-card" />;
+  return <ReportCard presetReportCardId="kg-report" />;
 };
 
 export default KindergartenReportCardPage; 

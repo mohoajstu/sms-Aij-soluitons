@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import './reportCardTabs.css'
-import ReportCard from './index'
+import ReportCard from './utils'
 import PastReportCardsTable from './PastReportCardsTable'
 import useAuth from '../../Firebase/useAuth'
 

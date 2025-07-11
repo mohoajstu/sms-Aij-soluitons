@@ -1,5 +1,5 @@
 import React from 'react';
-import ReportCard from '..';
+import ReportCard from '../utils';
 
 const Grades1to6ReportCardPage = () => {
   return <ReportCard presetReportCardId="1-6-report-card" />;

@@ -1,25 +1,33 @@
-import { useState, useEffect } from "react";
-import { 
-  CButton, 
-  CCard, 
-  CCardBody, 
-  CCardHeader, 
-  CContainer, 
-  CRow, 
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  CContainer,
+  CRow,
   CCol,
+  CCard,
+  CCardBody,
+  CCardHeader,
+  CButton,
   CSpinner,
+  CAlert,
+  CNav,
+  CNavItem,
+  CNavLink,
+  CTabContent,
+  CTabPane,
   CFormSelect
-} from "@coreui/react";
-import { ReportCardForm } from "./Componenets/ReportCardForm";
-import { ReportCardPreview } from "./Componenets/ReportCardPreview";
-import PDFViewer from "./Componenets/PDFViewer";
-import PDFFieldInspector from './Componenets/PDFFieldInspector';
-import ModernReportCardForm from './Componenets/ModernReportCardForm';
+} from '@coreui/react';
+import CIcon from '@coreui/icons-react';
+import { cilDescription, cilCloudDownload, cilHistory } from '@coreui/icons';
+import { saveAs } from 'file-saver';
+
+import PDFViewer from './Components/PDFViewer';
+import KindergartenInitialUI from './Components/KindergartenInitialUI';
+import KindergartenReportUI from './Components/KindergartenReportUI';
+import PDFFieldInspector from './Components/PDFFieldInspector';
 import "./ReportCard.css";
 import "./ModernReportCard.css";
 import { PDFDocument } from 'pdf-lib';
-import { saveAs } from 'file-saver';
-import DynamicReportCardForm from './Componenets/DynamicReportCardForm';
+import DynamicReportCardForm from './Components/DynamicReportCardForm';
 import { useNavigate } from 'react-router-dom';
 // Firebase Storage & Firestore
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -36,13 +44,15 @@ export const REPORT_CARD_TYPES = [
     pdfPath: '/assets/Report%20Cards/kg-cl-initial-Observations.pdf',
     description: 'Kindergarten progress report – initial observations',
     route: '/reportcards/kg-initial',
+    uiComponent: 'KindergartenInitialUI',
   },
   {
-    id: 'kg-report-card',
+    id: 'kg-report',
     name: 'Kindergarten – Communication of Learning (Report Card)',
     pdfPath: '/assets/Report%20Cards/edu-Kindergarten-Communication-of-Learning-public-schools.pdf',
     description: 'Kindergarten formal report card',
     route: '/reportcards/kg-report',
+    uiComponent: 'KindergartenReportUI',
   },
   {
     id: '1-6-progress',
@@ -458,6 +468,27 @@ const ReportCard = ({ presetReportCardId = null }) => {
     }
   };
 
+  const renderModernForm = () => {
+    const reportType = getCurrentReportType();
+    const formProps = {
+      fields,
+      formData,
+      onFormDataChange: handleFormDataChange,
+      loading: formLoading,
+      error: formError,
+    };
+
+    switch (reportType?.uiComponent) {
+      case 'KindergartenInitialUI':
+        return <KindergartenInitialUI {...formProps} />;
+      case 'KindergartenReportUI':
+        return <KindergartenReportUI {...formProps} />;
+      default:
+        // Default to the initial Kindergarten UI if no specific component is found
+        return <KindergartenInitialUI {...formProps} />;
+    }
+  };
+
   return (
     <CContainer fluid>
       <CRow>
@@ -544,13 +575,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
               {/* Form Section */}
               <CCol lg={6} className="form-section">
                 {useModernForm ? (
-                  <ModernReportCardForm 
-                    fields={fields}
-                    formData={formData}
-                    onFormDataChange={handleFormDataChange}
-                    loading={formLoading}
-                    error={formError}
-                  />
+                  renderModernForm()
                 ) : (
                   <CCard>
                     <CCardHeader>
