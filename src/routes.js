@@ -27,6 +27,9 @@ const TimetablePage = React.lazy(() => import('./views/Courses/TimetablePage'))
 //Registration
 const RegistrationPage = React.lazy(() => import('./views/registration/registrationPage'))
 const ThankYouPage = React.lazy(() => import('./views/registration/thankYouPage'))
+const RegistrationProcessingDashboard = React.lazy(() =>
+  import('./views/registration/RegistrationProcessingDashboard'),
+)
 // Base
 const Accordion = React.lazy(() => import('./views/base/accordion/Accordion'))
 const Breadcrumbs = React.lazy(() => import('./views/base/breadcrumbs/Breadcrumbs'))
@@ -97,6 +100,11 @@ const routes = [
   { path: '/reportcards', name: 'Report Cards', element: ReportCardTabs },
   { path: '/registration', name: 'Registration', element: RegistrationPage },
   { path: '/registration/thankYouPage', name: 'Thank You', element: ThankYouPage },
+  {
+    path: '/registration/processing',
+    name: 'Process Applications',
+    element: RegistrationProcessingDashboard,
+  },
   { path: '/courses', name: 'Courses', element: Courses },
   { path: '/courses/new', name: 'Create Course', element: CourseForm },
   { path: '/courses/edit/:id', name: 'Edit Course', element: CourseForm },

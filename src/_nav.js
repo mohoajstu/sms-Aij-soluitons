@@ -2,7 +2,7 @@ import React from 'react'
 import CIcon from '@coreui/icons-react'
 import { cilHome, cilList, cilNotes, cilSpeedometer, cilCalendar } from '@coreui/icons'
 import BeenhereOutlinedIcon from '@mui/icons-material/BeenhereOutlined'
-import { CNavItem } from '@coreui/react'
+import { CNavItem, CNavGroup } from '@coreui/react'
 import AutoStoriesOutlinedIcon from '@mui/icons-material/AutoStoriesOutlined'
 
 const _nav = [
@@ -26,11 +26,23 @@ const _nav = [
     icon: <CIcon icon={cilNotes} customClassName="nav-icon" />,
   },
   {
-    component: CNavItem,
+    component: CNavGroup,
     name: 'Registration',
     to: '/registration',
     // Use the MUI icon directly, instead of <CIcon ...>
     icon: <BeenhereOutlinedIcon className="nav-icon" />,
+    items: [
+      {
+        component: CNavItem,
+        name: 'New Registration',
+        to: '/registration',
+      },
+      {
+        component: CNavItem,
+        name: 'Process Applications',
+        to: '/registration/processing',
+      },
+    ],
   },
   {
     component: CNavItem,
