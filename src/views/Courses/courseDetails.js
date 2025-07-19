@@ -14,6 +14,7 @@ import {
   isAuthenticated,
 } from '../../services/calendarService'
 import { auth } from '../../firebase'
+import StudentSelectorModal from './StudentForm'
 
 function CourseDetailPage() {
   const { id } = useParams()
@@ -28,6 +29,7 @@ function CourseDetailPage() {
   const [editingBudget, setEditingBudget] = useState(false)
   const [newBudget, setNewBudget] = useState('')
   const [userRole, setUserRole] = useState('')
+  const [showStudentModal, setShowStudentModal] = useState(false)
 
   useEffect(() => {
     const initApis = async () => {
@@ -312,6 +314,9 @@ function CourseDetailPage() {
               </CCol>
               <CCol md={6}>
                 <h4>Students</h4>
+                <CButton color="primary" size="sm" className="mb-2" onClick={() => setShowStudentModal(true)}>
+                  Add Students
+                </CButton>
                 <table className="members-table">
                   <thead>
                     <tr>
@@ -363,6 +368,8 @@ function CourseDetailPage() {
           </div>
         </CCardBody>
       </CCard>
+      {/* Student selection & creation modal */}
+      <StudentSelectorModal visible={showStudentModal} courseId={id} onClose={() => setShowStudentModal(false)} />
     </div>
   )
 }
