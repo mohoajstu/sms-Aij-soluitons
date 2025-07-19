@@ -13,7 +13,7 @@ const CalendarDemo = React.lazy(() => import('./views/CalendarDemo'))
 const AttendanceTabs = React.lazy(() => import('./views/attendance/attendanceTabs'))
 const AttendanceTable = React.lazy(() => import('./views/attendance/attendanceTable'))
 //Report Cards
-const ReportCard = React.lazy(() => import('./views/ReportCard/index.js'))
+const ReportCard = React.lazy(() => import('./views/ReportCard/utils.js'))
 const ReportCardTabs = React.lazy(() => import('./views/ReportCard/ReportCardTabs'))
 // Courses
 const Courses = React.lazy(() => import('./views/Courses/courses'))

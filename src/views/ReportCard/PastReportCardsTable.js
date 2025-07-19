@@ -18,7 +18,7 @@ import dayjs from 'dayjs'
 import { ref as storageRef, listAll, getDownloadURL, getMetadata } from 'firebase/storage'
 import { storage } from '../../Firebase/firebase'
 import useAuth from '../../Firebase/useAuth'
-import { REPORT_CARD_TYPES } from './index'
+import { REPORT_CARD_TYPES } from './utils'
 
 /**
  * Table listing the current teacher's previously generated report cards.

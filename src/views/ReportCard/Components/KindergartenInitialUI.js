@@ -703,14 +703,13 @@ SignatureSection.propTypes = {
 };
 
 /**
- * Modern Report Card Form - Redesigned to match actual report card structure
+ * Main component for kindergarten initial observation report card
  */
-const ModernReportCardForm = ({ 
-  fields = [], 
-  formData = {}, 
+const KindergartenInitialUI = ({
+  formData, 
   onFormDataChange, 
-  onSubmit,
-  loading = false,
+  onSubmit, 
+  loading = false, 
   error = null 
 }) => {
   const [generatingFields, setGeneratingFields] = useState(new Set());
@@ -804,13 +803,16 @@ const ModernReportCardForm = ({
   );
 };
 
-ModernReportCardForm.propTypes = {
-  fields: PropTypes.array,
-  formData: PropTypes.object,
+KindergartenInitialUI.propTypes = {
+  formData: PropTypes.object.isRequired,
   onFormDataChange: PropTypes.func.isRequired,
   onSubmit: PropTypes.func,
   loading: PropTypes.bool,
   error: PropTypes.string
 };
 
-export default ModernReportCardForm; 
+KindergartenInitialUI.defaultProps = {
+  formData: {}
+};
+
+export default KindergartenInitialUI; 
