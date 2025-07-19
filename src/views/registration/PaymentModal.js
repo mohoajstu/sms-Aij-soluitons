@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   CModal,
   CModalHeader,
@@ -10,21 +10,82 @@ import {
   CFormLabel,
   CFormSelect,
   CBadge,
+  CInputGroup,
+  CInputGroupText,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilDollar, cilUser, cilEnvelopeClosed, cilCalendar } from '@coreui/icons'
+import { cilDollar, cilUser, cilEnvelopeClosed, cilCalendar, cilSave, cilX } from '@coreui/icons'
+import { doc, updateDoc } from 'firebase/firestore'
+import { firestore } from 'src/firebase'
 
 const PaymentModal = ({ application, onClose, onPaymentUpdate }) => {
-  const [paymentStatus, setPaymentStatus] = useState(application.paymentStatus)
-  const [paymentAmount, setPaymentAmount] = useState(
-    application.paymentAmount ? application.paymentAmount.toString() : '',
-  )
+  const [paymentStatus, setPaymentStatus] = useState('')
+  const [paymentAmount, setPaymentAmount] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
 
-  const handleSave = () => {
-    const amount = paymentAmount ? parseFloat(paymentAmount) : 0
-    onPaymentUpdate(application.id, paymentStatus, amount)
-    onClose()
+  useEffect(() => {
+    if (application && application.payment) {
+      setPaymentStatus(application.payment.status || 'pending')
+      setPaymentAmount(application.payment.amount || '')
+    }
+  }, [application])
+
+  const renderStatusBadge = () => {
+    const status = application.payment?.status || 'n/a'
+
+    if (status === 'completed') {
+      return (
+        <CBadge color="dark" shape="rounded-pill" className="px-3 py-1">
+          Completed
+        </CBadge>
+      )
+    }
+
+    if (status === 'pending') {
+      return (
+        <CBadge
+          color="light"
+          className="text-secondary border border-secondary px-3 py-1 rounded-pill"
+        >
+          Pending
+        </CBadge>
+      )
+    }
+
+    return (
+      <CBadge color="secondary" shape="rounded-pill" className="px-3 py-1">
+        N/A
+      </CBadge>
+    )
   }
+
+  const handlePayment = async () => {
+    if (!application || !application.id) return
+    setIsSaving(true)
+
+    const newPaymentData = {
+      status: paymentStatus,
+      amount: Number(paymentAmount) || 0,
+    }
+
+    try {
+      const appDocRef = doc(firestore, 'registrations', application.id)
+      await updateDoc(appDocRef, {
+        payment: newPaymentData,
+      })
+
+      // Update parent state
+      onPaymentUpdate(application.id, newPaymentData)
+      onClose()
+    } catch (error) {
+      console.error('Error updating payment:', error)
+      alert('Failed to update payment details.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  if (!application) return null
 
   return (
     <CModal visible={true} onClose={onClose}>
@@ -35,73 +96,59 @@ const PaymentModal = ({ application, onClose, onPaymentUpdate }) => {
         </CModalTitle>
       </CModalHeader>
       <CModalBody>
-        <div className="space-y-6">
-          {/* Application Info */}
-          <div className="bg-light p-4 rounded-lg space-y-3">
-            <div className="flex items-center gap-2">
-              <CIcon icon={cilUser} className="text-secondary" />
-              <span className="font-weight-bold">{application.studentName}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CIcon icon={cilEnvelopeClosed} className="text-secondary" />
-              <span className="text-sm">{application.parentEmail}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CIcon icon={cilCalendar} className="text-secondary" />
-              <span className="text-sm">Application ID: {application.id}</span>
-            </div>
+        <div className="p-3 mb-4 bg-light rounded">
+          <div className="d-flex align-items-center mb-2">
+            <CIcon icon={cilUser} className="me-3" />
+            <span>{application.studentName}</span>
           </div>
-
-          {/* Payment Status */}
-          <div className="mb-3">
-            <CFormLabel htmlFor="payment-status">Payment Status</CFormLabel>
-            <CFormSelect
-              id="payment-status"
-              value={paymentStatus}
-              onChange={(e) => setPaymentStatus(e.target.value)}
-            >
-              <option value="pending">Pending</option>
-              <option value="completed">Completed</option>
-            </CFormSelect>
+          <div className="d-flex align-items-center mb-2">
+            <CIcon icon={cilEnvelopeClosed} className="me-3" />
+            <span>{application.contact?.primaryEmail || application.parentEmail}</span>
           </div>
+          <div className="d-flex align-items-center">
+            <CIcon icon={cilCalendar} className="me-3" />
+            <span>Application ID: {application.id}</span>
+          </div>
+        </div>
 
-          {/* Payment Amount */}
-          <div className="mb-3">
-            <CFormLabel htmlFor="payment-amount">Payment Amount ($)</CFormLabel>
+        <div className="mb-3">
+          <CFormLabel htmlFor="payment-status">Payment Status</CFormLabel>
+          <CFormSelect
+            id="payment-status"
+            value={paymentStatus}
+            onChange={(e) => setPaymentStatus(e.target.value)}
+          >
+            <option value="pending">Pending</option>
+            <option value="completed">Completed</option>
+          </CFormSelect>
+        </div>
+
+        <div className="mb-3">
+          <CFormLabel htmlFor="payment-amount">Payment Amount ($)</CFormLabel>
+          <CInputGroup className="mb-3">
+            <CInputGroupText>$</CInputGroupText>
             <CFormInput
               id="payment-amount"
               type="number"
-              placeholder="0.00"
               value={paymentAmount}
               onChange={(e) => setPaymentAmount(e.target.value)}
-              min="0"
-              step="0.01"
+              placeholder="Enter amount"
             />
-          </div>
+          </CInputGroup>
+        </div>
 
-          {/* Current Status Display */}
-          <div className="p-3 bg-light rounded-lg">
-            <div className="d-flex justify-content-between align-items-center">
-              <span className="text-sm font-weight-bold">Current Status:</span>
-              <CBadge color={application.paymentStatus === 'completed' ? 'success' : 'warning'}>
-                {application.paymentStatus}
-              </CBadge>
-            </div>
-            {application.paymentAmount && (
-              <div className="d-flex justify-content-between align-items-center mt-2">
-                <span className="text-sm font-weight-bold">Current Amount:</span>
-                <span className="text-sm">${application.paymentAmount}</span>
-              </div>
-            )}
-          </div>
+        <div className="mt-4 p-3 bg-light rounded d-flex justify-content-between align-items-center">
+          <span className="fw-semibold">Current Status:</span>
+          {renderStatusBadge()}
         </div>
       </CModalBody>
       <CModalFooter>
         <CButton color="secondary" onClick={onClose}>
           Cancel
         </CButton>
-        <CButton color="primary" onClick={handleSave}>
-          Update Payment
+        <CButton color="primary" onClick={handlePayment} disabled={isSaving}>
+          <CIcon icon={cilSave} className="me-2" />
+          {isSaving ? 'Saving...' : 'Save Payment'}
         </CButton>
       </CModalFooter>
     </CModal>

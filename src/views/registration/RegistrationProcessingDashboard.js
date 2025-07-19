@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   CCard,
   CCardBody,
@@ -26,88 +26,15 @@ import {
   cilDollar,
   cilCheckAlt,
   cilX,
+  cilFindInPage,
 } from '@coreui/icons'
 import { DataGrid } from '@mui/x-data-grid'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
+import { collection, getDocs, query, orderBy, doc, updateDoc } from 'firebase/firestore'
+import { firestore } from 'src/firebase'
 import ApplicationDetailModal from './ApplicationDetailModal'
 import PaymentModal from './PaymentModal'
 import './registrationPage.css'
-
-// Mock data for demonstration
-const mockApplications = [
-  {
-    id: 'APP001',
-    studentName: 'John Smith',
-    grade: 'Grade 1',
-    schoolYear: '2025',
-    applicationDate: '2024-01-15',
-    status: 'pending',
-    parentEmail: 'parent@email.com',
-    paymentStatus: 'completed',
-    paymentAmount: 150,
-    archived: false,
-    files: {
-      immunization: 'immunization_john_smith.pdf',
-      reportCard: null,
-      osrPermission: 'osr_john_smith.pdf',
-      governmentId: 'birth_cert_john_smith.pdf',
-    },
-  },
-  {
-    id: 'APP002',
-    studentName: 'Sarah Johnson',
-    grade: 'Grade 3',
-    schoolYear: '2025',
-    applicationDate: '2024-01-12',
-    status: 'approved',
-    parentEmail: 'johnson@email.com',
-    paymentStatus: 'completed',
-    paymentAmount: 200,
-    archived: false,
-    files: {
-      immunization: 'immunization_sarah_johnson.pdf',
-      reportCard: 'report_sarah_johnson.pdf',
-      osrPermission: 'osr_sarah_johnson.pdf',
-      governmentId: 'passport_sarah_johnson.pdf',
-    },
-  },
-  {
-    id: 'APP003',
-    studentName: 'Michael Brown',
-    grade: 'Grade 2',
-    schoolYear: '2025',
-    applicationDate: '2024-01-10',
-    status: 'denied',
-    parentEmail: 'brown@email.com',
-    paymentStatus: 'pending',
-    paymentAmount: 0,
-    archived: false,
-    files: {
-      immunization: 'immunization_michael_brown.pdf',
-      reportCard: 'report_michael_brown.pdf',
-      osrPermission: null,
-      governmentId: 'birth_cert_michael_brown.pdf',
-    },
-  },
-  {
-    id: 'APP004',
-    studentName: 'Emily Davis',
-    grade: 'Grade 4',
-    schoolYear: '2024',
-    applicationDate: '2023-12-15',
-    status: 'approved',
-    parentEmail: 'davis@email.com',
-    paymentStatus: 'completed',
-    paymentAmount: 175,
-    archived: true,
-    files: {
-      immunization: 'immunization_emily_davis.pdf',
-      reportCard: 'report_emily_davis.pdf',
-      osrPermission: 'osr_emily_davis.pdf',
-      governmentId: 'birth_cert_emily_davis.pdf',
-    },
-  },
-]
 
 // Create MUI theme to match app styles
 const theme = createTheme({
@@ -122,6 +49,9 @@ const theme = createTheme({
           '& .MuiDataGrid-cell': {
             borderBottom: '1px solid #dee2e6',
           },
+          '& .MuiDataGrid-cell:focus-within': {
+            outline: 'none !important',
+          },
           '& .MuiDataGrid-columnHeaders': {
             backgroundColor: '#f8f9fa',
             borderBottom: '1px solid #dee2e6',
@@ -133,7 +63,8 @@ const theme = createTheme({
 })
 
 const RegistrationProcessingDashboard = () => {
-  const [applications, setApplications] = useState(mockApplications)
+  const [applications, setApplications] = useState([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedApplication, setSelectedApplication] = useState(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
@@ -145,6 +76,37 @@ const RegistrationProcessingDashboard = () => {
     application: null,
   })
 
+  useEffect(() => {
+    const fetchApplications = async () => {
+      setLoading(true)
+      try {
+        const q = query(collection(firestore, 'registrations'), orderBy('timestamp', 'desc'))
+        const querySnapshot = await getDocs(q)
+        const appsData = querySnapshot.docs.map((doc) => {
+          const data = doc.data()
+          const student = data.student || {}
+          return {
+            id: doc.id,
+            ...data,
+            studentName: `${student.firstName || ''} ${student.lastName || ''}`.trim(),
+            applicationDate: data.timestamp?.toDate() || null,
+            // Flatten payment status for grid display
+            paymentStatus: data.payment?.status || 'n/a',
+            files: data.uploadedFiles || {},
+          }
+        })
+        setApplications(appsData)
+      } catch (error) {
+        console.error('Error fetching applications:', error)
+        // Optionally, set an error state to show in the UI
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchApplications()
+  }, [])
+
   const getStatusBadgeColor = (status) => {
     const colorMap = {
       pending: 'warning',
@@ -154,23 +116,51 @@ const RegistrationProcessingDashboard = () => {
     return colorMap[status] || 'secondary'
   }
 
-  const handleStatusChange = (appId, newStatus) => {
-    setApplications((prev) =>
-      prev.map((app) => (app.id === appId ? { ...app, status: newStatus } : app)),
-    )
-    setConfirmationDialog({ open: false, type: null, application: null })
+  const handleStatusChange = async (appId, newStatus) => {
+    try {
+      const appDocRef = doc(firestore, 'registrations', appId)
+      await updateDoc(appDocRef, { status: newStatus })
+
+      setApplications((prev) =>
+        prev.map((app) => (app.id === appId ? { ...app, status: newStatus } : app)),
+      )
+    } catch (error) {
+      console.error('Error updating status:', error)
+      alert('Failed to update status. Please try again.')
+    } finally {
+      setConfirmationDialog({ open: false, type: null, application: null })
+    }
   }
 
-  const handleArchiveApplication = (appId) => {
-    setApplications((prev) =>
-      prev.map((app) => (app.id === appId ? { ...app, archived: !app.archived } : app)),
-    )
-    setConfirmationDialog({ open: false, type: null, application: null })
+  const handleArchiveApplication = async (appId, currentArchivedStatus) => {
+    const newArchivedStatus = !currentArchivedStatus
+    try {
+      const appDocRef = doc(firestore, 'registrations', appId)
+      await updateDoc(appDocRef, { archived: newArchivedStatus })
+
+      setApplications((prev) =>
+        prev.map((app) => (app.id === appId ? { ...app, archived: newArchivedStatus } : app)),
+      )
+    } catch (error) {
+      console.error('Error updating archive status:', error)
+      alert('Failed to update archive status. Please try again.')
+    } finally {
+      setConfirmationDialog({ open: false, type: null, application: null })
+    }
   }
 
-  const handlePaymentUpdate = (appId, paymentStatus, paymentAmount) => {
+  const handlePaymentUpdate = (appId, newPaymentData) => {
     setApplications((prev) =>
-      prev.map((app) => (app.id === appId ? { ...app, paymentStatus, paymentAmount } : app)),
+      prev.map((app) =>
+        app.id === appId
+          ? {
+              ...app,
+              payment: { ...app.payment, ...newPaymentData },
+              // Update flattened status for immediate UI response
+              paymentStatus: newPaymentData.status || app.paymentStatus,
+            }
+          : app,
+      ),
     )
   }
 
@@ -181,15 +171,17 @@ const RegistrationProcessingDashboard = () => {
   const handleConfirmAction = () => {
     if (!confirmationDialog.application || !confirmationDialog.type) return
 
+    const { id, archived } = confirmationDialog.application
+
     switch (confirmationDialog.type) {
       case 'archive':
-        handleArchiveApplication(confirmationDialog.application.id)
+        handleArchiveApplication(id, archived)
         break
       case 'approve':
-        handleStatusChange(confirmationDialog.application.id, 'approved')
+        handleStatusChange(id, 'approved')
         break
       case 'deny':
-        handleStatusChange(confirmationDialog.application.id, 'denied')
+        handleStatusChange(id, 'denied')
         break
     }
   }
@@ -266,36 +258,56 @@ const RegistrationProcessingDashboard = () => {
     {
       field: 'applicationDate',
       headerName: 'Application Date',
+      type: 'date',
       flex: 1.2,
-      renderCell: (params) => new Date(params.value).toLocaleDateString(),
+      valueFormatter: (value) => (value ? new Date(value).toLocaleDateString() : ''),
     },
     {
       field: 'status',
       headerName: 'Status',
       flex: 1,
-      renderCell: (params) => (
-        <CBadge color={getStatusBadgeColor(params.value)} shape="rounded-pill" className="px-3 py-1">
-          {params.value.charAt(0).toUpperCase() + params.value.slice(1)}
-        </CBadge>
-      ),
+      renderCell: (params) => {
+        const status = params.value || 'n/a'
+        return (
+          <CBadge color={getStatusBadgeColor(status)} shape="rounded-pill" className="px-3 py-1">
+            {status.charAt(0).toUpperCase() + status.slice(1)}
+          </CBadge>
+        )
+      },
     },
     {
       field: 'paymentStatus',
       headerName: 'Payment',
       flex: 1,
-      renderCell: (params) =>
-        params.value === 'completed' ? (
-          <CBadge color="dark" className="px-3 py-1 rounded-pill">
-            Completed
+      renderCell: (params) => {
+        const paymentStatus = params.value || 'n/a';
+
+        if (paymentStatus === 'completed') {
+          return (
+            <CBadge color="dark" className="px-3 py-1 rounded-pill">
+              Completed
+            </CBadge>
+          );
+        }
+        
+        if (paymentStatus === 'pending') {
+          return (
+            <CBadge
+              color="light"
+              className="text-secondary border border-secondary px-3 py-1 rounded-pill"
+            >
+              Pending
+            </CBadge>
+          );
+        }
+
+        // Default case for 'n/a' or any other status
+        return (
+          <CBadge color="secondary" className="px-3 py-1 rounded-pill">
+            N/A
           </CBadge>
-        ) : (
-          <CBadge
-            color="light"
-            className="text-secondary border border-secondary px-3 py-1 rounded-pill"
-          >
-            Pending
-          </CBadge>
-        ),
+        );
+      },
     },
     {
       field: 'actions',
@@ -315,7 +327,7 @@ const RegistrationProcessingDashboard = () => {
                 onClick={() => handleViewApplication(application)}
                 className="action-button-secondary"
               >
-                <CIcon icon={cilSearch} />
+                <CIcon icon={cilFindInPage} />
               </CButton>
             </CTooltip>
 
@@ -374,7 +386,7 @@ const RegistrationProcessingDashboard = () => {
   ]
 
   return (
-    <div style={{ backgroundColor: '#f0f2f5', minHeight: '100vh' }}>
+    <div style={{ backgroundColor: '#f0f2f5', minHeight: '100vh', overflowY: 'scroll' }}>
       <div className="p-4 md:p-6">
         <div className="mx-auto">
           {/* Header */}
@@ -390,8 +402,9 @@ const RegistrationProcessingDashboard = () => {
               className="d-flex align-items-center gap-2"
             >
               <CIcon icon={cilInbox} />
-              {showArchived ? 'Show Active' : 'Show Archived'} (
-              {showArchived ? archivedApplications.length : activeApplications.length})
+              {showArchived
+                ? `Show Active (${activeApplications.length})`
+                : 'Show Archived'}
             </CButton>
           </div>
 
@@ -400,79 +413,50 @@ const RegistrationProcessingDashboard = () => {
             <CRow className="g-4 mb-4">
               <CCol sm={6} lg={3}>
                 <CCard>
-                  <CCardBody>
-                    <div className="d-flex align-items-center">
-                      <CIcon icon={cilUser} height={32} className="text-medium-emphasis me-3" />
-                      <div>
-                        <div className="text-medium-emphasis small">Total Applications</div>
-                        <div className="fs-4 fw-semibold">{activeApplications.length}</div>
-                      </div>
-                    </div>
+                  <CCardHeader className="form-card-header summary-card-header">
+                    <div className="small text-white">Total Applications</div>
+                  </CCardHeader>
+                  <CCardBody className="d-flex align-items-center">
+                    <CIcon icon={cilUser} height={32} className="text-medium-emphasis me-3" />
+                    <div className="fs-4 fw-semibold">{activeApplications.length}</div>
                   </CCardBody>
                 </CCard>
               </CCol>
               <CCol sm={6} lg={3}>
                 <CCard>
-                  <CCardBody>
-                    <div className="d-flex align-items-center">
-                      <CIcon icon={cilCalendar} height={32} className="text-warning me-3" />
-                      <div>
-                        <div className="text-medium-emphasis small">Pending</div>
-                        <div className="fs-4 fw-semibold text-warning">{statusCounts.pending}</div>
-                      </div>
-                    </div>
+                  <CCardHeader className="form-card-header summary-card-header">
+                    <div className="small text-white">Pending</div>
+                  </CCardHeader>
+                  <CCardBody className="d-flex align-items-center">
+                    <CIcon icon={cilCalendar} height={32} className="text-warning me-3" />
+                    <div className="fs-4 fw-semibold text-warning">{statusCounts.pending}</div>
                   </CCardBody>
                 </CCard>
               </CCol>
               <CCol sm={6} lg={3}>
                 <CCard>
-                  <CCardBody>
-                    <div className="d-flex align-items-center">
-                      <CIcon icon={cilCheckAlt} height={32} className="text-success me-3" />
-                      <div>
-                        <div className="text-medium-emphasis small">Approved</div>
-                        <div className="fs-4 fw-semibold text-success">{statusCounts.approved}</div>
-                      </div>
-                    </div>
+                  <CCardHeader className="form-card-header summary-card-header">
+                    <div className="small text-white">Approved</div>
+                  </CCardHeader>
+                  <CCardBody className="d-flex align-items-center">
+                    <CIcon icon={cilCheckAlt} height={32} className="text-success me-3" />
+                    <div className="fs-4 fw-semibold text-success">{statusCounts.approved}</div>
                   </CCardBody>
                 </CCard>
               </CCol>
               <CCol sm={6} lg={3}>
                 <CCard>
-                  <CCardBody>
-                    <div className="d-flex align-items-center">
-                      <CIcon icon={cilX} height={32} className="text-danger me-3" />
-                      <div>
-                        <div className="text-medium-emphasis small">Denied</div>
-                        <div className="fs-4 fw-semibold text-danger">{statusCounts.denied}</div>
-                      </div>
-                    </div>
+                  <CCardHeader className="form-card-header summary-card-header">
+                    <div className="small text-white">Denied</div>
+                  </CCardHeader>
+                  <CCardBody className="d-flex align-items-center">
+                    <CIcon icon={cilX} height={32} className="text-danger me-3" />
+                    <div className="fs-4 fw-semibold text-danger">{statusCounts.denied}</div>
                   </CCardBody>
                 </CCard>
               </CCol>
             </CRow>
           )}
-
-          {/* Search Bar */}
-          <CCard className="my-4">
-            <CCardBody>
-              <div className="flex-1">
-                <CFormLabel htmlFor="search">Search Applications</CFormLabel>
-                <div className="position-relative">
-                  <span className="position-absolute top-50 start-0 translate-middle-y ms-3">
-                    <CIcon icon={cilSearch} className="text-medium-emphasis" />
-                  </span>
-                  <CFormInput
-                    id="search"
-                    placeholder="Search by student name or application ID..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="ps-5"
-                  />
-                </div>
-              </div>
-            </CCardBody>
-          </CCard>
 
           {/* Applications Table */}
           <CCard>
@@ -482,12 +466,30 @@ const RegistrationProcessingDashboard = () => {
                 {filteredApplications.length})
               </CCardTitle>
             </CCardHeader>
-            <CCardBody>
+            <div className="px-3 pt-3 pb-1">
+              <CFormLabel htmlFor="search" className="visually-hidden">
+                Search Applications
+              </CFormLabel>
+              <div className="position-relative">
+                <span className="position-absolute top-50 start-0 translate-middle-y ms-3">
+                  <CIcon icon={cilSearch} className="text-medium-emphasis" />
+                </span>
+                <CFormInput
+                  id="search"
+                  placeholder="Search by student name or application ID..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="ps-5"
+                />
+              </div>
+            </div>
+            <CCardBody className="pt-0">
               <div style={{ height: 600, width: '100%' }}>
                 <ThemeProvider theme={theme}>
                   <DataGrid
                     rows={filteredApplications}
                     columns={columns}
+                    loading={loading}
                     initialState={{
                       pagination: {
                         paginationModel: { page: 0, pageSize: 10 },

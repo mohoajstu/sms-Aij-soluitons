@@ -15,6 +15,7 @@ import {
   cilSearch,
   cilCheck,
   cilXCircle,
+  cilFindInPage,
 } from '@coreui/icons'
 import './registrationPage.css' // Import the shared CSS
 
@@ -51,12 +52,12 @@ const ApplicationDetailModal = ({ application, onClose, onStatusChange }) => {
   // Safely access nested properties
   const student = application.student || {}
   const contact = application.contact || {}
-  const mother = application.mother || {}
-  const father = application.father || {}
+  const primaryGuardian = application.primaryGuardian || {}
+  const secondaryGuardian = application.secondaryGuardian || {}
   const files = application.files || {}
 
   return (
-    <CModal visible={true} onClose={onClose} size="xl" backdrop="static">
+    <CModal visible={true} onClose={onClose} size="xl" backdrop={true}>
       <div className="form-card-header d-flex justify-content-between align-items-center">
         <CModalTitle className="form-card-title m-0">
           Application Details ({application.id})
@@ -118,33 +119,35 @@ const ApplicationDetailModal = ({ application, onClose, onStatusChange }) => {
               </div>
             </div>
 
-            {/* Mother's Information */}
+            {/* Primary Guardian Information */}
             <div className="form-section">
-              <h3 className="form-section-title">Mother's Information</h3>
+              <h3 className="form-section-title">Primary Guardian Information</h3>
               <div className="form-grid md-grid-cols-2">
-                <FormField label="First Name" value={mother.firstName} />
-                <FormField label="Last Name" value={mother.lastName} />
-                <FormField label="Phone" value={mother.phone} />
-                <FormField label="Email" value={mother.email} />
+                <FormField label="First Name" value={primaryGuardian.firstName} />
+                <FormField label="Last Name" value={primaryGuardian.lastName} />
+                <FormField label="Phone" value={primaryGuardian.phone} />
+                <FormField label="Email" value={primaryGuardian.email} />
                 <div className="md-col-span-2">
-                  <FormField label="Address" value={mother.address} />
+                  <FormField label="Address" value={primaryGuardian.address} />
                 </div>
               </div>
             </div>
 
-            {/* Father's Information */}
-            <div className="form-section">
-              <h3 className="form-section-title">Father's Information</h3>
-               <div className="form-grid md-grid-cols-2">
-                <FormField label="First Name" value={father.firstName} />
-                <FormField label="Last Name" value={father.lastName} />
-                <FormField label="Phone" value={father.phone} />
-                <FormField label="Email" value={father.email} />
-                 <div className="md-col-span-2">
-                  <FormField label="Address" value={father.address} />
+            {/* Secondary Guardian Information (Conditional) */}
+            {secondaryGuardian && secondaryGuardian.firstName && (
+              <div className="form-section">
+                <h3 className="form-section-title">Secondary Guardian Information</h3>
+                <div className="form-grid md-grid-cols-2">
+                  <FormField label="First Name" value={secondaryGuardian.firstName} />
+                  <FormField label="Last Name" value={secondaryGuardian.lastName} />
+                  <FormField label="Phone" value={secondaryGuardian.phone} />
+                  <FormField label="Email" value={secondaryGuardian.email} />
+                  <div className="md-col-span-2">
+                    <FormField label="Address" value={secondaryGuardian.address} />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
         
@@ -159,29 +162,26 @@ const ApplicationDetailModal = ({ application, onClose, onStatusChange }) => {
               reportCard: 'Report Card',
               osrPermission: 'OSR Permission',
               governmentId: 'Government ID',
-            }).map(([key, label]) => (
-              <div key={key} className="d-flex align-items-center justify-content-between p-3 border rounded-lg">
-                <div>
-                  <p className="fw-bold mb-1">{label}</p>
-                  <p className="text-medium-emphasis mb-0">
-                    {files[key] ? (
-                      <a href={files[key]} target="_blank" rel="noopener noreferrer">
-                        {files[key].split('/').pop().split('?')[0]}
-                      </a>
-                    ) : (
-                      'Not uploaded'
-                    )}
-                  </p>
-                </div>
-                {files[key] && (
-                  <div className="d-flex gap-2">
-                    <CButton variant="outline" color="secondary" size="sm" onClick={() => window.open(files[key], '_blank')}>
-                      <CIcon icon={cilSearch} className="me-1" /> View
-                    </CButton>
-                    <CButton variant="outline" color="secondary" size="sm" onClick={() => alert('Download starts')}>
-                      <CIcon icon={cilCloudDownload} className="me-1" /> Download
-                    </CButton>
-                  </div>
+            }).map(([category, label]) => (
+              <div key={category} className="mb-3">
+                <p className="fw-bold mb-2">{label}</p>
+                {files[category] && files[category].length > 0 ? (
+                  <ul className="list-group">
+                    {files[category].map((file, index) => (
+                      <li key={index} className="list-group-item d-flex justify-content-between align-items-center">
+                        <a href={file.url} target="_blank" rel="noopener noreferrer">
+                          {file.name}
+                        </a>
+                        <div>
+                          <CButton variant="outline" color="secondary" size="sm" onClick={() => window.open(file.url, '_blank')}>
+                            <CIcon icon={cilFindInPage} className="me-1" /> View
+                          </CButton>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-medium-emphasis mb-0">No files uploaded for this category.</p>
                 )}
               </div>
             ))}
