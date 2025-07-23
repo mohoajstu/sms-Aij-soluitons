@@ -1,7 +1,7 @@
 {
     "hosting": [
     {
-      "site": "tarbiyah-sms",
+      "site": "tlasms",
       "public": "build",
       "ignore": [
         "firebase.json",
