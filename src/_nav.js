@@ -34,6 +34,13 @@ const _nav = [
   },
   {
     component: CNavItem,
+    name: 'Registration Processing',
+    to: '/registration/processing',
+    icon: <BeenhereOutlinedIcon className="nav-icon" />,
+    hideFor: ['parent', 'student', 'teacher'],
+  },
+  {
+    component: CNavItem,
     name: 'Courses',
     to: '/courses',
     icon: <AutoStoriesOutlinedIcon className="nav-icon" />,
