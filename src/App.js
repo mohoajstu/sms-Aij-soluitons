@@ -11,6 +11,11 @@ const Login = React.lazy(() => import('./views/pages/login/Login'))
 const Register = React.lazy(() => import('./views/pages/register/Register'))
 const Page404 = React.lazy(() => import('./views/pages/page404/Page404'))
 const Page500 = React.lazy(() => import('./views/pages/page500/Page500'))
+const Home = React.lazy(() => import('./views/pages/home/home'))
+const PrivacyPolicy = React.lazy(() => import('./views/pages/privacyPolicy/PrivacyPolicy'))
+const TermsOfService = React.lazy(() => import('./views/pages/termsOfService/TermsOfService'))
+const ParentLogin = React.lazy(() => import('./views/pages/login/ParentLogin'))
+const StaffLogin = React.lazy(() => import('./views/pages/login/StaffLogin'))
 
 const App = () => {
   const { isColorModeSet, setColorMode } = useColorModes('coreui-free-react-admin-template-theme')
@@ -65,18 +70,23 @@ const App = () => {
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
+          <Route path="/login/parent" element={user ? <Navigate to="/" replace /> : <ParentLogin />} />
+          <Route path="/login/staff" element={user ? <Navigate to="/" replace /> : <StaffLogin />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/404" element={<Page404 />} />
           <Route path="/500" element={<Page500 />} />
 
           {/* Protected Routes */}
-          <Route path="/*" element={user ? <DefaultLayout /> : <Navigate to="/login" replace />} />
+          <Route path="/*" element={user ? <DefaultLayout /> : <Navigate to="/home" replace />} />
 
           {/* Report Card Routes (disabled) */}
           {/* <Route path="/reportcards" element={user ? <ReportCardPage /> : <Navigate to="/login" replace />} /> */}
 
           {/* Redirect unmatched routes */}
-          <Route path="*" element={<Navigate to={user ? '/' : '/login'} replace />} />
+          <Route path="*" element={<Navigate to={user ? '/' : '/home'} replace />} />
         </Routes>
       </Suspense>
     </HashRouter>
