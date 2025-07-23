@@ -30,18 +30,14 @@ const RegistrationForm = () => {
       primaryGuardianFirstName: '',
       primaryGuardianMiddleName: '',
       primaryGuardianLastName: '',
-      primaryGuardianContactSame: false,
       primaryGuardianPhone: '',
       primaryGuardianEmail: '',
-      primaryGuardianAddressSame: false,
       primaryGuardianAddress: '',
       secondaryGuardianFirstName: '',
       secondaryGuardianMiddleName: '',
       secondaryGuardianLastName: '',
-      secondaryGuardianContactSame: false,
       secondaryGuardianPhone: '',
       secondaryGuardianEmail: '',
-      secondaryGuardianAddressSame: false,
       secondaryGuardianAddress: '',
     };
   });
@@ -129,13 +125,13 @@ const RegistrationForm = () => {
         archived: false,
         student: {
           firstName: formData.firstName,
-          middleName: formData.middleName,
+          middleName: formData.middleName || '',
           lastName: formData.lastName,
           gender: formData.gender,
-          oen: formData.oen,
+          oen: formData.oen || '',
           dateOfBirth: formData.dateOfBirth,
-          previousSchool: formData.previousSchool,
-          allergies: formData.allergies,
+          previousSchool: formData.previousSchool || '',
+          allergies: formData.allergies || '',
           photoPermission: formData.photoPermission,
         },
         contact: {
@@ -146,23 +142,19 @@ const RegistrationForm = () => {
         },
         primaryGuardian: {
           firstName: formData.primaryGuardianFirstName,
-          middleName: formData.primaryGuardianMiddleName,
+          middleName: formData.primaryGuardianMiddleName || '',
           lastName: formData.primaryGuardianLastName,
-          contactSameAsStudent: formData.primaryGuardianContactSame,
           phone: formData.primaryGuardianPhone,
           email: formData.primaryGuardianEmail,
-          addressSameAsStudent: formData.primaryGuardianAddressSame,
           address: formData.primaryGuardianAddress,
         },
         secondaryGuardian: {
-          firstName: formData.secondaryGuardianFirstName,
-          middleName: formData.secondaryGuardianMiddleName,
-          lastName: formData.secondaryGuardianLastName,
-          contactSameAsStudent: formData.secondaryGuardianContactSame,
-          phone: formData.secondaryGuardianPhone,
-          email: formData.secondaryGuardianEmail,
-          addressSameAsStudent: formData.secondaryGuardianAddressSame,
-          address: formData.secondaryGuardianAddress,
+          firstName: formData.secondaryGuardianFirstName || '',
+          middleName: formData.secondaryGuardianMiddleName || '',
+          lastName: formData.secondaryGuardianLastName || '',
+          phone: formData.secondaryGuardianPhone || '',
+          email: formData.secondaryGuardianEmail || '',
+          address: formData.secondaryGuardianAddress || '',
         },
         payment: {
           method: 'cash',
@@ -220,7 +212,7 @@ const RegistrationForm = () => {
                 <div>
                   <label htmlFor="schoolYear" className="form-label">School Year*</label>
                   <input type="text" id="schoolYear" className="form-input" value={formData.schoolYear} onChange={e => handleInputChange('schoolYear', e.target.value)} required />
-                </div>
+              </div>
                 <div>
                   <label htmlFor="grade" className="form-label">Grade Applied For*</label>
                   <select id="grade" className="form-select" value={formData.grade} onChange={e => handleInputChange('grade', e.target.value)} required>
@@ -234,11 +226,11 @@ const RegistrationForm = () => {
                     <option value="Grade 6">Grade 6</option>
                     <option value="Grade 7">Grade 7</option>
                     <option value="Grade 8">Grade 8</option>
-                  </select>
-                </div>
+                </select>
               </div>
             </div>
-          </div>
+            </div>
+              </div>
 
           {/* Student Information */}
           <div className="form-card">
@@ -286,85 +278,86 @@ const RegistrationForm = () => {
                   <label htmlFor="previousSchool" className="form-label">Previous School Attended</label>
                   <textarea id="previousSchool" className="form-textarea" value={formData.previousSchool} onChange={(e) => handleInputChange('previousSchool', e.target.value)} />
                 </div>
+                </div>
+                <div>
+                  <label htmlFor="allergies" className="form-label">Any Allergies?</label>
+                  <textarea id="allergies" className="form-textarea" value={formData.allergies} onChange={(e) => handleInputChange('allergies', e.target.value)} />
               </div>
-              <div>
-                <label htmlFor="allergies" className="form-label">Any Allergies?</label>
-                <textarea id="allergies" className="form-textarea" value={formData.allergies} onChange={(e) => handleInputChange('allergies', e.target.value)} />
-              </div>
-              <div>
-                <label className="form-label">Grant permission to photograph your child?</label>
+              <div className="form-section-divider">
+                <label className="form-label">Grant permission to photograph your child?*</label>
+                <p className="form-info-text">Photos may be used for school promotional materials (website, social media, etc.).</p>
                 <div className="form-radio-group">
                   <div className="form-radio-item">
-                    <input type="radio" id="photo-yes" name="photoPermission" value="yes" className="form-radio" onChange={(e) => handleInputChange('photoPermission', e.target.value)} checked={formData.photoPermission === 'yes'} />
+                    <input type="radio" id="photo-yes" name="photoPermission" value="yes" className="form-radio" onChange={e => handleInputChange('photoPermission', e.target.value)} checked={formData.photoPermission === 'yes'} required />
                     <label htmlFor="photo-yes">Yes</label>
                   </div>
                   <div className="form-radio-item">
-                    <input type="radio" id="photo-no" name="photoPermission" value="no" className="form-radio" onChange={(e) => handleInputChange('photoPermission', e.target.value)} checked={formData.photoPermission === 'no'} />
+                    <input type="radio" id="photo-no" name="photoPermission" value="no" className="form-radio" onChange={e => handleInputChange('photoPermission', e.target.value)} checked={formData.photoPermission === 'no'} required />
                     <label htmlFor="photo-no">No</label>
-            </div>
-              </div>
-              </div>
-            </div>
-            </div>
-
-          {/* Contact Information */}
-          <div className="form-card">
-            <div className="form-card-header">
-              <h2 className="form-card-title">
-                <Phone className="w-5 h-5" />
-                Student's Contact Information
-              </h2>
-            </div>
-            <div className="form-card-content">
-              <div className="form-grid md-grid-cols-2">
-                <div>
-                  <label htmlFor="primaryPhone" className="form-label">Primary Phone Number*</label>
-                  <input type="tel" id="primaryPhone" className="form-input" value={formData.primaryPhone} onChange={e => handleInputChange('primaryPhone', e.target.value)} required />
-                </div>
-                <div>
-                  <label htmlFor="emergencyPhone" className="form-label">Emergency Phone Number*</label>
-                  <input type="tel" id="emergencyPhone" className="form-input" value={formData.emergencyPhone} onChange={e => handleInputChange('emergencyPhone', e.target.value)} required />
-                </div>
-                <div className="md-col-span-2">
-                  <label htmlFor="primaryEmail" className="form-label">Primary Email Address*</label>
-                  <input type="email" id="primaryEmail" className="form-input" value={formData.primaryEmail} onChange={e => handleInputChange('primaryEmail', e.target.value)} required />
-                </div>
-                <div className="md-col-span-2">
-                  <label htmlFor="studentAddress" className="form-label">Student's Street Address*</label>
-                  <input type="text" id="studentAddress" className="form-input" value={formData.studentAddress} onChange={e => handleInputChange('studentAddress', e.target.value)} required />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Guardian Information */}
+          {/* Contact Information */}
           <div className="form-card">
             <div className="form-card-header">
-              <h2 className="form-card-title">
-                <User className="w-5 h-5" />
-                Guardian Information
-              </h2>
+                <h2 className="form-card-title">
+                    <Phone className="w-5 h-5" />
+                Student's Contact Information
+                </h2>
             </div>
             <div className="form-card-content">
+              <div className="form-grid md-grid-cols-2">
+                    <div>
+                  <label htmlFor="primaryPhone" className="form-label">Primary Phone Number*</label>
+                        <input type="tel" id="primaryPhone" className="form-input" value={formData.primaryPhone} onChange={e => handleInputChange('primaryPhone', e.target.value)} required />
+                    </div>
+                    <div>
+                  <label htmlFor="emergencyPhone" className="form-label">Emergency Phone Number*</label>
+                        <input type="tel" id="emergencyPhone" className="form-input" value={formData.emergencyPhone} onChange={e => handleInputChange('emergencyPhone', e.target.value)} required />
+            </div>
+                    <div className="md-col-span-2">
+                  <label htmlFor="primaryEmail" className="form-label">Primary Email Address*</label>
+                        <input type="email" id="primaryEmail" className="form-input" value={formData.primaryEmail} onChange={e => handleInputChange('primaryEmail', e.target.value)} required />
+            </div>
+                <div className="md-col-span-2">
+                  <label htmlFor="studentAddress" className="form-label">Student's Street Address*</label>
+                  <input type="text" id="studentAddress" className="form-input" value={formData.studentAddress} onChange={e => handleInputChange('studentAddress', e.target.value)} required />
+              </div>
+              </div>
+            </div>
+            </div>
+
+          {/* Guardian Information */}
+          <div className="form-card">
+              <div className="form-card-header">
+                  <h2 className="form-card-title">
+                      <User className="w-5 h-5" />
+                Guardian Information
+                  </h2>
+              </div>
+              <div className="form-card-content">
               {/* Primary Guardian */}
               <div className="form-section">
                 <h3 className="form-section-title">Primary Guardian Information*</h3>
                 <div className="form-grid lg-grid-cols-3">
-                  <div>
+                      <div>
                     <label htmlFor="primaryGuardianFirstName" className="form-label">Legal First Name*</label>
                     <input type="text" id="primaryGuardianFirstName" className="form-input" value={formData.primaryGuardianFirstName} onChange={e => handleInputChange('primaryGuardianFirstName', e.target.value)} required />
-                  </div>
-                  <div>
+                      </div>
+                      <div>
                     <label htmlFor="primaryGuardianMiddleName" className="form-label">Middle Name</label>
                     <input type="text" id="primaryGuardianMiddleName" className="form-input" value={formData.primaryGuardianMiddleName} onChange={e => handleInputChange('primaryGuardianMiddleName', e.target.value)} />
-                  </div>
-                  <div>
+                      </div>
+                      <div>
                     <label htmlFor="primaryGuardianLastName" className="form-label">Legal Last Name*</label>
                     <input type="text" id="primaryGuardianLastName" className="form-input" value={formData.primaryGuardianLastName} onChange={e => handleInputChange('primaryGuardianLastName', e.target.value)} required />
                   </div>
-                </div>
+                      </div>
                 <div className="form-grid md-grid-cols-2 mt-4">
-                  <div>
+                          <div>
                     <label htmlFor="primaryGuardianPhone" className="form-label">Phone Number*</label>
                     <input type="tel" id="primaryGuardianPhone" className="form-input" value={formData.primaryGuardianPhone} onChange={e => handleInputChange('primaryGuardianPhone', e.target.value)} required />
                   </div>
@@ -372,47 +365,47 @@ const RegistrationForm = () => {
                     <label htmlFor="primaryGuardianEmail" className="form-label">Email Address*</label>
                     <input type="email" id="primaryGuardianEmail" className="form-input" value={formData.primaryGuardianEmail} onChange={e => handleInputChange('primaryGuardianEmail', e.target.value)} required />
                   </div>
-                </div>
+              </div>
                 <div className="mt-4">
                   <label htmlFor="primaryGuardianAddress" className="form-label">Street Address*</label>
                   <input type="text" id="primaryGuardianAddress" className="form-input" value={formData.primaryGuardianAddress} onChange={e => handleInputChange('primaryGuardianAddress', e.target.value)} required />
-                </div>
+            </div>
               </div>
 
               {/* Secondary Guardian */}
               <div className="form-section-divider">
                 <h3 className="form-section-title">Secondary Guardian Information (Optional)</h3>
                 <div className="form-grid lg-grid-cols-3">
-                  <div>
+                      <div>
                     <label htmlFor="secondaryGuardianFirstName" className="form-label">Legal First Name</label>
                     <input type="text" id="secondaryGuardianFirstName" className="form-input" value={formData.secondaryGuardianFirstName} onChange={e => handleInputChange('secondaryGuardianFirstName', e.target.value)} />
-                  </div>
-                  <div>
+                      </div>
+                      <div>
                     <label htmlFor="secondaryGuardianMiddleName" className="form-label">Middle Name</label>
                     <input type="text" id="secondaryGuardianMiddleName" className="form-input" value={formData.secondaryGuardianMiddleName} onChange={e => handleInputChange('secondaryGuardianMiddleName', e.target.value)} />
-                  </div>
-                  <div>
+                      </div>
+                      <div>
                     <label htmlFor="secondaryGuardianLastName" className="form-label">Legal Last Name</label>
                     <input type="text" id="secondaryGuardianLastName" className="form-input" value={formData.secondaryGuardianLastName} onChange={e => handleInputChange('secondaryGuardianLastName', e.target.value)} />
-                  </div>
-                </div>
+              </div>
+            </div>
                 <div className="form-grid md-grid-cols-2 mt-4">
-                  <div>
+                          <div>
                     <label htmlFor="secondaryGuardianPhone" className="form-label">Phone Number</label>
                     <input type="tel" id="secondaryGuardianPhone" className="form-input" value={formData.secondaryGuardianPhone} onChange={e => handleInputChange('secondaryGuardianPhone', e.target.value)} />
                   </div>
                   <div>
                     <label htmlFor="secondaryGuardianEmail" className="form-label">Email Address</label>
                     <input type="email" id="secondaryGuardianEmail" className="form-input" value={formData.secondaryGuardianEmail} onChange={e => handleInputChange('secondaryGuardianEmail', e.target.value)} />
-                  </div>
-                </div>
+                          </div>
+                          </div>
                 <div className="mt-4">
                   <label htmlFor="secondaryGuardianAddress" className="form-label">Street Address</label>
                   <input type="text" id="secondaryGuardianAddress" className="form-input" value={formData.secondaryGuardianAddress} onChange={e => handleInputChange('secondaryGuardianAddress', e.target.value)} />
-                </div>
+                          </div>
+              </div>
               </div>
             </div>
-          </div>
 
           {/* Required Files */}
           <div className="form-card">
@@ -430,33 +423,33 @@ const RegistrationForm = () => {
               onFileUpload={(files) => handleFileUpload('immunization', files)}
               files={uploadedFiles.immunization}
             />
-          </div>
-          <div className="file-upload-section">
+                  </div>
+                  <div className="file-upload-section">
             <h3 className="file-upload-label">Most Recent Report Card</h3>
             <p className="file-upload-description">Required for students entering Grade 1 or higher. Not needed for JK/SK.</p>
             <FileUpload 
               onFileUpload={(files) => handleFileUpload('reportCard', files)}
               files={uploadedFiles.reportCard}
             />
-          </div>
-          <div className="file-upload-section">
+                  </div>
+                  <div className="file-upload-section">
             <h3 className="file-upload-label">OSR (Ontario Student Record) Permission</h3>
             <p className="file-upload-description">Please upload the signed permission form for OSR transfer if applicable.</p>
             <FileUpload 
               onFileUpload={(files) => handleFileUpload('osrPermission', files)}
               files={uploadedFiles.osrPermission}
             />
-          </div>
-          <div className="file-upload-section">
+                  </div>
+                  <div className="file-upload-section">
             <h3 className="file-upload-label">Proof of Age & Legal Status</h3>
             <p className="file-upload-description">Upload a Birth Certificate, Passport, or Permanent Resident Card.</p>
             <FileUpload 
               onFileUpload={(files) => handleFileUpload('governmentId', files)}
               files={uploadedFiles.governmentId}
             />
-          </div>
-        </div>
-      </div>
+                  </div>
+              </div>
+            </div>
           
       {/* Submission */}
 
