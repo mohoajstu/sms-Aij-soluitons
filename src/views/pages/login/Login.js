@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
 import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 import { auth } from '../../../Firebase/firebase'
@@ -22,7 +22,6 @@ import { cilLockLocked, cilUser } from '@coreui/icons'
 
 // Configure Google Provider
 const googleProvider = new GoogleAuthProvider()
-googleProvider.addScope('https://www.googleapis.com/auth/forms.body')
 googleProvider.addScope('https://www.googleapis.com/auth/presentations')
 googleProvider.addScope('https://www.googleapis.com/auth/drive.file')
 // Add Google Calendar scopes
@@ -42,6 +41,15 @@ const Login = () => {
   const [loading, setLoading] = useState(false)
   const [facultyMode, setFacultyMode] = useState(false)
   const [facultyId, setFacultyId] = useState('')
+  const location = useLocation()
+
+  // Enable pre-selecting faculty mode via ?faculty=true
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    if (params.get('faculty') === 'true') {
+      setFacultyMode(true)
+    }
+  }, [location.search])
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
