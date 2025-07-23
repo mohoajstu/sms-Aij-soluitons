@@ -5,6 +5,9 @@
   "targets": {
     "tarbiyah-sms": {
       "hosting": {
+        "default": [
+          "tlasms"
+        ],
         "tlasms": [
           "tlasms"
         ],
