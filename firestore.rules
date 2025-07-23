@@ -3,17 +3,28 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function getUserRole() {
+      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      if ('primaryRole' in userData) {
+        return userData.primaryRole.lower();
+      }
+      if ('personalInfo' in userData && 'role' in userData.personalInfo) {
+        return userData.personalInfo.role.lower();
+      }
+      return '';
+    }
+
     // Helper functions
     function isAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.lower() == 'admin';
+      return getUserRole() == 'admin';
     }
 
     function isFaculty() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.lower() == 'faculty';
+      return getUserRole() == 'faculty';
     }
 
     function isParent() {
-        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.lower() == 'parent';
+        return getUserRole() == 'parent';
     }
 
     // Announcements: anyone can read, only admins can write
@@ -29,7 +40,19 @@ service cloud.firestore {
 
     // Users can read their own profile
     match /users/{userId} {
-      allow read: if request.auth.uid == userId;
+      allow read: if request.auth.uid == userId ||
+                     (
+                       isParent() &&
+                       exists(/databases/$(database)/documents/students/$(userId)) &&
+                       'parents' in get(/databases/$(database)/documents/students/$(userId)).data &&
+                       (
+                         ('father' in get(/databases/$(database)/documents/students/$(userId)).data.parents &&
+                          get(/databases/$(database)/documents/students/$(userId)).data.parents.father.tarbiyahid == request.auth.uid) ||
+                         ('mother' in get(/databases/$(database)/documents/students/$(userId)).data.parents &&
+                          get(/databases/$(database)/documents/students/$(userId)).data.parents.mother.tarbiyahid == request.auth.uid)
+                       )
+                     );
+      allow write: if request.auth.uid == userId;
     }
 
     // Rules for courses
@@ -52,13 +75,23 @@ service cloud.firestore {
                        'enrolledCourses' in resource.data &&
                        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teacherProfile.classesManaged.toSet().intersection(resource.data.enrolledCourses.toSet()).size() > 0;
 
-        // Parents can read their own children's data, assuming a 'parents' collection with a 'children' (UID list) field.
-        allow read: if isParent() && studentId in get(/databases/$(database)/documents/parents/$(request.auth.uid)).data.children;
+        // Parents can read and write their own children's data
+        allow read, write: if isParent() &&
+                           'parents' in resource.data &&
+                           (
+                             ('father' in resource.data.parents && resource.data.parents.father.tarbiyahid == request.auth.uid) ||
+                             ('mother' in resource.data.parents && resource.data.parents.mother.tarbiyahid == request.auth.uid)
+                           );
     }
 
     // Allow users to read their own faculty doc
     match /faculty/{facultyId} {
       allow read: if request.auth.uid == facultyId;
+    }
+
+    // Allow parents to read and write their own doc
+    match /parents/{parentId} {
+      allow read, write: if request.auth.uid == parentId;
     }
   }
 } 

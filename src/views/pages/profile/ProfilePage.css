@@ -1,20 +1,40 @@
+.page-title {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 2rem;
+}
+
 .profile-page {
-  padding: 20px;
-  font-family: sans-serif;
+  padding: 2rem;
+  background-color: #f8fafc;
 }
 
 .profile-section {
-  margin-bottom: 20px;
-  border: 1px solid #ccc;
-  padding: 20px;
-  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  border-radius: 0.5rem;
+  margin-bottom: 2rem;
+  overflow: hidden;
 }
 
-.profile-section h2 {
-  margin-top: 0;
-  border-bottom: 1px solid #ccc;
-  padding-bottom: 10px;
-  margin-bottom: 20px;
+.profile-section-header {
+  background-color: #0f172a;
+  color: white;
+  padding: 1.5rem;
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+}
+
+.profile-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.profile-section-content {
+  padding: 2rem;
 }
 
 .form-grid {
@@ -28,7 +48,8 @@
   flex-direction: column;
 }
 
-.form-grid input {
+.form-grid input,
+.form-grid select {
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
@@ -46,4 +67,27 @@
 
 .save-button:hover {
   background-color: #0056b3;
+}
+
+.profile-switcher-wrapper {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  background-color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  max-width: 300px;
+}
+
+.profile-switcher {
+  border: none;
+  background-color: transparent;
+  font-size: 1.125rem;
+  font-weight: 600;
+  width: 100%;
+}
+
+.profile-switcher:focus {
+  outline: none;
 } 
