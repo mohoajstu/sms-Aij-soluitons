@@ -1,0 +1,44 @@
+{
+    "effectiveDate": "2025-07-20",
+    "company": {
+      "name": "AIJ Solutions",
+      "contactEmail": "aijsolutions.co@gmail.com"
+    },
+    "sections": [
+      {
+        "title": "1. Acceptance of Terms",
+        "text": "By accessing or using the Service, you agree to these Terms."
+      },
+      {
+        "title": "2. Account Registration",
+        "items": [
+          "Provide accurate information.",
+          "Keep your credentials secure.",
+          "Notify us of unauthorized access."
+        ]
+      },
+      {
+        "title": "3. License Grant",
+        "text": "We grant you a limited, non-exclusive, non-transferable license to use the Service per these Terms."
+      },
+      {
+        "title": "4. User Conduct",
+        "items": [
+          "Comply with all applicable laws and policies.",
+          "Do not misuse the Service (no hacking, spamming, or unlawful content)."
+        ]
+      },
+      {
+        "title": "5. Intellectual Property",
+        "text": "All content and code are owned by the Company or its licensors; no rights transfer except as expressly stated."
+      },
+      {
+        "title": "6. Termination",
+        "text": "We may suspend or terminate access for violations or other reasons with notice."
+      },
+      {
+        "title": "7. Changes to Terms",
+        "text": "We may revise these Terms; changes take effect when posted with a new effective date."
+      }
+    ]
+  } 

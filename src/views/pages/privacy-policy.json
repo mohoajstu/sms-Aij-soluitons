@@ -1,0 +1,61 @@
+{
+    "effectiveDate": "2025-07-20",
+    "company": {
+      "name": "AIJ Solutions",
+      "contactEmail": "aijsolutions.co@gmail.com"
+    },
+    "sections": [
+      {
+        "title": "1. Information We Collect",
+        "items": [
+          "Personal Data: name, email, role (teacher, admin, parent), school affiliation.",
+          "Usage Data: Pages viewed, actions taken on the website",
+          "Student Data as provided by you through the Service or through Tarbiyah Learning Academy"
+        ]
+      },
+      {
+        "title": "2. How We Use Your Information",
+        "items": [
+          "To Provide the school with all the relevant information in the school",
+          "To provide and maintain our Service.",
+          "To notify you about changes, updates, and new features.",
+          "To analyze usage and improve functionality.",
+          "To comply with legal obligations."
+        ]
+      },
+      {
+        "title": "3. Information Sharing & Disclosure",
+        "items": [
+          "Third-party service providers (hosting, email delivery, text messaging) under confidentiality obligations.",
+          "Legal compliance (court orders, government investigations).",
+          "Business transfers (merger, acquisition)."
+        ]
+      },
+      {
+        "title": "4. Security",
+        "items": [
+          "Data encrypted in transit (HTTPS) and at rest.",
+          "Access limited to authorized personnel under confidentiality agreements.",
+          "Breach notifications via email or website notice."
+        ]
+      },
+      {
+        "title": "5. Data Retention",
+        "items": [
+          "We retain data while your account is active or as needed to provide the Service, then as required by law."
+        ]
+      },
+      {
+        "title": "6. Children’s Privacy",
+        "items": [
+          "your data is not used for any purpose other than the purpose of the school"
+        ]
+      },
+      {
+        "title": "7. Changes to This Policy",
+        "items": [
+          "We may update this Policy; we'll post the new version with a revised effective date."
+        ]
+      }
+    ]
+  } 
