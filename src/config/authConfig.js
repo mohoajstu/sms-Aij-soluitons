@@ -38,7 +38,7 @@ export const canAccessStaffPortal = async (user, db, doc, getDoc) => {
 }
 
 // Parent login configuration
-export const PARENT_EMAIL_DOMAIN = 'tarbiyah.edu'
+export const PARENT_EMAIL_DOMAIN = 'gmail.com'
 
 // Helper function to format parent email from Tarbiyah ID
 export const formatParentEmail = (tarbiyahId) => {
