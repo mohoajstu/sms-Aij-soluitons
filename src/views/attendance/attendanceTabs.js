@@ -51,7 +51,7 @@ const AttendanceTabs = () => {
                 className={`at-tab-link ${activeTab === 2 ? 'at-active' : ''}`}
                 onClick={() => setActiveTab(2)}
               >
-                Test SMS
+                Manual SMS
               </div>
             </>
           )}
@@ -104,8 +104,8 @@ const AttendanceTabs = () => {
         {role !== 'parent' && activeTab === 2 && (
           <Box className="at-sms-test-content">
             <div className="at-note-box">
-              <strong>Send Test SMS:</strong> Use this form to manually test the SMS notification
-              system. Enter any phone number to send a test absence notification message.
+              <strong>Send Manual SMS:</strong> Use this form to manually send SMS notifications.
+              Enter your own message or select a parent from the dropdown to auto-fill their phone number.
             </div>
             <ManualSmsNotification />
           </Box>
