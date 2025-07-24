@@ -89,6 +89,7 @@ const Grades7to8ReportCardPage = React.lazy(() => import('./views/ReportCard/Rep
 const NewAnnouncement = React.lazy(() => import('./views/Announcements/NewAnnouncement'))
 const AllAnnouncements = React.lazy(() => import('./views/Announcements/AllAnnouncements'))
 const ProfilePage = React.lazy(() => import('./views/pages/profile/ProfilePage'))
+const PeoplePage = React.lazy(() => import('./views/pages/people/PeoplePage'))
 
 // const routes = [
 //   { path: '/', exact: true, name: 'Home' },
@@ -125,6 +126,7 @@ const routes = [
   { path: '/announcements', name: 'All Announcements', element: AllAnnouncements },
   { path: '/assignments', name: 'All Assignments', element: AllAssignments },
   { path: '/profile', name: 'Profile', element: ProfilePage },
+  { path: '/people', name: 'People Management', element: PeoplePage },
 
   // Template-specific report-card routes
   { path: '/reportcards/kg-initial', name: 'KG Initial Observations', element: KindergartenInitialPage },

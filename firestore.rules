@@ -93,5 +93,18 @@ service cloud.firestore {
     match /parents/{parentId} {
       allow read, write: if request.auth.uid == parentId;
     }
+
+    // Allow admins to read and write all user collections
+    match /students/{studentId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /faculty/{facultyId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /admins/{adminId} {
+      allow read, write: if isAdmin();
+    }
   }
 } 
