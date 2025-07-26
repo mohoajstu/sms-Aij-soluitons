@@ -489,36 +489,6 @@ const AttendanceReportTable = () => {
           <Box className="export-buttons">
             <Button
               variant="outlined"
-              startIcon={<DownloadIcon />}
-              className="export-button excel-button"
-              onClick={exportToExcel}
-              sx={{
-                '&:hover': {
-                  backgroundColor: 'rgba(46,125,50,0.08)',
-                  borderColor: '#1b5e20',
-                  color: '#1b5e20',
-                },
-              }}
-            >
-              Export Excel
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<PictureAsPdfIcon />}
-              className="export-button pdf-button"
-              onClick={exportToPDF}
-              sx={{
-                '&:hover': {
-                  backgroundColor: 'rgba(198,40,40,0.08)',
-                  borderColor: '#b71c1c',
-                  color: '#b71c1c',
-                },
-              }}
-            >
-              Export PDF
-            </Button>
-            <Button
-              variant="outlined"
               startIcon={isExporting ? <CircularProgress size={16} /> : <GoogleIcon />}
               className="export-button sheets-button"
               onClick={exportToSheets}
