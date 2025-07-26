@@ -32,6 +32,14 @@
           ]
         },
         {
+          "source": "**/*.pdf",
+          "headers": [
+            { "key": "Content-Type", "value": "application/pdf" },
+            { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+            { "key": "Content-Disposition", "value": "inline" }
+          ]
+        },
+        {
           "source": "**",
           "headers": [
             { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" },

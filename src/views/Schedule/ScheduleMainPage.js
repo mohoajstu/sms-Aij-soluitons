@@ -135,6 +135,16 @@ const ScheduleMainPage = () => {
     setPdfLoadError(true)
   }
 
+  const handleIframeLoad = () => {
+    console.log('✅ PDF iframe loaded successfully')
+    setPdfLoadError(false)
+  }
+
+  const handleIframeError = (error) => {
+    console.error('❌ PDF iframe error:', error)
+    setPdfLoadError(true)
+  }
+
   return (
     <CRow className="justify-content-center mt-4">
       <CCol md={10}>
@@ -192,22 +202,29 @@ const ScheduleMainPage = () => {
                   )}
                 </div>
                 <div style={{ flex: 1, border: '1px solid #ddd', borderRadius: '4px' }}>
-                  <object
-                    data={pdfUrl}
-                    type="application/pdf"
+                  <iframe
+                    src={pdfUrl}
                     width="100%"
                     height="100%"
-                    style={{ minHeight: '500px' }}
-                    onLoad={handlePdfLoad}
-                    onError={handlePdfError}
+                    style={{ border: 'none', minHeight: '500px' }}
+                    title="Schedule PDF"
+                    onLoad={handleIframeLoad}
+                    onError={handleIframeError}
                   >
+                    <embed
+                      src={pdfUrl}
+                      type="application/pdf"
+                      width="100%"
+                      height="100%"
+                      style={{ minHeight: '500px' }}
+                    />
                     <p>
                       PDF cannot be displayed. 
                       <a href={pdfUrl} target="_blank" rel="noopener noreferrer">
                         Click here to download the PDF
                       </a>
                     </p>
-                  </object>
+                  </iframe>
                 </div>
               </div>
             ) : (
