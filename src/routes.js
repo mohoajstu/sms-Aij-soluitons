@@ -20,12 +20,12 @@ const Courses = React.lazy(() => import('./views/Courses/courses'))
 const CourseDetailPage = React.lazy(() => import('./views/Courses/courseDetails'))
 const CourseForm = React.lazy(() => import('./views/Courses/CourseForm'))
 const Timetable = React.lazy(() => import('./views/Courses/Timetable'))
-const SchedulePage = React.lazy(() => import('./views/Courses/SchedulePage'))
+//const SchedulePage = React.lazy(() => import('./views/Courses/SchedulePage'))
 const AssignmentsPage = React.lazy(() => import('./views/Courses/AssignmentsPage'))
 const BudgetPage = React.lazy(() => import('./views/Courses/BudgetPage'))
 const TimetablePage = React.lazy(() => import('./views/Courses/TimetablePage'))
 const AllAssignments = React.lazy(() => import('./views/Courses/AllAssignments'))
-const ScheduleMainPage = React.lazy(() => import('./views/Courses/ScheduleMainPage'))
+const ScheduleMainPage = React.lazy(() => import('./views/Schedule/ScheduleMainPage.js'))
 //Registration
 const RegistrationPage = React.lazy(() => import('./views/registration/registrationPage'))
 const ThankYouPage = React.lazy(() => import('./views/registration/thankYouPage.js'))
@@ -116,7 +116,7 @@ const routes = [
   { path: '/courses/edit/:id', name: 'Edit Course', element: CourseForm },
   { path: '/courses/timetable', name: 'Timetable', element: Timetable },
   { path: '/calendar', name: 'Enhanced Calendar', element: CalendarDemo },
-  { path: '/courses/:id/schedule', name: 'Course Schedule', element: SchedulePage },
+  //{ path: '/courses/:id/schedule', name: 'Course Schedule', element: SchedulePage },
   { path: '/courses/:id/assignments', name: 'Course Assignments', element: AssignmentsPage },
   { path: '/courses/:id/budget', name: 'Course Budget', element: BudgetPage },
   { path: '/courses/:id/timetable', name: 'Course Timetable', element: TimetablePage },

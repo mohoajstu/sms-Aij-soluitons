@@ -5,9 +5,17 @@ import autoprefixer from 'autoprefixer'
 
 export default defineConfig(() => {
   return {
-    base: './',
+    base: '/',
     build: {
       outDir: 'build',
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: ['react', 'react-dom'],
+            coreui: ['@coreui/react', '@coreui/icons-react'],
+          },
+        },
+      },
     },
     css: {
       postcss: {
