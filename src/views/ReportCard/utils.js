@@ -36,12 +36,12 @@ import { storage, firestore } from '../../Firebase/firebase';
 import useAuth from '../../Firebase/useAuth';
 
 // NOTE: All PDF assets are served from the public folder so we can access them by URL at runtime.
-// The folder name "Report Cards" contains a space, so we encode it (`Report%20Cards`).
+// The folder name is "ReportCards" (no space).
 export const REPORT_CARD_TYPES = [
   {
     id: 'kg-initial-observations',
     name: 'Kindergarten – Communication of Learning (Initial Observations)',
-    pdfPath: '/assets/Report%20Cards/kg-cl-initial-Observations.pdf',
+    pdfPath: '/assets/ReportCards/kg-cl-initial-Observations.pdf',
     description: 'Kindergarten progress report – initial observations',
     route: '/reportcards/kg-initial',
     uiComponent: 'KindergartenInitialUI',
@@ -49,7 +49,7 @@ export const REPORT_CARD_TYPES = [
   {
     id: 'kg-report',
     name: 'Kindergarten – Communication of Learning (Report Card)',
-    pdfPath: '/assets/Report%20Cards/edu-Kindergarten-Communication-of-Learning-public-schools.pdf',
+    pdfPath: '/assets/ReportCards/edu-Kindergarten-Communication-of-Learning-public-schools.pdf',
     description: 'Kindergarten formal report card',
     route: '/reportcards/kg-report',
     uiComponent: 'KindergartenReportUI',
@@ -57,28 +57,28 @@ export const REPORT_CARD_TYPES = [
   {
     id: '1-6-progress',
     name: 'Grades 1–6 – Elementary Progress Report',
-    pdfPath: '/assets/Report%20Cards/1-6-edu-elementary-progress-report-card-public-schools.pdf',
+    pdfPath: '/assets/ReportCards/1-6-edu-elementary-progress-report-card-public-schools.pdf',
     description: 'Elementary progress report card for grades 1-6',
     route: '/reportcards/1-6-progress',
   },
   {
     id: '1-6-report-card',
     name: 'Grades 1–6 – Elementary Provincial Report Card',
-    pdfPath: '/assets/Report%20Cards/1-6-edu-elementary-provincial-report-card-public-schools.pdf',
+    pdfPath: '/assets/ReportCards/1-6-edu-elementary-provincial-report-card-public-schools.pdf',
     description: 'Elementary provincial report card for grades 1-6',
     route: '/reportcards/1-6-report',
   },
   {
     id: '7-8-progress',
     name: 'Grades 7–8 – Elementary Progress Report',
-    pdfPath: '/assets/Report%20Cards/7-8-edu-elementary-progress-report-card-public-schools.pdf',
+    pdfPath: '/assets/ReportCards/7-8-edu-elementary-progress-report-card-public-schools.pdf',
     description: 'Elementary progress report card for grades 7-8',
     route: '/reportcards/7-8-progress',
   },
   {
     id: '7-8-report-card',
     name: 'Grades 7–8 – Elementary Provincial Report Card',
-    pdfPath: '/assets/Report%20Cards/7-8-edu-elementary-provincial-report-card-public-schools.pdf',
+    pdfPath: '/assets/ReportCards/7-8-edu-elementary-provincial-report-card-public-schools.pdf',
     description: 'Elementary provincial report card for grades 7-8',
     route: '/reportcards/7-8-report',
   },
