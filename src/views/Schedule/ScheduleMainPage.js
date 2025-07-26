@@ -14,57 +14,57 @@ const SCHEDULES = [
   { 
     label: 'JK', 
     file: 'Junior Kindergarten Schedule 2025-2026.pdf',
-    googleDoc: 'https://docs.google.com/document/d/1lMrZT7c-nWlmmdLpgcG9-buGDICRIflN922XRKFChmc/edit?usp=sharing'
+    googleDoc: 'https://docs.google.com/document/d/1lMrZT7c-nWlmmdLpgcG9-buGDICRIflN922XRKFChmc/'
   },
   { 
     label: 'SK (Tr. Rafia)', 
     file: 'Senior Kindergarten Schedule 2025-2026 (Tr. Rafia).pdf',
-    googleDoc: 'https://docs.google.com/document/d/1lXFMTN9v7WzzQkZmGre8Vq58dYM4rmol-oOc8sNbmdI/edit?usp=sharing'
+    googleDoc: 'https://docs.google.com/document/d/1lXFMTN9v7WzzQkZmGre8Vq58dYM4rmol-oOc8sNbmdI/'
   },
   { 
     label: 'SK (Tr. Huda)', 
     file: 'Senior Kindergarten Schedule 2025-2026 (Tr. Huda).pdf',
-    googleDoc: 'https://docs.google.com/document/d/1G_fqg7yLD4K56P8U4V0GW6Lh_wwI_9Jt_JLbaTrP6TA/edit?usp=sharing'
+    googleDoc: 'https://docs.google.com/document/d/1G_fqg7yLD4K56P8U4V0GW6Lh_wwI_9Jt_JLbaTrP6TA/'
   },
   { 
     label: 'Grade 1', 
     file: 'Grade 1 Schedule 2025-2026.pdf',
-    googleDoc: 'https://docs.google.com/document/d/1PQ9jBuP8UgPuM6brcrR6JnZsYqa0EBncbdpLXva1G_8/edit?usp=sharing'
+    googleDoc: 'https://docs.google.com/document/d/1PQ9jBuP8UgPuM6brcrR6JnZsYqa0EBncbdpLXva1G_8/'
   },
   { 
     label: 'Grade 2', 
     file: 'Grade 2 Schedule 2025-2026.pdf',
-    googleDoc: 'https://docs.google.com/document/d/1fSCREemGLCSUxQZl9kHYkkV26qbaiRL3zF4dt1pGj2c/edit?usp=sharing'
+    googleDoc: 'https://docs.google.com/document/d/1fSCREemGLCSUxQZl9kHYkkV26qbaiRL3zF4dt1pGj2c/'
   },
   { 
     label: 'Grade 3', 
     file: 'Grade 3 Schedule 25-26.pdf',
-    googleDoc: 'https://docs.google.com/document/d/1c3KOlATXo4Z5qx3-tk_-KyHe2S7PVMhmrZFfXxHNqVc/edit?usp=sharing'
+    googleDoc: 'https://docs.google.com/document/d/1c3KOlATXo4Z5qx3-tk_-KyHe2S7PVMhmrZFfXxHNqVc/'
   },
   { 
     label: 'Grade 4', 
     file: 'Grade 4 Schedule 25-26.pdf',
-    googleDoc: 'https://docs.google.com/document/d/1y3-qgdN6nAiiieaTqzc_LHj8cMY7t7G9C4CAtgmTQkk/edit?usp=sharing'
+    googleDoc: 'https://docs.google.com/document/d/1y3-qgdN6nAiiieaTqzc_LHj8cMY7t7G9C4CAtgmTQkk/'
   },
   { 
     label: 'Grade 5', 
     file: 'Grade 5 Schedule 25-26.pdf',
-    googleDoc: 'https://docs.google.com/document/d/1dIX3MytPwXAaZBWarNpoVOVNvESIxRQHQ53NvNdt3fA/edit?usp=sharing'
+    googleDoc: 'https://docs.google.com/document/d/1dIX3MytPwXAaZBWarNpoVOVNvESIxRQHQ53NvNdt3fA/'
   },
   { 
     label: 'Grade 6', 
     file: 'Grade 6 Schedule 25-26.pdf',
-    googleDoc: 'https://docs.google.com/document/d/14fVZAhVwKsAiF5qre4wmF9fvIygmTxbASWBwBMDLOAc/edit?usp=sharing'
+    googleDoc: 'https://docs.google.com/document/d/14fVZAhVwKsAiF5qre4wmF9fvIygmTxbASWBwBMDLOAc/'
   },
   { 
     label: 'Grade 7', 
     file: 'Grade 7 Schedule 25-26.pdf',
-    googleDoc: 'https://docs.google.com/document/d/19_opBpSeJ2g-3ZgRU8CfJ9lciB4xq1Az6QMSfepKRbg/edit?usp=sharing'
+    googleDoc: 'https://docs.google.com/document/d/19_opBpSeJ2g-3ZgRU8CfJ9lciB4xq1Az6QMSfepKRbg/'
   },
   { 
     label: 'Grade 8', 
     file: 'Grade 8 Schedule 25-26.pdf',
-    googleDoc: 'https://docs.google.com/document/d/1OGahzavKhjaw2hA02gFfT1fVW3XvNrOx652Dsn9ghxw/edit?usp=sharing'
+    googleDoc: 'https://docs.google.com/document/d/1OGahzavKhjaw2hA02gFfT1fVW3XvNrOx652Dsn9ghxw/'
   },
 ]
 
@@ -72,7 +72,7 @@ const ScheduleMainPage = () => {
   const [selected, setSelected] = useState(SCHEDULES[0])
   const [viewMode, setViewMode] = useState('pdf') // 'pdf' or 'google'
 
-  const pdfUrl = `../assets/Schedules/${encodeURIComponent(selected.file)}`
+  const pdfUrl = `/assets/Schedules/${encodeURIComponent(selected.file)}`
   const googleDocUrl = selected.googleDoc
 
   return (
