@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   CCard,
   CCardBody,
@@ -71,9 +71,69 @@ const SCHEDULES = [
 const ScheduleMainPage = () => {
   const [selected, setSelected] = useState(SCHEDULES[0])
   const [viewMode, setViewMode] = useState('pdf') // 'pdf' or 'google'
+  const [pdfLoadError, setPdfLoadError] = useState(false)
 
   const pdfUrl = `/assets/Schedules/${encodeURIComponent(selected.file)}`
   const googleDocUrl = selected.googleDoc
+
+  // Debug logging when component mounts or selection changes
+  useEffect(() => {
+    console.log('🔍 ScheduleMainPage Debug Info:')
+    console.log('📍 Selected schedule:', selected)
+    console.log('📄 PDF URL:', pdfUrl)
+    console.log('📝 Google Doc URL:', googleDocUrl)
+    console.log('👁️ View mode:', viewMode)
+    console.log('🌐 Current domain:', window.location.origin)
+    console.log('🔗 Full PDF URL:', window.location.origin + pdfUrl)
+    
+    // Test if PDF URL is accessible
+    fetch(pdfUrl, { method: 'HEAD' })
+      .then(response => {
+        console.log('✅ PDF fetch response:', response.status, response.statusText)
+        if (!response.ok) {
+          console.error('❌ PDF not accessible:', response.status, response.statusText)
+          setPdfLoadError(true)
+        } else {
+          console.log('✅ PDF is accessible')
+          setPdfLoadError(false)
+        }
+      })
+      .catch(error => {
+        console.error('❌ PDF fetch error:', error)
+        setPdfLoadError(true)
+      })
+  }, [selected, pdfUrl, viewMode])
+
+  const handleScheduleSelect = (schedule) => {
+    console.log('🔄 Selecting schedule:', schedule)
+    setSelected(schedule)
+    setPdfLoadError(false) // Reset error state
+  }
+
+  const handleViewModeChange = (mode) => {
+    console.log('🔄 Changing view mode to:', mode)
+    setViewMode(mode)
+  }
+
+  const handleDownloadPdf = () => {
+    console.log('📥 Downloading PDF:', pdfUrl)
+    window.open(pdfUrl, '_blank')
+  }
+
+  const handleOpenGoogleDoc = () => {
+    console.log('🔗 Opening Google Doc:', googleDocUrl)
+    window.open(googleDocUrl, '_blank')
+  }
+
+  const handlePdfLoad = () => {
+    console.log('✅ PDF loaded successfully')
+    setPdfLoadError(false)
+  }
+
+  const handlePdfError = (error) => {
+    console.error('❌ PDF load error:', error)
+    setPdfLoadError(true)
+  }
 
   return (
     <CRow className="justify-content-center mt-4">
@@ -89,7 +149,7 @@ const ScheduleMainPage = () => {
                 <CButton
                   key={s.file}
                   color={selected.file === s.file ? 'primary' : 'secondary'}
-                  onClick={() => setSelected(s)}
+                  onClick={() => handleScheduleSelect(s)}
                 >
                   {s.label}
                 </CButton>
@@ -100,14 +160,14 @@ const ScheduleMainPage = () => {
             <CButtonToolbar className="mb-3">
               <CButton
                 color={viewMode === 'pdf' ? 'success' : 'outline-success'}
-                onClick={() => setViewMode('pdf')}
+                onClick={() => handleViewModeChange('pdf')}
                 className="me-2"
               >
                 📄 View PDF
               </CButton>
               <CButton
                 color={viewMode === 'google' ? 'success' : 'outline-success'}
-                onClick={() => setViewMode('google')}
+                onClick={() => handleViewModeChange('google')}
               >
                 📝 View Google Doc
               </CButton>
@@ -121,10 +181,15 @@ const ScheduleMainPage = () => {
                   <CButton 
                     color="info" 
                     size="sm"
-                    onClick={() => window.open(pdfUrl, '_blank')}
+                    onClick={handleDownloadPdf}
                   >
                     📥 Download PDF
                   </CButton>
+                  {pdfLoadError && (
+                    <span style={{ color: 'red', marginLeft: '10px' }}>
+                      ⚠️ PDF load error detected
+                    </span>
+                  )}
                 </div>
                 <div style={{ flex: 1, border: '1px solid #ddd', borderRadius: '4px' }}>
                   <object
@@ -133,6 +198,8 @@ const ScheduleMainPage = () => {
                     width="100%"
                     height="100%"
                     style={{ minHeight: '500px' }}
+                    onLoad={handlePdfLoad}
+                    onError={handlePdfError}
                   >
                     <p>
                       PDF cannot be displayed. 
@@ -149,7 +216,7 @@ const ScheduleMainPage = () => {
                   <CButton 
                     color="info" 
                     size="sm"
-                    onClick={() => window.open(googleDocUrl, '_blank')}
+                    onClick={handleOpenGoogleDoc}
                   >
                     🔗 Open in New Tab
                   </CButton>
@@ -162,6 +229,8 @@ const ScheduleMainPage = () => {
                     style={{ border: 'none', minHeight: '500px' }}
                     title="Schedule Google Doc"
                     allow="clipboard-write"
+                    onLoad={() => console.log('✅ Google Doc iframe loaded')}
+                    onError={(e) => console.error('❌ Google Doc iframe error:', e)}
                   />
                 </div>
               </div>
