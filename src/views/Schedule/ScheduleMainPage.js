@@ -72,7 +72,7 @@ const ScheduleMainPage = () => {
   const [selected, setSelected] = useState(SCHEDULES[0])
   const [viewMode, setViewMode] = useState('pdf') // 'pdf' or 'google'
 
-  const pdfUrl = `src/assets/Schedules/${encodeURIComponent(selected.file)}`
+  const pdfUrl = `../assets/Schedules/${encodeURIComponent(selected.file)}`
   const googleDocUrl = selected.googleDoc
 
   return (
