@@ -338,22 +338,7 @@ const CoursesView = () => {
                   Courses {renderCoursesBadge(courses.length)}
                 </CNavLink>
               </CNavItem>
-              <CNavItem>
-                <CNavLink
-                  active={activeTab === 'assignments'}
-                  onClick={() => setActiveTab('assignments')}
-                >
-                  Assignments
-                </CNavLink>
-              </CNavItem>
-              <CNavItem>
-                <CNavLink
-                  active={activeTab === 'timetable'}
-                  onClick={() => setActiveTab('timetable')}
-                >
-                  Timetable
-                </CNavLink>
-              </CNavItem>
+              {/* Removed Assignments and Timetable tabs as per user request */}
             </CNav>
 
             <CCardBody>{renderContent()}</CCardBody>

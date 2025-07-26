@@ -48,6 +48,13 @@ const _nav = [
   },
   {
     component: CNavItem,
+    name: 'Schedule',
+    to: '/schedule',
+    icon: <CIcon icon={cilCalendar} customClassName="nav-icon" />,
+    // visible to all staff
+  },
+  {
+    component: CNavItem,
     name: 'Calendar',
     to: '/calendar',
     icon: <CIcon icon={cilCalendar} customClassName="nav-icon" />,

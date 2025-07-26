@@ -25,6 +25,7 @@ const AssignmentsPage = React.lazy(() => import('./views/Courses/AssignmentsPage
 const BudgetPage = React.lazy(() => import('./views/Courses/BudgetPage'))
 const TimetablePage = React.lazy(() => import('./views/Courses/TimetablePage'))
 const AllAssignments = React.lazy(() => import('./views/Courses/AllAssignments'))
+const ScheduleMainPage = React.lazy(() => import('./views/Courses/ScheduleMainPage'))
 //Registration
 const RegistrationPage = React.lazy(() => import('./views/registration/registrationPage'))
 const ThankYouPage = React.lazy(() => import('./views/registration/thankYouPage.js'))
@@ -125,6 +126,7 @@ const routes = [
   { path: '/announcements', name: 'All Announcements', element: AllAnnouncements },
   { path: '/assignments', name: 'All Assignments', element: AllAssignments },
   { path: '/profile', name: 'Profile', element: ProfilePage },
+  { path: '/schedule', name: 'Schedule', element: ScheduleMainPage },
 
   // Template-specific report-card routes
   { path: '/reportcards/kg-initial', name: 'KG Initial Observations', element: KindergartenInitialPage },

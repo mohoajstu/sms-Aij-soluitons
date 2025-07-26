@@ -119,7 +119,6 @@ const PrivacyPolicy = () => {
                   <div className="row">
                     <div className="col-md-6">
                       <p className="mb-1"><strong>Company:</strong> {policy.company.name}</p>
-                      <p className="mb-1"><strong>Address:</strong> {policy.company.address}</p>
                     </div>
                     <div className="col-md-6">
                       <p className="mb-1"><strong>Email:</strong> 
@@ -130,23 +129,6 @@ const PrivacyPolicy = () => {
                     </div>
                   </div>
                 </div>
-
-                {/* Definitions */}
-                {policy.definitions && (
-                  <div className="mb-5">
-                    <h4 className="text-primary mb-3">Key Definitions</h4>
-                    <div className="row g-3">
-                      {Object.entries(policy.definitions).map(([key, value]) => (
-                        <div key={key} className="col-md-6">
-                          <div className="p-3 border rounded">
-                            <h6 className="text-capitalize fw-bold mb-2">{key.replace(/([A-Z])/g, ' $1').trim()}</h6>
-                            <p className="mb-0 text-muted small">{value}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
                 {/* Policy Sections */}
                 <div className="mb-5">
@@ -169,32 +151,6 @@ const PrivacyPolicy = () => {
                     </div>
                   ))}
                 </div>
-
-                {/* Grievance Officer */}
-                {policy.grievanceOfficer && (
-                  <div className="p-4 bg-primary bg-opacity-10 rounded">
-                    <h5 className="text-primary mb-3">Grievance Officer</h5>
-                    <div className="row">
-                      <div className="col-md-4">
-                        <p className="mb-1"><strong>Name:</strong> {policy.grievanceOfficer.name}</p>
-                      </div>
-                      <div className="col-md-4">
-                        <p className="mb-1"><strong>Email:</strong> 
-                          <a href={`mailto:${policy.grievanceOfficer.email}`} className="ms-2 text-primary">
-                            {policy.grievanceOfficer.email}
-                          </a>
-                        </p>
-                      </div>
-                      <div className="col-md-4">
-                        <p className="mb-1"><strong>Phone:</strong> 
-                          <a href={`tel:${policy.grievanceOfficer.phone}`} className="ms-2 text-primary">
-                            {policy.grievanceOfficer.phone}
-                          </a>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 {/* Footer Actions */}
                 <div className="text-center mt-5 pt-4 border-top">

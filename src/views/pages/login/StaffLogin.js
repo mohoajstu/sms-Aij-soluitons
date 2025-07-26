@@ -19,13 +19,11 @@ import { cilUser, cilHome } from '@coreui/icons'
 
 // Configure Google Provider for staff with additional scopes
 const googleProvider = new GoogleAuthProvider()
-googleProvider.addScope('https://www.googleapis.com/auth/forms.body')
-googleProvider.addScope('https://www.googleapis.com/auth/presentations')
 googleProvider.addScope('https://www.googleapis.com/auth/drive.file')
 googleProvider.addScope('https://www.googleapis.com/auth/calendar.readonly')
 googleProvider.addScope('https://www.googleapis.com/auth/calendar.events')
 googleProvider.addScope('https://www.googleapis.com/auth/spreadsheets')
-googleProvider.addScope('https://www.googleapis.com/auth/drive')
+
 
 const db = getFirestore()
 const SHARED_GOOGLE_AUTH_TOKEN_KEY = 'firebase_google_auth_token'
