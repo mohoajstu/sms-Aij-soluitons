@@ -4,7 +4,7 @@ import pdfWorker from 'pdfjs-dist/build/pdf.worker.min?url';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { CButton, CSpinner } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
-import { cilChevronLeft, cilChevronRight, cilZoomIn, cilZoomOut } from '@coreui/icons';
+import { cilChevronLeft, cilChevronRight, cilZoomIn, cilZoomOut, cilDescription } from '@coreui/icons';
 import PropTypes from 'prop-types';
 import { debounce } from 'lodash';
 
@@ -102,7 +102,7 @@ const PDFViewer = React.memo(({ pdfUrl, className = '', formData = {}, showPrevi
     try {
       setLoading(true);
       if (!isAutoRetry) {
-      setError(null);
+        setError(null);
         setIsRetrying(false);
       } else {
         setIsRetrying(true);
@@ -112,8 +112,27 @@ const PDFViewer = React.memo(({ pdfUrl, className = '', formData = {}, showPrevi
       if (!isValidUrl(urlToLoad)) {
         console.warn('PDFViewer: Aborting load, invalid or missing URL:', urlToLoad);
         setLoading(false);
-        // Don't set an error here, the initial state will be handled by the render logic
+        setError('Invalid PDF URL. Please check the report card configuration.');
         return;
+      }
+      
+      // Validate PDF path before attempting to load
+      if (!urlOverride && !filledPdfUrl) {
+        // This is the initial load of the original PDF - validate the path first
+        try {
+          const pathCheckResponse = await fetch(urlToLoad, { method: 'HEAD' });
+          if (!pathCheckResponse.ok) {
+            console.error('PDFViewer: PDF not found at path:', urlToLoad);
+            setLoading(false);
+            setError(`PDF template not found. Please check if the file exists at: ${urlToLoad}`);
+            return;
+          }
+        } catch (pathError) {
+          console.error('PDFViewer: Error checking PDF path:', pathError);
+          setLoading(false);
+          setError(`Unable to access PDF template. Please verify the file path: ${urlToLoad}`);
+          return;
+        }
       }
       
       console.log('PDFViewer: Loading PDF from:', urlToLoad);
@@ -136,13 +155,22 @@ const PDFViewer = React.memo(({ pdfUrl, className = '', formData = {}, showPrevi
       setLoading(false);
       setIsRetrying(false);
       
-      // Check if this is a temporary network error that we should retry
-      const isRetryableError = error.message.includes('ERR_FILE_NOT_FOUND') || 
-                              error.message.includes('UnexpectedResponseException') ||
-                              error.message.includes('network') ||
-                              error.status === 0;
+      // Provide more user-friendly error messages
+      let userFriendlyError = 'Failed to load PDF';
       
-      if (isRetryableError && retryCount < MAX_RETRIES && !isAutoRetry) {
+      if (error.message.includes('ERR_FILE_NOT_FOUND') || error.message.includes('404')) {
+        userFriendlyError = 'PDF template not found. Please check if the file exists.';
+      } else if (error.message.includes('Unexpected server response (0)')) {
+        userFriendlyError = 'Unable to access PDF template. Please verify the file path.';
+      } else if (error.message.includes('network') || error.message.includes('fetch')) {
+        userFriendlyError = 'Network error while loading PDF. Please check your connection.';
+      } else if (error.message.includes('Invalid PDF')) {
+        userFriendlyError = 'Invalid PDF file format. Please check the template file.';
+      }
+      
+      // Make all errors retryable up to MAX_RETRIES
+      const isRetryableError = true;
+      if (retryCount < MAX_RETRIES && !isAutoRetry) {
         const attempt = isAutoRetry ? retryCount : retryCount + 1;
         console.log(`PDFViewer: Retryable error detected, scheduling retry ${attempt}/${MAX_RETRIES}`);
         setRetryCount(attempt);
@@ -157,7 +185,7 @@ const PDFViewer = React.memo(({ pdfUrl, className = '', formData = {}, showPrevi
         setError(`Loading PDF... (retry ${attempt}/${MAX_RETRIES})`);
       } else {
         // Only show full error after all retries exhausted or for non-retryable errors
-        setError(error.message || 'Failed to load PDF');
+        setError(userFriendlyError);
       }
     }
   };
@@ -467,6 +495,41 @@ const PDFViewer = React.memo(({ pdfUrl, className = '', formData = {}, showPrevi
       // Only log unmatched fields if in debug mode or if there are many unmatched
       if (isDebugMode || unmatchedFormData.length > 5) {
         console.warn(`PDFViewer: Unmatched form data keys:`, unmatchedFormData);
+      }
+      
+      // Flatten all form fields to make them non-editable
+      try {
+        // Try to flatten all fields at once first
+        form.flatten();
+        console.log('PDFViewer: ✅ Successfully flattened all form fields');
+      } catch (flattenError) {
+        console.warn('PDFViewer: Could not flatten all fields at once, trying individual field flattening:', flattenError);
+        
+        // If bulk flattening fails, try to flatten fields individually
+        try {
+          const allFields = form.getFields();
+          let successfullyFlattened = 0;
+          let failedToFlatten = 0;
+          
+          for (const field of allFields) {
+            try {
+              field.flatten();
+              successfullyFlattened++;
+            } catch (fieldFlattenError) {
+              console.warn(`PDFViewer: Could not flatten field "${field.getName()}" (${field.constructor.name}):`, fieldFlattenError);
+              failedToFlatten++;
+            }
+          }
+          
+          console.log(`PDFViewer: ✅ Flattened ${successfullyFlattened} fields individually, ${failedToFlatten} fields could not be flattened`);
+          
+          if (failedToFlatten > 0) {
+            console.warn(`PDFViewer: ${failedToFlatten} fields could not be flattened and may remain editable`);
+          }
+        } catch (individualFlattenError) {
+          console.error('PDFViewer: Failed to flatten fields individually:', individualFlattenError);
+          console.warn('PDFViewer: PDF will be saved without flattening - fields may remain editable');
+        }
       }
       
       // Save the modified PDF to a new Uint8Array
@@ -861,28 +924,57 @@ const PDFViewer = React.memo(({ pdfUrl, className = '', formData = {}, showPrevi
     
     return (
       <div className={`pdf-viewer-container ${className}`}>
-        <div className="pdf-error" style={{ padding: '20px', textAlign: 'center' }}>
+        <div className="pdf-error" style={{ 
+          padding: '40px 20px', 
+          textAlign: 'center',
+          backgroundColor: '#f8f9fa',
+          border: '1px solid #dee2e6',
+          borderRadius: '8px',
+          margin: '20px'
+        }}>
           {isRetryableError ? (
             <>
-              <h5>PDF Loading</h5>
-              <p>{error}</p>
-              <div className="d-flex justify-content-center align-items-center mt-3">
+              <div style={{ marginBottom: '20px' }}>
+                <CSpinner color="primary" size="lg" />
+              </div>
+              <h5 style={{ color: '#495057', marginBottom: '10px' }}>Loading PDF Template</h5>
+              <p style={{ color: '#6c757d', marginBottom: '15px' }}>{error}</p>
+              <div className="d-flex justify-content-center align-items-center">
                 <CSpinner size="sm" className="me-2" />
-                <span>Retrying automatically...</span>
+                <span style={{ color: '#6c757d' }}>Retrying automatically...</span>
               </div>
             </>
           ) : (
             <>
-          <h5>PDF Loading Error</h5>
-          <p>{error}</p>
-          <p><small>PDF URL: {pdfUrl}</small></p>
-            <CButton 
-              color="primary" 
-              onClick={handleRetry}
-              className="me-2"
-            >
-            Retry
-            </CButton>
+              <div style={{ marginBottom: '20px' }}>
+                <CIcon icon={cilDescription} size="2xl" style={{ color: '#6c757d' }} />
+              </div>
+              <h5 style={{ color: '#495057', marginBottom: '15px' }}>PDF Template Unavailable</h5>
+              <p style={{ color: '#6c757d', marginBottom: '20px' }}>{error}</p>
+              <div style={{ 
+                backgroundColor: '#e9ecef', 
+                padding: '15px', 
+                borderRadius: '6px',
+                marginBottom: '20px',
+                fontSize: '0.875rem'
+              }}>
+                <strong>Technical Details:</strong><br />
+                <code style={{ color: '#495057' }}>{pdfUrl}</code>
+              </div>
+              <CButton 
+                color="primary" 
+                onClick={handleRetry}
+                className="me-2"
+              >
+                Try Again
+              </CButton>
+              <CButton 
+                color="secondary" 
+                variant="outline"
+                onClick={() => window.location.reload()}
+              >
+                Refresh Page
+              </CButton>
             </>
           )}
         </div>

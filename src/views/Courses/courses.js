@@ -95,10 +95,69 @@ function CoursesPage() {
     return brightness > 125 ? '#333' : '#fff'
   }
 
-  const getColorFromId = (id) => {
-    const numericId = !id ? 0 : id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-    const hue = numericId % 360
-    return `hsl(${hue}, 70%, 50%)`
+  const getRandomColorFromId = (id) => {
+    if (!id) return 'hsl(200, 70%, 60%)'
+    
+    // Create a more complex hash from the ID
+    let hash = 0
+    for (let i = 0; i < id.length; i++) {
+      const char = id.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // Convert to 32-bit integer
+    }
+    
+    // Add additional randomness by using the index and timestamp
+    const additionalSeed = (hash * 9301 + 49297) % 233280
+    const combinedHash = hash ^ additionalSeed
+    
+    // Use different parts of the hash for different color properties
+    const hue = Math.abs(combinedHash) % 360
+    const saturation = 55 + (Math.abs(combinedHash >> 8) % 35) // 55-90%
+    const lightness = 40 + (Math.abs(combinedHash >> 16) % 25) // 40-65%
+    
+    // Add some variation to make colors more distinct
+    const hueVariation = (Math.abs(combinedHash >> 4) % 20) - 10 // ±10 degrees
+    const finalHue = (hue + hueVariation + 360) % 360
+    
+    return `hsl(${finalHue}, ${saturation}%, ${lightness}%)`
+  }
+
+  const getGradientColors = (baseColor) => {
+    // Parse HSL color
+    const hslMatch = baseColor.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/)
+    if (!hslMatch) return { primary: baseColor, secondary: baseColor }
+    
+    const [, h, s, l] = hslMatch.map(Number)
+    
+    // Create more varied secondary colors
+    const complementaryHue = (h + 180) % 360
+    const analogousHue1 = (h + 45) % 360
+    const analogousHue2 = (h - 45 + 360) % 360
+    const triadicHue1 = (h + 120) % 360
+    const triadicHue2 = (h + 240) % 360
+    
+    // Use more hash bits to choose from more color combinations
+    const colorId = parseInt(h + s + l)
+    const colorChoice = colorId % 5
+    
+    let secondaryHue
+    switch (colorChoice) {
+      case 0: secondaryHue = complementaryHue; break
+      case 1: secondaryHue = analogousHue1; break
+      case 2: secondaryHue = analogousHue2; break
+      case 3: secondaryHue = triadicHue1; break
+      case 4: secondaryHue = triadicHue2; break
+      default: secondaryHue = complementaryHue; break
+    }
+    
+    // Add more variation to secondary color properties
+    const secondarySaturation = Math.max(35, Math.min(95, s + (colorId % 20) - 10))
+    const secondaryLightness = Math.max(35, Math.min(85, l + (colorId % 30) - 15))
+    
+    return {
+      primary: baseColor,
+      secondary: `hsl(${secondaryHue}, ${secondarySaturation}%, ${secondaryLightness}%)`
+    }
   }
 
   const iconTypes = [
@@ -149,8 +208,9 @@ function CoursesPage() {
         {courses.map((course, index) => {
           const iconStyle = index % iconTypes.length
           const iconClasses = `course-tile-icon ${iconTypes[iconStyle].shape}`
-          const bgColor = course.color || getColorFromId(course.id)
-          const textColor = getTextColor(bgColor)
+          const baseColor = course.color || getRandomColorFromId(course.id)
+          const gradientColors = getGradientColors(baseColor)
+          const textColor = getTextColor(baseColor)
           const linkUrl = `/courses/${course.id}`
 
           // Robust field extraction
@@ -174,15 +234,48 @@ function CoursesPage() {
               <div
                 className="course-tile"
                 style={{
-                  backgroundColor: bgColor,
+                  background: `linear-gradient(135deg, ${gradientColors.primary} 0%, ${gradientColors.secondary} 100%)`,
                   color: textColor,
+                  position: 'relative',
+                  overflow: 'hidden',
                 }}
               >
-                <div className="course-tile-body">
+                {/* Liquid glass overlay */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.1) 100%)',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: 'inherit',
+                    pointerEvents: 'none',
+                  }}
+                />
+                
+                {/* Subtle pattern overlay */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: `radial-gradient(circle at 20% 80%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                                radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%)`,
+                    pointerEvents: 'none',
+                  }}
+                />
+                
+                <div className="course-tile-body" style={{ position: 'relative', zIndex: 1 }}>
                   <h2 className="course-tile-title">{courseTitle}</h2>
                   {/* All meta info removed as per user request */}
                 </div>
-                <div className="course-tile-footer">
+                <div className="course-tile-footer" style={{ position: 'relative', zIndex: 1 }}>
                   {[...Array(3)].map((_, i) => (
                     <span
                       key={i}
@@ -190,7 +283,12 @@ function CoursesPage() {
                       style={{
                         backgroundColor: `rgba(${
                           textColor === '#fff' ? '255,255,255' : '0,0,0'
-                        }, ${0.2 + i * 0.2})`,
+                        }, ${0.3 + i * 0.2})`,
+                        backdropFilter: 'blur(5px)',
+                        WebkitBackdropFilter: 'blur(5px)',
+                        border: `1px solid rgba(${
+                          textColor === '#fff' ? '255,255,255' : '0,0,0'
+                        }, 0.2)`,
                         width: iconTypes[iconStyle].size,
                         height: iconTypes[iconStyle].size,
                       }}

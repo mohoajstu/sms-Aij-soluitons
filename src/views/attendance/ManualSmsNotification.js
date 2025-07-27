@@ -7,6 +7,7 @@ import {
   CFormLabel,
   CFormInput,
   CFormSelect,
+  CFormTextarea,
   CButton,
   CSpinner,
   CAlert,
@@ -14,19 +15,21 @@ import {
   CCol,
   CBadge,
 } from '@coreui/react'
+import { collection, getDocs, query, where } from 'firebase/firestore'
+import { firestore } from '../../firebase'
 import NotificationService from '../../services/notificationService'
 import { toast } from 'react-hot-toast'
-import { format } from 'date-fns'
 
 const ManualSmsNotification = () => {
   const [formData, setFormData] = useState({
     phoneNumber: '',
-    studentName: '',
-    className: '',
-    date: new Date().toISOString().split('T')[0],
+    message: '',
+    selectedParent: '',
   })
 
+  const [parents, setParents] = useState([])
   const [isSending, setIsSending] = useState(false)
+  const [isLoadingParents, setIsLoadingParents] = useState(false)
   const [isConfigChecking, setIsConfigChecking] = useState(false)
   const [smsConfigured, setSmsConfigured] = useState(null)
   const [alert, setAlert] = useState({ show: false, message: '', color: 'success' })
@@ -62,12 +65,85 @@ const ManualSmsNotification = () => {
     checkConfig()
   }, [])
 
+  // Fetch parents from Firebase on component mount
+  useEffect(() => {
+    const fetchParents = async () => {
+      setIsLoadingParents(true)
+      try {
+        const parentsCollection = collection(firestore, 'parents')
+        const parentsQuery = query(parentsCollection, where('active', '==', true))
+        const parentSnapshot = await getDocs(parentsQuery)
+        
+        const parentsList = []
+        parentSnapshot.forEach((doc) => {
+          const parentData = doc.data()
+          const parentName = `${parentData.personalInfo?.firstName || ''} ${parentData.personalInfo?.lastName || ''}`.trim()
+          const phone1 = parentData.contact?.phone1
+          const phone2 = parentData.contact?.phone2
+          
+          if (parentName && (phone1 || phone2)) {
+            parentsList.push({
+              id: doc.id,
+              name: parentName,
+              schoolId: parentData.schoolId || doc.id,
+              phone1: phone1 || '',
+              phone2: phone2 || '',
+              primaryPhone: phone1 || phone2 || '',
+            })
+          }
+        })
+
+        // Sort parents by name
+        parentsList.sort((a, b) => a.name.localeCompare(b.name))
+        setParents(parentsList)
+      } catch (error) {
+        console.error('Error fetching parents:', error)
+        toast.error('Failed to load parent list')
+      } finally {
+        setIsLoadingParents(false)
+      }
+    }
+
+    fetchParents()
+  }, [])
+
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData((prevData) => ({
       ...prevData,
       [name]: value,
     }))
+
+    // Clear any error messages when user modifies the form
+    if (errorMessage) {
+      setErrorMessage('')
+    }
+    if (alert.show) {
+      setAlert({ show: false, message: '', color: 'success' })
+    }
+  }
+
+  const handleParentSelect = (e) => {
+    const selectedParentId = e.target.value
+    setFormData((prevData) => ({
+      ...prevData,
+      selectedParent: selectedParentId,
+    }))
+
+    if (selectedParentId) {
+      const selectedParent = parents.find(parent => parent.id === selectedParentId)
+      if (selectedParent) {
+        setFormData((prevData) => ({
+          ...prevData,
+          phoneNumber: selectedParent.primaryPhone,
+        }))
+      }
+    } else {
+      setFormData((prevData) => ({
+        ...prevData,
+        phoneNumber: '',
+      }))
+    }
 
     // Clear any error messages when user modifies the form
     if (errorMessage) {
@@ -91,6 +167,11 @@ const ManualSmsNotification = () => {
         throw new Error('Please enter a valid phone number in E.164 format (e.g., +1XXXXXXXXXX)')
       }
 
+      // Validate message
+      if (!formData.message.trim()) {
+        throw new Error('Please enter a message to send')
+      }
+
       // Check if SMS configuration is working first
       const isConfigured = await NotificationService.checkSmsConfiguration()
       if (!isConfigured) {
@@ -99,94 +180,36 @@ const ManualSmsNotification = () => {
         )
       }
 
-      // Send SMS notification
-      const result = await NotificationService.sendAbsenceNotification({
-        phoneNumber: formData.phoneNumber,
-        studentName: formData.studentName,
-        className: formData.className,
-        date: formData.date,
+      // Send SMS using the updated notification service
+      const response = await fetch('https://northamerica-northeast1-tarbiyah-sms.cloudfunctions.net/sendSmsHttp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phoneNumber: formData.phoneNumber,
+          message: formData.message,
+        }),
       })
 
-      if (result && result.success) {
+      const result = await response.json()
+
+      if (response.ok && result.success) {
         setAlert({
           show: true,
-          message: `SMS notification sent successfully!`,
+          message: `Manual SMS sent successfully!`,
           color: 'success',
         })
-        toast.success('SMS notification sent successfully!')
-      } else {
-        throw new Error(result?.message || 'Failed to send SMS notification')
-      }
-    } catch (error) {
-      console.error('Error sending SMS:', error)
-
-      // Determine if it's a CORS error
-      if (
-        error.message &&
-        (error.message.includes('CORS') ||
-          error.message.includes('Cross-Origin') ||
-          error.message.includes('Access-Control-Allow-Origin'))
-      ) {
-        setErrorMessage(
-          'Cross-Origin (CORS) error: The SMS service is not accessible from this domain. Please check your CORS configuration in the backend.',
-        )
-        toast.error('CORS error: Cannot connect to SMS service')
-      } else if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-        setErrorMessage(
-          'Network error: Could not connect to the SMS service. Please check your internet connection or the service endpoint.',
-        )
-        toast.error('Network error: Could not connect to SMS service')
-      } else {
-        setErrorMessage(error.message || 'Failed to send SMS notification. Please try again later.')
-        toast.error('Failed to send SMS notification')
-      }
-
-      setAlert({
-        show: true,
-        message: 'Failed to send SMS notification. See details below.',
-        color: 'danger',
-      })
-    } finally {
-      setIsSending(false)
-    }
-  }
-
-  const handleSendSms = async () => {
-    // Clear previous errors
-    setErrorMessage('')
-    setIsSending(true)
-
-    try {
-      // Check if form data is valid
-      if (!formData.phoneNumber || !formData.studentName) {
-        throw new Error('Please fill in all required fields')
-      }
-
-      // Check if SMS configuration is working
-      const isConfigured = await NotificationService.checkSmsConfiguration()
-      if (!isConfigured) {
-        throw new Error(
-          'SMS service is not properly configured. Please check network connectivity and CORS settings.',
-        )
-      }
-
-      // Send SMS notification
-      const result = await NotificationService.sendAbsenceNotification({
-        phoneNumber: formData.phoneNumber,
-        studentName: formData.studentName,
-        className: formData.className,
-        date: formData.date,
-      })
-
-      if (result && result.success) {
-        toast.success('SMS notification sent successfully!')
-        setAlert({
-          show: true,
-          message: `SMS notification sent successfully!`,
-          color: 'success',
+        toast.success('Manual SMS sent successfully!')
+        
+        // Clear the form
+        setFormData({
+          phoneNumber: '',
+          message: '',
+          selectedParent: '',
         })
       } else {
-        throw new Error(result?.message || 'Failed to send SMS notification')
+        throw new Error(result?.message || 'Failed to send SMS')
       }
     } catch (error) {
       console.error('Error sending SMS:', error)
@@ -208,13 +231,13 @@ const ManualSmsNotification = () => {
         )
         toast.error('Network error: Could not connect to SMS service')
       } else {
-        setErrorMessage(error.message || 'Failed to send SMS notification. Please try again later.')
-        toast.error('Failed to send SMS notification')
+        setErrorMessage(error.message || 'Failed to send SMS. Please try again later.')
+        toast.error('Failed to send SMS')
       }
 
       setAlert({
         show: true,
-        message: 'Failed to send SMS notification. See details below.',
+        message: 'Failed to send SMS. See details below.',
         color: 'danger',
       })
     } finally {
@@ -225,7 +248,7 @@ const ManualSmsNotification = () => {
   return (
     <CCard>
       <CCardHeader className="d-flex justify-content-between align-items-center">
-        <h4>Send Test SMS Notification</h4>
+        <h4>Send Manual SMS</h4>
         <div>
           {isConfigChecking ? (
             <CBadge color="secondary">
@@ -252,10 +275,10 @@ const ManualSmsNotification = () => {
         )}
 
         <div className="mb-4 p-3 bg-light rounded">
-          <h5 className="text-primary">🔧 Using Direct HTTP Connection</h5>
+          <h5 className="text-primary">📱 Manual SMS Notification</h5>
           <p className="mb-0">
-            This form uses a direct connection to the Twilio API for sending SMS notifications.
-            Enter your test details below to send a message.
+            Use this form to send custom SMS messages. You can select a parent from the dropdown to auto-fill 
+            their phone number, or manually enter any phone number and custom message.
           </p>
         </div>
 
@@ -278,8 +301,38 @@ const ManualSmsNotification = () => {
 
         <CForm onSubmit={handleSubmit}>
           <CRow className="mb-3">
-            <CCol md={6}>
-              <CFormLabel htmlFor="phoneNumber">Your Phone Number</CFormLabel>
+            <CCol md={12}>
+              <CFormLabel htmlFor="selectedParent">Select Parent (Optional)</CFormLabel>
+              {isLoadingParents ? (
+                <div className="d-flex align-items-center">
+                  <CSpinner size="sm" className="me-2" />
+                  <span>Loading parents...</span>
+                </div>
+              ) : (
+                <CFormSelect
+                  id="selectedParent"
+                  name="selectedParent"
+                  value={formData.selectedParent}
+                  onChange={handleParentSelect}
+                  disabled={isSending}
+                >
+                  <option value="">-- Select a parent to auto-fill phone number --</option>
+                  {parents.map((parent) => (
+                    <option key={parent.id} value={parent.id}>
+                      {parent.name} ({parent.schoolId}) - {parent.primaryPhone}
+                    </option>
+                  ))}
+                </CFormSelect>
+              )}
+              <small className="form-text text-muted">
+                Selecting a parent will automatically fill in their phone number below.
+              </small>
+            </CCol>
+          </CRow>
+
+          <CRow className="mb-3">
+            <CCol md={12}>
+              <CFormLabel htmlFor="phoneNumber">Phone Number</CFormLabel>
               <CFormInput
                 type="tel"
                 id="phoneNumber"
@@ -291,87 +344,58 @@ const ManualSmsNotification = () => {
                 disabled={isSending}
               />
               <small className="form-text text-muted">
-                Enter your phone number in E.164 format (e.g., +1XXXXXXXXXX)
+                Enter phone number in E.164 format (e.g., +1XXXXXXXXXX) or select a parent above to auto-fill.
               </small>
-            </CCol>
-
-            <CCol md={6}>
-              <CFormLabel htmlFor="studentName">Student Name (Test)</CFormLabel>
-              <CFormInput
-                type="text"
-                id="studentName"
-                name="studentName"
-                value={formData.studentName}
-                onChange={handleChange}
-                placeholder="John Doe"
-                required
-                disabled={isSending}
-              />
             </CCol>
           </CRow>
 
           <CRow className="mb-3">
-            <CCol md={6}>
-              <CFormLabel htmlFor="className">Class Name (Test)</CFormLabel>
-              <CFormInput
-                type="text"
-                id="className"
-                name="className"
-                value={formData.className}
+            <CCol md={12}>
+              <CFormLabel htmlFor="message">Custom Message</CFormLabel>
+              <CFormTextarea
+                id="message"
+                name="message"
+                value={formData.message}
                 onChange={handleChange}
-                placeholder="Math 101"
+                placeholder="Enter your custom SMS message here..."
+                rows={4}
                 required
                 disabled={isSending}
               />
-            </CCol>
-
-            <CCol md={6}>
-              <CFormLabel htmlFor="date">Absence Date</CFormLabel>
-              <CFormInput
-                type="date"
-                id="date"
-                name="date"
-                value={formData.date}
-                onChange={handleChange}
-                required
-                disabled={isSending}
-              />
+              <small className="form-text text-muted">
+                Enter the message you want to send. Keep it concise and clear.
+              </small>
             </CCol>
           </CRow>
 
-          <div className="d-flex justify-content-between">
+          {formData.message && formData.phoneNumber && (
             <div className="bg-light p-3 mb-3 rounded">
-              <h5>Test SMS Preview</h5>
+              <h5>SMS Preview</h5>
               <p className="mb-1">
-                <strong>To:</strong> {formData.phoneNumber || '[your phone number]'}
+                <strong>To:</strong> {formData.phoneNumber}
               </p>
               <p className="mb-1">
-                <strong>Message:</strong> Attendance Alert:{' '}
-                {formData.studentName || '[student name]'} was marked absent from{' '}
-                {formData.className || '[class name]'} on{' '}
-                {new Date(formData.date).toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                }) || '[date]'}
-                . Please contact the school for more information.
+                <strong>Message:</strong> {formData.message}
+              </p>
+              <p className="mb-0 text-muted">
+                <strong>Character count:</strong> {formData.message.length}/160 
+                {formData.message.length > 160 && ' (This will be sent as multiple SMS messages)'}
               </p>
             </div>
-          </div>
+          )}
 
           <div className="d-grid gap-2 d-md-flex justify-content-md-end">
             <CButton
               type="submit"
               color="primary"
-              disabled={isSending || isConfigChecking || smsConfigured === false}
+              disabled={isSending || isConfigChecking || smsConfigured === false || !formData.message.trim() || !formData.phoneNumber.trim()}
             >
               {isSending ? (
                 <>
                   <CSpinner size="sm" className="me-2" /> Sending...
                 </>
               ) : (
-                'Send Test SMS'
+                'Send Manual SMS'
               )}
             </CButton>
           </div>

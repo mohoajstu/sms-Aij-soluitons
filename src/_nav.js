@@ -1,6 +1,6 @@
 import React from 'react'
 import CIcon from '@coreui/icons-react'
-import { cilHome, cilList, cilNotes, cilSpeedometer, cilCalendar, cilPeople } from '@coreui/icons'
+import { cilHome, cilList, cilNotes, cilSpeedometer, cilCalendar, cilClock, cilPeople } from '@coreui/icons'
 import BeenhereOutlinedIcon from '@mui/icons-material/BeenhereOutlined'
 import { CNavItem } from '@coreui/react'
 import AutoStoriesOutlinedIcon from '@mui/icons-material/AutoStoriesOutlined'
@@ -52,6 +52,13 @@ const _nav = [
     to: '/courses',
     icon: <AutoStoriesOutlinedIcon className="nav-icon" />,
     hideFor: ['parent'],
+  },
+  {
+    component: CNavItem,
+    name: 'Schedule',
+    to: '/schedule',
+    icon: <CIcon icon={cilClock} customClassName="nav-icon" />,
+    // visible to all staff
   },
   {
     component: CNavItem,

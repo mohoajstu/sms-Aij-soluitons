@@ -177,7 +177,7 @@ export const exportAttendanceToSheets = async (attendanceData, reportParams = {}
     const title = `Attendance Report${semester}${section} - ${timestamp}`
 
     // Define headers
-    const headers = ['Date', 'Semester', 'Class', 'Student', 'Status', 'Note']
+    const headers = ['Date', 'Class', 'Student', 'Status', 'Note']
 
     // Create the spreadsheet with headers
     const result = await createBlankSpreadsheet(title, headers)
@@ -203,7 +203,6 @@ const addDataToSpreadsheet = async (spreadsheetId, attendanceData) => {
   // Convert attendance data to rows
   const rows = attendanceData.map((record) => [
     record.date || '',
-    record.semester || '',
     record.class || '',
     record.student || '',
     record.status || '',
@@ -211,7 +210,7 @@ const addDataToSpreadsheet = async (spreadsheetId, attendanceData) => {
   ])
 
   // Add data starting from row 2 (after headers)
-  const range = `A2:F${rows.length + 1}`
+  const range = `A2:E${rows.length + 1}`
 
   await callGoogleApi(() =>
     gapi.client.sheets.spreadsheets.values.update({
@@ -236,7 +235,7 @@ const addDataToSpreadsheet = async (spreadsheetId, attendanceData) => {
                 sheetId: 0,
                 dimension: 'COLUMNS',
                 startIndex: 0,
-                endIndex: 6,
+                endIndex: 5,
               },
             },
           },

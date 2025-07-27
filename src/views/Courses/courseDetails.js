@@ -202,46 +202,6 @@ function CourseDetailPage() {
           <CCol md={3}>
             <CCard className="h-100 navigation-card">
               <CCardBody className="d-flex flex-column">
-                <h4>Assignments</h4>
-                <p className="flex-grow-1">
-                  Manage and view course assignments, deadlines, and files.
-                </p>
-                <div>
-                  <CButton
-                    color="primary"
-                    onClick={() => navigate(`/courses/${id}/assignments`)}
-                    className="w-100"
-                  >
-                    View Assignments
-                  </CButton>
-                </div>
-              </CCardBody>
-            </CCard>
-          </CCol>
-
-          <CCol md={3}>
-            <CCard className="h-100 navigation-card">
-              <CCardBody className="d-flex flex-column">
-                <h4>Schedule</h4>
-                <p className="flex-grow-1">
-                  View course schedule, meeting times, and calendar integration.
-                </p>
-                <div>
-                  <CButton
-                    color="primary"
-                    onClick={() => navigate(`/courses/${id}/schedule`)}
-                    className="w-100"
-                  >
-                    View Schedule
-                  </CButton>
-                </div>
-              </CCardBody>
-            </CCard>
-          </CCol>
-
-          <CCol md={3}>
-            <CCard className="h-100 navigation-card">
-              <CCardBody className="d-flex flex-column">
                 <h4>Budget</h4>
                 <p className="flex-grow-1">
                   Track and manage course budget, expenses, and financial records.
@@ -346,19 +306,6 @@ function CourseDetailPage() {
               <ul>
                 <li>Enrollment: {studentList.length} students</li>
                 <li>Staff: {staffList.length} instructors</li>
-                <li>
-                  Assignments: {Array.isArray(course.assignments) ? course.assignments.length : 0}{' '}
-                  total
-                </li>
-                <li>
-                  Schedule:{' '}
-                  {course.schedule && course.schedule.days
-                    ? course.schedule.days.join(', ')
-                    : 'N/A'}{' '}
-                  {course.schedule && course.schedule.startTime
-                    ? `${course.schedule.startTime} - ${course.schedule.endTime}`
-                    : ''}
-                </li>
                 <li>
                   Location:{' '}
                   {course.schedule && course.schedule.location ? course.schedule.location : 'N/A'}

@@ -119,7 +119,6 @@ const TermsOfService = () => {
                   <div className="row">
                     <div className="col-md-6">
                       <p className="mb-1"><strong>Company:</strong> {terms.company.name}</p>
-                      <p className="mb-1"><strong>Address:</strong> {terms.company.address}</p>
                     </div>
                     <div className="col-md-6">
                       <p className="mb-1"><strong>Email:</strong> 
@@ -131,22 +130,6 @@ const TermsOfService = () => {
                   </div>
                 </div>
 
-                {/* Definitions */}
-                {terms.definitions && (
-                  <div className="mb-5">
-                    <h4 className="text-success mb-3">Key Definitions</h4>
-                    <div className="row g-3">
-                      {Object.entries(terms.definitions).map(([key, value]) => (
-                        <div key={key} className="col-md-6">
-                          <div className="p-3 border rounded">
-                            <h6 className="text-capitalize fw-bold mb-2">{key}</h6>
-                            <p className="mb-0 text-muted small">{value}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
                 {/* Terms Sections */}
                 <div className="mb-5">
@@ -169,32 +152,6 @@ const TermsOfService = () => {
                     </div>
                   ))}
                 </div>
-
-                {/* Grievance Officer */}
-                {terms.grievanceOfficer && (
-                  <div className="p-4 bg-success bg-opacity-10 rounded">
-                    <h5 className="text-success mb-3">Grievance Officer</h5>
-                    <div className="row">
-                      <div className="col-md-4">
-                        <p className="mb-1"><strong>Name:</strong> {terms.grievanceOfficer.name}</p>
-                      </div>
-                      <div className="col-md-4">
-                        <p className="mb-1"><strong>Email:</strong> 
-                          <a href={`mailto:${terms.grievanceOfficer.email}`} className="ms-2 text-success">
-                            {terms.grievanceOfficer.email}
-                          </a>
-                        </p>
-                      </div>
-                      <div className="col-md-4">
-                        <p className="mb-1"><strong>Phone:</strong> 
-                          <a href={`tel:${terms.grievanceOfficer.phone}`} className="ms-2 text-success">
-                            {terms.grievanceOfficer.phone}
-                          </a>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 {/* Footer Actions */}
                 <div className="text-center mt-5 pt-4 border-top">
