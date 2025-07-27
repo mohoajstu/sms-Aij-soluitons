@@ -184,18 +184,29 @@ const EnhancedCalendar = ({ courseId }) => {
       const mappedEvents = googleEvents.map((ev) => {
         const isAllDay = !ev.start.dateTime
         let endDate = new Date(ev.end.dateTime || ev.end.date)
+        // For all-day events, Google's end.date is exclusive (e.g., next day at 00:00).
+        // We need to handle this properly for react-big-calendar
         if (isAllDay) {
-          // For all-day events, Google's end.date is exclusive (e.g., next day at 00:00).
-          // react-big-calendar might render this as spilling into the next day.
-          // Subtracting a small amount (e.g., 1 minute or 1 ms) can sometimes fix this display issue.
-          endDate = new Date(endDate.getTime() - 1) // Subtract 1 millisecond
+          // For single-day all-day events, set end to the same day
+          const startDate = new Date(ev.start.date)
+          const endDateFromGoogle = new Date(ev.end.date)
+          
+          // If the end date is the next day (which is Google's exclusive format),
+          // we want to show it as ending on the same day
+          if (endDateFromGoogle.getTime() - startDate.getTime() <= 24 * 60 * 60 * 1000) {
+            // This is a single-day event, so end should be the same as start
+            endDate = startDate
+          } else {
+            // This is a multi-day event, so we need to subtract one day from the end
+            endDate = new Date(endDateFromGoogle.getTime() - 24 * 60 * 60 * 1000)
+          }
         }
 
         return {
           id: ev.id,
           title: ev.summary || 'Untitled Event',
           start: new Date(ev.start.dateTime || ev.start.date),
-          end: endDate, // Use the potentially adjusted end date
+          end: endDate, // Use the properly adjusted end date
           allDay: isAllDay,
           description: ev.description || '',
           location: ev.location || '',
