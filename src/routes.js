@@ -90,6 +90,8 @@ const Grades7to8ReportCardPage = React.lazy(() => import('./views/ReportCard/Rep
 const NewAnnouncement = React.lazy(() => import('./views/Announcements/NewAnnouncement'))
 const AllAnnouncements = React.lazy(() => import('./views/Announcements/AllAnnouncements'))
 const ProfilePage = React.lazy(() => import('./views/pages/profile/ProfilePage'))
+const OnboardingPage = React.lazy(() => import('./views/pages/onboarding/OnboardingPage'))
+const OnboardingAdmin = React.lazy(() => import('./views/pages/onboarding/OnboardingAdmin'))
 
 // const routes = [
 //   { path: '/', exact: true, name: 'Home' },
@@ -100,6 +102,8 @@ const ProfilePage = React.lazy(() => import('./views/pages/profile/ProfilePage')
 
 const routes = [
   { path: '/', exact: true, name: 'Home' },
+  { path: '/onboarding', name: 'Student Onboarding', element: OnboardingPage },
+  { path: '/onboarding/admin', name: 'Onboarding Admin', element: OnboardingAdmin },
 
   { path: '/dashboard', name: 'Dashboard', element: DashboardSwitch },
   { path: '/attendance', name: 'Attendance', element: AttendanceTabs },
