@@ -16,6 +16,8 @@ import {
   CTooltip,
   CRow,
   CCol,
+  CFormCheck,
+  CFormSelect,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import {
@@ -27,14 +29,17 @@ import {
   cilCheckAlt,
   cilX,
   cilFindInPage,
+  cilEnvelopeClosed,
 } from '@coreui/icons'
 import { DataGrid } from '@mui/x-data-grid'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
-import { collection, getDocs, query, orderBy, doc, updateDoc } from 'firebase/firestore'
+import { collection, getDocs, query, orderBy, doc, updateDoc, where } from 'firebase/firestore'
 import { firestore } from 'src/firebase'
 import ApplicationDetailModal from './ApplicationDetailModal'
 import PaymentModal from './PaymentModal'
+import SendAcceptanceEmailModal from './SendAcceptanceEmailModal'
 import './registrationPage.css'
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material'
 
 // Create MUI theme to match app styles
 const theme = createTheme({
@@ -70,6 +75,7 @@ const RegistrationProcessingDashboard = () => {
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
+  const [showEmailModal, setShowEmailModal] = useState(false)
   const [confirmationDialog, setConfirmationDialog] = useState({
     open: false,
     type: null,
@@ -116,13 +122,41 @@ const RegistrationProcessingDashboard = () => {
     return colorMap[status] || 'secondary'
   }
 
+  const generateRegistrationCode = async () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    let newCode = ''
+    let isUnique = false
+
+    while (!isUnique) {
+      newCode = ''
+      for (let i = 0; i < 6; i++) {
+        newCode += chars.charAt(Math.floor(Math.random() * chars.length))
+      }
+
+      const q = query(collection(firestore, 'registrations'), where('registrationCode', '==', newCode))
+      const querySnapshot = await getDocs(q)
+
+      if (querySnapshot.empty) {
+        isUnique = true
+      }
+    }
+    return newCode
+  }
+
   const handleStatusChange = async (appId, newStatus) => {
     try {
-      const appDocRef = doc(firestore, 'registrations', appId)
-      await updateDoc(appDocRef, { status: newStatus })
+      const appRef = doc(firestore, 'registrations', appId)
+      const updateData = { status: newStatus }
+
+      if (newStatus === 'approved') {
+        const registrationCode = await generateRegistrationCode()
+        updateData.registrationCode = registrationCode
+      }
+
+      await updateDoc(appRef, updateData)
 
       setApplications((prev) =>
-        prev.map((app) => (app.id === appId ? { ...app, status: newStatus } : app)),
+        prev.map((app) => (app.id === appId ? { ...app, ...updateData } : app)),
       )
     } catch (error) {
       console.error('Error updating status:', error)
@@ -215,6 +249,8 @@ const RegistrationProcessingDashboard = () => {
       app.id.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesSearch
   })
+
+  const schoolYears = ['All', ...new Set(applications.map((app) => app.schoolYear).filter(Boolean))]
 
   const handleViewApplication = (application) => {
     setSelectedApplication(application)
@@ -395,17 +431,29 @@ const RegistrationProcessingDashboard = () => {
               <h1 className="h2 fw-bold">Registration Processing</h1>
               <p className="text-medium-emphasis mt-1">Review and process student applications</p>
             </div>
-            <CButton
-              variant="outline"
-              color="secondary"
-              onClick={() => setShowArchived(!showArchived)}
-              className="d-flex align-items-center gap-2"
-            >
-              <CIcon icon={cilInbox} />
-              {showArchived
-                ? `Show Active (${activeApplications.length})`
-                : 'Show Archived'}
-            </CButton>
+            <div className="d-flex gap-2">
+              <CButton
+                color="primary"
+                onClick={() => setShowEmailModal(true)}
+                disabled={
+                  loading || !applications.some((app) => app.status === 'approved' && app.registrationCode)
+                }
+              >
+                <CIcon icon={cilEnvelopeClosed} className="me-2" />
+                Send Acceptance Emails
+              </CButton>
+              <CButton
+                variant="outline"
+                color="secondary"
+                onClick={() => setShowArchived(!showArchived)}
+                className="d-flex align-items-center gap-2"
+              >
+                <CIcon icon={cilInbox} />
+                {showArchived
+                  ? `Show Active (${activeApplications.length})`
+                  : 'Show Archived'}
+              </CButton>
+            </div>
           </div>
 
           {/* Stats Cards - Only show for active applications */}
@@ -466,24 +514,45 @@ const RegistrationProcessingDashboard = () => {
                 {filteredApplications.length})
               </CCardTitle>
             </CCardHeader>
-            <div className="px-3 pt-3 pb-1">
-              <CFormLabel htmlFor="search" className="visually-hidden">
-                Search Applications
-              </CFormLabel>
-              <div className="position-relative">
-                <span className="position-absolute top-50 start-0 translate-middle-y ms-3">
-                  <CIcon icon={cilSearch} className="text-medium-emphasis" />
-                </span>
-                <CFormInput
-                  id="search"
-                  placeholder="Search by student name or application ID..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="ps-5"
+            <CCardBody>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  {/* <CFormSelect
+                    style={{ width: 'auto', display: 'inline-block' }}
+                    value={selectedSchoolYear}
+                    onChange={(e) => setSelectedSchoolYear(e.target.value)}
+                  >
+                    {schoolYears.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </CFormSelect> */}
+                </div>
+                <CFormCheck
+                  id="showArchivedSwitch"
+                  label="Show Archived"
+                  checked={showArchived}
+                  onChange={() => setShowArchived(!showArchived)}
                 />
               </div>
-            </div>
-            <CCardBody className="pt-0">
+              <div className="px-3 pt-3 pb-1">
+                <CFormLabel htmlFor="search" className="visually-hidden">
+                  Search Applications
+                </CFormLabel>
+                <div className="position-relative">
+                  <span className="position-absolute top-50 start-0 translate-middle-y ms-3">
+                    <CIcon icon={cilSearch} className="text-medium-emphasis" />
+                  </span>
+                  <CFormInput
+                    id="search"
+                    placeholder="Search by student name or application ID..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="ps-5"
+                  />
+                </div>
+              </div>
               <div style={{ height: 600, width: '100%' }}>
                 <ThemeProvider theme={theme}>
                   <DataGrid
@@ -497,6 +566,23 @@ const RegistrationProcessingDashboard = () => {
                     }}
                     pageSizeOptions={[5, 10, 25]}
                     disableRowSelectionOnClick
+                    autoHeight
+                    rowHeight={60}
+                    sx={{
+                      '& .MuiDataGrid-columnHeaders': {
+                        backgroundColor: '#f4f4f4',
+                        fontWeight: 'bold',
+                      },
+                      '& .MuiDataGrid-cell': {
+                        padding: '0 16px',
+                      },
+                      '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
+                        outline: 'none',
+                      },
+                    }}
+                    getRowClassName={(params) =>
+                      params.indexRelativeToCurrentPage % 2 === 0 ? 'even-row' : 'odd-row'
+                    }
                   />
                 </ThemeProvider>
               </div>
@@ -523,26 +609,36 @@ const RegistrationProcessingDashboard = () => {
         )}
 
         {/* Confirmation Dialog */}
-        <CModal
-          visible={confirmationDialog.open}
+        <Dialog
+          open={confirmationDialog.open}
           onClose={() => setConfirmationDialog({ open: false, type: null, application: null })}
         >
-          <CModalHeader>
-            <CModalTitle>Confirm Action</CModalTitle>
-          </CModalHeader>
-          <CModalBody>{getConfirmationText()}</CModalBody>
-          <CModalFooter>
-            <CButton
-              color="secondary"
+          <DialogTitle>Confirm Action</DialogTitle>
+          <DialogContent>
+            <p>{getConfirmationText()}</p>
+          </DialogContent>
+          <DialogActions>
+            <Button
               onClick={() => setConfirmationDialog({ open: false, type: null, application: null })}
             >
               Cancel
-            </CButton>
-            <CButton color="primary" onClick={handleConfirmAction}>
+            </Button>
+            <Button onClick={handleConfirmAction} color="primary" autoFocus>
               Confirm
-            </CButton>
-          </CModalFooter>
-        </CModal>
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Send Acceptance Email Modal */}
+        <SendAcceptanceEmailModal
+          visible={showEmailModal}
+          onClose={() => setShowEmailModal(false)}
+          applications={applications}
+          onEmailsSent={() => {
+            setShowEmailModal(false)
+            // Optionally, refresh applications or update UI to show emails have been sent
+          }}
+        />
       </div>
     </div>
   )

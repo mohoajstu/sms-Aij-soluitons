@@ -44,6 +44,8 @@
     "date-fns": "^2.30.0",
     "dayjs": "^1.11.13",
     "dotenv": "^16.5.0",
+    "email-js": "^2.0.3",
+    "emailjs-com": "^3.2.0",
     "file-saver": "^2.0.5",
     "firebase": "^11.9.1",
     "firebase-admin": "^13.4.0",
