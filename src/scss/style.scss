@@ -55,13 +55,3 @@ body {
 .footer {
   min-height: calc(3rem + 1px); // stylelint-disable-line function-disallowed-list
 }
-
-@include color-mode(dark) {
-  body {
-    background-color: var(--cui-dark-bg-subtle);
-  }
-
-  .footer {
-    --cui-footer-bg: var(--cui-body-bg);
-  }
-}

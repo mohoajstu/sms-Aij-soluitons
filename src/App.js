@@ -1,6 +1,6 @@
-import React, { Suspense, useEffect } from 'react'
+import React, { Suspense } from 'react'
 import { HashRouter, Route, Routes, Navigate } from 'react-router-dom'
-import { CSpinner, useColorModes } from '@coreui/react'
+import { CSpinner } from '@coreui/react'
 import useAuth from './Firebase/useAuth'
 import { Toaster } from 'react-hot-toast'
 import './scss/style.scss'
@@ -18,15 +18,7 @@ const ParentLogin = React.lazy(() => import('./views/pages/login/ParentLogin'))
 const StaffLogin = React.lazy(() => import('./views/pages/login/StaffLogin'))
 
 const App = () => {
-  const { isColorModeSet, setColorMode } = useColorModes('coreui-free-react-admin-template-theme')
   const { user, loading } = useAuth()
-
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.href.split('?')[1])
-    const theme = urlParams.get('theme')?.match(/^[A-Za-z0-9\s]+/)?.[0]
-    if (theme) setColorMode(theme)
-    if (!isColorModeSet()) setColorMode('light')
-  }, [isColorModeSet, setColorMode])
 
   if (loading) {
     return (
