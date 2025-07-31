@@ -1,0 +1,265 @@
+.attendance-reminder-manager {
+  padding: 20px;
+}
+
+.attendance-reminder-manager .card {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: none;
+  border-radius: 8px;
+}
+
+.attendance-reminder-manager .card-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 8px 8px 0 0;
+  padding: 1rem 1.5rem;
+}
+
+.attendance-reminder-manager .card-header h4 {
+  margin: 0;
+  font-weight: 600;
+}
+
+.attendance-reminder-manager .card-header small {
+  color: white !important;
+  opacity: 0.9;
+}
+
+.status-summary {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.status-summary h5 {
+  color: #495057;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 1rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+  transition: transform 0.2s ease;
+}
+
+.stat-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.stat-number {
+  display: block;
+  font-size: 2rem;
+  font-weight: bold;
+  color: #667eea;
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.875rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.attendance-reminder-manager .btn {
+  border-radius: 6px;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  transition: all 0.2s ease;
+}
+
+.attendance-reminder-manager .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.attendance-reminder-manager .btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+}
+
+.attendance-reminder-manager .btn-info {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  border: none;
+}
+
+.attendance-reminder-manager .btn-secondary {
+  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+  border: none;
+  color: #495057;
+}
+
+.attendance-reminder-manager .form-control,
+.attendance-reminder-manager .form-select {
+  border-radius: 6px;
+  border: 1px solid #ced4da;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.attendance-reminder-manager .form-control:focus,
+.attendance-reminder-manager .form-select:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.attendance-reminder-manager .table {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.attendance-reminder-manager .table thead th {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.875rem;
+}
+
+.attendance-reminder-manager .table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.attendance-reminder-manager .table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.attendance-reminder-manager .badge {
+  font-size: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.attendance-reminder-manager .badge-success {
+  background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+  color: white;
+}
+
+.attendance-reminder-manager .badge-warning {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+}
+
+.attendance-reminder-manager .modal-content {
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.attendance-reminder-manager .modal-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 8px 8px 0 0;
+}
+
+.attendance-reminder-manager .modal-header h5 {
+  margin: 0;
+  font-weight: 600;
+}
+
+.attendance-reminder-manager .alert {
+  border-radius: 6px;
+  border: none;
+  padding: 1rem 1.25rem;
+}
+
+.attendance-reminder-manager .alert-success {
+  background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+  color: white;
+}
+
+.attendance-reminder-manager .alert-warning {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+}
+
+.attendance-reminder-manager .alert h6 {
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.attendance-reminder-manager ul {
+  margin-bottom: 0;
+  padding-left: 1.25rem;
+}
+
+.attendance-reminder-manager li {
+  margin-bottom: 0.25rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .attendance-reminder-manager .d-flex {
+    flex-direction: column;
+  }
+  
+  .attendance-reminder-manager .d-flex .btn {
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* Loading states */
+.attendance-reminder-manager .spinner-border-sm {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Animation for status updates */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.attendance-reminder-manager .table tbody tr {
+  animation: fadeIn 0.3s ease;
+}
+
+/* Custom scrollbar for modal */
+.attendance-reminder-manager .modal-body {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.attendance-reminder-manager .modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.attendance-reminder-manager .modal-body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.attendance-reminder-manager .modal-body::-webkit-scrollbar-thumb {
+  background: #667eea;
+  border-radius: 3px;
+}
+
+.attendance-reminder-manager .modal-body::-webkit-scrollbar-thumb:hover {
+  background: #5a6fd8;
+} 

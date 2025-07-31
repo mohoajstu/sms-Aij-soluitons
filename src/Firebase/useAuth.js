@@ -29,7 +29,9 @@ const useAuth = () => {
         ref,
         (snap) => {
           const data = snap.data()
-          setRole(data?.role ?? 'guest') // default if field missing
+          // Check different possible role field structures
+          const userRole = data?.role || data?.personalInfo?.role || 'guest'
+          setRole(userRole)
           setLoading(false)
         },
         (err) => {

@@ -22,14 +22,7 @@ const NotificationService = {
       // Format the phone number if needed
       const formattedPhoneNumber = formatPhoneNumber(phoneNumber)
 
-      const message = `Attendance Alert: ${studentName} was marked absent from ${className || 'class'} on ${new Date(
-        date,
-      ).toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })}. Please contact the school for more information.`
+      const message = `${studentName} absent from ${className || 'class'} on ${new Date(date).toLocaleDateString()}.`
 
       const response = await fetch(FIREBASE_FUNCTIONS_URL, {
         method: 'POST',
@@ -57,6 +50,111 @@ const NotificationService = {
       }
     } catch (error) {
       console.error('Error sending SMS notification:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Send attendance reminder notification to admin
+   *
+   * @param {Object} data Notification data
+   * @param {string} data.phoneNumber Admin's phone number
+   * @param {string} data.adminName Admin's name
+   * @param {string} data.courseName Course name
+   * @param {string} data.teacherName Teacher's name
+   * @param {string} data.reminderTime Reminder time (e.g., "9:15 AM")
+   * @returns {Promise<Object>} Result of the API call
+   */
+  sendAdminAttendanceReminder: async ({ phoneNumber, adminName, courseName, teacherName, reminderTime }) => {
+    try {
+      const formattedPhoneNumber = formatPhoneNumber(phoneNumber)
+      const currentDate = new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+
+      const message = `${courseName} attendance not completed by ${reminderTime}. Teacher: ${teacherName}.`
+
+      const response = await fetch(FIREBASE_FUNCTIONS_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phoneNumber: formattedPhoneNumber,
+          message,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        console.error('Firebase Function error:', result)
+        throw new Error(result.message || 'Failed to send admin reminder notification')
+      }
+
+      console.log('Admin reminder SMS sent successfully:', result)
+      return {
+        success: true,
+        sid: result.sid,
+        message,
+      }
+    } catch (error) {
+      console.error('Error sending admin reminder notification:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Send attendance reminder notification to teacher
+   *
+   * @param {Object} data Notification data
+   * @param {string} data.phoneNumber Teacher's phone number
+   * @param {string} data.teacherName Teacher's name
+   * @param {string} data.courseName Course name
+   * @param {string} data.reminderTime Reminder time (e.g., "9:15 AM")
+   * @returns {Promise<Object>} Result of the API call
+   */
+  sendTeacherAttendanceReminder: async ({ phoneNumber, teacherName, courseName, reminderTime }) => {
+    try {
+      const formattedPhoneNumber = formatPhoneNumber(phoneNumber)
+      const currentDate = new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+
+      const message = `Attendance Reminder:  Please complete ${courseName} attendance by ${reminderTime}.`
+
+      const response = await fetch(FIREBASE_FUNCTIONS_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phoneNumber: formattedPhoneNumber,
+          message,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        console.error('Firebase Function error:', result)
+        throw new Error(result.message || 'Failed to send teacher reminder notification')
+      }
+
+      console.log('Teacher reminder SMS sent successfully:', result)
+      return {
+        success: true,
+        sid: result.sid,
+        message,
+      }
+    } catch (error) {
+      console.error('Error sending teacher reminder notification:', error)
       throw error
     }
   },

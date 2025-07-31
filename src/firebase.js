@@ -3,6 +3,7 @@ import { getAnalytics } from 'firebase/analytics'
 import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
+import { getMessaging } from 'firebase/messaging'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -17,5 +18,6 @@ const analytics = getAnalytics(app)
 const auth = getAuth(app)
 const firestore = getFirestore(app)
 const storage = getStorage(app)
+const messaging = getMessaging(app)
 
-export { app, analytics, auth, firestore, storage }
+export { app, analytics, auth, firestore, storage, messaging }

@@ -13,6 +13,7 @@ import {
 
 import { AppBreadcrumb } from './index'
 import { AppHeaderDropdown } from './header/index'
+import NotificationBell from './NotificationBell'
 
 const AppHeader = () => {
   const headerRef = useRef()
@@ -36,7 +37,8 @@ const AppHeader = () => {
         >
           <CIcon icon={cilMenu} size="lg" />
         </CHeaderToggler>
-        <CHeaderNav>
+        <CHeaderNav className="ms-auto">
+          <NotificationBell />
           <AppHeaderDropdown />
         </CHeaderNav>
       </CContainer>

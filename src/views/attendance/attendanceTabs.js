@@ -6,6 +6,7 @@ import ClassSelector from '../../components/ClassSelector'
 import DateSelector from '../../components/DateSelector'
 import AttendanceReportTable from './attendenceReportTable'
 import ManualSmsNotification from './ManualSmsNotification'
+import AttendanceReminderManager from './AttendanceReminderManager'
 import './attendanceTabs.css'
 import useAuth from '../../Firebase/useAuth'
 
@@ -20,6 +21,9 @@ const AttendanceTabs = () => {
       setActiveTab(1) // Force attendance report tab for parents
     }
   }, [role])
+
+  // Check if user has permission to access reminder manager
+  const canAccessReminderManager = role === 'admin' || role === 'faculty'
 
   return (
     <div className="at-container">
@@ -52,6 +56,18 @@ const AttendanceTabs = () => {
                 onClick={() => setActiveTab(2)}
               >
                 Manual SMS
+              </div>
+            </>
+          )}
+
+          {canAccessReminderManager && (
+            <>
+              <div className="at-tab-separator"></div>
+              <div
+                className={`at-tab-link ${activeTab === 3 ? 'at-active' : ''}`}
+                onClick={() => setActiveTab(3)}
+              >
+                Reminder Manager
               </div>
             </>
           )}
@@ -108,6 +124,12 @@ const AttendanceTabs = () => {
               Enter your own message or select a parent from the dropdown to auto-fill their phone number.
             </div>
             <ManualSmsNotification />
+          </Box>
+        )}
+
+        {canAccessReminderManager && activeTab === 3 && (
+          <Box className="at-reminder-manager-content">
+            <AttendanceReminderManager />
           </Box>
         )}
       </div>
