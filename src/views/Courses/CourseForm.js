@@ -18,18 +18,16 @@ import {
   CInputGroup,
   CInputGroupText,
 } from '@coreui/react'
+import { collection, getDocs, addDoc, doc, updateDoc, getDoc } from 'firebase/firestore'
+import { firestore } from '../../firebase'
 import coursesData from '../../Data/coursesData.json'
+import WeekScheduleSelector from '../../components/WeekScheduleSelector'
 import './CourseForm.css'
 
 import { initializeGoogleApi, initializeGIS, authenticate } from '../../services/calendarService'
-
-// Mock data for instructor options
-const INSTRUCTORS = [
-  { id: '1', name: 'Ahmed Abdullah' },
-  { id: '2', name: 'Sara Khan' },
-  { id: '3', name: 'Muhammad Ali' },
-  { id: '4', name: 'Fatima Zahra' },
-]
+import calendarService from '../../services/calendarService'
+import CIcon from '@coreui/icons-react'
+import { cilCalendar, cilUser, cilSettings } from '@coreui/icons'
 
 // Mock data for subject options
 const SUBJECTS = [
@@ -62,9 +60,6 @@ const GRADES = [
   '12th Grade',
 ]
 
-// Days of the week for class scheduling
-const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-
 const CourseForm = () => {
   const navigate = useNavigate()
   const { id } = useParams()
@@ -77,7 +72,7 @@ const CourseForm = () => {
     subject: '',
     grade: '',
     description: '',
-    staff: [],
+    staff: [], // Ensure this is always an array
     students: [],
     schedule: {
       classDays: [],
@@ -100,6 +95,9 @@ const CourseForm = () => {
   const [isCreating, setIsCreating] = useState(true)
   const [materialInput, setMaterialInput] = useState('')
   const [isGoogleCalendarReady, setIsGoogleCalendarReady] = useState(false)
+  const [teachers, setTeachers] = useState([])
+  const [loadingTeachers, setLoadingTeachers] = useState(false)
+  const [showScheduleModal, setShowScheduleModal] = useState(false)
 
   // If in edit mode, load existing course data
   useEffect(() => {
@@ -129,6 +127,32 @@ const CourseForm = () => {
       }
     }
   }, [id, isEditMode])
+
+  // Load teachers from Firebase
+  useEffect(() => {
+    const loadTeachers = async () => {
+      setLoadingTeachers(true)
+      try {
+        const facultyRef = collection(firestore, 'faculty')
+        const facultySnapshot = await getDocs(facultyRef)
+        
+        const teachersData = facultySnapshot.docs.map(doc => ({
+          id: doc.id,
+          name: `${doc.data().personalInfo?.firstName || ''} ${doc.data().personalInfo?.lastName || ''}`.trim() || 'Unknown Teacher',
+          ...doc.data()
+        }))
+        
+        setTeachers(teachersData)
+      } catch (error) {
+        console.error('Error loading teachers:', error)
+        setError('Failed to load teachers from database')
+      } finally {
+        setLoadingTeachers(false)
+      }
+    }
+
+    loadTeachers()
+  }, [])
 
   useEffect(() => {
     const initializeGoogleCalendar = async () => {
@@ -169,24 +193,19 @@ const CourseForm = () => {
           [child]: value,
         },
       })
+    } else if (name === 'staff') {
+      // Handle multiple select for staff/instructors
+      const selectedOptions = Array.from(e.target.selectedOptions).map(option => option.value)
+      setFormData({
+        ...formData,
+        staff: selectedOptions,
+      })
     } else {
       setFormData({
         ...formData,
         [name]: type === 'checkbox' ? checked : value,
       })
     }
-  }
-
-  // Handle class days selection (multiple)
-  const handleClassDaysChange = (e) => {
-    const selectedOptions = Array.from(e.target.selectedOptions).map((option) => option.value)
-    setFormData({
-      ...formData,
-      schedule: {
-        ...formData.schedule,
-        classDays: selectedOptions,
-      },
-    })
   }
 
   // Add new staff member
@@ -258,20 +277,79 @@ const CourseForm = () => {
     setError('')
     setSuccess('')
 
+    // Validate required fields
+    if (!formData.title || !formData.subject || !formData.grade) {
+      setError('Please fill in all required fields (Title, Subject, and Grade)')
+      setLoading(false)
+      return
+    }
+
+    if (!formData.staff || formData.staff.length === 0) {
+      setError('Please select at least one instructor')
+      setLoading(false)
+      return
+    }
+
     try {
-      // Generate unique ID for new courses
-      const updatedFormData = {
-        ...formData,
-        id: formData.id || `course_${Date.now()}`,
+      // Prepare course data for Firebase
+      const courseData = {
+        title: formData.title,
+        name: formData.title, // Firebase uses 'name' field
+        subject: formData.subject,
+        gradeLevel: formData.grade,
+        grade: parseInt(formData.grade.match(/\d+/)?.[0] || 0), // Extract numeric grade
+        description: formData.description,
+        capacity: formData.capacity,
+        enrolledStudents: formData.enrolledStudents || 0,
+        materials: formData.materials,
+        isActive: formData.isActive,
+        academicYear: '2024-2025', // Default academic year
+        term: 'Term 1', // Default term
+        section: Math.floor(Math.random() * 10000), // Random section number
+        courseId: await generateNextCourseId(), // Use proper Tarbiyah course ID
+        courseID: '', // Empty courseID as per sample
+        budget: {
+          accumulatedCost: 0,
+          itemList: [],
+          totalBudget: 0
+        },
+        resources: [],
+        enrolledList: [],
+        students: [], // Will be populated when students enroll
+        teacherIds: formData.staff, // Array of teacher IDs
+        teachers: formData.staff.map(staffId => {
+          const teacher = teachers.find(t => t.id === staffId)
+          return {
+            name: teacher ? teacher.name : 'Unknown Teacher',
+            schoolId: ''
+          }
+        }),
+        teacher: formData.staff.map(staffId => {
+          const teacher = teachers.find(t => t.id === staffId)
+          return {
+            name: teacher ? teacher.name : 'Unknown Teacher',
+            schoolId: ''
+          }
+        }),
+        schedule: {
+          days: formData.schedule.classDays,
+          startTime: formData.schedule.startTime,
+          endTime: formData.schedule.endTime,
+          location: formData.schedule.room || '',
+          daySchedules: formData.schedule.daySchedules || {}
+        },
+        timestamps: {
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
       }
 
       // Try to add to Google Calendar if selected
       if (formData.addToCalendar) {
         try {
-          const eventIds = await addToGoogleCalendar(updatedFormData)
-          updatedFormData.calendarEventIds = eventIds
+          const eventIds = await addToGoogleCalendar(courseData)
+          courseData.calendarEventIds = eventIds
         } catch (calendarError) {
-          // Continue with save even if calendar fails
           console.error('Failed to add to calendar:', calendarError)
           setError(
             'Course saved, but failed to add to Google Calendar. Please check your Google Calendar configuration.',
@@ -279,14 +357,25 @@ const CourseForm = () => {
         }
       }
 
-      // In a real app, this would be an API call
-      console.log('Saving course:', updatedFormData)
+      // Save to Firebase
+      if (isEditMode) {
+        // Update existing course
+        const courseRef = doc(firestore, 'courses', id)
+        await updateDoc(courseRef, courseData)
+        setSuccess('Course updated successfully!')
+      } else {
+        // Create new course
+        const coursesRef = collection(firestore, 'courses')
+        const docRef = await addDoc(coursesRef, courseData)
+        console.log('Course saved to Firebase with ID:', docRef.id)
+        console.log('Course ID generated:', courseData.courseId)
+        setSuccess(`Course created successfully with ID: ${courseData.courseId}!`)
+      }
 
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      setSuccess(isCreating ? 'Course created successfully!' : 'Course updated successfully!')
-      navigate('/courses')
+      // Navigate back to courses list
+      setTimeout(() => {
+        navigate('/courses')
+      }, 1500)
     } catch (error) {
       console.error('Error saving course:', error)
       setError('Failed to save course. Please try again.')
@@ -304,41 +393,86 @@ const CourseForm = () => {
 
       // Create recurring events for each class day
       const calendarIds = []
-      for (const day of course.schedule.classDays) {
-        // Get the next occurrence of this day
-        const nextDate = getNextDayOfWeek(new Date(), day)
+      
+      // Check if we have individual day schedules
+      if (course.schedule.daySchedules && Object.keys(course.schedule.daySchedules).length > 0) {
+        // Use individual day schedules
+        for (const [day, daySchedule] of Object.entries(course.schedule.daySchedules)) {
+          // Get the next occurrence of this day
+          const nextDate = getNextDayOfWeek(new Date(), day)
 
-        // Create event object
-        const event = {
-          summary: `${course.title} (${course.grade})`,
-          description: course.description,
-          location: course.schedule.room,
-          start: {
-            dateTime: getDateTimeString(nextDate, course.schedule.startTime),
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          },
-          end: {
-            dateTime: getDateTimeString(nextDate, course.schedule.endTime),
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          },
-          recurrence: [
-            'RRULE:FREQ=WEEKLY;COUNT=16', // 16 weeks (typical semester length)
-          ],
-          attendees: INSTRUCTORS.filter((instructor) => course.staff.includes(instructor.id)).map(
-            (instructor) => ({ email: `${instructor.id}@example.com` }),
-          ), // Mock emails
-          reminders: {
-            useDefault: false,
-            overrides: [
-              { method: 'email', minutes: 24 * 60 }, // 1 day before
-              { method: 'popup', minutes: 30 }, // 30 minutes before
+          // Create event object
+          const event = {
+            summary: `${course.title} (${course.grade})`,
+            description: course.description,
+            location: daySchedule.room || course.schedule.location,
+            start: {
+              dateTime: getDateTimeString(nextDate, daySchedule.startTime),
+              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            },
+            end: {
+              dateTime: getDateTimeString(nextDate, daySchedule.endTime),
+              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            },
+            recurrence: [
+              'RRULE:FREQ=WEEKLY;COUNT=16', // 16 weeks (typical semester length)
             ],
-          },
-        }
+            attendees: course.staff.map((staffId) => {
+              const teacher = teachers.find(t => t.id === staffId)
+              return { email: teacher ? `${teacher.id}@example.com` : `${staffId}@example.com` }
+            }),
+            reminders: {
+              useDefault: false,
+              overrides: [
+                { method: 'email', minutes: 24 * 60 }, // 1 day before
+                { method: 'popup', minutes: 30 }, // 30 minutes before
+              ],
+            },
+          }
 
-        // Create the event
-        const result = await calendarService.createEvent('primary', event)
-        calendarIds.push(result.id)
+          // Create the event
+          const result = await calendarService.createEvent('primary', event)
+          calendarIds.push(result.id)
+        }
+      } else {
+        // Fallback to old format - use same time for all days
+        for (const day of course.schedule.classDays) {
+          // Get the next occurrence of this day
+          const nextDate = getNextDayOfWeek(new Date(), day)
+
+          // Create event object
+          const event = {
+            summary: `${course.title} (${course.grade})`,
+            description: course.description,
+            location: course.schedule.location,
+            start: {
+              dateTime: getDateTimeString(nextDate, course.schedule.startTime),
+              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            },
+            end: {
+              dateTime: getDateTimeString(nextDate, course.schedule.endTime),
+              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            },
+            recurrence: [
+              'RRULE:FREQ=WEEKLY;COUNT=16', // 16 weeks (typical semester length)
+            ],
+            attendees: course.staff.map((staffId) => {
+              const teacher = teachers.find(t => t.id === staffId)
+              return { email: teacher ? `${teacher.id}@example.com` : `${staffId}@example.com` }
+            }),
+            reminders: {
+              useDefault: false,
+              overrides: [
+                { method: 'email', minutes: 24 * 60 }, // 1 day before
+                { method: 'popup', minutes: 30 }, // 30 minutes before
+              ],
+            },
+          }
+
+          // Create the event
+          const result = await calendarService.createEvent('primary', event)
+          calendarIds.push(result.id)
+        }
       }
 
       return calendarIds
@@ -373,6 +507,67 @@ const CourseForm = () => {
     result.setHours(hours, minutes, 0, 0)
 
     return result.toISOString()
+  }
+
+  const handleScheduleSave = (newSchedule) => {
+    setFormData({
+      ...formData,
+      schedule: newSchedule
+    })
+    setShowScheduleModal(false)
+  }
+
+  const handleScheduleCancel = () => {
+    setShowScheduleModal(false)
+  }
+
+  const getScheduleDisplayText = () => {
+    if (formData.schedule.classDays.length === 0) {
+      return 'No schedule set'
+    }
+    
+    // Check if we have individual day schedules
+    if (formData.schedule.daySchedules && Object.keys(formData.schedule.daySchedules).length > 0) {
+      const dayTexts = formData.schedule.classDays.map(day => {
+        const daySchedule = formData.schedule.daySchedules[day]
+        if (daySchedule) {
+          return `${day.substring(0, 3)} ${daySchedule.startTime}-${daySchedule.endTime}`
+        }
+        return day.substring(0, 3)
+      })
+      return dayTexts.join(', ')
+    }
+    
+    // Fallback to old format
+    const days = formData.schedule.classDays.map(day => day.substring(0, 3)).join(', ')
+    return `${days} ${formData.schedule.startTime}-${formData.schedule.endTime}`
+  }
+
+  // Generate next course ID following Tarbiyah standard
+  const generateNextCourseId = async () => {
+    try {
+      const coursesRef = collection(firestore, 'courses')
+      const coursesSnapshot = await getDocs(coursesRef)
+      
+      let maxNum = -1
+      coursesSnapshot.docs.forEach(doc => {
+        const courseData = doc.data()
+        const courseId = courseData.courseId || doc.id
+        if (typeof courseId === 'string' && courseId.startsWith('TC')) {
+          const num = parseInt(courseId.slice(2), 10) // Remove 'TC' prefix
+          if (!isNaN(num) && num > maxNum) {
+            maxNum = num
+          }
+        }
+      })
+      
+      const nextNum = maxNum + 1
+      return `TC${String(nextNum).padStart(6, '0')}` // e.g., TC000001, TC000002
+    } catch (error) {
+      console.error('Error generating course ID:', error)
+      // Fallback to timestamp if there's an error
+      return `TC${String(Date.now()).slice(-6)}`
+    }
   }
 
   return (
@@ -454,87 +649,66 @@ const CourseForm = () => {
             <CRow className="mb-3">
               <CCol md={6}>
                 <CFormLabel htmlFor="staff">
-                  <cilUser className="me-1" /> Instructors
+                  <CIcon icon={cilUser} className="me-1" /> Instructors
                 </CFormLabel>
-                <CFormSelect
-                  id="staff"
-                  multiple
-                  onChange={handleChange}
-                  value={formData.staff}
-                  size="5"
-                >
-                  {INSTRUCTORS.map((instructor) => (
-                    <option key={instructor.id} value={instructor.id}>
-                      {instructor.name}
-                    </option>
-                  ))}
-                </CFormSelect>
-                <small className="form-text text-muted">
-                  Hold Ctrl/Cmd key to select multiple instructors
-                </small>
+                {loadingTeachers ? (
+                  <div className="d-flex align-items-center">
+                    <CSpinner size="sm" className="me-2" />
+                    <span>Loading teachers...</span>
+                  </div>
+                ) : (
+                  <>
+                    <CFormSelect
+                      id="staff"
+                      name="staff"
+                      multiple
+                      onChange={handleChange}
+                      value={formData.staff}
+                      size="5"
+                    >
+                      {teachers.map((teacher) => (
+                        <option key={teacher.id} value={teacher.id}>
+                          {teacher.name}
+                        </option>
+                      ))}
+                    </CFormSelect>
+                    <small className="form-text text-muted">
+                      Hold Ctrl/Cmd key to select multiple instructors. {teachers.length} teachers available.
+                    </small>
+                  </>
+                )}
               </CCol>
 
               <CCol md={6}>
                 <CFormLabel>
                   Class Schedule
                 </CFormLabel>
-                <div className="mb-3 d-flex flex-wrap gap-2">
-                  {DAYS_OF_WEEK.map((day) => (
-                    <CFormCheck
-                      key={day}
-                      id={`day-${day}`}
-                      label={day.substring(0, 3)}
-                      checked={formData.schedule.classDays.includes(day)}
-                      onChange={() =>
-                        handleChange({ target: { name: 'schedule.classDays', value: day } })
+                <div className="mb-3">
+                  <CButton
+                    color="outline-primary"
+                    onClick={() => setShowScheduleModal(true)}
+                    className="w-100"
+                  >
+                    <CIcon icon={cilCalendar} className="me-2" />
+                    {getScheduleDisplayText()}
+                  </CButton>
+                  {formData.schedule.classDays.length > 0 && (
+                    <small className="text-muted">
+                      {formData.schedule.classDays.length} day(s) selected
+                      {formData.schedule.daySchedules && Object.keys(formData.schedule.daySchedules).length > 0 
+                        ? ' • Different times per day'
+                        : formData.schedule.room && ` • Room: ${formData.schedule.room}`
                       }
-                      inline
-                    />
-                  ))}
+                    </small>
+                  )}
                 </div>
-
-                <CRow className="g-2 mb-3">
-                  <CCol>
-                    <CFormLabel htmlFor="startTime">Start Time</CFormLabel>
-                    <CFormInput
-                      type="time"
-                      id="startTime"
-                      name="schedule.startTime"
-                      value={formData.schedule.startTime}
-                      onChange={handleChange}
-                      required
-                    />
-                  </CCol>
-                  <CCol>
-                    <CFormLabel htmlFor="endTime">End Time</CFormLabel>
-                    <CFormInput
-                      type="time"
-                      id="endTime"
-                      name="schedule.endTime"
-                      value={formData.schedule.endTime}
-                      onChange={handleChange}
-                      required
-                    />
-                  </CCol>
-                  <CCol>
-                    <CFormLabel htmlFor="room">Room</CFormLabel>
-                    <CFormInput
-                      type="text"
-                      id="room"
-                      name="schedule.room"
-                      value={formData.schedule.room}
-                      onChange={handleChange}
-                      placeholder="e.g., Room 101"
-                    />
-                  </CCol>
-                </CRow>
               </CCol>
             </CRow>
 
             <CRow className="mb-3">
               <CCol md={6}>
                 <CFormLabel>
-                  <cilSettings className="me-1" /> Course Settings
+                  <CIcon icon={cilSettings} className="me-1" /> Course Settings
                 </CFormLabel>
                 <CInputGroup className="mb-3">
                   <CInputGroupText>Capacity</CInputGroupText>
@@ -662,6 +836,14 @@ const CourseForm = () => {
           </CForm>
         </CCardBody>
       </CCard>
+
+      {/* WeekScheduleSelector Modal */}
+      <WeekScheduleSelector
+        visible={showScheduleModal}
+        onClose={handleScheduleCancel}
+        schedule={formData.schedule}
+        onSave={handleScheduleSave}
+      />
     </div>
   )
 }

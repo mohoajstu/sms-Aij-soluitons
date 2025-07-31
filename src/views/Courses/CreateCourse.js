@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { auth, firestore } from '../../firebase'
-import { collection, addDoc, doc, getDoc } from 'firebase/firestore'
+import { collection, addDoc, doc, getDoc, getDocs } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
 import './CreateCourse.css'
 import { 
@@ -208,9 +208,31 @@ function CreateCourse() {
     })
   }
 
-  const generateCourseId = () => {
-    const timestamp = Date.now().toString().slice(-6)
-    return `TC${timestamp}`
+  // Generate next course ID following Tarbiyah standard
+  const generateCourseId = async () => {
+    try {
+      const coursesRef = collection(firestore, 'courses')
+      const coursesSnapshot = await getDocs(coursesRef)
+      
+      let maxNum = -1
+      coursesSnapshot.docs.forEach(doc => {
+        const courseData = doc.data()
+        const courseId = courseData.courseId || doc.id
+        if (typeof courseId === 'string' && courseId.startsWith('TC')) {
+          const num = parseInt(courseId.slice(2), 10) // Remove 'TC' prefix
+          if (!isNaN(num) && num > maxNum) {
+            maxNum = num
+          }
+        }
+      })
+      
+      const nextNum = maxNum + 1
+      return `TC${String(nextNum).padStart(6, '0')}` // e.g., TC000001, TC000002
+    } catch (error) {
+      console.error('Error generating course ID:', error)
+      // Fallback to timestamp if there's an error
+      return `TC${String(Date.now()).slice(-6)}`
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -225,7 +247,7 @@ function CreateCourse() {
         throw new Error('Please fill in all required fields')
       }
 
-      const courseId = generateCourseId()
+      const courseId = await generateCourseId()
       const now = new Date()
 
       const courseData = {
@@ -267,7 +289,9 @@ function CreateCourse() {
 
       const docRef = await addDoc(collection(firestore, 'courses'), courseData)
       
-      setSuccess('Course created successfully!')
+      console.log('Course created with ID:', docRef.id)
+      console.log('Course ID generated:', courseId)
+      setSuccess(`Course created successfully with ID: ${courseId}!`)
       setTimeout(() => {
         navigate('/courses')
       }, 2000)

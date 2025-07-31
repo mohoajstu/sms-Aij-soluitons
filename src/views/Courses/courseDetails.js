@@ -58,14 +58,44 @@ function CourseDetailPage() {
 
           if (courseData.teacherIds && courseData.teacherIds.length > 0) {
             const staffPromises = courseData.teacherIds.map((uid) =>
-              getDoc(doc(firestore, 'users', uid)),
+              getDoc(doc(firestore, 'faculty', uid)),
             )
             const staffDocs = await Promise.all(staffPromises)
             setStaff(
-              staffDocs.map((doc) =>
-                doc.exists() ? doc.data().firstName + ' ' + doc.data().lastName : 'Unknown Teacher',
-              ),
+              staffDocs.map((doc) => {
+                if (doc.exists()) {
+                  const teacherData = doc.data()
+                  return `${teacherData.personalInfo?.firstName || ''} ${teacherData.personalInfo?.lastName || ''}`.trim() || 'Unknown Teacher'
+                }
+                return 'Unknown Teacher'
+              }),
             )
+          } else if (courseData.teacherId) {
+            // Handle single teacher
+            const teacherDoc = await getDoc(doc(firestore, 'faculty', courseData.teacherId))
+            if (teacherDoc.exists()) {
+              const teacherData = teacherDoc.data()
+              setStaff([`${teacherData.personalInfo?.firstName || ''} ${teacherData.personalInfo?.lastName || ''}`.trim() || 'Unknown Teacher'])
+            } else {
+              setStaff(['Unknown Teacher'])
+            }
+          } else if (courseData.staff && courseData.staff.length > 0) {
+            // Handle staff array
+            const staffPromises = courseData.staff.map((staffId) =>
+              getDoc(doc(firestore, 'faculty', staffId)),
+            )
+            const staffDocs = await Promise.all(staffPromises)
+            setStaff(
+              staffDocs.map((doc) => {
+                if (doc.exists()) {
+                  const teacherData = doc.data()
+                  return `${teacherData.personalInfo?.firstName || ''} ${teacherData.personalInfo?.lastName || ''}`.trim() || 'Unknown Teacher'
+                }
+                return 'Unknown Teacher'
+              }),
+            )
+          } else {
+            setStaff(['No teacher assigned'])
           }
 
           if (courseData.enrolledlist && courseData.enrolledlist.length > 0) {

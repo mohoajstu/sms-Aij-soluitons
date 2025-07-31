@@ -15,7 +15,7 @@ const ClassSelector = ({ value, onChange, ...props }) => {
     /^sk.*huda$/i,             // SK - Tr. Huda
     /^homeroom\s+junior\s+kindergarten$/i,  // HomeRoom Junior Kindergarten
     /^homeroom\s+senior\s+kindergarten$/i,  // HomeRoom Senior Kindergarten
-    /^homeroom\s+grade\s*[1-8]$/i,  // HomeRoom Grade 1-8
+    /^homeroom\s+grade\s/i,  // HomeRoom in the name
   ]
 
   // Function to check if a class is a homeroom class

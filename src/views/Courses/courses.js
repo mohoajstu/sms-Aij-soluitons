@@ -11,6 +11,7 @@ function CoursesPage() {
   console.log('CoursesPage rendered');
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
+  const [teachers, setTeachers] = useState({})
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -26,14 +27,16 @@ function CoursesPage() {
 
           const coursesCollectionRef = collection(firestore, 'courses')
           let coursesQuery
+          let userCourses = []
 
           if (userRole?.toLowerCase() === 'admin') {
+            // Admin can see all courses
             coursesQuery = coursesCollectionRef
             const coursesSnapshot = await getDocs(coursesQuery)
-            const userCourses = coursesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+            userCourses = coursesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
             setCourses(userCourses)
           } else if (userRole?.toLowerCase() === 'faculty') {
-            // Fetch the faculty doc from the 'faculty' collection
+            // Faculty can only see their assigned courses
             const facultyDocRef = doc(firestore, 'faculty', user.uid)
             const facultyDoc = await getDoc(facultyDocRef)
             if (!facultyDoc.exists()) {
@@ -52,7 +55,7 @@ function CoursesPage() {
             const courseDocs = await Promise.all(
               facultyCourses.map((courseId) => getDoc(doc(coursesCollectionRef, courseId))),
             )
-            const userCourses = courseDocs
+            userCourses = courseDocs
               .filter((doc) => doc.exists())
               .map((doc) => ({ id: doc.id, ...doc.data() }))
             setCourses(userCourses)
@@ -61,6 +64,9 @@ function CoursesPage() {
             setLoading(false)
             return
           }
+
+          // Fetch teacher information for all courses
+          await loadTeacherInformation(userCourses)
         } catch (error) {
           console.error('Error fetching courses:', error)
           setCourses([])
@@ -74,6 +80,25 @@ function CoursesPage() {
     })
     return () => unsubscribe()
   }, [])
+
+  // Load teacher information from Firebase
+  const loadTeacherInformation = async (coursesList) => {
+    try {
+      const facultyRef = collection(firestore, 'faculty')
+      const facultySnapshot = await getDocs(facultyRef)
+      
+      const teachersMap = {}
+      facultySnapshot.docs.forEach(doc => {
+        const teacherData = doc.data()
+        const teacherName = `${teacherData.personalInfo?.firstName || ''} ${teacherData.personalInfo?.lastName || ''}`.trim() || 'Unknown Teacher'
+        teachersMap[doc.id] = teacherName
+      })
+      
+      setTeachers(teachersMap)
+    } catch (error) {
+      console.error('Error loading teacher information:', error)
+    }
+  }
 
   const getTextColor = (bgColor) => {
     if (bgColor && bgColor.startsWith('hsl')) {
@@ -218,11 +243,50 @@ function CoursesPage() {
           const courseDesc = course.description || ''
           const courseGrade = course.gradeLevel || (course.grade ? `Grade ${course.grade}` : '')
           const courseSubject = course.subject || ''
-          const teacherNames = Array.isArray(course.teacher)
-            ? course.teacher.map((t) => t.name).join(', ')
-            : Array.isArray(course.teachers)
-              ? course.teachers.join(', ')
-              : ''
+          
+          // Get teacher names from Firebase faculty collection
+          const getTeacherNames = (course) => {
+            // Handle different teacher field structures
+            if (course.teachers && Array.isArray(course.teachers)) {
+              return course.teachers.map(teacher => 
+                typeof teacher === 'string' ? teacher : teacher.name
+              ).join(', ')
+            }
+            
+            if (course.teacher && Array.isArray(course.teacher)) {
+              return course.teacher.map(teacher => 
+                typeof teacher === 'string' ? teacher : teacher.name
+              ).join(', ')
+            }
+            
+            if (course.teacherIds && Array.isArray(course.teacherIds)) {
+              return course.teacherIds.map(teacherId => {
+                const teacher = teachers[teacherId]
+                return teacher || 'Unknown Teacher'
+              }).join(', ')
+            }
+            
+            if (course.staff && Array.isArray(course.staff)) {
+              return course.staff.map(staffId => {
+                const teacher = teachers[staffId]
+                return teacher || 'Unknown Teacher'
+              }).join(', ')
+            }
+            
+            // Fallback to old structure
+            if (course.teacherId) {
+              const teacher = teachers[course.teacherId]
+              return teacher || 'Unknown Teacher'
+            }
+            
+            if (course.teacher) {
+              return typeof course.teacher === 'string' ? course.teacher : course.teacher.name
+            }
+            
+            return 'No teacher assigned'
+          }
+          
+          const teacherNames = getTeacherNames(course)
           const studentCount = Array.isArray(course.students)
             ? course.students.length
             : Array.isArray(course.enrolledList)
@@ -273,7 +337,14 @@ function CoursesPage() {
                 
                 <div className="course-tile-body" style={{ position: 'relative', zIndex: 1 }}>
                   <h2 className="course-tile-title">{courseTitle}</h2>
-                  {/* All meta info removed as per user request */}
+                  <div className="course-tile-meta">
+                    <div className="course-subject">{course.subject}</div>
+                    <div className="course-grade">{course.gradeLevel || course.grade}</div>
+                    <div className="course-teacher">{getTeacherNames(course)}</div>
+                    <div className="course-enrollment">
+                      {course.enrolledStudents || 0}/{course.capacity || 25} students
+                    </div>
+                  </div>
                 </div>
                 <div className="course-tile-footer" style={{ position: 'relative', zIndex: 1 }}>
                   {[...Array(3)].map((_, i) => (
