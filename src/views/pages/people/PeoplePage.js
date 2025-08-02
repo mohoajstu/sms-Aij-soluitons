@@ -204,8 +204,8 @@ const PeoplePage = () => {
             createdAt: serverTimestamp(),
           };
         } else {
-          saveData.createdAt = serverTimestamp();
-        }
+        saveData.createdAt = serverTimestamp();
+      }
       }
       
       if (collectionName === 'admins') {
@@ -214,7 +214,7 @@ const PeoplePage = () => {
           uploadedAt: serverTimestamp(),
         };
       } else {
-        saveData.uploadedAt = serverTimestamp();
+      saveData.uploadedAt = serverTimestamp();
       }
 
       batch.set(docRef, saveData, { merge: true });
@@ -247,7 +247,7 @@ const PeoplePage = () => {
     // Update each parent's students array
     for (const parent of allParents) {
       const parentRef = doc(firestore, 'parents', parent.id);
-      const existingStudents = parent.students || [];
+        const existingStudents = parent.students || [];
       
       // Check if this student should be in this parent's students array
       const shouldBeInArray = currentParentIds.includes(parent.id);
@@ -258,12 +258,12 @@ const PeoplePage = () => {
       if (shouldBeInArray && !isCurrentlyInArray) {
         // Add student to parent's array
         const studentEntry = {
-          relationship: 'child',
+              relationship: 'child',
           studentId: studentData.id,
           studentName: `${studentData.personalInfo?.firstName || ''} ${studentData.personalInfo?.lastName || ''}`.trim(),
         };
         const updatedStudents = [...existingStudents, studentEntry];
-        batch.update(parentRef, { students: updatedStudents });
+          batch.update(parentRef, { students: updatedStudents });
         
       } else if (!shouldBeInArray && isCurrentlyInArray) {
         // Remove student from parent's array
@@ -560,7 +560,7 @@ const PeoplePage = () => {
                 </CAccordionItem>
               )}
 
-              {/* Personal Information */}
+            {/* Personal Information */}
               <CAccordionItem itemKey="personal">
                 <CAccordionHeader>Personal Information</CAccordionHeader>
                 <CAccordionBody>
@@ -589,52 +589,52 @@ const PeoplePage = () => {
                     </div>
                     <div className="col-md-3">
                       <CFormLabel>First Name *</CFormLabel>
-                      <CFormInput
-                        value={formData.personalInfo?.firstName || ''}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            personalInfo: {
-                              ...formData.personalInfo,
-                              firstName: e.target.value,
-                            },
-                          })
-                        }
+                  <CFormInput
+                    value={formData.personalInfo?.firstName || ''}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        personalInfo: {
+                          ...formData.personalInfo,
+                          firstName: e.target.value,
+                        },
+                      })
+                    }
                         required
-                      />
-                    </div>
+                  />
+                </div>
                     <div className="col-md-3">
-                      <CFormLabel>Middle Name</CFormLabel>
-                      <CFormInput
-                        value={formData.personalInfo?.middleName || ''}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            personalInfo: {
-                              ...formData.personalInfo,
-                              middleName: e.target.value,
-                            },
-                          })
-                        }
-                      />
-                    </div>
+                  <CFormLabel>Middle Name</CFormLabel>
+                  <CFormInput
+                    value={formData.personalInfo?.middleName || ''}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        personalInfo: {
+                          ...formData.personalInfo,
+                          middleName: e.target.value,
+                        },
+                      })
+                    }
+                  />
+                </div>
                     <div className="col-md-3">
                       <CFormLabel>Last Name *</CFormLabel>
-                      <CFormInput
-                        value={formData.personalInfo?.lastName || ''}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            personalInfo: {
-                              ...formData.personalInfo,
-                              lastName: e.target.value,
-                            },
-                          })
-                        }
+                  <CFormInput
+                    value={formData.personalInfo?.lastName || ''}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        personalInfo: {
+                          ...formData.personalInfo,
+                          lastName: e.target.value,
+                        },
+                      })
+                    }
                         required
-                      />
-                    </div>
-                  </div>
+                  />
+                </div>
+              </div>
                   <div className="row mb-3">
                     <div className="col-md-4">
                       <CFormLabel>Nickname</CFormLabel>
@@ -650,7 +650,7 @@ const PeoplePage = () => {
                           })
                         }
                       />
-                    </div>
+            </div>
                     <div className="col-md-4">
                       <CFormLabel>Date of Birth</CFormLabel>
                       <CFormInput
@@ -691,37 +691,37 @@ const PeoplePage = () => {
                 </CAccordionBody>
               </CAccordionItem>
 
-              {/* Contact Information */}
+            {/* Contact Information */}
               <CAccordionItem itemKey="contact">
                 <CAccordionHeader>Contact Information</CAccordionHeader>
                 <CAccordionBody>
                   <div className="row mb-3">
-                    <div className="col-md-6">
-                      <CFormLabel>Email</CFormLabel>
-                      <CFormInput
-                        type="email"
-                        value={formData.contact?.email || ''}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            contact: { ...formData.contact, email: e.target.value },
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="col-md-6">
+                <div className="col-md-6">
+                  <CFormLabel>Email</CFormLabel>
+                  <CFormInput
+                    type="email"
+                    value={formData.contact?.email || ''}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        contact: { ...formData.contact, email: e.target.value },
+                      })
+                    }
+                  />
+                </div>
+                <div className="col-md-6">
                       <CFormLabel>Primary Phone</CFormLabel>
-                      <CFormInput
-                        value={formData.contact?.phone1 || ''}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            contact: { ...formData.contact, phone1: e.target.value },
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
+                  <CFormInput
+                    value={formData.contact?.phone1 || ''}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        contact: { ...formData.contact, phone1: e.target.value },
+                      })
+                    }
+                  />
+                </div>
+              </div>
                   <div className="row mb-3">
                     <div className="col-md-6">
                       <CFormLabel>Secondary Phone</CFormLabel>
@@ -734,7 +734,7 @@ const PeoplePage = () => {
                           })
                         }
                       />
-                    </div>
+            </div>
                     <div className="col-md-6">
                       <CFormLabel>Emergency Phone</CFormLabel>
                       <CFormInput
@@ -877,8 +877,8 @@ const PeoplePage = () => {
                 </CAccordionBody>
               </CAccordionItem>
 
-              {/* Student-specific fields */}
-              {collectionName === 'students' && (
+            {/* Student-specific fields */}
+            {collectionName === 'students' && (
                 <>
                   {/* Parent Information */}
                   <CAccordionItem itemKey="parents">
@@ -886,10 +886,10 @@ const PeoplePage = () => {
                     <CAccordionBody>
                       <div className="mb-4">
                         <h6>Primary Guardian</h6>
-                        <div className="row">
-                          <div className="col-md-6">
+                <div className="row">
+                  <div className="col-md-6">
                             <CFormLabel>Primary Guardian Name</CFormLabel>
-                            <CFormInput
+                    <CFormInput
                               value={
                                 formData.parents?.mother?.tarbiyahId 
                                   ? collections.parents.find(p => p.id === formData.parents.mother.tarbiyahId)?.personalInfo
@@ -908,10 +908,10 @@ const PeoplePage = () => {
                               value={formData.parents?.mother?.tarbiyahId || ''}
                               onChange={(e) => {
                                 const selectedParent = collections.parents.find(p => p.id === e.target.value);
-                                setFormData({
-                                  ...formData,
-                                  parents: {
-                                    ...formData.parents,
+                        setFormData({
+                          ...formData,
+                          parents: {
+                            ...formData.parents,
                                     mother: {
                                       tarbiyahId: e.target.value,
                                       name: selectedParent 
@@ -948,19 +948,19 @@ const PeoplePage = () => {
                               readOnly
                               disabled
                               placeholder="Select parent to auto-populate name"
-                            />
-                          </div>
-                          <div className="col-md-6">
+                    />
+                  </div>
+                  <div className="col-md-6">
                             <CFormLabel>Secondary Guardian Tarbiyah ID</CFormLabel>
-                            <CFormSelect
+                    <CFormSelect
                               value={formData.parents?.father?.tarbiyahId || ''}
                               onChange={(e) => {
                                 const selectedParent = collections.parents.find(p => p.id === e.target.value);
-                                setFormData({
-                                  ...formData,
-                                  parents: {
-                                    ...formData.parents,
-                                    father: {
+                        setFormData({
+                          ...formData,
+                          parents: {
+                            ...formData.parents,
+                            father: {
                                       tarbiyahId: e.target.value,
                                       name: selectedParent 
                                         ? `${selectedParent.personalInfo?.firstName || ''} ${selectedParent.personalInfo?.lastName || ''}`.trim()
@@ -971,14 +971,14 @@ const PeoplePage = () => {
                               }}
                             >
                               <option value="">Select Secondary Guardian</option>
-                              {collections.parents.map((parent) => (
-                                <option key={parent.id} value={parent.id}>
-                                  {parent.personalInfo?.firstName} {parent.personalInfo?.lastName} ({parent.id})
-                                </option>
-                              ))}
-                            </CFormSelect>
-                          </div>
-                        </div>
+                      {collections.parents.map((parent) => (
+                        <option key={parent.id} value={parent.id}>
+                          {parent.personalInfo?.firstName} {parent.personalInfo?.lastName} ({parent.id})
+                        </option>
+                      ))}
+                    </CFormSelect>
+                  </div>
+                </div>
                       </div>
                     </CAccordionBody>
                   </CAccordionItem>
@@ -988,25 +988,25 @@ const PeoplePage = () => {
                     <CAccordionHeader>Schooling Information</CAccordionHeader>
                     <CAccordionBody>
                       <div className="row mb-3">
-                        <div className="col-md-6">
+                  <div className="col-md-6">
                           <CFormLabel>Program</CFormLabel>
-                          <CFormInput
+                    <CFormInput
                             value={formData.schooling?.program || ''}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
                                 schooling: { ...formData.schooling, program: e.target.value },
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="col-md-6">
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="col-md-6">
                           <CFormLabel>Returning Student Year</CFormLabel>
                           <CFormInput
                             value={formData.schooling?.returningStudentYear || ''}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
                                 schooling: { ...formData.schooling, returningStudentYear: e.target.value },
                               })
                             }
@@ -1085,13 +1085,13 @@ const PeoplePage = () => {
                                 </div>
                               </div>
                             ))}
-                          </div>
+                  </div>
                         ) : (
                           <div className="text-muted">
                             No students currently associated with this parent. Students can be assigned when creating/editing student records.
-                          </div>
+                </div>
                         )}
-                      </div>
+              </div>
                     </CAccordionBody>
                   </CAccordionItem>
 
