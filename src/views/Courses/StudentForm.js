@@ -163,6 +163,27 @@ export const StudentForm = ({ visible, onClose, onCreated }) => {
 
       await setDoc(studentRef, payload)
 
+      // Ensure a corresponding user document exists for this student
+      try {
+        const userRef = doc(firestore, 'users', docId)
+        const userDocPayload = {
+          tarbiyahId: docId,
+          role: 'Student',
+          linkedCollection: 'students',
+          active: payload.active ?? true,
+          personalInfo: {
+            firstName,
+            lastName,
+          },
+          dashboard: { theme: 'default' },
+          stats: { loginCount: 0, lastLoginAt: null },
+          createdAt: serverTimestamp(),
+        }
+        await setDoc(userRef, userDocPayload, { merge: true })
+      } catch (e) {
+        console.error('Failed to create/update users doc for student:', e)
+      }
+
       onCreated && onCreated({ id: docId, name: displayName })
       onClose()
     } catch (error) {

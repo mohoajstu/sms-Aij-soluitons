@@ -38,21 +38,24 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // Users can read their own profile
+    // Users collection
     match /users/{userId} {
-      allow read: if request.auth.uid == userId ||
-                     (
-                       isParent() &&
-                       exists(/databases/$(database)/documents/students/$(userId)) &&
-                       'parents' in get(/databases/$(database)/documents/students/$(userId)).data &&
-                       (
-                         ('father' in get(/databases/$(database)/documents/students/$(userId)).data.parents &&
-                          get(/databases/$(database)/documents/students/$(userId)).data.parents.father.tarbiyahid == request.auth.uid) ||
-                         ('mother' in get(/databases/$(database)/documents/students/$(userId)).data.parents &&
-                          get(/databases/$(database)/documents/students/$(userId)).data.parents.mother.tarbiyahid == request.auth.uid)
-                       )
-                     );
-      allow write: if request.auth.uid == userId;
+      // Admins can read any user document; users can read their own; parents can read their children's profiles
+      allow read: if isAdmin() ||
+                    request.auth.uid == userId ||
+                    (
+                      isParent() &&
+                      exists(/databases/$(database)/documents/students/$(userId)) &&
+                      'parents' in get(/databases/$(database)/documents/students/$(userId)).data &&
+                      (
+                        ('father' in get(/databases/$(database)/documents/students/$(userId)).data.parents &&
+                         get(/databases/$(database)/documents/students/$(userId)).data.parents.father.tarbiyahid == request.auth.uid) ||
+                        ('mother' in get(/databases/$(database)/documents/students/$(userId)).data.parents &&
+                         get(/databases/$(database)/documents/students/$(userId)).data.parents.mother.tarbiyahid == request.auth.uid)
+                      )
+                    );
+      // Admins can create/update/delete any user document; users can write their own
+      allow create, update, delete: if isAdmin() || request.auth.uid == userId;
     }
 
     // Rules for courses

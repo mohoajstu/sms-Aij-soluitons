@@ -68,6 +68,12 @@ const PeoplePage = () => {
   const [formData, setFormData] = useState({});
   const [toast, addToast] = useState(0);
   const toaster = useRef();
+  const [searchQueries, setSearchQueries] = useState({
+    students: '',
+    parents: '',
+    faculty: '',
+    admins: '',
+  });
 
   const successToast = (message) => (
     <CToast color="success" className="text-white align-items-center">
@@ -218,6 +224,48 @@ const PeoplePage = () => {
       }
 
       batch.set(docRef, saveData, { merge: true });
+
+      // Also create/update corresponding entry in 'users' collection for core roles
+      const isCorePersonCollection =
+        collectionName === 'students' ||
+        collectionName === 'parents' ||
+        collectionName === 'faculty' ||
+        collectionName === 'admins';
+
+      if (isCorePersonCollection) {
+        const roleMap = {
+          students: 'Student',
+          parents: 'Parent',
+          faculty: 'Faculty',
+          admins: 'Admin',
+        };
+
+        const firstName = saveData.personalInfo?.firstName || '';
+        const lastName = saveData.personalInfo?.lastName || '';
+        const userRef = doc(firestore, 'users', documentId);
+
+        const userDocPayload = {
+          tarbiyahId: documentId,
+          role: roleMap[collectionName],
+          linkedCollection: collectionName,
+          active: saveData.active !== undefined ? !!saveData.active : true,
+          personalInfo: {
+            firstName,
+            lastName,
+          },
+          dashboard: {
+            theme: 'default',
+          },
+          stats: {
+            loginCount: 0,
+            lastLoginAt: null,
+          },
+          createdAt: serverTimestamp(),
+        };
+
+        // Merge to avoid overwriting any existing custom fields
+        batch.set(userRef, userDocPayload, { merge: true });
+      }
 
       // Handle student-parent relationships
       if (collectionName === 'students' && formData.parents) {
@@ -437,6 +485,50 @@ const PeoplePage = () => {
       );
     }
 
+    const query = (searchQueries[collectionName] || '').trim();
+
+    const matchesSearch = (item) => {
+      // If query is empty, show all items.
+      if (!query) {
+        return true;
+      }
+
+      const queryLower = query.toLowerCase();
+
+      // An array to hold the string content of all VISIBLE columns for a given row.
+      const visibleColumnContents = [];
+
+      // 1. ID column
+      visibleColumnContents.push(String(item.schoolId || item.id || '').toLowerCase());
+
+      // 2. Name column
+      const fullName = `${item.personalInfo?.firstName || ''} ${item.personalInfo?.lastName || ''}`.trim();
+      visibleColumnContents.push(fullName.toLowerCase());
+
+      // 3. Email column
+      visibleColumnContents.push(String(item.contact?.email || '').toLowerCase());
+
+      // 4. Phone column (only phone1 is visible)
+      visibleColumnContents.push(String(item.contact?.phone1 || '').toLowerCase());
+
+      // 5. Parents/Children column (matches display logic exactly)
+      if (collectionName === 'students') {
+        const parentsDisplay = [
+          item.parents?.father?.name,
+          item.parents?.mother?.name,
+        ].filter(Boolean).join(', '); // Exactly as rendered
+        visibleColumnContents.push(parentsDisplay.toLowerCase());
+      } else if (collectionName === 'parents') {
+        const childrenDisplay = (item.students?.map(s => s.studentName).join(', ') || ''); // Exactly as rendered
+        visibleColumnContents.push(childrenDisplay.toLowerCase());
+      }
+
+      // The final check: does ANY of the visible content include the query?
+      return visibleColumnContents.some(content => content.includes(queryLower));
+    };
+
+    const filtered = data.filter(matchesSearch);
+
     return (
       <CTable hover responsive>
         <CTableHead>
@@ -451,7 +543,7 @@ const PeoplePage = () => {
           </CTableRow>
         </CTableHead>
         <CTableBody>
-          {data.map((item) => (
+          {filtered.map((item) => (
             <CTableRow key={item.id}>
               <CTableDataCell>{item.schoolId || item.id}</CTableDataCell>
               <CTableDataCell>
@@ -473,23 +565,24 @@ const PeoplePage = () => {
                 </CTableDataCell>
               )}
               <CTableDataCell>
-                <CButton
-                  color="primary"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleEdit(item, collectionName)}
-                  className="me-2"
-                >
-                  <CIcon icon={cilPencil} />
-                </CButton>
-                <CButton
-                  color="danger"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDelete(item, collectionName)}
-                >
-                  <CIcon icon={cilTrash} />
-                </CButton>
+                <div className="pm-actions">
+                  <CButton
+                    color="primary"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEdit(item, collectionName)}
+                  >
+                    <CIcon icon={cilPencil} />
+                  </CButton>
+                  <CButton
+                    color="danger"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(item, collectionName)}
+                  >
+                    <CIcon icon={cilTrash} />
+                  </CButton>
+                </div>
               </CTableDataCell>
             </CTableRow>
           ))}
@@ -1357,50 +1450,62 @@ const PeoplePage = () => {
   return (
     <>
       <CToaster ref={toaster} push={toast} placement="top-end" />
-      <div className="people-page">
-        <h1 className="page-title">
-          <CIcon icon={cilPeople} className="me-2" />
-          People Management
-        </h1>
-        
-        <CCard>
-          <CCardHeader>
-            <CNav variant="tabs">
-              {['students', 'parents', 'faculty', 'admins'].map((tab) => (
-                <CNavItem key={tab}>
-                  <CNavLink
-                    active={activeTab === tab}
-                    onClick={() => setActiveTab(tab)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                  </CNavLink>
-                </CNavItem>
-              ))}
-            </CNav>
-          </CCardHeader>
-          <CCardBody>
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h4>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h4>
-              <CButton
-                color="primary"
-                onClick={() => handleCreate(activeTab)}
-              >
-                <CIcon icon={cilPlus} className="me-2" />
-                Add {getSingularName(activeTab)}
-              </CButton>
-            </div>
-            
-            <CTabContent>
-              <CTabPane visible={true}>
-                {renderTable(collections[activeTab], activeTab)}
-              </CTabPane>
-            </CTabContent>
-          </CCardBody>
-        </CCard>
+      <div className="pm-wrap bg-body-tertiary d-flex flex-row align-items-start py-4">
+        <div className="container-fluid px-4">
+          <div className="row justify-content-center">
+            <div className="col-12">
+              <CCard className="pm-card">
+                <div className="pm-header">
+                  <CIcon icon={cilPeople} size="xl" />
+                  <h1 className="mb-0">People Management</h1>
+                </div>
+                <div className="pm-body">
+                  <div className="pm-segments mb-3" role="tablist" aria-label="People tabs">
+                    {['students', 'parents', 'faculty', 'admins'].map((tab) => {
+                      const isActive = activeTab === tab;
+                      return (
+                        <button
+                          key={tab}
+                          type="button"
+                          className={`pm-segment ${isActive ? 'active' : ''}`}
+                          onClick={() => setActiveTab(tab)}
+                          aria-selected={isActive}
+                        >
+                          {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                        </button>
+                      );
+                    })}
+                  </div>
 
-        {renderModal()}
+                  <div className="pm-controls">
+                    <input
+                      type="text"
+                      className="form-control pm-search"
+                      placeholder={`Search by ID, name, email, phone${
+                        activeTab === 'students' ? ', or parent name' : activeTab === 'parents' ? ', or child name' : ''
+                      }`}
+                      value={searchQueries[activeTab]}
+                      onChange={(e) => setSearchQueries({ ...searchQueries, [activeTab]: e.target.value })}
+                    />
+                    <CButton color="primary" onClick={() => handleCreate(activeTab)}>
+                      <CIcon icon={cilPlus} className="me-2" />
+                      Add {getSingularName(activeTab)}
+                    </CButton>
+                  </div>
+
+                  <div className="pm-table-container">
+                    <CTabContent>
+                      <CTabPane visible={true}>{renderTable(collections[activeTab], activeTab)}</CTabPane>
+                    </CTabContent>
+                  </div>
+                </div>
+              </CCard>
+            </div>
+          </div>
+        </div>
       </div>
+
+      {renderModal()}
     </>
   );
 };
