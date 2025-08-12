@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { doc, getDoc, updateDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, writeBatch, serverTimestamp, collection, getDocs, query, where } from 'firebase/firestore';
 import {
   CCard,
   CCardBody,
@@ -32,6 +32,8 @@ const ProfilePage = () => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [children, setChildren] = useState([]); // For parents: array of { id, data }
+  const [activeChildIdx, setActiveChildIdx] = useState(0);
   const [toast, addToast] = useState(0);
   const toaster = useRef();
 
@@ -54,22 +56,28 @@ const ProfilePage = () => {
       try {
         // First, get the user document to determine their role and linked collection
           const userRef = doc(firestore, 'users', currentUser.uid);
+          console.log('currentUser id:', currentUser.uid);
+          console.log('userRef', userRef);
         const userDoc = await getDoc(userRef);
-        
+        console.log('userDoc', userDoc);
+
         if (!userDoc.exists()) {
           console.error('User document not found');
           setLoading(false);
           return;
         }
+        
 
         const userData = userDoc.data();
         const tarbiyahId = userData.tarbiyahId || userData.schoolId || currentUser.uid; // Fallback to UID if tarbiyahId is not present
+        console.log('tarbiyahId', tarbiyahId);
         setUserData(userData);
 
         let linkedCollection;
         // The role from the user data determines the collection
         const userRoleRaw = userData.role || '';
         const userRole = userRoleRaw.toString().toLowerCase();
+        console.log('userRole', userRole);
         switch(userRole) {
           case 'faculty':
             linkedCollection = 'faculty';
@@ -97,6 +105,22 @@ const ProfilePage = () => {
           setProfileData(profileDoc.data());
       } else {
           console.error(`Profile document not found in '${linkedCollection}' with ID '${tarbiyahId}'`);
+        }
+
+        // If the user is a parent, fetch their children (students) they are linked to
+        if ((userRole || userRoleRaw).toString().toLowerCase() === 'parent') {
+          try {
+            const qFather = query(collection(firestore, 'students'), where('parents.father.tarbiyahId', '==', tarbiyahId));
+            const qMother = query(collection(firestore, 'students'), where('parents.mother.tarbiyahId', '==', tarbiyahId));
+            const [snapF, snapM] = await Promise.all([getDocs(qFather), getDocs(qMother)]);
+            const merged = new Map();
+            snapF.forEach((d) => merged.set(d.id, { id: d.id, data: d.data() }));
+            snapM.forEach((d) => merged.set(d.id, { id: d.id, data: d.data() }));
+            setChildren(Array.from(merged.values()));
+            setActiveChildIdx(0);
+          } catch (e) {
+            console.error('Failed to fetch children for parent:', e);
+          }
         }
         } catch (error) {
         console.error('Error fetching profile data:', error);
@@ -169,6 +193,19 @@ const ProfilePage = () => {
       };
 
       batch.update(userRef, userUpdate);
+
+      // If parent, also save currently selected child's changes if any edits were made in UI
+      if ((userData?.role || '').toLowerCase() === 'parent' && children.length > 0) {
+        const activeChild = children[activeChildIdx];
+        if (activeChild && activeChild.data) {
+          const childRef = doc(firestore, 'students', activeChild.id);
+          // Do not allow editing of IDs; merge everything else
+          const { id, schoolId, createdAt, uploadedAt, ...safeData } = activeChild.data;
+          // Maintain schoolId and timestamps from server
+          safeData.uploadedAt = serverTimestamp();
+          batch.set(childRef, safeData, { merge: true });
+        }
+      }
 
       await batch.commit();
       addToast(successToast);
@@ -541,6 +578,277 @@ const ProfilePage = () => {
     );
   };
 
+  // --- Parent: Children editor (full Student schema, except IDs) ---
+  const renderChildrenSection = () => {
+    if ((userData?.role || '').toLowerCase() !== 'parent') return null;
+    if (!children || children.length === 0) return null;
+
+    const child = children[activeChildIdx];
+    const childData = child?.data || {};
+
+    const setChildField = (path, value) => {
+      setChildren((prev) => {
+        const updated = [...prev];
+        const item = { ...updated[activeChildIdx] };
+        const data = { ...item.data };
+        const keys = path.split('.');
+        let cur = data;
+        for (let i = 0; i < keys.length - 1; i++) {
+          const k = keys[i];
+          cur[k] = { ...(cur[k] || {}) };
+          cur = cur[k];
+        }
+        cur[keys[keys.length - 1]] = value;
+        item.data = data;
+        updated[activeChildIdx] = item;
+        return updated;
+      });
+    };
+
+    return (
+      <CAccordionItem itemKey="children">
+        <CAccordionHeader>Children</CAccordionHeader>
+        <CAccordionBody>
+          <div className="mb-3 d-flex flex-wrap gap-2">
+            {children.map((c, idx) => (
+              <CBadge
+                key={c.id}
+                color={idx === activeChildIdx ? 'primary' : 'secondary'}
+                style={{ cursor: 'pointer' }}
+                onClick={() => setActiveChildIdx(idx)}
+              >
+                {c.data?.personalInfo?.firstName || ''} {c.data?.personalInfo?.lastName || ''} ({c.id})
+              </CBadge>
+            ))}
+          </div>
+
+          {/* Personal Info */}
+          <div className="row mb-3">
+            <div className="col-md-3">
+              <CFormLabel>Salutation</CFormLabel>
+              <CFormSelect
+                value={childData.personalInfo?.salutation || ''}
+                onChange={(e) => setChildField('personalInfo.salutation', e.target.value)}
+              >
+                <option value="">Select</option>
+                <option value="Mr.">Mr.</option>
+                <option value="Ms.">Ms.</option>
+                <option value="Mrs.">Mrs.</option>
+                <option value="Dr.">Dr.</option>
+                <option value="Prof.">Prof.</option>
+              </CFormSelect>
+            </div>
+            <div className="col-md-3">
+              <CFormLabel>First Name</CFormLabel>
+              <CFormInput
+                value={childData.personalInfo?.firstName || ''}
+                onChange={(e) => setChildField('personalInfo.firstName', e.target.value)}
+              />
+            </div>
+            <div className="col-md-3">
+              <CFormLabel>Middle Name</CFormLabel>
+              <CFormInput
+                value={childData.personalInfo?.middleName || ''}
+                onChange={(e) => setChildField('personalInfo.middleName', e.target.value)}
+              />
+            </div>
+            <div className="col-md-3">
+              <CFormLabel>Last Name</CFormLabel>
+              <CFormInput
+                value={childData.personalInfo?.lastName || ''}
+                onChange={(e) => setChildField('personalInfo.lastName', e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="row mb-3">
+            <div className="col-md-3">
+              <CFormLabel>Date of Birth</CFormLabel>
+              <CFormInput
+                type="date"
+                value={childData.personalInfo?.dob || ''}
+                onChange={(e) => setChildField('personalInfo.dob', e.target.value)}
+              />
+            </div>
+            <div className="col-md-3">
+              <CFormLabel>Gender</CFormLabel>
+              <CFormSelect
+                value={childData.personalInfo?.gender || ''}
+                onChange={(e) => setChildField('personalInfo.gender', e.target.value)}
+              >
+                <option value="">Select</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </CFormSelect>
+            </div>
+            <div className="col-md-3">
+              <CFormLabel>Nickname</CFormLabel>
+              <CFormInput
+                value={childData.personalInfo?.nickName || ''}
+                onChange={(e) => setChildField('personalInfo.nickName', e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Contact */}
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <CFormLabel>Email</CFormLabel>
+              <CFormInput
+                type="email"
+                value={childData.contact?.email || ''}
+                onChange={(e) => setChildField('contact.email', e.target.value)}
+              />
+            </div>
+            <div className="col-md-6">
+              <CFormLabel>Primary Phone</CFormLabel>
+              <CFormInput
+                value={childData.contact?.phone1 || ''}
+                onChange={(e) => setChildField('contact.phone1', e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <CFormLabel>Secondary Phone</CFormLabel>
+              <CFormInput
+                value={childData.contact?.phone2 || ''}
+                onChange={(e) => setChildField('contact.phone2', e.target.value)}
+              />
+            </div>
+            <div className="col-md-6">
+              <CFormLabel>Emergency Phone</CFormLabel>
+              <CFormInput
+                value={childData.contact?.emergencyPhone || ''}
+                onChange={(e) => setChildField('contact.emergencyPhone', e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Address */}
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <CFormLabel>Street Address</CFormLabel>
+              <CFormInput
+                value={childData.address?.streetAddress || ''}
+                onChange={(e) => setChildField('address.streetAddress', e.target.value)}
+              />
+            </div>
+            <div className="col-md-6">
+              <CFormLabel>Residential Area</CFormLabel>
+              <CFormInput
+                value={childData.address?.residentialArea || ''}
+                onChange={(e) => setChildField('address.residentialArea', e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <CFormLabel>PO Box</CFormLabel>
+              <CFormInput
+                value={childData.address?.poBox || ''}
+                onChange={(e) => setChildField('address.poBox', e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Citizenship */}
+          <div className="row mb-3">
+            <div className="col-md-4">
+              <CFormLabel>Nationality</CFormLabel>
+              <CFormInput
+                value={childData.citizenship?.nationality || ''}
+                onChange={(e) => setChildField('citizenship.nationality', e.target.value)}
+              />
+            </div>
+            <div className="col-md-4">
+              <CFormLabel>National ID</CFormLabel>
+              <CFormInput
+                value={childData.citizenship?.nationalId || ''}
+                onChange={(e) => setChildField('citizenship.nationalId', e.target.value)}
+              />
+            </div>
+            <div className="col-md-4">
+              <CFormLabel>National ID Expiry</CFormLabel>
+              <CFormInput
+                type="date"
+                value={childData.citizenship?.nationalIdExpiry || ''}
+                onChange={(e) => setChildField('citizenship.nationalIdExpiry', e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Language */}
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <CFormLabel>Primary Language</CFormLabel>
+              <CFormInput
+                value={childData.language?.primary || ''}
+                onChange={(e) => setChildField('language.primary', e.target.value)}
+              />
+            </div>
+            <div className="col-md-6">
+              <CFormLabel>Secondary Language</CFormLabel>
+              <CFormInput
+                value={childData.language?.secondary || ''}
+                onChange={(e) => setChildField('language.secondary', e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Schooling */}
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <CFormLabel>Program</CFormLabel>
+              <CFormInput
+                value={childData.schooling?.program || ''}
+                onChange={(e) => setChildField('schooling.program', e.target.value)}
+              />
+            </div>
+            <div className="col-md-6">
+              <CFormLabel>Returning Student Year</CFormLabel>
+              <CFormInput
+                value={childData.schooling?.returningStudentYear || ''}
+                onChange={(e) => setChildField('schooling.returningStudentYear', e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <CFormLabel>Day School Employer</CFormLabel>
+              <CFormInput
+                value={childData.schooling?.daySchoolEmployer || ''}
+                onChange={(e) => setChildField('schooling.daySchoolEmployer', e.target.value)}
+              />
+            </div>
+            <div className="col-md-6">
+              <CFormLabel>Notes</CFormLabel>
+              <CFormTextarea
+                rows={3}
+                value={childData.schooling?.notes || ''}
+                onChange={(e) => setChildField('schooling.notes', e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Active flag (no ID edits) */}
+          <div className="row mb-3">
+            <div className="col-md-3">
+              <CFormLabel>Status</CFormLabel>
+              <CFormSelect
+                value={childData.active ? 'true' : 'false'}
+                onChange={(e) => setChildField('active', e.target.value === 'true')}
+              >
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+              </CFormSelect>
+            </div>
+          </div>
+        </CAccordionBody>
+      </CAccordionItem>
+    );
+  };
+
   const renderAdminSection = () => {
     const roleLower = (userData?.role || '').toLowerCase();
     if (roleLower !== 'admin' && roleLower !== 'schooladmin' && roleLower !== 'school_admin') return null;
@@ -686,6 +994,7 @@ const ProfilePage = () => {
                 {renderFacultySection()}
                 {renderStudentSection()}
                 {renderParentSection()}
+                {renderChildrenSection()}
                 {renderAdminSection()}
                 {renderTimestampsSection()}
               </CAccordion>
