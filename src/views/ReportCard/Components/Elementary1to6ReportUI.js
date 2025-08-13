@@ -627,9 +627,15 @@ const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerat
       name: 'French',
       key: 'french',
       fields: [
-        'frenchESL',
-        'frenchIEP',
         'frenchNA',
+        'frenchListeningESL',
+        'frenchListeningIEP',
+        'frenchSpeakingESL',
+        'frenchSpeakingIEP',
+        'frenchReadingESL',
+        'frenchReadingIEP',
+        'frenchWritingESL',
+        'frenchWritingIEP',
         'frenchCore',
         'frenchImmersion',
         'frenchExtended',
@@ -789,41 +795,221 @@ const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerat
               {subject.fields.length > 0 && (
                 <CCol md={6}>
                   <h6 className="text-success mb-3">Accommodations</h6>
-                  <div className="d-flex flex-wrap gap-3">
-                    {subject.fields.map((field) => {
-                      // Extract accommodation type from field name
-                      let accommodationType = ''
-                      const fieldLower = field.toLowerCase()
+                  {subject.key === 'french' ? (
+                    <div>
+                      {/* NA Checkbox */}
+                      <div className="mb-3">
+                        <div className="d-flex flex-wrap gap-2">
+                          {subject.fields
+                            .filter((field) => field === 'frenchNA')
+                            .map((field) => {
+                              const label = accommodationLabels['na'] || field
+                              return (
+                                <CFormCheck
+                                  key={field}
+                                  id={field}
+                                  name={field}
+                                  label={label}
+                                  checked={formData[field] || false}
+                                  onChange={handleInputChange}
+                                  className="me-2"
+                                />
+                              )
+                            })}
+                        </div>
+                      </div>
 
-                      if (fieldLower.includes('esl')) accommodationType = 'esl'
-                      else if (fieldLower.includes('iep')) accommodationType = 'iep'
-                      else if (fieldLower.includes('na')) accommodationType = 'na'
-                      else if (
-                        fieldLower.includes('french') &&
-                        !fieldLower.includes('extended') &&
-                        !fieldLower.includes('immersion') &&
-                        !fieldLower.includes('core')
-                      )
-                        accommodationType = 'french'
-                      else if (fieldLower.includes('core')) accommodationType = 'core'
-                      else if (fieldLower.includes('immersion')) accommodationType = 'immersion'
-                      else if (fieldLower.includes('extended')) accommodationType = 'extended'
+                      {/* Listening Accommodations */}
+                      <div className="mb-3">
+                        <h6 className="text-muted small mb-2">Listening</h6>
+                        <div className="d-flex flex-wrap gap-2">
+                          {subject.fields
+                            .filter(
+                              (field) =>
+                                field === 'frenchListeningESL' || field === 'frenchListeningIEP',
+                            )
+                            .map((field) => {
+                              let accommodationType = ''
+                              const fieldLower = field.toLowerCase()
+                              if (fieldLower.includes('esl')) accommodationType = 'esl'
+                              else if (fieldLower.includes('iep')) accommodationType = 'iep'
+                              const label = accommodationLabels[accommodationType] || field
+                              return (
+                                <CFormCheck
+                                  key={field}
+                                  id={field}
+                                  name={field}
+                                  label={label}
+                                  checked={formData[field] || false}
+                                  onChange={handleInputChange}
+                                  className="me-2"
+                                />
+                              )
+                            })}
+                        </div>
+                      </div>
 
-                      const label = accommodationLabels[accommodationType] || field
+                      {/* Speaking Accommodations */}
+                      <div className="mb-3">
+                        <h6 className="text-muted small mb-2">Speaking</h6>
+                        <div className="d-flex flex-wrap gap-2">
+                          {subject.fields
+                            .filter(
+                              (field) =>
+                                field === 'frenchSpeakingESL' || field === 'frenchSpeakingIEP',
+                            )
+                            .map((field) => {
+                              let accommodationType = ''
+                              const fieldLower = field.toLowerCase()
+                              if (fieldLower.includes('esl')) accommodationType = 'esl'
+                              else if (fieldLower.includes('iep')) accommodationType = 'iep'
+                              const label = accommodationLabels[accommodationType] || field
+                              return (
+                                <CFormCheck
+                                  key={field}
+                                  id={field}
+                                  name={field}
+                                  label={label}
+                                  checked={formData[field] || false}
+                                  onChange={handleInputChange}
+                                  className="me-2"
+                                />
+                              )
+                            })}
+                        </div>
+                      </div>
 
-                      return (
-                        <CFormCheck
-                          key={field}
-                          id={field}
-                          name={field}
-                          label={label}
-                          checked={formData[field] || false}
-                          onChange={handleInputChange}
-                          className="me-3"
-                        />
-                      )
-                    })}
-                  </div>
+                      {/* Reading Accommodations */}
+                      <div className="mb-3">
+                        <h6 className="text-muted small mb-2">Reading</h6>
+                        <div className="d-flex flex-wrap gap-2">
+                          {subject.fields
+                            .filter(
+                              (field) =>
+                                field === 'frenchReadingESL' || field === 'frenchReadingIEP',
+                            )
+                            .map((field) => {
+                              let accommodationType = ''
+                              const fieldLower = field.toLowerCase()
+                              if (fieldLower.includes('esl')) accommodationType = 'esl'
+                              else if (fieldLower.includes('iep')) accommodationType = 'iep'
+                              const label = accommodationLabels[accommodationType] || field
+                              return (
+                                <CFormCheck
+                                  key={field}
+                                  id={field}
+                                  name={field}
+                                  label={label}
+                                  checked={formData[field] || false}
+                                  onChange={handleInputChange}
+                                  className="me-2"
+                                />
+                              )
+                            })}
+                        </div>
+                      </div>
+
+                      {/* Writing Accommodations */}
+                      <div className="mb-3">
+                        <h6 className="text-muted small mb-2">Writing</h6>
+                        <div className="d-flex flex-wrap gap-2">
+                          {subject.fields
+                            .filter(
+                              (field) =>
+                                field === 'frenchWritingESL' || field === 'frenchWritingIEP',
+                            )
+                            .map((field) => {
+                              let accommodationType = ''
+                              const fieldLower = field.toLowerCase()
+                              if (fieldLower.includes('esl')) accommodationType = 'esl'
+                              else if (fieldLower.includes('iep')) accommodationType = 'iep'
+                              const label = accommodationLabels[accommodationType] || field
+                              return (
+                                <CFormCheck
+                                  key={field}
+                                  id={field}
+                                  name={field}
+                                  label={label}
+                                  checked={formData[field] || false}
+                                  onChange={handleInputChange}
+                                  className="me-2"
+                                />
+                              )
+                            })}
+                        </div>
+                      </div>
+
+                      {/* Program Type Accommodations */}
+                      <div className="mb-3">
+                        <div className="d-flex flex-wrap gap-2">
+                          {subject.fields
+                            .filter(
+                              (field) =>
+                                field === 'frenchCore' ||
+                                field === 'frenchImmersion' ||
+                                field === 'frenchExtended',
+                            )
+                            .map((field) => {
+                              let accommodationType = ''
+                              const fieldLower = field.toLowerCase()
+                              if (fieldLower.includes('core')) accommodationType = 'core'
+                              else if (fieldLower.includes('immersion'))
+                                accommodationType = 'immersion'
+                              else if (fieldLower.includes('extended'))
+                                accommodationType = 'extended'
+                              const label = accommodationLabels[accommodationType] || field
+                              return (
+                                <CFormCheck
+                                  key={field}
+                                  id={field}
+                                  name={field}
+                                  label={label}
+                                  checked={formData[field] || false}
+                                  onChange={handleInputChange}
+                                  className="me-2"
+                                />
+                              )
+                            })}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="d-flex flex-wrap gap-3">
+                      {subject.fields.map((field) => {
+                        // Extract accommodation type from field name
+                        let accommodationType = ''
+                        const fieldLower = field.toLowerCase()
+
+                        if (fieldLower.includes('esl')) accommodationType = 'esl'
+                        else if (fieldLower.includes('iep')) accommodationType = 'iep'
+                        else if (fieldLower.includes('na')) accommodationType = 'na'
+                        else if (
+                          fieldLower.includes('french') &&
+                          !fieldLower.includes('extended') &&
+                          !fieldLower.includes('immersion') &&
+                          !fieldLower.includes('core')
+                        )
+                          accommodationType = 'french'
+                        else if (fieldLower.includes('core')) accommodationType = 'core'
+                        else if (fieldLower.includes('immersion')) accommodationType = 'immersion'
+                        else if (fieldLower.includes('extended')) accommodationType = 'extended'
+
+                        const label = accommodationLabels[accommodationType] || field
+
+                        return (
+                          <CFormCheck
+                            key={field}
+                            id={field}
+                            name={field}
+                            label={label}
+                            checked={formData[field] || false}
+                            onChange={handleInputChange}
+                            className="me-3"
+                          />
+                        )
+                      })}
+                    </div>
+                  )}
                 </CCol>
               )}
 
