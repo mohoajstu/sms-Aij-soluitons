@@ -1,13 +1,8 @@
-import React from 'react';
-import Elementary1to6ProgressUI from '../Components/Elementary1to6ProgressUI';
+import React from 'react'
+import ReportCard from '../utils'
 
 const Elementary1to6ProgressPage = () => {
-  return (
-    <div>
-      <h1 className="text-3xl font-bold text-center my-8">Elementary Progress Report (1-6)</h1>
-      <Elementary1to6ProgressUI />
-    </div>
-  );
-};
+  return <ReportCard presetReportCardId="1-6-progress" />
+}
 
-export default Elementary1to6ProgressPage; 
+export default Elementary1to6ProgressPage
