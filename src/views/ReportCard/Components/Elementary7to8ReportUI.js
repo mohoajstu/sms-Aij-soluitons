@@ -453,28 +453,6 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange, onGenerate, isGe
           </div>
         </CCol>
       </CRow>
-
-      {/* Board Information */}
-      <CRow className="mt-3">
-        <CCol md={12}>
-          <div className="mb-3">
-            <CFormLabel htmlFor="boardInfo">
-              <CIcon icon={cilSchool} className="me-2" />
-              Board Information
-            </CFormLabel>
-            <AICommentField
-              name="boardInfo"
-              value={formData.boardInfo || ''}
-              onChange={handleInputChange}
-              placeholder="Enter board information..."
-              rows={3}
-              isGenerating={isGenerating}
-              onGenerate={onGenerate}
-              maxLength={500}
-            />
-          </div>
-        </CCol>
-      </CRow>
     </div>
   )
 }
@@ -499,22 +477,42 @@ const LearningSkillsSection = ({ formData, onFormDataChange, onGenerate, isGener
 
   const learningSkills = [
     {
-      key: 'responsibility',
+      key: 'reponsibility1',
       label: 'Responsibility',
       description: 'Fulfills responsibilities and commitments within the learning environment',
     },
     {
-      key: 'organization',
+      key: 'responsibility2',
+      label: 'Responsibility',
+      description: 'Fulfills responsibilities and commitments within the learning environment',
+    },
+    {
+      key: 'organization1',
       label: 'Organization',
       description: 'Devises and applies a plan of work to complete projects and tasks',
     },
     {
-      key: 'independentWork',
+      key: 'organization2',
+      label: 'Organization',
+      description: 'Devises and applies a plan of work to complete projects and tasks',
+    },
+    {
+      key: 'independentWork1',
       label: 'Independent Work',
       description: 'Accepts various roles and an equitable share of work in a group',
     },
     {
-      key: 'collaboration',
+      key: 'independentWork2',
+      label: 'Independent Work',
+      description: 'Accepts various roles and an equitable share of work in a group',
+    },
+    {
+      key: 'collaboration1',
+      label: 'Collaboration',
+      description: 'Responds positively to the ideas, opinions, values, and traditions of others',
+    },
+    {
+      key: 'collaboration2',
       label: 'Collaboration',
       description: 'Responds positively to the ideas, opinions, values, and traditions of others',
     },
@@ -524,7 +522,17 @@ const LearningSkillsSection = ({ formData, onFormDataChange, onGenerate, isGener
       description: 'Looks for and acts on new ideas and opportunities for learning',
     },
     {
-      key: 'selfRegulation',
+      key: 'initiative2',
+      label: 'Initiative',
+      description: 'Looks for and acts on new ideas and opportunities for learning',
+    },
+    {
+      key: 'selfRegulation1',
+      label: 'Self-Regulation',
+      description: 'Sets own individual goals and monitors progress towards achieving them',
+    },
+    {
+      key: 'selfRegulation2',
       label: 'Self-Regulation',
       description: 'Sets own individual goals and monitors progress towards achieving them',
     },
@@ -587,13 +595,13 @@ const LearningSkillsSection = ({ formData, onFormDataChange, onGenerate, isGener
       <CRow className="mt-4">
         <CCol md={12}>
           <div className="mb-3">
-            <CFormLabel htmlFor="strengthAndNextStepsForImprovement">
+            <CFormLabel htmlFor="strengthsAndNextStepsForImprovment">
               <CIcon icon={cilLightbulb} className="me-2" />
               Strengths and Next Steps for Improvement
             </CFormLabel>
             <AICommentField
-              name="strengthAndNextStepsForImprovement"
-              value={formData.strengthAndNextStepsForImprovement || ''}
+              name="strengthsAndNextStepsForImprovment"
+              value={formData.strengthsAndNextStepsForImprovment || ''}
               onChange={handleInputChange}
               placeholder="Describe the student's strengths in learning skills and work habits, and identify specific next steps for improvement..."
               rows={6}
@@ -638,107 +646,178 @@ const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerat
       name: 'Language',
       key: 'language',
       fields: ['languageESL', 'languageIEP', 'languageNA'],
-      markFields: ['languageMarkReport1', 'languageMarkReport2'],
-      commentField: 'languageStrengthAndNextStepsForImprovement',
+      markFields: [
+        'languageMarkReport1',
+        'languageMedianReport1',
+        'languageMarkReport2',
+        'languageMedianReport2',
+      ],
+      commentField: 'languageStrengthsAndStepsForImprovement',
     },
     {
       name: 'French',
       key: 'french',
       fields: [
-        'frenchESL',
-        'frenchIEP',
         'frenchNA',
+        'frenchListeningESL',
+        'frenchListeningIEP',
+        'frenchSpeakingESL',
+        'frenchSpeakingIEP',
+        'frenchReadingESL',
+        'frenchReadingIEP',
+        'frenchWritingESL',
+        'frenchWritingIEP',
         'frenchCore',
         'frenchImmersion',
         'frenchExtended',
       ],
       markFields: [
         'frenchListeningMarkReport1',
+        'frenchListeningMedianReport1',
         'frenchListeningMarkReport2',
+        'frenchListeningMedianReport2',
         'frenchSpeakingMarkReport1',
+        'frenchSpeakingMedianReport1',
         'frenchSpeakingMarkReport2',
+        'frenchSpeakingMedianReport2',
         'frenchReadingMarkReport1',
+        'frenchReadingMedianReport1',
         'frenchReadingMarkReport2',
+        'frenchReadingMedianReport2',
         'frenchWritingMarkReport1',
+        'frenchWritingMedianReport1',
         'frenchWritingMarkReport2',
+        'frenchWritingMedianReport2',
       ],
-      commentField: 'frenchStrengthAndNextStepsForImprovement',
+      commentField: 'frenchStrengthsAndNextStepsForImprovement',
     },
     {
       name: 'Native Language',
       key: 'nativeLanguage',
       fields: ['nativeLanguageESL', 'nativeLanguageIEP', 'nativeLanguageNA'],
-      markFields: ['nativeLanguageMarkReport1', 'nativeLanguageMarkReport2'],
-      commentField: 'nativeLanguageStrengthAndNextStepsForImprovement',
+      markFields: [
+        'nativeLanguageMarkReport1',
+        'nativeLanguageMedianReport1',
+        'nativeLanguageMarkReport2',
+        'nativeLanguageMedianReport2',
+      ],
+      commentField: 'nativeLanguageStrengthsAndNextStepsForImprovement',
     },
     {
       name: 'Mathematics',
       key: 'math',
       fields: ['mathESL', 'mathIEP', 'mathFrench'],
-      markFields: ['mathMarkReport1', 'mathMarkReport2'],
+      markFields: ['mathMarkReport1', 'mathMedianReport1', 'mathMarkReport2', 'mathMedianReport2'],
       commentField: 'mathStrengthAndNextStepsForImprovement',
     },
     {
       name: 'Science',
       key: 'science',
       fields: ['scienceESL', 'scienceIEP', 'scienceFrench'],
-      markFields: ['scienceMarkReport1', 'scienceMarkReport2'],
-      commentField: 'scienceAndNextStepsForImprovement',
+      markFields: [
+        'scienceMarkReport1',
+        'scienceMedianReport1',
+        'scienceMarkReport2',
+        'scienceMedianReport2',
+      ],
+      commentField: 'scienceStrengthsAndNextStepsForImprovement',
     },
     {
-      name: 'Social Studies',
-      key: 'socialStudies',
-      fields: ['socialStudiesESL', 'socialStudiesIEP', 'socialStudiesFrench'],
-      markFields: ['socialStudiesMarkReport1', 'socialStudiesMarkReport2'],
-      commentField: 'socialStudiesStrengthAndNextStepsForImprovement',
+      name: 'History',
+      key: 'history',
+      fields: ['historyESL', 'historyIEP', 'historyFrench', 'historyNA'],
+      markFields: [
+        'historyMarkReport1',
+        'historyMedianReport1',
+        'historyMarkReport2',
+        'historyMedianReport2',
+      ],
+      commentField: 'historyStrengthsAndNextStepsForImprovement',
+    },
+    {
+      name: 'Geography',
+      key: 'geography',
+      fields: ['geographyESL', 'geographyIEP', 'geographyFrench', 'geographyNA'],
+      markFields: [
+        'geographyMarkReport1',
+        'geographyMedianReport1',
+        'geographyMarkReport2',
+        'geographyMedianReport2',
+      ],
+      commentField: 'geographyStrengthsAndNextStepsForImprovement',
     },
     {
       name: 'Health Education',
       key: 'healthEd',
       fields: ['healthEdESL', 'healthEdIEP', 'healthEdFrench'],
-      markFields: ['healthMarkReport1', 'healthMarkReport2'],
+      markFields: [
+        'healthEdMarkReport1',
+        'healthEdMedianReport1',
+        'healthEdMarkReport2',
+        'healthEdMedianReport2',
+      ],
       commentField: 'healthAndPEStrengthsAndNextStepsForImprovement',
     },
     {
       name: 'Physical Education',
       key: 'pe',
       fields: ['peESL', 'peIEP', 'peFrench'],
-      markFields: ['peMarkReport1', 'peMarkReport2'],
+      markFields: ['peMarkReport1', 'peMedianReport1', 'peMarkReport2', 'peMedianReport2'],
       commentField: 'healthAndPEStrengthsAndNextStepsForImprovement',
     },
     {
       name: 'Dance',
       key: 'dance',
-      fields: ['danceESL', 'danceIEP', 'danceFrench', 'danceNA'],
-      markFields: ['danceMarkReport1', 'danceMarkReport2'],
-      commentField: 'artsStrengthAndNextStepsForImprovement',
+      fields: ['danceESL', 'danceFrench', 'danceIEP', 'danceNA'],
+      markFields: [
+        'danceMarkReport1',
+        'danceMedianReport1',
+        'danceMarkReport2',
+        'danceMedianReport2',
+      ],
+      commentField: 'artsStrengthsAndNextStepsForImprovement',
     },
     {
       name: 'Drama',
       key: 'drama',
-      fields: ['dramaESL', 'dramaIEP', 'dramaFrench', 'dramaNA'],
-      markFields: ['dramaMarkReport1', 'dramaMarkReport2'],
-      commentField: 'artsStrengthAndNextStepsForImprovement',
+      fields: ['dramaESL', 'dramaFrench', 'drama', 'dramaNA'],
+      markFields: [
+        'dramaMarkReport1',
+        'dramaMedianReport1',
+        'dramaMarkReport2',
+        'dramaMedianReport2',
+      ],
+      commentField: 'artsStrengthsAndNextStepsForImprovement',
     },
     {
       name: 'Music',
       key: 'music',
-      fields: ['musicESL', 'musicIEP', 'musicFrench', 'musicNA'],
-      markFields: ['musicMarkReport1', 'musicMarkReport2'],
-      commentField: 'artsStrengthAndNextStepsForImprovement',
+      fields: ['musicESL', 'musicFrench', 'musicIEP', 'musicNA'],
+      markFields: [
+        'musicMarkReport1',
+        'musicMedianReport1',
+        'musicMarkReport2',
+        'musicMedianReport2',
+      ],
+      commentField: 'artsStrengthsAndNextStepsForImprovement',
     },
     {
       name: 'Visual Arts',
       key: 'visualArts',
       fields: ['visualArtsESL', 'visualArtsIEP', 'visualArtsFrench', 'visualArtsNA'],
-      markFields: ['visualArtsMarkReport1', 'visualArtsMarkReport2'],
-      commentField: 'artsStrengthAndNextStepsForImprovement',
+      markFields: [
+        'visualArtsMarkReport1',
+        'visualArtsMedianReport1',
+        'visualArtsMarkReport2',
+        'visualArtsMedianReport2',
+      ],
+      commentField: 'artsStrengthsAndNextStepsForImprovement',
     },
     {
       name: 'Other',
       key: 'other',
-      fields: ['otherESL', 'otherIEP', 'otherFrench', 'otherNA'],
-      markFields: ['otherMarkReport1', 'otherMarkReport2'],
+      fields: ['otherESL', 'otherFrench', 'otherIEP', 'otherNA'],
+      markFields: ['otherMarkReport1', 'otherMedianReport2'],
       commentField: 'otherStrengthAndNextStepsForImprovement',
     },
   ]
@@ -987,7 +1066,7 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange, onGenerate, isG
                 title="Teacher's Signature"
                 onSignatureChange={(value) => {
                   console.log('Teacher signature changed:', value)
-                  onFormDataChange({ ...formData, Signature_1: value })
+                  onFormDataChange({ ...formData, teacherSignature: value })
                 }}
               />
             </CCol>
@@ -996,7 +1075,7 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange, onGenerate, isG
                 title="Principal's Signature"
                 onSignatureChange={(value) => {
                   console.log('Principal signature changed:', value)
-                  onFormDataChange({ ...formData, principlesignature: value })
+                  onFormDataChange({ ...formData, principalSignature: value })
                 }}
               />
             </CCol>
@@ -1044,16 +1123,12 @@ const Elementary7to8ReportUI = ({ formData, onFormDataChange, loading = false, e
       const studentName = formData.student || 'The student'
       let generatedText = `Based on observations, ${studentName} demonstrates strong organizational skills and consistently completes assignments on time. A key area for growth is developing greater independence during group activities. Next steps should focus on encouraging ${studentName} to take initiative in collaborative settings and persevere through challenging tasks with minimal guidance.`
 
-      if (fieldName === 'strengthAndNextStepsForImprovement') {
+      if (fieldName === 'strengthsAndNextStepsForImprovment') {
         generatedText = `Strengths: ${studentName} shows excellent responsibility in completing homework and demonstrates good collaboration skills when working with peers. The student is organized and follows classroom routines effectively. Next Steps: Continue to support ${studentName} in developing greater initiative during independent work periods and building confidence in taking on leadership roles within group activities.`
       }
 
       if (fieldName === 'boardSpace') {
         generatedText = `Additional Comments: ${studentName} has shown consistent growth throughout this reporting period. The student demonstrates a positive attitude toward learning and actively participates in classroom discussions. Areas for continued development include strengthening independent work habits and building confidence in taking academic risks. Overall, ${studentName} is making excellent progress and should continue to be encouraged in their learning journey.`
-      }
-
-      if (fieldName === 'boardInfo') {
-        generatedText = `Board Information: This report card is issued by the school board in accordance with Ontario Ministry of Education guidelines. The board provides ongoing support for student achievement and well-being through comprehensive educational programs and services.`
       }
 
       // Generate subject-specific comments
@@ -1115,12 +1190,7 @@ const Elementary7to8ReportUI = ({ formData, onFormDataChange, loading = false, e
           <CAccordionItem itemKey="student-info">
             <CAccordionHeader>Student & School Information</CAccordionHeader>
             <CAccordionBody>
-              <StudentSchoolInfoSection
-                formData={formData}
-                onFormDataChange={onFormDataChange}
-                onGenerate={handleAIGenerate}
-                isGenerating={generatingFields.has('boardInfo')}
-              />
+              <StudentSchoolInfoSection formData={formData} onFormDataChange={onFormDataChange} />
             </CAccordionBody>
           </CAccordionItem>
 
@@ -1131,7 +1201,7 @@ const Elementary7to8ReportUI = ({ formData, onFormDataChange, loading = false, e
                 formData={formData}
                 onFormDataChange={onFormDataChange}
                 onGenerate={handleAIGenerate}
-                isGenerating={generatingFields.has('strengthAndNextStepsForImprovement')}
+                isGenerating={generatingFields.has('strengthsAndNextStepsForImprovment')}
               />
             </CAccordionBody>
           </CAccordionItem>

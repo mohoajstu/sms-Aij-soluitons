@@ -33,7 +33,6 @@ const PDFViewer = React.memo(
     const retryTimeoutRef = useRef(null)
     const fillPdfTimeoutRef = useRef(null)
     const latestFormData = useRef(formData)
-    const [pdfFields, setPdfFields] = useState([]) // Add state for PDF fields
 
     // Auto-retry configuration
     const MAX_RETRIES = 3
@@ -278,32 +277,6 @@ const PDFViewer = React.memo(
           const form = pdfDoc.getForm()
           const fields = form.getFields()
 
-          // Store all field names in state for UI display
-          const allPdfFieldNames = fields.map((field) => ({
-            name: field.getName(),
-            type: field.constructor.name,
-          }))
-          setPdfFields(allPdfFieldNames)
-
-          // Only log field details in debug mode
-          const isDebugMode = true // Temporarily enable debug mode to see all fields
-          // const isDebugMode = localStorage.getItem('pdfDebug') === 'true'
-
-          if (isDebugMode) {
-            console.log('--- PDF Form Field Debug Mode ---')
-            // Show as table for better viewing
-            console.table(allPdfFieldNames)
-
-            // Also log each field individually to ensure no truncation
-            console.log('=== ALL PDF FIELD NAMES (INDIVIDUAL LOGS) ===')
-            allPdfFieldNames.forEach((field, index) => {
-              console.log(`Field ${index + 1}: ${field.name} (${field.type})`)
-            })
-            console.log(`=== TOTAL FIELDS: ${allPdfFieldNames.length} ===`)
-
-            console.log('---------------------------------')
-          }
-
           // Embed the "Dancing Script" font for any potential text operations, though we prefer stamping images
           // This is a fallback and good practice.
           let dancingScriptFont
@@ -511,9 +484,7 @@ const PDFViewer = React.memo(
                   }
                 }
               } catch (error) {
-                if (isDebugMode) {
-                  console.warn(`PDFViewer: Error trying field ${fieldName}:`, error.message)
-                }
+                console.warn(`PDFViewer: Error trying field ${fieldName}:`, error.message)
               }
             }
 
@@ -598,8 +569,8 @@ const PDFViewer = React.memo(
             console.warn('Could not add TLA logo:', logoError)
           }
 
-          // Only log unmatched fields if in debug mode or if there are many unmatched
-          if (isDebugMode || unmatchedFormData.length > 5) {
+          // Only log unmatched fields if there are many unmatched
+          if (unmatchedFormData.length > 5) {
             console.warn(`PDFViewer: Unmatched form data keys:`, unmatchedFormData)
           }
 
@@ -1627,36 +1598,6 @@ const PDFViewer = React.memo(
 
     return (
       <div className={`pdf-viewer-container ${className}`}>
-        {/* Debug Button */}
-        <div className="mb-3">
-          <CButton
-            color="info"
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              const url = new URL(window.location)
-              url.searchParams.set('debug', 'fields')
-              window.location.href = url.toString()
-            }}
-          >
-            Show PDF Field Names (Debug)
-          </CButton>
-        </div>
-
-        {/* PDF Field Names Display */}
-        {pdfFields.length > 0 && (
-          <div className="mb-3 p-3 border rounded bg-light">
-            <h6>All PDF Field Names ({pdfFields.length} total):</h6>
-            <div style={{ maxHeight: '300px', overflowY: 'auto', fontSize: '12px' }}>
-              {pdfFields.map((field, index) => (
-                <div key={index} className="mb-1">
-                  <strong>{index + 1}.</strong> {field.name} <em>({field.type})</em>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* PDF Controls */}
         <div
           className="pdf-controls"

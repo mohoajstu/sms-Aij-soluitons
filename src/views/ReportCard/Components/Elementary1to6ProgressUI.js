@@ -919,13 +919,13 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange, onGenerate, isG
       <CRow className="mb-4">
         <CCol md={12}>
           <div className="mb-3">
-            <CFormLabel htmlFor="boardSpace">
+            <CFormLabel htmlFor="strengthsAndNextStepsForImprovements2">
               <CIcon icon={cilLightbulb} className="me-2" />
               Additional Comments
             </CFormLabel>
             <AICommentField
-              name="boardSpace"
-              value={formData.boardSpace || ''}
+              name="strengthsAndNextStepsForImprovements2"
+              value={formData.strengthsAndNextStepsForImprovements2 || ''}
               onChange={handleInputChange}
               placeholder="Provide any additional comments about the student's progress, achievements, or areas for improvement..."
               rows={4}
@@ -959,7 +959,7 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange, onGenerate, isG
                 title="Teacher's Signature"
                 onSignatureChange={(value) => {
                   console.log('Teacher signature changed:', value)
-                  onFormDataChange({ ...formData, Number_2: value })
+                  onFormDataChange({ ...formData, teachersignature: value })
                 }}
               />
             </CCol>
@@ -1027,10 +1027,6 @@ const Elementary1to6ProgressUI = ({
 
       if (fieldName === 'strengthsAndNextStepsForImprovements2') {
         generatedText = `Academic Performance: ${studentName} demonstrates strong foundational skills across core subjects. The student shows particular strength in mathematics and science, consistently applying problem-solving strategies effectively. Areas for continued growth include developing more detailed written responses in language arts and social studies. Next Steps: Focus on expanding vocabulary usage in written work and encouraging deeper analysis of social studies concepts.`
-      }
-
-      if (fieldName === 'boardSpace') {
-        generatedText = `Additional Comments: ${studentName} has shown consistent growth throughout this reporting period. The student demonstrates a positive attitude toward learning and actively participates in classroom discussions. Areas for continued development include strengthening independent work habits and building confidence in taking academic risks. Overall, ${studentName} is making excellent progress and should continue to be encouraged in their learning journey.`
       }
 
       if (fieldName === 'text_1') {
@@ -1119,7 +1115,7 @@ const Elementary1to6ProgressUI = ({
                 formData={formData}
                 onFormDataChange={onFormDataChange}
                 onGenerate={handleAIGenerate}
-                isGenerating={generatingFields.has('boardSpace')}
+                isGenerating={generatingFields.has('strengthsAndNextStepsForImprovements2')}
               />
             </CAccordionBody>
           </CAccordionItem>
