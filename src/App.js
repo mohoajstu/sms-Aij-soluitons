@@ -16,6 +16,7 @@ const PrivacyPolicy = React.lazy(() => import('./views/pages/privacyPolicy/Priva
 const TermsOfService = React.lazy(() => import('./views/pages/termsOfService/TermsOfService'))
 const ParentLogin = React.lazy(() => import('./views/pages/login/ParentLogin'))
 const StaffLogin = React.lazy(() => import('./views/pages/login/StaffLogin'))
+const ReportCardTabs = React.lazy(() => import('./views/ReportCard/ReportCardTabs'))
 
 const App = () => {
   const { user, loading } = useAuth()
@@ -62,8 +63,14 @@ const App = () => {
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
-          <Route path="/login/parent" element={user ? <Navigate to="/" replace /> : <ParentLogin />} />
-          <Route path="/login/staff" element={user ? <Navigate to="/" replace /> : <StaffLogin />} />
+          <Route
+            path="/login/parent"
+            element={user ? <Navigate to="/" replace /> : <ParentLogin />}
+          />
+          <Route
+            path="/login/staff"
+            element={user ? <Navigate to="/" replace /> : <StaffLogin />}
+          />
           <Route path="/register" element={<Register />} />
           <Route path="/home" element={<Home />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
@@ -74,8 +81,11 @@ const App = () => {
           {/* Protected Routes */}
           <Route path="/*" element={user ? <DefaultLayout /> : <Navigate to="/home" replace />} />
 
-          {/* Report Card Routes (disabled) */}
-          {/* <Route path="/reportcards" element={user ? <ReportCardPage /> : <Navigate to="/login" replace />} /> */}
+          {/* Report Card Routes */}
+          <Route
+            path="/reportcards"
+            element={user ? <ReportCardTabs /> : <Navigate to="/login" replace />}
+          />
 
           {/* Redirect unmatched routes */}
           <Route path="*" element={<Navigate to={user ? '/' : '/home'} replace />} />
