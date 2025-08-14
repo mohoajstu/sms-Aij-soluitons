@@ -14,7 +14,7 @@ import useAuth from '../../Firebase/useAuth'
 const ReportCardTabs = () => {
   // 0 = generator, 1 = archive
   const [activeTab, setActiveTab] = useState(0)
-  const { role } = useAuth()
+  const { role, user } = useAuth()
 
   return (
     <div className="rc-container">
@@ -51,4 +51,4 @@ const ReportCardTabs = () => {
   )
 }
 
-export default ReportCardTabs 
+export default ReportCardTabs

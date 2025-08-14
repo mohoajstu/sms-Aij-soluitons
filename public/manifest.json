@@ -1,15 +1,25 @@
 {
-  "short_name": "CoreUI-React",
-  "name": "CoreUI-React sample",
+  "short_name": "TLA SMS",
+  "name": "Tarbiyah Learning Academy School Management System",
+  "description": "Comprehensive school management system for Tarbiyah Learning Academy. Manage student records, academic progress, parent-teacher communication, and administrative functions.",
   "icons": [
     {
-      "src": "./assets/img/favicon.png",
-      "sizes": "100x100",
-      "type": "image/png"
+      "src": "/src/assets/brand/TLA_logo_simple.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/src/assets/brand/TLA_logo_simple.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
     }
   ],
-  "start_url": ".",
+  "start_url": "/home",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#667eea",
+  "background_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "categories": ["education", "productivity"],
+  "lang": "en",
+  "dir": "ltr"
 }
