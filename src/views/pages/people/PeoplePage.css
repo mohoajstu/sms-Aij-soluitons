@@ -1,0 +1,339 @@
+.people-page {
+  background-color: #f8fafc;
+  min-height: 100vh;
+}
+
+.page-title {
+  font-size: 1.875rem;
+  font-weight: bold;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  color: #0f172a;
+}
+
+.people-tabs {
+  margin-bottom: 1rem;
+}
+
+.people-tab-content {
+  min-height: 400px;
+}
+
+.create-button {
+  margin-bottom: 1rem;
+}
+
+.table-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* Dark header styling for cards */
+.people-card {
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.people-card-header {
+  background-color: #0f172a;
+  color: white;
+  padding: 1.5rem;
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+}
+
+.people-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.people-card-subtitle {
+  color: #cbd5e1;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+}
+
+.people-card-body {
+  padding: 2rem;
+  background-color: white;
+}
+
+/* Search bar styling */
+.search-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.search-input {
+  width: 250px;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Table styling */
+.people-table {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.people-table-container {
+  max-height: 60vh;
+  overflow: auto;
+}
+
+/* New dark, thick theme aligned with Register page */
+.pm-wrap {
+  min-height: 100vh;
+}
+
+.pm-card {
+  border: none;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.12);
+}
+
+.pm-header {
+  background-color: #0f172a; /* Slate-900 */
+  color: #ffffff;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pm-header h1 {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 700;
+}
+
+.pm-body {
+  background-color: #ffffff;
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+/* Segmented control style tabs */
+.pm-segments {
+  display: inline-flex;
+  gap: 0.5rem;
+  background: #f1f5f9;
+  padding: 0.375rem;
+  border-radius: 0.5rem;
+}
+
+.pm-segment {
+  border: 1px solid transparent;
+  background: transparent;
+  color: #334155;
+  padding: 0.5rem 0.9rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+}
+
+.pm-segment.active {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.pm-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.pm-search {
+  max-width: 460px;
+}
+
+.pm-table-container {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  max-height: 70vh;
+  overflow: auto;
+}
+
+.people-table th {
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  font-weight: 600;
+  color: #0f172a;
+  padding: 1rem;
+}
+
+.people-table td {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 1rem;
+  vertical-align: middle;
+}
+
+.people-table tr:hover {
+  background-color: #f8fafc;
+}
+
+/* Action buttons styling */
+.action-buttons-container {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.action-button {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.2s;
+}
+
+.action-button-edit {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.action-button-edit:hover {
+  background-color: #2563eb;
+}
+
+.action-button-delete {
+  background-color: #ef4444;
+  color: white;
+}
+
+.action-button-delete:hover {
+  background-color: #dc2626;
+}
+
+.modal-section {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.modal-section h5 {
+  margin-bottom: 1rem;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.form-field {
+  flex: 1;
+}
+
+.relationship-badge {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: #64748b;
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+/* Align action buttons side by side with consistent spacing */
+.pm-actions {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.parent-info {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.student-list {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.collection-stats {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.stat-item {
+  text-align: center;
+  flex: 1;
+}
+
+.stat-number {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #0f172a;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+} 
