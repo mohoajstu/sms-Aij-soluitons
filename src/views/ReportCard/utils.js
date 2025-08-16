@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   CContainer,
   CRow,
@@ -14,26 +14,30 @@ import {
   CNavLink,
   CTabContent,
   CTabPane,
-  CFormSelect
-} from '@coreui/react';
-import CIcon from '@coreui/icons-react';
-import { cilDescription, cilCloudDownload, cilHistory } from '@coreui/icons';
-import { saveAs } from 'file-saver';
+  CFormSelect,
+} from '@coreui/react'
+import CIcon from '@coreui/icons-react'
+import { cilDescription, cilCloudDownload, cilHistory } from '@coreui/icons'
+import { saveAs } from 'file-saver'
 
-import PDFViewer from './Components/PDFViewer';
-import KindergartenInitialUI from './Components/KindergartenInitialUI';
-import KindergartenReportUI from './Components/KindergartenReportUI';
-import PDFFieldInspector from './Components/PDFFieldInspector';
-import "./ReportCard.css";
-import "./ModernReportCard.css";
-import { PDFDocument } from 'pdf-lib';
-import DynamicReportCardForm from './Components/DynamicReportCardForm';
-import { useNavigate } from 'react-router-dom';
+import PDFViewer from './Components/PDFViewer'
+import KindergartenInitialUI from './Components/KindergartenInitialUI'
+import KindergartenReportUI from './Components/KindergartenReportUI'
+import Elementary1to6ProgressUI from './Components/Elementary1to6ProgressUI'
+import Elementary1to6ReportUI from './Components/Elementary1to6ReportUI'
+import Elementary7to8ProgressUI from './Components/Elementary7to8ProgressUI'
+import Elementary7to8ReportUI from './Components/Elementary7to8ReportUI'
+import PDFFieldInspector from './Components/PDFFieldInspector'
+import './ReportCard.css'
+import './ModernReportCard.css'
+import { PDFDocument } from 'pdf-lib'
+import DynamicReportCardForm from './Components/DynamicReportCardForm'
+import { useNavigate } from 'react-router-dom'
 // Firebase Storage & Firestore
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { storage, firestore } from '../../Firebase/firebase';
-import useAuth from '../../Firebase/useAuth';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { storage, firestore } from '../../Firebase/firebase'
+import useAuth from '../../Firebase/useAuth'
 
 // NOTE: All PDF assets are served from the public folder so we can access them by URL at runtime.
 // The folder name is "ReportCards" (no space).
@@ -60,6 +64,7 @@ export const REPORT_CARD_TYPES = [
     pdfPath: '/assets/ReportCards/1-6-edu-elementary-progress-report-card-public-schools.pdf',
     description: 'Elementary progress report card for grades 1-6',
     route: '/reportcards/1-6-progress',
+    uiComponent: 'Elementary1to6ProgressUI',
   },
   {
     id: '1-6-report-card',
@@ -67,6 +72,7 @@ export const REPORT_CARD_TYPES = [
     pdfPath: '/assets/ReportCards/1-6-edu-elementary-provincial-report-card-public-schools.pdf',
     description: 'Elementary provincial report card for grades 1-6',
     route: '/reportcards/1-6-report',
+    uiComponent: 'Elementary1to6ReportUI',
   },
   {
     id: '7-8-progress',
@@ -74,6 +80,7 @@ export const REPORT_CARD_TYPES = [
     pdfPath: '/assets/ReportCards/7-8-edu-elementary-progress-report-card-public-schools.pdf',
     description: 'Elementary progress report card for grades 7-8',
     route: '/reportcards/7-8-progress',
+    uiComponent: 'Elementary7to8ProgressUI',
   },
   {
     id: '7-8-report-card',
@@ -81,8 +88,9 @@ export const REPORT_CARD_TYPES = [
     pdfPath: '/assets/ReportCards/7-8-edu-elementary-provincial-report-card-public-schools.pdf',
     description: 'Elementary provincial report card for grades 7-8',
     route: '/reportcards/7-8-report',
+    uiComponent: 'Elementary7to8ReportUI',
   },
-];
+]
 
 // Define the structure of our form data with JSDoc
 /**
@@ -118,26 +126,26 @@ export const REPORT_CARD_TYPES = [
 // Accept an optional presetReportCardId. If provided the dropdown is hidden and the supplied
 // template will be used immediately. This lets us reuse this component inside wrapper pages.
 const ReportCard = ({ presetReportCardId = null }) => {
-  const [selectedReportCard, setSelectedReportCard] = useState(presetReportCardId || '');
-  const [formData, setFormData] = useState({});
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [fields, setFields] = useState([]);
-  const [filledPdfBytes, setFilledPdfBytes] = useState(null);
-  const [currentTab, setCurrentTab] = useState('form');
-  const [showFieldInspector, setShowFieldInspector] = useState(false);
-  const [useModernForm, setUseModernForm] = useState(true);
-  const [formLoading, setFormLoading] = useState(false);
-  const [formError, setFormError] = useState(null);
+  const [selectedReportCard, setSelectedReportCard] = useState(presetReportCardId || '')
+  const [formData, setFormData] = useState({})
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [fields, setFields] = useState([])
+  const [filledPdfBytes, setFilledPdfBytes] = useState(null)
+  const [currentTab, setCurrentTab] = useState('form')
+  const [showFieldInspector, setShowFieldInspector] = useState(false)
+  const [useModernForm, setUseModernForm] = useState(true)
+  const [formLoading, setFormLoading] = useState(false)
+  const [formError, setFormError] = useState(null)
 
   // Current authenticated user (needed for storage path)
-  const { user } = useAuth();
+  const { user } = useAuth()
 
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   // Get current report card configuration
   const getCurrentReportType = () => {
-    return REPORT_CARD_TYPES.find(type => type.id === selectedReportCard);
-  };
+    return REPORT_CARD_TYPES.find((type) => type.id === selectedReportCard)
+  }
 
   /**
    * This callback receives the generated PDF data from the viewer component.
@@ -147,75 +155,75 @@ const ReportCard = ({ presetReportCardId = null }) => {
   const handlePdfGenerated = (url, bytes) => {
     // We only need to store the raw bytes for downloading and uploading.
     // The URL is handled internally by the PDFViewer for the live preview.
-    setFilledPdfBytes(bytes);
-  };
+    setFilledPdfBytes(bytes)
+  }
 
   // Handle form data changes with improved structure
   const handleFormDataChange = (newFormData) => {
-    console.log('Form data changed:', newFormData);
-    setFormData(newFormData);
-  };
+    console.log('Form data changed:', newFormData)
+    setFormData(newFormData)
+  }
 
   // Handle report card type change
   const handleReportTypeChange = (e) => {
-    const id = e.target.value;
-    setSelectedReportCard(id);
+    const id = e.target.value
+    setSelectedReportCard(id)
 
     // Find route and navigate
-    const config = REPORT_CARD_TYPES.find(t => t.id === id);
+    const config = REPORT_CARD_TYPES.find((t) => t.id === id)
     if (config?.route) {
-      navigate(config.route);
+      navigate(config.route)
     }
-  };
+  }
 
   // Handle field inspection results
   const handleFieldsInspected = (fields) => {
-    console.log('PDF fields inspected:', fields);
-    setFields(fields);
-  };
+    console.log('PDF fields inspected:', fields)
+    setFields(fields)
+  }
 
   // Load PDF fields for modern form
   const loadPDFFields = async (reportCardType) => {
     if (!reportCardType || !reportCardType.pdfPath) {
-      setFields([]);
-      setFormData({});
-      return;
+      setFields([])
+      setFormData({})
+      return
     }
 
-    setFormLoading(true);
-    setFormError(null);
-    
+    setFormLoading(true)
+    setFormError(null)
+
     try {
-      console.log('Loading PDF fields from:', reportCardType.pdfPath);
-      
-      const response = await fetch(reportCardType.pdfPath);
+      console.log('Loading PDF fields from:', reportCardType.pdfPath)
+
+      const response = await fetch(reportCardType.pdfPath)
       if (!response.ok) {
-        throw new Error(`Failed to fetch PDF: ${response.status}`);
+        throw new Error(`Failed to fetch PDF: ${response.status}`)
       }
-      
-      const pdfBytes = await response.arrayBuffer();
-      const pdfDoc = await PDFDocument.load(pdfBytes);
-      const form = pdfDoc.getForm();
-      const pdfFields = form.getFields();
-      
-      console.log(`Found ${pdfFields.length} fields in PDF`);
-      
+
+      const pdfBytes = await response.arrayBuffer()
+      const pdfDoc = await PDFDocument.load(pdfBytes)
+      const form = pdfDoc.getForm()
+      const pdfFields = form.getFields()
+
+      console.log(`Found ${pdfFields.length} fields in PDF`)
+
       // Process fields for form generation (using same logic as DynamicReportCardForm)
       const processedFields = pdfFields.map((field, index) => {
-        const fieldName = field.getName();
-        const fieldType = field.constructor.name;
-        
-        let options = [];
+        const fieldName = field.getName()
+        const fieldType = field.constructor.name
+
+        let options = []
         if (fieldType === 'PDFDropdown' || fieldType === 'PDFRadioGroup') {
           try {
-            options = field.getOptions();
+            options = field.getOptions()
           } catch (e) {
-            console.warn(`Could not get options for field ${fieldName}:`, e);
+            console.warn(`Could not get options for field ${fieldName}:`, e)
           }
         }
-        
-        const section = determineSection(fieldName, reportCardType);
-        
+
+        const section = determineSection(fieldName, reportCardType)
+
         return {
           id: `field_${index}`,
           name: fieldName,
@@ -226,26 +234,25 @@ const ReportCard = ({ presetReportCardId = null }) => {
           size: determineFieldSize(fieldName, fieldType),
           maxLength: determineMaxLength(fieldName, fieldType, section, reportCardType),
           section,
-        };
-      });
-      
-      setFields(processedFields);
+        }
+      })
+
+      setFields(processedFields)
 
       // Initialize form data with empty values
-      const initialFormData = {};
-      processedFields.forEach(field => {
-        initialFormData[field.name] = field.inputType === 'checkbox' ? false : '';
-      });
+      const initialFormData = {}
+      processedFields.forEach((field) => {
+        initialFormData[field.name] = field.inputType === 'checkbox' ? false : ''
+      })
 
-      setFormData(initialFormData);
-      
+      setFormData(initialFormData)
     } catch (err) {
-      console.error('Error loading PDF fields:', err);
-      setFormError(`Failed to load PDF fields: ${err.message}`);
+      console.error('Error loading PDF fields:', err)
+      setFormError(`Failed to load PDF fields: ${err.message}`)
     } finally {
-      setFormLoading(false);
+      setFormLoading(false)
     }
-  };
+  }
 
   // Helper functions (same as DynamicReportCardForm)
   const generateFieldLabel = (fieldName) => {
@@ -253,188 +260,340 @@ const ReportCard = ({ presetReportCardId = null }) => {
       .replace(/[_-]/g, ' ')
       .replace(/([a-z])([A-Z])/g, '$1 $2')
       .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
-  };
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ')
+  }
 
   const determineInputType = (fieldName, fieldType) => {
-    const lowerName = fieldName.toLowerCase();
-    
+    const lowerName = fieldName.toLowerCase()
+
     // Specific checkbox fields from the report card
     const checkboxFields = [
-      'languageNA', 'languageESL', 'languageIEP', 'frenchListeningESL', 'frenchSpeakingESL',
-      'frenchReadingESL', 'frenchWritingESL', 'frenchCore', 'nativeLanguageESL', 'nativeLanguageIEP',
-      'nativeLanguageNA', 'mathESL', 'mathIEP', 'mathFrench', 'scienceESL', 'scienceIEP',
-      'scienceFrench', 'frenchNA', 'frenchListeningIEP', 'frenchSpeakingIEP', 'frenchReadingIEP',
-      'frenchWritingIEP', 'frenchImmersion', 'frenchExtended', 'socialStudiesESL', 'socialStudiesIEP',
-      'socialStudiesFrench', 'healthEdESL', 'healthEdFrench', 'peESL', 'peFrench', 'healthEdIEP',
-      'peIEP', 'danceFrench', 'danceIEP', 'Checkbox_29', 'danceESL', 'dramaESL', 'musicESL',
-      'visualArtsESL', 'otherESL', 'otherFrench', 'dramaIEP', 'musicFrench', 'musicIEP',
-      'Checkbox_39', 'visualArtsIEP', 'otherIEP', 'otherNA', 'danceNA', 'dramaNA', 'musicNA',
-      'visualArtsNA', 'ERSCompletedYes', 'ERSCompletedNo', 'ERSCompletedNA', 'ERSBenchmarkYes',
-      'ERSBenchmarkNo', 'year1', 'year2', 'Year1', 'Year2',
-      'keyLearningESL', 'keyLearningIEP', 'keyLearning2ESL', 'keyLearning2IEP',
-      'placementInSeptemberGrade1', 'placementInSeptemberKg2'
-    ];
-    
+      'languageNA',
+      'languageESL',
+      'languageIEP',
+      'frenchListeningESL',
+      'frenchSpeakingESL',
+      'frenchReadingESL',
+      'frenchWritingESL',
+      'frenchCore',
+      'nativeLanguageESL',
+      'nativeLanguageIEP',
+      'nativeLanguageNA',
+      'mathESL',
+      'mathIEP',
+      'mathFrench',
+      'scienceESL',
+      'scienceIEP',
+      'scienceFrench',
+      'frenchNA',
+      'frenchListeningIEP',
+      'frenchSpeakingIEP',
+      'frenchReadingIEP',
+      'frenchWritingIEP',
+      'frenchImmersion',
+      'frenchExtended',
+      'socialStudiesESL',
+      'socialStudiesIEP',
+      'socialStudiesFrench',
+      'healthEdESL',
+      'healthEdFrench',
+      'peESL',
+      'peFrench',
+      'healthEdIEP',
+      'peIEP',
+      'danceFrench',
+      'danceIEP',
+      'Checkbox_29',
+      'danceESL',
+      'dramaESL',
+      'musicESL',
+      'visualArtsESL',
+      'otherESL',
+      'otherFrench',
+      'dramaIEP',
+      'musicFrench',
+      'musicIEP',
+      'Checkbox_39',
+      'visualArtsIEP',
+      'otherIEP',
+      'otherNA',
+      'danceNA',
+      'dramaNA',
+      'musicNA',
+      'visualArtsNA',
+      'ERSCompletedYes',
+      'ERSCompletedNo',
+      'ERSCompletedNA',
+      'ERSBenchmarkYes',
+      'ERSBenchmarkNo',
+      'year1',
+      'year2',
+      'Year1',
+      'Year2',
+      'keyLearningESL',
+      'keyLearningIEP',
+      'keyLearning2ESL',
+      'keyLearning2IEP',
+      'placementInSeptemberGrade1',
+      'placementInSeptemberKg2',
+    ]
+
     if (checkboxFields.includes(fieldName)) {
-      return 'checkbox';
+      return 'checkbox'
     }
-    
+
     if (fieldType === 'PDFTextField') {
-      if (lowerName.includes('comment') || lowerName.includes('note') || lowerName.includes('observation') || lowerName.includes('strength') || lowerName.includes('next') || lowerName.includes('goal')) {
-        return 'textarea';
+      if (
+        lowerName.includes('comment') ||
+        lowerName.includes('note') ||
+        lowerName.includes('observation') ||
+        lowerName.includes('strength') ||
+        lowerName.includes('next') ||
+        lowerName.includes('goal')
+      ) {
+        return 'textarea'
       }
-      if (lowerName.includes('phone') || lowerName.includes('number') || lowerName.includes('absent') || lowerName.includes('late')) {
-        return 'number';
+      if (
+        lowerName.includes('phone') ||
+        lowerName.includes('number') ||
+        lowerName.includes('absent') ||
+        lowerName.includes('late')
+      ) {
+        return 'number'
       }
-      return 'text';
+      return 'text'
     }
-    
+
     if (fieldType === 'PDFDropdown') {
-      return 'select';
+      return 'select'
     }
-    
+
     if (fieldType === 'PDFCheckBox') {
-      return 'checkbox';
+      return 'checkbox'
     }
-    
-    return 'text';
-  };
+
+    return 'text'
+  }
 
   const determineFieldSize = (fieldName, fieldType) => {
-    const lowerName = fieldName.toLowerCase();
-    
+    const lowerName = fieldName.toLowerCase()
+
     // Large fields
-    if (lowerName.includes('comment') || lowerName.includes('note') || lowerName.includes('observation') || lowerName.includes('strength') || lowerName.includes('next') || lowerName.includes('goal')) {
-      return 'full';
+    if (
+      lowerName.includes('comment') ||
+      lowerName.includes('note') ||
+      lowerName.includes('observation') ||
+      lowerName.includes('strength') ||
+      lowerName.includes('next') ||
+      lowerName.includes('goal')
+    ) {
+      return 'full'
     }
-    
+
     // Small fields
-    if (lowerName.includes('grade') || lowerName.includes('term') || lowerName.includes('absent') || lowerName.includes('late') || lowerName.includes('year') || fieldType === 'PDFCheckBox') {
-      return 'small';
+    if (
+      lowerName.includes('grade') ||
+      lowerName.includes('term') ||
+      lowerName.includes('absent') ||
+      lowerName.includes('late') ||
+      lowerName.includes('year') ||
+      fieldType === 'PDFCheckBox'
+    ) {
+      return 'small'
     }
-    
+
     // Medium fields
-    if (lowerName.includes('name') || lowerName.includes('teacher') || lowerName.includes('principal') || lowerName.includes('school') || lowerName.includes('phone') || lowerName.includes('telephone')) {
-      return 'medium';
+    if (
+      lowerName.includes('name') ||
+      lowerName.includes('teacher') ||
+      lowerName.includes('principal') ||
+      lowerName.includes('school') ||
+      lowerName.includes('phone') ||
+      lowerName.includes('telephone')
+    ) {
+      return 'medium'
     }
-    
-    return 'medium';
-  };
+
+    return 'medium'
+  }
 
   const determineMaxLength = (fieldName, fieldType, section, reportCardType) => {
-    const lowerName = fieldName.toLowerCase();
-    
-    if (lowerName.includes('comment') || lowerName.includes('note') || lowerName.includes('observation') || lowerName.includes('strength') || lowerName.includes('next') || lowerName.includes('goal')) {
-      return 500;
+    const lowerName = fieldName.toLowerCase()
+
+    if (
+      lowerName.includes('comment') ||
+      lowerName.includes('note') ||
+      lowerName.includes('observation') ||
+      lowerName.includes('strength') ||
+      lowerName.includes('next') ||
+      lowerName.includes('goal')
+    ) {
+      return 500
     }
-    
-    if (lowerName.includes('name') || lowerName.includes('school') || lowerName.includes('address')) {
-      return 100;
+
+    if (
+      lowerName.includes('name') ||
+      lowerName.includes('school') ||
+      lowerName.includes('address')
+    ) {
+      return 100
     }
-    
-    if (lowerName.includes('phone') || lowerName.includes('telephone') || lowerName.includes('oen')) {
-      return 20;
+
+    if (
+      lowerName.includes('phone') ||
+      lowerName.includes('telephone') ||
+      lowerName.includes('oen')
+    ) {
+      return 20
     }
-    
-    return 50;
-  };
+
+    return 50
+  }
 
   const determineSection = (fieldName, reportCardType) => {
-    const lowerName = fieldName.toLowerCase();
-    
-    if (lowerName.includes('student') || lowerName.includes('name') || lowerName.includes('grade') || lowerName.includes('oen') || lowerName.includes('school') || lowerName.includes('board') || lowerName.includes('address') || lowerName.includes('principal') || lowerName.includes('telephone') || lowerName.includes('phone')) {
-      return 'Student Information';
+    const lowerName = fieldName.toLowerCase()
+
+    if (
+      lowerName.includes('student') ||
+      lowerName.includes('name') ||
+      lowerName.includes('grade') ||
+      lowerName.includes('oen') ||
+      lowerName.includes('school') ||
+      lowerName.includes('board') ||
+      lowerName.includes('address') ||
+      lowerName.includes('principal') ||
+      lowerName.includes('telephone') ||
+      lowerName.includes('phone')
+    ) {
+      return 'Student Information'
     }
-    
-    if (lowerName.includes('responsibility') || lowerName.includes('organization') || lowerName.includes('independent') || lowerName.includes('collaboration') || lowerName.includes('initiative') || lowerName.includes('regulation')) {
-      return 'Learning Skills';
+
+    if (
+      lowerName.includes('responsibility') ||
+      lowerName.includes('organization') ||
+      lowerName.includes('independent') ||
+      lowerName.includes('collaboration') ||
+      lowerName.includes('initiative') ||
+      lowerName.includes('regulation')
+    ) {
+      return 'Learning Skills'
     }
-    
-    if (lowerName.includes('strength') || lowerName.includes('next') || lowerName.includes('goal') || lowerName.includes('improvement')) {
-      return 'Next Steps';
+
+    if (
+      lowerName.includes('strength') ||
+      lowerName.includes('next') ||
+      lowerName.includes('goal') ||
+      lowerName.includes('improvement')
+    ) {
+      return 'Next Steps'
     }
-    
-    if (lowerName.includes('comment') || lowerName.includes('note') || lowerName.includes('observation')) {
-      return 'Comments';
+
+    if (
+      lowerName.includes('comment') ||
+      lowerName.includes('note') ||
+      lowerName.includes('observation')
+    ) {
+      return 'Comments'
     }
-    
-    if (lowerName.includes('signature') || lowerName.includes('teacher') || lowerName.includes('parent') || lowerName.includes('guardian')) {
-      return 'Signatures';
+
+    if (
+      lowerName.includes('signature') ||
+      lowerName.includes('teacher') ||
+      lowerName.includes('parent') ||
+      lowerName.includes('guardian')
+    ) {
+      return 'Signatures'
     }
-    
-    if (lowerName.includes('math') || lowerName.includes('language') || lowerName.includes('science') || lowerName.includes('social') || lowerName.includes('french') || lowerName.includes('art') || lowerName.includes('music') || lowerName.includes('drama') || lowerName.includes('dance') || lowerName.includes('health') || lowerName.includes('physical')) {
-      return 'Academic Performance';
+
+    if (
+      lowerName.includes('math') ||
+      lowerName.includes('language') ||
+      lowerName.includes('science') ||
+      lowerName.includes('social') ||
+      lowerName.includes('french') ||
+      lowerName.includes('art') ||
+      lowerName.includes('music') ||
+      lowerName.includes('drama') ||
+      lowerName.includes('dance') ||
+      lowerName.includes('health') ||
+      lowerName.includes('physical')
+    ) {
+      return 'Academic Performance'
     }
-    
-    return 'Other';
-  };
+
+    return 'Other'
+  }
 
   // Load fields when report card type changes and modern form is selected
   useEffect(() => {
     if (useModernForm && selectedReportCard) {
-      const reportType = getCurrentReportType();
+      const reportType = getCurrentReportType()
       if (reportType) {
-        loadPDFFields(reportType);
+        loadPDFFields(reportType)
       }
     }
-  }, [useModernForm, selectedReportCard]);
+  }, [useModernForm, selectedReportCard])
 
   /* ------------------------------------------------------------------
      LocalStorage persistence
      ------------------------------------------------------------------ */
   // Load saved form when report card type changes
   useEffect(() => {
-    if (!selectedReportCard) return;
+    if (!selectedReportCard) return
     try {
-      const saved = localStorage.getItem(`reportcard_form_${selectedReportCard}`);
+      const saved = localStorage.getItem(`reportcard_form_${selectedReportCard}`)
       if (saved) {
-        setFormData(JSON.parse(saved));
+        setFormData(JSON.parse(saved))
       } else {
-        setFormData({});
+        setFormData({})
       }
     } catch (err) {
-      console.warn('Unable to parse saved form data:', err);
+      console.warn('Unable to parse saved form data:', err)
     }
-  }, [selectedReportCard]);
+  }, [selectedReportCard])
 
   // Auto-save current form on every change
   useEffect(() => {
-    if (!selectedReportCard) return;
+    if (!selectedReportCard) return
     try {
-      localStorage.setItem(`reportcard_form_${selectedReportCard}`, JSON.stringify(formData));
+      localStorage.setItem(`reportcard_form_${selectedReportCard}`, JSON.stringify(formData))
     } catch (err) {
-      console.warn('Unable to save form data to localStorage:', err);
+      console.warn('Unable to save form data to localStorage:', err)
     }
-  }, [formData, selectedReportCard]);
+  }, [formData, selectedReportCard])
 
   // Download the filled PDF
   const downloadFilledPDF = async () => {
-    setIsGenerating(true);
+    setIsGenerating(true)
 
     if (!filledPdfBytes) {
-      alert("The PDF has not been generated yet. Please fill out the form and wait for the preview to update.");
-      console.error("Download failed: filledPdfBytes is null.");
-      setIsGenerating(false);
-      return;
+      alert(
+        'The PDF has not been generated yet. Please fill out the form and wait for the preview to update.',
+      )
+      console.error('Download failed: filledPdfBytes is null.')
+      setIsGenerating(false)
+      return
     }
 
     try {
-      const blob = new Blob([filledPdfBytes], { type: 'application/pdf' });
-      const reportCardType = getCurrentReportType();
-      const studentName = (formData.student_name || formData.student || 'student').replace(/\\s+/g, '-');
-      const fileName = `${reportCardType?.name || 'report-card'}-${studentName}-filled.pdf`;
+      const blob = new Blob([filledPdfBytes], { type: 'application/pdf' })
+      const reportCardType = getCurrentReportType()
+      const studentName = (formData.student_name || formData.student || 'student').replace(
+        /\\s+/g,
+        '-',
+      )
+      const fileName = `${reportCardType?.name || 'report-card'}-${studentName}-filled.pdf`
 
       // Upload to Firebase first
       if (user) {
         try {
-          const timestamp = Date.now();
-          const filePath = `reportCards/${user.uid}/${selectedReportCard || 'report'}-${timestamp}.pdf`;
-          const storageRef = ref(storage, filePath);
+          const timestamp = Date.now()
+          const filePath = `reportCards/${user.uid}/${selectedReportCard || 'report'}-${timestamp}.pdf`
+          const storageRef = ref(storage, filePath)
 
-          await uploadBytes(storageRef, blob);
-          const downloadURL = await getDownloadURL(storageRef);
+          await uploadBytes(storageRef, blob)
+          const downloadURL = await getDownloadURL(storageRef)
 
           // Store a reference in Firestore
           await addDoc(collection(firestore, 'reportCards'), {
@@ -444,50 +603,58 @@ const ReportCard = ({ presetReportCardId = null }) => {
             url: downloadURL,
             studentName: studentName,
             createdAt: serverTimestamp(),
-          });
+          })
 
-          console.log('✅ Report card uploaded to Firebase Storage:', downloadURL);
-
+          console.log('✅ Report card uploaded to Firebase Storage:', downloadURL)
         } catch (uploadError) {
-          console.error('Error uploading PDF to Firebase Storage:', uploadError);
-          alert('Failed to save the report card to the cloud, but the file will be downloaded locally.');
+          console.error('Error uploading PDF to Firebase Storage:', uploadError)
+          alert(
+            'Failed to save the report card to the cloud, but the file will be downloaded locally.',
+          )
         }
       } else {
-        console.warn('User not authenticated. Skipping Firebase upload.');
+        console.warn('User not authenticated. Skipping Firebase upload.')
       }
-      
-      // Then trigger the local download
-      saveAs(blob, fileName);
-      console.log(`✅ Successfully triggered download for: ${fileName}`);
 
+      // Then trigger the local download
+      saveAs(blob, fileName)
+      console.log(`✅ Successfully triggered download for: ${fileName}`)
     } catch (error) {
-      console.error('Error during PDF processing and download:', error);
-      alert('An error occurred while trying to process or download the PDF.');
+      console.error('Error during PDF processing and download:', error)
+      alert('An error occurred while trying to process or download the PDF.')
     } finally {
-      setIsGenerating(false);
+      setIsGenerating(false)
     }
-  };
+  }
 
   const renderModernForm = () => {
-    const reportType = getCurrentReportType();
+    const reportType = getCurrentReportType()
     const formProps = {
       fields,
       formData,
       onFormDataChange: handleFormDataChange,
       loading: formLoading,
       error: formError,
-    };
+    }
 
     switch (reportType?.uiComponent) {
       case 'KindergartenInitialUI':
-        return <KindergartenInitialUI {...formProps} />;
+        return <KindergartenInitialUI {...formProps} />
       case 'KindergartenReportUI':
-        return <KindergartenReportUI {...formProps} />;
+        return <KindergartenReportUI {...formProps} />
+      case 'Elementary1to6ProgressUI':
+        return <Elementary1to6ProgressUI {...formProps} />
+      case 'Elementary1to6ReportUI':
+        return <Elementary1to6ReportUI {...formProps} />
+      case 'Elementary7to8ProgressUI':
+        return <Elementary7to8ProgressUI {...formProps} />
+      case 'Elementary7to8ReportUI':
+        return <Elementary7to8ReportUI {...formProps} />
       default:
         // Default to the initial Kindergarten UI if no specific component is found
-        return <KindergartenInitialUI {...formProps} />;
+        return <KindergartenInitialUI {...formProps} />
     }
-  };
+  }
 
   return (
     <CContainer fluid>
@@ -524,15 +691,15 @@ const ReportCard = ({ presetReportCardId = null }) => {
           {/* Toggle Field Inspector */}
           {selectedReportCard && (
             <div className="mb-4">
-              <CButton 
-                variant="outline" 
+              <CButton
+                variant="outline"
                 onClick={() => setShowFieldInspector(!showFieldInspector)}
                 className="mb-3 me-2"
               >
                 {showFieldInspector ? 'Hide' : 'Show'} PDF Field Inspector
               </CButton>
-              
-              <CButton 
+
+              <CButton
                 variant="outline"
                 color={useModernForm ? 'primary' : 'secondary'}
                 onClick={() => setUseModernForm(!useModernForm)}
@@ -540,7 +707,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
               >
                 {useModernForm ? 'Switch to Classic Form' : 'Switch to Modern Form'}
               </CButton>
-              
+
               {showFieldInspector && (
                 <PDFFieldInspector
                   pdfUrl={getCurrentReportType()?.pdfPath}
@@ -561,8 +728,8 @@ const ReportCard = ({ presetReportCardId = null }) => {
                     <small className="text-muted">Live preview - changes appear as you type</small>
                   </CCardHeader>
                   <CCardBody>
-                    <PDFViewer 
-                      pdfUrl={getCurrentReportType()?.pdfPath} 
+                    <PDFViewer
+                      pdfUrl={getCurrentReportType()?.pdfPath}
                       className="report-card-pdf-viewer"
                       formData={formData}
                       showPreview={true}
@@ -585,14 +752,14 @@ const ReportCard = ({ presetReportCardId = null }) => {
                       </small>
                     </CCardHeader>
                     <CCardBody>
-                      <DynamicReportCardForm 
+                      <DynamicReportCardForm
                         reportCardType={getCurrentReportType()}
                         onFormDataChange={handleFormDataChange}
                       />
-                      
+
                       <div className="mt-4">
-                        <CButton 
-                          color="success" 
+                        <CButton
+                          color="success"
                           onClick={downloadFilledPDF}
                           disabled={isGenerating}
                           className="me-2"
@@ -610,12 +777,12 @@ const ReportCard = ({ presetReportCardId = null }) => {
                     </CCardBody>
                   </CCard>
                 )}
-                
+
                 {/* Download Button for Modern Form */}
                 {useModernForm && (
                   <div className="mt-4">
-                    <CButton 
-                      color="success" 
+                    <CButton
+                      color="success"
                       onClick={downloadFilledPDF}
                       disabled={isGenerating}
                       className="me-2"
@@ -638,7 +805,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
         </CCol>
       </CRow>
     </CContainer>
-  );
-};
+  )
+}
 
-export default ReportCard;
+export default ReportCard

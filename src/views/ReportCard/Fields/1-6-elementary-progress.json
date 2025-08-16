@@ -664,5 +664,18 @@
       "formDataKey": "boardspace",
       "id": 110,
       "name": "boardSpace"
+    },
+    "teacherSignature": {
+      "type": "PDFSignature2",
+      "formDataKey": "teachersignature",
+      "id": 111,
+      "name": "teacherSignature"
+    },
+    "principalSignature": {
+      "type": "PDFSignature2",
+      "formDataKey": "principalsignature",
+      "id": 112,
+      "name": "principalSignature"
     }
   }
+}

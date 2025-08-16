@@ -1,5 +1,5 @@
 {
-  "effectiveDate": "2025-07-20",
+  "effectiveDate": "2025-07-29",
   "company": {
     "name": "AIJ Solutions",
     "contactEmail": "aijsolutions.co@gmail.com"
@@ -7,54 +7,115 @@
   "sections": [
     {
       "title": "1. Information We Collect",
+      "text": "Tarbiyah Learning Academy SMS collects and processes the following types of information to provide our educational services:",
       "items": [
-        "Personal Data: name, email, role (teacher, admin, parent), school affiliation.",
-        "Usage Data: Pages viewed, actions taken on the website",
-        "Student Data as provided by you through the Service or through Tarbiyah Learning Academy"
+        "Personal identification data: name, email address, role (teacher, admin, parent), school affiliation",
+        "Student academic records: grades, attendance, progress reports, and educational assessments",
+        "School administrative information: class schedules, teacher assignments, and institutional data",
+        "Communication records: messages between parents, teachers, and administrators",
+        "Usage analytics: pages viewed, features accessed, and interaction patterns to improve our service",
+        "Technical data: IP addresses, browser information, and device details for security purposes"
       ]
     },
     {
-      "title": "2. How We Use Your Information",
+      "title": "2. Google OAuth Data Usage",
+      "text": "Staff members who sign in using Google OAuth grant us access to the following Google data:",
       "items": [
-        "To Provide the school with all the relevant information in the school",
-        "To provide and maintain our Service.",
-        "To notify you about changes, updates, and new features.",
-        "To analyze usage and improve functionality.",
-        "To comply with legal obligations."
+        "Email address: Used to create and manage staff accounts, send important school notifications, and facilitate communication between staff and parents",
+        "Basic profile information (name): Used to personalize the staff experience and display names in the school management system",
+        "Google Calendar access: Used to sync school events, parent-teacher meetings, and academic schedules with staff calendars",
+        "This Google data is used exclusively for educational purposes and school management functions",
+        "We do not use Google data for any commercial purposes or share it with third parties",
+        "Note: Google OAuth is only available for staff members, not for parent accounts"
       ]
     },
     {
-      "title": "3. Information Sharing & Disclosure",
+      "title": "3. How We Use Your Information",
+      "text": "Your data is used exclusively for educational purposes and to provide our school management services:",
       "items": [
-        "Third-party service providers (hosting, email delivery, text messaging) under confidentiality obligations.",
-        "Legal compliance (court orders, government investigations).",
-        "Business transfers (merger, acquisition)."
+        "To provide and maintain our School Management System (SMS) services",
+        "To facilitate communication between parents, teachers, and school administrators",
+        "To track and report student academic progress and attendance",
+        "To manage school administrative functions and class scheduling",
+        "To notify users about important school updates, events, and academic information",
+        "To analyze usage patterns and improve our educational platform functionality",
+        "To ensure security and prevent unauthorized access to educational records",
+        "To comply with educational regulations and legal obligations"
       ]
     },
     {
-      "title": "4. Security",
+      "title": "4. Information Sharing & Disclosure",
+      "text": "We are committed to protecting your privacy and only share information when necessary:",
       "items": [
-        "Data encrypted in transit (HTTPS) and at rest.",
-        "Access limited to authorized personnel under confidentiality agreements.",
-        "Breach notifications via email or website notice."
+        "Within the school community: Information is shared between authorized users (parents, teachers, administrators) as needed for educational purposes",
+        "Third-party service providers: We use trusted providers for hosting, email delivery, and text messaging under strict confidentiality obligations",
+        "Legal compliance: We may disclose information when required by law, court orders, or government investigations",
+        "Business transfers: In the event of a merger, acquisition, or sale of assets, user information may be transferred",
+        "Emergency situations: We may share information to protect the safety and well-being of students and staff"
       ]
     },
     {
-      "title": "5. Data Retention",
+      "title": "5. Data Security & Protection",
+      "text": "We implement comprehensive security measures to protect your educational data:",
       "items": [
-        "We retain data while your account is active or as needed to provide the Service, then as required by law."
+        "Data encryption: All data is encrypted in transit (HTTPS) and at rest using industry-standard protocols",
+        "Access controls: Data access is limited to authorized personnel under strict confidentiality agreements",
+        "Regular security audits: We conduct regular security assessments and updates to maintain data protection",
+        "Secure infrastructure: Our platform is hosted on secure, reliable cloud infrastructure",
+        "Breach notification: In the unlikely event of a data breach, we will notify affected users via email or website notice"
       ]
     },
     {
-      "title": "6. Children’s Privacy",
+      "title": "6. Data Retention & Deletion",
+      "text": "We retain educational data for appropriate periods to serve educational needs:",
       "items": [
-        "your data is not used for any purpose other than the purpose of the school"
+        "Active accounts: Data is retained while your account is active and as needed to provide educational services",
+        "Legal requirements: We retain data as required by educational regulations and legal obligations",
+        "Academic records: Student records are maintained according to educational institution requirements",
+        "Account deletion: Upon account deletion, data is securely removed except where retention is required by law",
+        "Data backup: Regular backups are maintained for disaster recovery and service continuity"
       ]
     },
     {
-      "title": "7. Changes to This Policy",
+      "title": "7. Children's Privacy & Educational Data",
+      "text": "As an educational platform, we handle student data with special care:",
       "items": [
-        "We may update this Policy; we'll post the new version with a revised effective date."
+        "Educational purpose: Student data is used exclusively for educational purposes and school management",
+        "Parental consent: Student data collection and use is conducted with appropriate parental consent",
+        "FERPA compliance: We adhere to Family Educational Rights and Privacy Act (FERPA) requirements",
+        "No commercial use: Student data is never used for commercial purposes or sold to third parties",
+        "Educational records: All student data is treated as educational records with appropriate protections"
+      ]
+    },
+    {
+      "title": "8. Your Rights & Choices",
+      "text": "You have certain rights regarding your personal information:",
+      "items": [
+        "Access: You can access and review your personal information through your account dashboard",
+        "Correction: You can update and correct your personal information as needed",
+        "Communication preferences: You can control how you receive notifications and communications",
+        "Account deletion: You can request account deletion, subject to educational record retention requirements",
+        "Data portability: You can request a copy of your data in a portable format"
+      ]
+    },
+    {
+      "title": "9. Changes to This Privacy Policy",
+      "text": "We may update this Privacy Policy to reflect changes in our practices or legal requirements:",
+      "items": [
+        "Notification: We will notify users of significant changes via email or website notice",
+        "Effective date: Updated policies will include a new effective date",
+        "Continued use: Continued use of our service after changes constitutes acceptance of the updated policy",
+        "Review: We encourage users to review this policy periodically"
+      ]
+    },
+    {
+      "title": "10. Contact Information",
+      "text": "If you have questions about this Privacy Policy or our data practices:",
+      "items": [
+        "Email: aijsolutions.co@gmail.com",
+        "Company: AIJ Solutions",
+        "Service: Tarbiyah Learning Academy School Management System",
+        "Purpose: Educational technology and school management services"
       ]
     }
   ]

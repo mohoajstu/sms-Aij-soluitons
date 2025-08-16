@@ -15,10 +15,11 @@ import {
   CCol,
   CBadge,
 } from '@coreui/react'
-import { collection, getDocs, query, where } from 'firebase/firestore'
+import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore'
 import { firestore } from '../../firebase'
 import NotificationService from '../../services/notificationService'
 import { toast } from 'react-hot-toast'
+import Select from 'react-select'
 
 const ManualSmsNotification = () => {
   const [formData, setFormData] = useState({
@@ -34,6 +35,7 @@ const ManualSmsNotification = () => {
   const [smsConfigured, setSmsConfigured] = useState(null)
   const [alert, setAlert] = useState({ show: false, message: '', color: 'success' })
   const [errorMessage, setErrorMessage] = useState('')
+  const [parentStudentOptions, setParentStudentOptions] = useState([])
 
   // Check SMS configuration on component mount
   useEffect(() => {
@@ -65,46 +67,95 @@ const ManualSmsNotification = () => {
     checkConfig()
   }, [])
 
-  // Fetch parents from Firebase on component mount
+  // Fetch all students and cross-reference parents for phone numbers
   useEffect(() => {
-    const fetchParents = async () => {
+    const fetchStudentParentOptions = async () => {
       setIsLoadingParents(true)
       try {
-        const parentsCollection = collection(firestore, 'parents')
-        const parentsQuery = query(parentsCollection, where('active', '==', true))
-        const parentSnapshot = await getDocs(parentsQuery)
-        
-        const parentsList = []
+        // 1. Fetch all students
+        const studentsCol = collection(firestore, 'students')
+        const studentSnapshot = await getDocs(studentsCol)
+        const students = studentSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+
+        // 2. Fetch all parents ONCE
+        const parentsCol = collection(firestore, 'parents')
+        const parentSnapshot = await getDocs(parentsCol)
+        const parentMap = new Map()
         parentSnapshot.forEach((doc) => {
-          const parentData = doc.data()
-          const parentName = `${parentData.personalInfo?.firstName || ''} ${parentData.personalInfo?.lastName || ''}`.trim()
-          const phone1 = parentData.contact?.phone1
-          const phone2 = parentData.contact?.phone2
-          
-          if (parentName && (phone1 || phone2)) {
-            parentsList.push({
-              id: doc.id,
-              name: parentName,
-              schoolId: parentData.schoolId || doc.id,
-              phone1: phone1 || '',
-              phone2: phone2 || '',
-              primaryPhone: phone1 || phone2 || '',
-            })
-          }
+          parentMap.set(doc.id, doc.data())
         })
 
-        // Sort parents by name
-        parentsList.sort((a, b) => a.name.localeCompare(b.name))
-        setParents(parentsList)
+        // 3. For each student, get their parent(s) and build options
+        const options = []
+        for (const student of students) {
+          const studentName = student.personalInfo
+            ? `${student.personalInfo.firstName || ''} ${student.personalInfo.lastName || ''}`.trim()
+            : student.name || ''
+          let foundParent = false
+          if (student.parents) {
+            for (const key of Object.keys(student.parents)) {
+              const parentInfo = student.parents[key]
+              if (parentInfo && parentInfo.tarbiyahId) {
+                const parentData = parentMap.get(parentInfo.tarbiyahId)
+                if (parentData) {
+                  const parentName = parentData.personalInfo
+                    ? `${parentData.personalInfo.firstName || ''} ${parentData.personalInfo.lastName || ''}`.trim()
+                    : parentInfo.name || ''
+                  // Fallback order: phone1, phone2, emergencyPhone
+                  const phone1 = parentData.contact?.phone1?.trim()
+                  const phone2 = parentData.contact?.phone2?.trim()
+                  const emergencyPhone = parentData.contact?.emergencyPhone?.trim()
+                  const phoneNumber = phone1 || phone2 || emergencyPhone || 'No phone on file'
+                  options.push({
+                    label: `${studentName} – ${parentName} – ${phoneNumber}`,
+                    value: `${student.id}-${parentInfo.tarbiyahId}`,
+                    parentId: parentInfo.tarbiyahId,
+                    studentId: student.id,
+                    phoneNumber,
+                    parentName,
+                    studentName,
+                  })
+                  foundParent = true
+                } else {
+                  // Parent doc missing or not accessible
+                  options.push({
+                    label: `${studentName} – ${parentInfo.name || 'Unknown Parent'} – No phone on file`,
+                    value: `${student.id}-${parentInfo.tarbiyahId}-missing`,
+                    parentId: parentInfo.tarbiyahId,
+                    studentId: student.id,
+                    phoneNumber: 'No phone on file',
+                    parentName: parentInfo.name || 'Unknown Parent',
+                    studentName,
+                  })
+                  foundParent = true
+                }
+              }
+            }
+          }
+          if (!foundParent) {
+            // No parent info or could not fetch parent
+            options.push({
+              label: `${studentName} – No parent on file – No phone on file`,
+              value: `${student.id}-no-parent`,
+              parentId: '',
+              studentId: student.id,
+              phoneNumber: 'No phone on file',
+              parentName: 'No parent on file',
+              studentName,
+            })
+          }
+        }
+        // Sort alphabetically by student name
+        options.sort((a, b) => a.studentName.localeCompare(b.studentName))
+        setParentStudentOptions(options)
       } catch (error) {
-        console.error('Error fetching parents:', error)
-        toast.error('Failed to load parent list')
+        console.error('Error fetching students/parents:', error)
+        toast.error('Failed to load student/parent list')
       } finally {
         setIsLoadingParents(false)
       }
     }
-
-    fetchParents()
+    fetchStudentParentOptions()
   }, [])
 
   const handleChange = (e) => {
@@ -113,37 +164,6 @@ const ManualSmsNotification = () => {
       ...prevData,
       [name]: value,
     }))
-
-    // Clear any error messages when user modifies the form
-    if (errorMessage) {
-      setErrorMessage('')
-    }
-    if (alert.show) {
-      setAlert({ show: false, message: '', color: 'success' })
-    }
-  }
-
-  const handleParentSelect = (e) => {
-    const selectedParentId = e.target.value
-    setFormData((prevData) => ({
-      ...prevData,
-      selectedParent: selectedParentId,
-    }))
-
-    if (selectedParentId) {
-      const selectedParent = parents.find(parent => parent.id === selectedParentId)
-      if (selectedParent) {
-        setFormData((prevData) => ({
-          ...prevData,
-          phoneNumber: selectedParent.primaryPhone,
-        }))
-      }
-    } else {
-      setFormData((prevData) => ({
-        ...prevData,
-        phoneNumber: '',
-      }))
-    }
 
     // Clear any error messages when user modifies the form
     if (errorMessage) {
@@ -302,30 +322,36 @@ const ManualSmsNotification = () => {
         <CForm onSubmit={handleSubmit}>
           <CRow className="mb-3">
             <CCol md={12}>
-              <CFormLabel htmlFor="selectedParent">Select Parent (Optional)</CFormLabel>
+              <CFormLabel htmlFor="selectedParent">Select Student/Parent (Searchable)</CFormLabel>
               {isLoadingParents ? (
                 <div className="d-flex align-items-center">
                   <CSpinner size="sm" className="me-2" />
-                  <span>Loading parents...</span>
+                  <span>Loading students/parents...</span>
                 </div>
               ) : (
-                <CFormSelect
-                  id="selectedParent"
+                <Select
+                  inputId="selectedParent"
                   name="selectedParent"
-                  value={formData.selectedParent}
-                  onChange={handleParentSelect}
-                  disabled={isSending}
-                >
-                  <option value="">-- Select a parent to auto-fill phone number --</option>
-                  {parents.map((parent) => (
-                    <option key={parent.id} value={parent.id}>
-                      {parent.name} ({parent.schoolId}) - {parent.primaryPhone}
-                    </option>
-                  ))}
-                </CFormSelect>
+                  options={parentStudentOptions}
+                  isClearable
+                  isSearchable
+                  value={parentStudentOptions.find(opt => opt.value === formData.selectedParent) || null}
+                  onChange={selected => {
+                    setFormData(prev => ({
+                      ...prev,
+                      selectedParent: selected ? selected.value : '',
+                      phoneNumber: selected ? selected.phoneNumber : '',
+                    }))
+                    if (errorMessage) setErrorMessage('')
+                    if (alert.show) setAlert({ show: false, message: '', color: 'success' })
+                  }}
+                  isDisabled={isSending}
+                  placeholder="Search by student name..."
+                  styles={{ menu: base => ({ ...base, zIndex: 9999 }) }}
+                />
               )}
               <small className="form-text text-muted">
-                Selecting a parent will automatically fill in their phone number below.
+                Search and select a student to auto-fill their parent's phone number below.
               </small>
             </CCol>
           </CRow>

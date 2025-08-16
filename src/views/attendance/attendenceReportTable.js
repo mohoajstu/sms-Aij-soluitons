@@ -75,6 +75,36 @@ const AttendanceReportTable = () => {
   const [studentOptions, setStudentOptions] = useState([])
   const statusOptions = useMemo(() => ['Present', 'Absent', 'Late', 'Excused'], [])
 
+  // Define homeroom class patterns
+  const homeroomPatterns = [
+    /^jk$/i,                    // JK
+    /^sk.*rafia$/i,            // SK - Tr. Rafia
+    /^sk.*huda$/i,             // SK - Tr. Huda
+    /^homeroom\s+junior\s+kindergarten$/i,  // HomeRoom Junior Kindergarten
+    /^homeroom\s+senior\s+kindergarten$/i,  // HomeRoom Senior Kindergarten
+    /^homeroom\s+grade\s*[1-8]$/i,  // HomeRoom Grade 1-8
+    /^homeroom.*junior.*kindergarten$/i,  // More flexible HomeRoom Junior Kindergarten
+    /^homeroom.*senior.*kindergarten$/i,  // More flexible HomeRoom Senior Kindergarten
+    /^homeroom.*grade\s*[1-8]$/i,  // More flexible HomeRoom Grade 1-8
+    /^home\s*room.*junior.*kindergarten$/i,  // Alternative spacing
+    /^home\s*room.*senior.*kindergarten$/i,  // Alternative spacing
+    /^home\s*room.*grade\s*[1-8]$/i,  // Alternative spacing
+  ]
+
+  // Function to check if a class is a homeroom class
+  const isHomeroomClass = (classData) => {
+    const title = classData.courseTitle || ''
+    
+    // Check title patterns
+    for (const pattern of homeroomPatterns) {
+      if (pattern.test(title)) {
+        return true
+      }
+    }
+    
+    return false
+  }
+
   useEffect(() => {
     const fetchOptions = async () => {
       try {
@@ -87,14 +117,45 @@ const AttendanceReportTable = () => {
           const dailyData = doc.data()
           dailyData.courses?.forEach((course) => {
             if (!coursesMap.has(course.courseId)) {
+              // Include teacher information in the label if available
+              let label = course.courseTitle
+              if (course.teachers && course.teachers.length > 0) {
+                const teacherNames = Array.isArray(course.teachers) 
+                  ? course.teachers.map(t => typeof t === 'string' ? t : t.name || t).join(', ')
+                  : course.teachers
+                label = `${course.courseTitle} (${teacherNames})`
+              } else if (course.teacher && Array.isArray(course.teacher)) {
+                const teacherNames = course.teacher.map(t => typeof t === 'string' ? t : t.name || t).join(', ')
+                label = `${course.courseTitle} (${teacherNames})`
+              }
+              
+              // Debug logging for each course
+              console.log('AttendanceReportTable: Processing course:', {
+                courseId: course.courseId,
+                courseTitle: course.courseTitle,
+                label: label,
+                isHomeroom: isHomeroomClass({ courseTitle: course.courseTitle })
+              })
+              
               coursesMap.set(course.courseId, {
                 id: course.courseId,
-                label: course.courseTitle,
+                label: label,
               })
             }
           })
         })
-        setClassOptions(Array.from(coursesMap.values()))
+       
+       // Filter to only homeroom classes
+       const allClasses = Array.from(coursesMap.values())
+       const homeroomClasses = allClasses.filter(isHomeroomClass)
+       
+       console.log('AttendanceReportTable: Found', allClasses.length, 'total classes')
+       console.log('AttendanceReportTable: Filtered to', homeroomClasses.length, 'homeroom classes')
+       console.log('AttendanceReportTable: Homeroom classes:', homeroomClasses.map(c => c.label))
+       console.log('AttendanceReportTable: All classes for debugging:', allClasses.map(c => c.label))
+       
+       // Temporarily show all classes for debugging
+       setClassOptions(allClasses)
 
         // Fetch students
         const studentsCol = collection(firestore, 'students')
@@ -104,9 +165,14 @@ const AttendanceReportTable = () => {
           const name = data.personalInfo
             ? `${data.personalInfo.firstName} ${data.personalInfo.lastName}`.trim()
             : data.name
-          return { id: doc.id, label: name }
+          // Use student ID as the key to avoid duplicates
+          return { id: doc.id, label: name, studentId: doc.id }
         })
-        setStudentOptions(students)
+        // Remove duplicate students by ID
+        const uniqueStudents = students.filter((student, index, self) => 
+          index === self.findIndex(s => s.id === student.id)
+        )
+        setStudentOptions(uniqueStudents)
       } catch (error) {
         console.error('Error fetching filter options:', error)
       }
@@ -147,7 +213,7 @@ const AttendanceReportTable = () => {
           dailyData.courses?.forEach((course) => {
             course.students?.forEach((student) => {
               allRecords.push({
-                id: idCounter++,
+                id: `${student.studentId}-${course.courseId}-${date}-${idCounter++}`,
                 date: date,
                 class: course.courseTitle,
                 classId: course.courseId,
