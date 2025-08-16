@@ -610,16 +610,16 @@ const ProfilePage = () => {
         <CAccordionHeader>Children</CAccordionHeader>
         <CAccordionBody>
           <div className="mb-3 d-flex flex-wrap gap-2">
-            {children.map((c, idx) => (
-              <CBadge
-                key={c.id}
-                color={idx === activeChildIdx ? 'primary' : 'secondary'}
-                style={{ cursor: 'pointer' }}
-                onClick={() => setActiveChildIdx(idx)}
-              >
-                {c.data?.personalInfo?.firstName || ''} {c.data?.personalInfo?.lastName || ''} ({c.id})
-              </CBadge>
-            ))}
+            <CFormSelect
+              value={activeChildIdx}
+              onChange={(e) => setActiveChildIdx(Number(e.target.value))}
+            >
+              {children.map((c, idx) => (
+                <option key={c.id} value={idx}>
+                  {c.data?.personalInfo?.firstName || ''} {c.data?.personalInfo?.lastName || ''} ({c.id})
+                </option>
+              ))}
+            </CFormSelect>
           </div>
 
           {/* Personal Info */}
@@ -832,18 +832,20 @@ const ProfilePage = () => {
           </div>
 
           {/* Active flag (no ID edits) */}
-          <div className="row mb-3">
-            <div className="col-md-3">
-              <CFormLabel>Status</CFormLabel>
-              <CFormSelect
-                value={childData.active ? 'true' : 'false'}
-                onChange={(e) => setChildField('active', e.target.value === 'true')}
-              >
-                <option value="true">Active</option>
-                <option value="false">Inactive</option>
-              </CFormSelect>
-            </div>
-          </div>
+          {/*
+<div className="row mb-3">
+  <div className="col-md-3">
+    <CFormLabel>Status</CFormLabel>
+    <CFormSelect
+      value={childData.active ? 'true' : 'false'}
+      onChange={(e) => setChildField('active', e.target.value === 'true')}
+    >
+      <option value="true">Active</option>
+      <option value="false">Inactive</option>
+    </CFormSelect>
+  </div>
+</div>
+*/}
         </CAccordionBody>
       </CAccordionItem>
     );

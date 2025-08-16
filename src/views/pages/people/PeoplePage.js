@@ -74,6 +74,8 @@ const PeoplePage = () => {
     faculty: '',
     admins: '',
   });
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
 
   const successToast = (message) => (
     <CToast color="success" className="text-white align-items-center">
@@ -142,39 +144,49 @@ const PeoplePage = () => {
     return singularMap[collectionName] || collectionName;
   };
 
-  const handleDelete = async (item, collectionName) => {
-    if (window.confirm(`Are you sure you want to delete this ${getSingularName(collectionName)}?`)) {
-      try {
-        const batch = writeBatch(firestore);
-        
-        // Delete the main document
-        batch.delete(doc(firestore, collectionName, item.id));
-        
-        // If deleting a student, remove from parents' students arrays
-        if (collectionName === 'students') {
-          const allParents = collections.parents;
-          for (const parent of allParents) {
-            const existingStudents = parent.students || [];
-            const hasStudent = existingStudents.some(s => 
-              s.studentId === item.id || s.studentID === item.id || s.studentId === item.schoolId
+  const initiateDelete = (item, collectionName) => {
+    setItemToDelete({ item, collectionName });
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+
+    const { item, collectionName } = itemToDelete;
+
+    try {
+      const batch = writeBatch(firestore);
+
+      // Delete the main document
+      batch.delete(doc(firestore, collectionName, item.id));
+
+      // If deleting a student, remove from parents' students arrays
+      if (collectionName === 'students') {
+        const allParents = collections.parents;
+        for (const parent of allParents) {
+          const existingStudents = parent.students || [];
+          const hasStudent = existingStudents.some(
+            (s) => s.studentId === item.id || s.studentID === item.id || s.studentId === item.schoolId,
+          );
+
+          if (hasStudent) {
+            const updatedStudents = existingStudents.filter(
+              (s) => s.studentId !== item.id && s.studentID !== item.id && s.studentId !== item.schoolId,
             );
-            
-            if (hasStudent) {
-              const updatedStudents = existingStudents.filter(s => 
-                s.studentId !== item.id && s.studentID !== item.id && s.studentId !== item.schoolId
-              );
-              const parentRef = doc(firestore, 'parents', parent.id);
-              batch.update(parentRef, { students: updatedStudents });
-            }
+            const parentRef = doc(firestore, 'parents', parent.id);
+            batch.update(parentRef, { students: updatedStudents });
           }
         }
-        
-        await batch.commit();
-        await fetchAllCollections();
-        addToast(successToast(`${getSingularName(collectionName)} deleted successfully`));
-      } catch (error) {
-        console.error('Error deleting document:', error);
       }
+
+      await batch.commit();
+      await fetchAllCollections();
+      addToast(successToast(`${getSingularName(collectionName)} deleted successfully`));
+    } catch (error) {
+      console.error('Error deleting document:', error);
+    } finally {
+      setShowDeleteModal(false);
+      setItemToDelete(null);
     }
   };
 
@@ -578,7 +590,7 @@ const PeoplePage = () => {
                     color="danger"
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDelete(item, collectionName)}
+                    onClick={() => initiateDelete(item, collectionName)}
                   >
                     <CIcon icon={cilTrash} />
                   </CButton>
@@ -1447,6 +1459,39 @@ const PeoplePage = () => {
     );
   };
 
+  const renderDeleteConfirmationModal = () => {
+    if (!itemToDelete) return null;
+
+    const { item, collectionName } = itemToDelete;
+    const name = `${item.personalInfo?.firstName || ''} ${item.personalInfo?.lastName || ''}`.trim();
+
+    return (
+      <CModal visible={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
+        <CModalHeader>
+          <CModalTitle>Confirm Deletion</CModalTitle>
+        </CModalHeader>
+        <CModalBody>
+          Are you sure you want to delete {getSingularName(collectionName)}:{' '}
+          <strong>{name}</strong> ({item.schoolId || item.id})? This action cannot be undone.
+        </CModalBody>
+        <CModalFooter>
+          <CButton
+            color="secondary"
+            onClick={() => {
+              setShowDeleteModal(false);
+              setItemToDelete(null);
+            }}
+          >
+            Cancel
+          </CButton>
+          <CButton color="danger" onClick={confirmDelete}>
+            Delete
+          </CButton>
+        </CModalFooter>
+      </CModal>
+    );
+  };
+
   return (
     <>
       <CToaster ref={toaster} push={toast} placement="top-end" />
@@ -1506,6 +1551,7 @@ const PeoplePage = () => {
       </div>
 
       {renderModal()}
+      {renderDeleteConfirmationModal()}
     </>
   );
 };
