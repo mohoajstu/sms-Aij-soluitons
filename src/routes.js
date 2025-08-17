@@ -92,6 +92,7 @@ const AllAnnouncements = React.lazy(() => import('./views/Announcements/AllAnnou
 const ProfilePage = React.lazy(() => import('./views/pages/profile/ProfilePage'))
 const OnboardingPage = React.lazy(() => import('./views/pages/onboarding/OnboardingPage'))
 const OnboardingAdmin = React.lazy(() => import('./views/pages/onboarding/OnboardingAdmin'))
+const PeoplePage = React.lazy(() => import('./views/pages/people/PeoplePage'))
 
 // const routes = [
 //   { path: '/', exact: true, name: 'Home' },
@@ -130,6 +131,7 @@ const routes = [
   { path: '/announcements', name: 'All Announcements', element: AllAnnouncements },
   { path: '/assignments', name: 'All Assignments', element: AllAssignments },
   { path: '/profile', name: 'Profile', element: ProfilePage },
+  { path: '/people', name: 'People Management', element: PeoplePage },
   { path: '/schedule', name: 'Schedule', element: ScheduleMainPage },
 
   // Template-specific report-card routes
