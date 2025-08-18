@@ -16,6 +16,8 @@ import {
   CSpinner,
   CFormSelect,
 } from '@coreui/react'
+import { collection, query, where, getDocs } from 'firebase/firestore'
+import { firestore } from 'src/firebase'
 import emailjs from 'emailjs-com'
 
 // EmailJS configuration - Updated with correct credentials
@@ -59,9 +61,24 @@ const SendAcceptanceEmailModal = ({
       (app) => app.primaryGuardian && app.primaryGuardian.email,
     )
 
-    const emailPromises = validApplications.map((app) => {
+    const emailPromises = validApplications.map(async (app) => {
+      // Find the corresponding parent document to get the tlaID
+      const parentsRef = collection(firestore, 'parents')
+      const q = query(parentsRef, where('contact.email', '==', app.primaryGuardian.email))
+      const querySnapshot = await getDocs(q)
+      let parentId = null
+      if (!querySnapshot.empty) {
+        parentId = querySnapshot.docs[0].id
+      } else {
+        console.error(
+          `Could not find parent document for email: ${app.primaryGuardian.email}. Skipping email.`,
+        )
+        setErrorCount((prev) => prev + 1)
+        return // Skip this application
+      }
+
       // Get the student's full name
-      const studentName = app.student 
+      const studentName = app.student
         ? `${app.student.firstName || ''} ${app.student.lastName || ''}`
         : app.studentName || 'your child'
 
@@ -73,6 +90,9 @@ const SendAcceptanceEmailModal = ({
       // Generate a simple password (you might want to make this more secure)
       const generatedPassword = `TLA${Math.random().toString(36).substring(2, 8).toUpperCase()}`
 
+      // Construct the onboarding link
+      const onboardingLink = `https://tlasms.com/#/onboarding`
+
       // Create the template parameters for the acceptance email
       // Using the exact variable names from your template
       const templateParams = {
@@ -80,12 +100,13 @@ const SendAcceptanceEmailModal = ({
         to_name: guardianName,
         name: guardianName,
         student_name: studentName,
-        tarbiyah_id: app.registrationCode || 'TBD',
-        password: generatedPassword,
-        student_code_id: app.registrationCode || 'TBD',
-        login_link: `${window.location.origin}/login/parent`,
+        tarbiyah_id: parentId,
+        onboarding_code: querySnapshot.docs[0].data().onboardingCode,
+        onboarding_link: onboardingLink,
         school_year: selectedSchoolYear,
       }
+
+      console.log('Sending email with these parameters:', templateParams)
 
       return emailjs
         .send(

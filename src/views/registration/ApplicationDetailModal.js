@@ -31,12 +31,12 @@ const ApplicationDetailModal = ({ application, onClose, onStatusChange }) => {
   const [notes, setNotes] = useState('')
 
   const handleApprove = () => {
-    onStatusChange(application.id, 'approved')
+    onStatusChange(application, 'approved')
     onClose()
   }
 
   const handleDeny = () => {
-    onStatus_change(application.id, 'denied')
+    onStatusChange(application, 'denied')
     onClose()
   }
 

@@ -33,7 +33,18 @@ import {
 } from '@coreui/icons'
 import { DataGrid } from '@mui/x-data-grid'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
-import { collection, getDocs, query, orderBy, doc, updateDoc, where } from 'firebase/firestore'
+import {
+  collection,
+  getDocs,
+  query,
+  orderBy,
+  doc,
+  updateDoc,
+  where,
+  writeBatch,
+  serverTimestamp,
+  getDoc,
+} from 'firebase/firestore'
 import { firestore } from 'src/firebase'
 import ApplicationDetailModal from './ApplicationDetailModal'
 import PaymentModal from './PaymentModal'
@@ -122,6 +133,39 @@ const RegistrationProcessingDashboard = () => {
     return colorMap[status] || 'secondary'
   }
 
+  const generateIds = async (collectionName, count = 1) => {
+    const prefix = {
+      students: 'TLS',
+      parents: 'TP',
+    }
+    const collRef = collection(firestore, collectionName)
+    const snapshot = await getDocs(collRef)
+    const existingIds = snapshot.docs.map((doc) => {
+      const id = doc.data().schoolId || doc.id
+      if (id && id.startsWith(prefix[collectionName])) {
+        const numberPart = id.replace(prefix[collectionName], '')
+        return parseInt(numberPart, 10) || 0
+      }
+      return 0
+    })
+
+    const baseNumber = {
+      students: 138747,
+      parents: 105624,
+    }
+
+    let maxNumber =
+      existingIds.length > 0 ? Math.max(...existingIds) : baseNumber[collectionName] - 1
+
+    const newIds = []
+    for (let i = 0; i < count; i++) {
+      maxNumber++
+      const nextNumber = maxNumber.toString().padStart(6, '0')
+      newIds.push(`${prefix[collectionName]}${nextNumber}`)
+    }
+    return newIds
+  }
+
   const generateRegistrationCode = async () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
     let newCode = ''
@@ -143,20 +187,334 @@ const RegistrationProcessingDashboard = () => {
     return newCode
   }
 
-  const handleStatusChange = async (appId, newStatus) => {
+  const handleStatusChange = async (application, newStatus) => {
     try {
-      const appRef = doc(firestore, 'registrations', appId)
+      const appRef = doc(firestore, 'registrations', application.id)
+      let appData = application
+
+      // If full data isn't present, fetch it
+      if (!appData.student || !appData.mother || !appData.father) {
+        const docSnap = await getDoc(appRef)
+        if (docSnap.exists()) {
+          appData = { id: docSnap.id, ...docSnap.data() }
+        } else {
+          throw new Error('Application document not found.')
+        }
+      }
+
       const updateData = { status: newStatus }
+      const batch = writeBatch(firestore)
 
       if (newStatus === 'approved') {
         const registrationCode = await generateRegistrationCode()
         updateData.registrationCode = registrationCode
+
+        // Default to empty objects to handle incomplete application data
+        const studentData = appData.student || {}
+        const primaryGuardianData = appData.primaryGuardian || {}
+        const secondaryGuardianData = appData.secondaryGuardian || {}
+        const hasSecondaryGuardian = !!secondaryGuardianData.firstName
+        const primaryGuardianExists = !!primaryGuardianData.schoolId
+        const secondaryGuardianExists = !!secondaryGuardianData.schoolId
+
+        // Create student and parent documents
+        const [studentId] = await generateIds('students', 1)
+        const parentIdsToCreate = [!primaryGuardianExists, hasSecondaryGuardian && !secondaryGuardianExists].filter(Boolean).length
+        const newParentIds = await generateIds('parents', parentIdsToCreate)
+        const motherId = primaryGuardianExists ? primaryGuardianData.schoolId : newParentIds.shift()
+        const fatherId = hasSecondaryGuardian ? (secondaryGuardianExists ? secondaryGuardianData.schoolId : newParentIds.shift()) : null
+
+        const onboardingCodeMother = !primaryGuardianExists ? Math.random().toString(36).substring(2, 8).toUpperCase() : null
+        const onboardingCodeFather = hasSecondaryGuardian && !secondaryGuardianExists ? Math.random().toString(36).substring(2, 8).toUpperCase() : null
+
+
+        console.log('--- Creating Documents ---')
+        console.log('Student ID:', studentId)
+        console.log('Primary Guardian (Mother) ID:', motherId)
+        if (hasSecondaryGuardian) {
+          console.log('Secondary Guardian (Father) ID:', fatherId)
+        }
+        console.log('--------------------------')
+
+        const studentRef = doc(firestore, 'students', studentId)
+        const motherRef = doc(firestore, 'parents', motherId)
+        const studentUserRef = doc(firestore, 'users', studentId)
+        const motherUserRef = doc(firestore, 'users', motherId)
+
+        // Prepare student's parents field
+        const studentParentsField = {
+          mother: {
+            name: `${primaryGuardianData.firstName || ''} ${
+              primaryGuardianData.lastName || ''
+            }`.trim(),
+            tarbiyahId: motherId,
+          },
+          father: {
+            name: hasSecondaryGuardian
+              ? `${secondaryGuardianData.firstName || ''} ${
+                  secondaryGuardianData.lastName || ''
+                }`.trim()
+              : '',
+            tarbiyahId: fatherId || '',
+          },
+        }
+
+        // Student document
+        const studentDocData = {
+          active: true,
+          address: {
+            poBox: '',
+            residentialArea: 'Unknown',
+            streetAddress: appData.contact?.studentAddress || '',
+          },
+          citizenship: {
+            nationalId: '',
+            nationalIdExpiry: '',
+            nationality: '',
+          },
+          contact: {
+            email: '', // Student-specific email not on registration form
+            emergencyPhone: appData.contact?.emergencyPhone || '',
+            phone1: appData.contact?.primaryPhone || '',
+            phone2: '',
+          },
+          language: {
+            primary: '',
+            secondary: '',
+          },
+          parents: studentParentsField,
+          personalInfo: {
+            dob: studentData.dateOfBirth || '',
+            firstName: studentData.firstName || '',
+            middleName: '', // Not collected in registration
+            lastName: studentData.lastName || '',
+            gender: studentData.gender || '',
+            nickName: '', // Not collected in registration
+            salutation: '', // Not collected in registration
+          },
+          primaryRole: 'Student',
+          schoolId: studentId,
+          schooling: {
+            custodyDetails: '',
+            daySchoolEmployer: '',
+            notes: `Allergies/Medical Conditions: ${
+              studentData.allergies || 'N/A'
+            }\nOEN: ${studentData.oen || 'N/A'}\nPrevious School: ${
+              studentData.previousSchool || 'N/A'
+            }\nPhoto Permission: ${studentData.photoPermission || 'N/A'}`,
+            program: appData.grade || '',
+            returningStudentYear: appData.schoolYear || '',
+          },
+          createdAt: serverTimestamp(),
+          uploadedAt: serverTimestamp(),
+        }
+        batch.set(studentRef, studentDocData)
+
+        // Mother document
+        if (!primaryGuardianExists) {
+          const motherDocData = {
+            active: true,
+            address: {
+              poBox: primaryGuardianData.poBox || '',
+              residentialArea: primaryGuardianData.residentialArea || 'Unknown',
+              streetAddress: primaryGuardianData.address || '',
+            },
+            citizenship: {
+              nationalId: primaryGuardianData.nationalId || '',
+              nationalIdExpiry: primaryGuardianData.nationalIdExpiry || '',
+              nationality: primaryGuardianData.nationality || '',
+            },
+            contact: {
+              email: primaryGuardianData.email || '',
+              emergencyPhone: appData.contact?.emergencyPhone || '',
+              phone1: primaryGuardianData.phone || '',
+              phone2: '',
+            },
+            language: {
+              primary: '',
+              secondary: '',
+            },
+            personalInfo: {
+              dob: primaryGuardianData.dob || '',
+              firstName: primaryGuardianData.firstName || '',
+              middleName: primaryGuardianData.middleName || '',
+              lastName: primaryGuardianData.lastName || '',
+              gender: primaryGuardianData.gender || '',
+              nickName: '',
+              salutation: '',
+            },
+            primaryRole: 'Parent',
+            schoolId: motherId,
+            schooling: {
+              custodyDetails: '',
+              daySchoolEmployer: '',
+              notes: '',
+            },
+            students: [
+              {
+                studentId: studentId,
+                studentName: `${studentData.firstName || ''} ${studentData.lastName || ''}`.trim(),
+                relationship: 'child',
+              },
+            ],
+            onboarding: false,
+            onboardingCode: onboardingCodeMother,
+            createdAt: serverTimestamp(),
+            uploadedAt: serverTimestamp(),
+          }
+          batch.set(motherRef, motherDocData)
+        } else {
+          // Update existing parent
+          const existingStudents = primaryGuardianData.students || []
+          batch.update(motherRef, {
+            students: [...existingStudents, { studentId: studentId, studentName: `${studentData.firstName || ''} ${studentData.lastName || ''}`.trim(), relationship: 'child' }]
+          })
+        }
+
+        // User documents
+        batch.set(studentUserRef, {
+          active: true,
+          createdAt: serverTimestamp(),
+          dashboard: {
+            theme: 'default',
+          },
+          linkedCollection: 'students',
+          personalInfo: {
+            firstName: studentData.firstName || '',
+            lastName: studentData.lastName || '',
+          },
+          role: 'Student',
+          stats: {
+            lastLoginAt: null,
+            loginCount: 0,
+          },
+          tarbiyahId: studentId,
+        })
+
+        if (!primaryGuardianExists) {
+          batch.set(motherUserRef, {
+            active: true,
+            createdAt: serverTimestamp(),
+            dashboard: {
+              theme: 'default',
+            },
+            linkedCollection: 'parents',
+            personalInfo: {
+              firstName: primaryGuardianData.firstName || '',
+              lastName: primaryGuardianData.lastName || '',
+            },
+            role: 'Parent',
+            stats: {
+              lastLoginAt: null,
+              loginCount: 0,
+            },
+            tarbiyahId: motherId,
+          })
+        }
+
+        // Father and Father's User documents (conditional)
+        if (hasSecondaryGuardian && fatherId) {
+          const fatherRef = doc(firestore, 'parents', fatherId)
+          const fatherUserRef = doc(firestore, 'users', fatherId)
+
+          if (!secondaryGuardianExists) {
+            const fatherDocData = {
+              active: true,
+              address: {
+                poBox: secondaryGuardianData.poBox || '',
+                residentialArea: secondaryGuardianData.residentialArea || 'Unknown',
+                streetAddress: secondaryGuardianData.address || '',
+              },
+              citizenship: {
+                nationalId: secondaryGuardianData.nationalId || '',
+                nationalIdExpiry: secondaryGuardianData.nationalIdExpiry || '',
+                nationality: secondaryGuardianData.nationality || '',
+              },
+              contact: {
+                email: secondaryGuardianData.email || '',
+                emergencyPhone: appData.contact?.emergencyPhone || '',
+                phone1: secondaryGuardianData.phone || '',
+                phone2: '',
+              },
+              language: {
+                primary: '',
+                secondary: '',
+              },
+              personalInfo: {
+                dob: secondaryGuardianData.dob || '',
+                firstName: secondaryGuardianData.firstName || '',
+                middleName: secondaryGuardianData.middleName || '',
+                lastName: secondaryGuardianData.lastName || '',
+                gender: secondaryGuardianData.gender || '',
+                nickName: '',
+                salutation: '',
+              },
+              primaryRole: 'Parent',
+              schoolId: fatherId,
+              schooling: {
+                custodyDetails: '',
+                daySchoolEmployer: '',
+                notes: '',
+              },
+              students: [
+                {
+                  studentId: studentId,
+                  studentName: `${studentData.firstName || ''} ${
+                    studentData.lastName || ''
+                  }`.trim(),
+                  relationship: 'child',
+                },
+              ],
+              onboarding: false,
+              onboardingCode: onboardingCodeFather,
+              createdAt: serverTimestamp(),
+              uploadedAt: serverTimestamp(),
+            }
+            batch.set(fatherRef, fatherDocData)
+          } else {
+            // Update existing parent
+            const existingStudents = secondaryGuardianData.students || []
+            batch.update(fatherRef, {
+              students: [
+                ...existingStudents,
+                {
+                  studentId: studentId,
+                  studentName: `${studentData.firstName || ''} ${
+                    studentData.lastName || ''
+                  }`.trim(),
+                  relationship: 'child',
+                },
+              ],
+            })
+          }
+          if (!secondaryGuardianExists) {
+            batch.set(fatherUserRef, {
+              active: true,
+              createdAt: serverTimestamp(),
+              dashboard: {
+                theme: 'default',
+              },
+              linkedCollection: 'parents',
+              personalInfo: {
+                firstName: secondaryGuardianData.firstName || '',
+                lastName: secondaryGuardianData.lastName || '',
+              },
+              role: 'Parent',
+              stats: {
+                lastLoginAt: null,
+                loginCount: 0,
+              },
+              tarbiyahId: fatherId,
+            })
+          }
+        }
       }
 
-      await updateDoc(appRef, updateData)
+      batch.update(appRef, updateData)
+      await batch.commit()
 
       setApplications((prev) =>
-        prev.map((app) => (app.id === appId ? { ...app, ...updateData } : app)),
+        prev.map((app) => (app.id === application.id ? { ...app, ...updateData } : app)),
       )
     } catch (error) {
       console.error('Error updating status:', error)
@@ -212,10 +570,10 @@ const RegistrationProcessingDashboard = () => {
         handleArchiveApplication(id, archived)
         break
       case 'approve':
-        handleStatusChange(id, 'approved')
+        handleStatusChange(confirmationDialog.application, 'approved')
         break
       case 'deny':
-        handleStatusChange(id, 'denied')
+        handleStatusChange(confirmationDialog.application, 'denied')
         break
     }
   }

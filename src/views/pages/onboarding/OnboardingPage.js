@@ -8,6 +8,9 @@ import {
   query,
   where,
   serverTimestamp,
+  getDoc,
+  deleteField,
+  writeBatch,
 } from 'firebase/firestore';
 import {
   CCard,
@@ -34,8 +37,9 @@ import {
   CCol,
 } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
-import { cilCheckCircle, cilWarning, cilUser, cilUserPlus } from '@coreui/icons';
+import { cilCheckCircle, cilWarning, cilUser, cilUserPlus, cilLockLocked } from '@coreui/icons';
 import { firestore } from 'src/firebase';
+import bcrypt from 'bcryptjs';
 import './OnboardingPage.css';
 
 const OnboardingPage = () => {
@@ -47,10 +51,12 @@ const OnboardingPage = () => {
   // Step 1: Parent Verification
   const [verificationData, setVerificationData] = useState({
     tarbiyahId: '',
-    password: '',
+    onboardingCode: '',
   });
   const [parentExists, setParentExists] = useState(false);
   const [verifiedParentId, setVerifiedParentId] = useState(null);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   // Step 2: Parent Information
   const [parentData, setParentData] = useState({
@@ -91,6 +97,38 @@ const OnboardingPage = () => {
     primaryRole: 'Parent',
     students: [],
   });
+
+  useEffect(() => {
+    const fetchParentData = async () => {
+      if (!verificationData.tarbiyahId) return
+
+      setLoading(true)
+      try {
+        const parentDocRef = doc(firestore, 'parents', verificationData.tarbiyahId)
+        const parentDoc = await getDoc(parentDocRef)
+
+        if (parentDoc.exists()) {
+          const existingParentData = parentDoc.data()
+          setVerifiedParentId(parentDoc.id)
+          setParentExists(true)
+          setParentData({
+            ...existingParentData,
+            id: parentDoc.id,
+          })
+        } else {
+          // This case might happen if the link is manually changed to a non-existent ID
+          addToast(errorToast('No parent found with this ID.'))
+        }
+      } catch (error) {
+        console.error('Error fetching parent data:', error)
+        addToast(errorToast('An error occurred while fetching your data.'))
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchParentData()
+  }, [verificationData.tarbiyahId])
 
   // Step 3: Student Registration
   const [studentCode, setStudentCode] = useState('');
@@ -166,87 +204,77 @@ const OnboardingPage = () => {
 
   // Check if parent already exists
   const verifyParentCredentials = async () => {
-    if (!verificationData.tarbiyahId || !verificationData.password) {
-      addToast(errorToast('Please enter both Tarbiyah ID and password'));
-      return;
+    if (!verificationData.tarbiyahId || !verificationData.onboardingCode) {
+      addToast(errorToast('Please enter both Tarbiyah ID and Onboarding Code'))
+      return
     }
 
-    setLoading(true);
+    setLoading(true)
     try {
-      // Check if parent exists in database
-      const parentsCollection = collection(firestore, 'parents');
-      const parentQuery = query(parentsCollection, where('schoolId', '==', verificationData.tarbiyahId));
-      const parentSnapshot = await getDocs(parentQuery);
+      const parentDoc = await getDoc(doc(firestore, 'parents', verificationData.tarbiyahId))
 
-      if (!parentSnapshot.empty) {
-        // Parent exists, proceed to student registration
-        const parentDoc = parentSnapshot.docs[0];
-        const existingParentData = parentDoc.data();
-        setVerifiedParentId(parentDoc.id);
-        setParentExists(true);
-        
-        // Pre-populate parent data with existing information
-        setParentData({
-          personalInfo: {
-            firstName: existingParentData.personalInfo?.firstName || '',
-            middleName: existingParentData.personalInfo?.middleName || '',
-            lastName: existingParentData.personalInfo?.lastName || '',
-            dob: existingParentData.personalInfo?.dob || '',
-            gender: existingParentData.personalInfo?.gender || '',
-            salutation: existingParentData.personalInfo?.salutation || '',
-          },
-          address: {
-            poBox: existingParentData.address?.poBox || '',
-            residentialArea: existingParentData.address?.residentialArea || '',
-            streetAddress: existingParentData.address?.streetAddress || '',
-          },
-          citizenship: {
-            nationalId: existingParentData.citizenship?.nationalId || '',
-            nationalIdExpiry: existingParentData.citizenship?.nationalIdExpiry || '',
-            nationality: existingParentData.citizenship?.nationality || '',
-          },
-          contact: {
-            email: existingParentData.contact?.email || '',
-            emergencyPhone: existingParentData.contact?.emergencyPhone || '',
-            phone1: existingParentData.contact?.phone1 || '',
-            phone2: existingParentData.contact?.phone2 || '',
-          },
-          language: {
-            primary: existingParentData.language?.primary || '',
-            secondary: existingParentData.language?.secondary || '',
-          },
-          schooling: {
-            custodyDetails: existingParentData.schooling?.custodyDetails || '',
-            daySchoolEmployer: existingParentData.schooling?.daySchoolEmployer || '',
-            notes: existingParentData.schooling?.notes || '',
-          },
-          active: existingParentData.active !== undefined ? existingParentData.active : true,
-          primaryRole: existingParentData.primaryRole || 'Parent',
-          students: existingParentData.students || [],
-          id: parentDoc.id,
-        });
-        
-        setCurrentStep(3); // Skip to student registration
-        addToast(successToast('Parent account found! You can now add students.'));
-      } else {
-        // Check if this is a valid new parent ID (you might want to check against a pre-approved list)
-        // For now, we'll assume any format matching TP + 6 digits is valid for new registration
-        if (verificationData.tarbiyahId.match(/^TP\d{6}$/) && verificationData.password === 'TarbiyahWelcome2024') {
-          setVerifiedParentId(verificationData.tarbiyahId);
-          setParentExists(false);
-          setCurrentStep(2); // Go to parent information form
-          addToast(successToast('Credentials verified! Please complete your parent profile.'));
+      if (
+        parentDoc.exists() &&
+        parentDoc.data().onboardingCode === verificationData.onboardingCode
+      ) {
+        const existingParentData = parentDoc.data()
+        setVerifiedParentId(parentDoc.id)
+        setParentExists(true)
+        setParentData(existingParentData)
+
+        if (existingParentData.onboarding === false) {
+          setCurrentStep(1.5) // New password step
         } else {
-          addToast(errorToast('Invalid credentials. Please check your Tarbiyah ID and password.'));
+          setCurrentStep(2) // Skip to parent info
         }
+      } else {
+        addToast(errorToast('Invalid credentials. Please check your Tarbiyah ID and Onboarding Code.'))
       }
     } catch (error) {
-      console.error('Error verifying credentials:', error);
-      addToast(errorToast('Error verifying credentials. Please try again.'));
+      console.error('Error verifying credentials:', error)
+      addToast(errorToast('Error verifying credentials. Please try again.'))
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
+
+  const handleSetPassword = async () => {
+    if (password !== confirmPassword) {
+      addToast(errorToast('Passwords do not match.'))
+      return
+    }
+    if (password.length < 6) {
+      addToast(errorToast('Password must be at least 6 characters long.'))
+      return
+    }
+
+    setLoading(true)
+    try {
+      const salt = await bcrypt.genSalt(10)
+      const passwordHash = await bcrypt.hash(password, salt)
+      const parentRef = doc(firestore, 'parents', verifiedParentId)
+      const authRef = doc(firestore, 'auth', verifiedParentId)
+
+      const batch = writeBatch(firestore)
+      batch.update(parentRef, {
+        onboarding: true,
+        onboardingCode: deleteField(), // Remove the temporary code
+      })
+      batch.set(authRef, {
+        passwordHash: passwordHash,
+      })
+
+      await batch.commit()
+
+      addToast(successToast('Password set successfully!'))
+      setCurrentStep(2)
+    } catch (error) {
+      console.error('Error setting password:', error)
+      addToast(errorToast('Failed to set password. Please try again.'))
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Save parent information
   const saveParentInformation = async () => {
@@ -438,10 +466,11 @@ const OnboardingPage = () => {
       </CCardHeader>
       <CCardBody>
         <CAlert color="info">
-          <strong>Welcome to Tarbiyah Learning Academy!</strong><br />
-          Please enter the Tarbiyah ID and password provided in your acceptance email.
+          <strong>Welcome to Tarbiyah Learning Academy!</strong>
+          <br />
+          Please enter the Tarbiyah ID and Onboarding Code provided in your acceptance email.
         </CAlert>
-        
+
         <CForm>
           <div className="mb-3">
             <CFormLabel>Tarbiyah ID *</CFormLabel>
@@ -459,17 +488,17 @@ const OnboardingPage = () => {
             />
           </div>
           <div className="mb-4">
-            <CFormLabel>Password *</CFormLabel>
+            <CFormLabel>Onboarding Code *</CFormLabel>
             <CFormInput
-              type="password"
-              value={verificationData.password}
+              type="text"
+              value={verificationData.onboardingCode}
               onChange={(e) =>
                 setVerificationData({
                   ...verificationData,
-                  password: e.target.value,
+                  onboardingCode: e.target.value.toUpperCase(),
                 })
               }
-              placeholder="Enter the password from your email"
+              placeholder="Enter the code from your email"
               required
             />
           </div>
@@ -481,6 +510,49 @@ const OnboardingPage = () => {
           >
             {loading ? <CSpinner size="sm" className="me-2" /> : null}
             Verify & Continue
+          </CButton>
+        </CForm>
+      </CCardBody>
+    </CCard>
+  );
+
+  const renderStep1_5 = () => (
+    <CCard>
+      <CCardHeader>
+        <h4>
+          <CIcon icon={cilLockLocked} className="me-2" />
+          Set Your Password
+        </h4>
+      </CCardHeader>
+      <CCardBody>
+        <CAlert color="info">Please set a secure password for your account.</CAlert>
+        <CForm>
+          <div className="mb-3">
+            <CFormLabel>New Password *</CFormLabel>
+            <CFormInput
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <CFormLabel>Confirm New Password *</CFormLabel>
+            <CFormInput
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+          </div>
+          <CButton
+            color="primary"
+            onClick={handleSetPassword}
+            disabled={loading}
+            className="w-100"
+          >
+            {loading ? <CSpinner size="sm" className="me-2" /> : null}
+            Set Password & Continue
           </CButton>
         </CForm>
       </CCardBody>
@@ -1443,6 +1515,7 @@ const OnboardingPage = () => {
               {renderProgressBar()}
               
               {currentStep === 1 && renderStep1()}
+              {currentStep === 1.5 && renderStep1_5()}
               {currentStep === 2 && renderStep2()}
               {currentStep === 3 && renderStep3()}
             </div>

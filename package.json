@@ -16,7 +16,10 @@
     "build": "vite build",
     "lint": "eslint",
     "serve": "vite preview",
-    "start": "vite"
+    "start": "vite",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "onboard": "node src/scripts/addOnboardingToParents.js"
   },
   "dependencies": {
     "@coreui/chartjs": "^4.1.0",
@@ -38,6 +41,7 @@
     "@mui/x-date-pickers": "^7.29.3",
     "@popperjs/core": "^2.11.8",
     "@reduxjs/toolkit": "^2.2.1",
+    "bcryptjs": "^3.0.2",
     "chart.js": "^4.4.7",
     "classnames": "^2.5.1",
     "core-js": "^3.40.0",
