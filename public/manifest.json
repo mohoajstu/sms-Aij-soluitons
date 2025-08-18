@@ -4,12 +4,12 @@
   "description": "Comprehensive school management system for Tarbiyah Learning Academy. Manage student records, academic progress, parent-teacher communication, and administrative functions.",
   "icons": [
     {
-      "src": "/src/assets/brand/TLA_logo_simple.ico",
+      "src": "/assets/brand/TLA_logo_simple.ico",
       "sizes": "32x32",
       "type": "image/x-icon"
     },
     {
-      "src": "/src/assets/brand/TLA_logo_simple.svg",
+      "src": "/assets/brand/TLA_logo_simple.svg",
       "sizes": "any",
       "type": "image/svg+xml"
     }

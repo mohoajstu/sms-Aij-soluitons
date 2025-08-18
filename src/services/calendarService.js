@@ -8,6 +8,21 @@ const SCOPES =
 const TOKEN_STORAGE_KEY = 'google_calendar_api_token' // This is our internal token storage
 const SHARED_GOOGLE_AUTH_TOKEN_KEY = 'firebase_google_auth_token' // Token shared with Firebase auth
 
+// Debug environment variables
+console.log('Google API Configuration:', {
+  API_KEY: API_KEY ? 'Set' : 'Missing',
+  CLIENT_ID: CLIENT_ID ? 'Set' : 'Missing',
+  env: import.meta.env.MODE
+})
+
+// Validate required environment variables
+if (!API_KEY) {
+  console.error('VITE_GOOGLE_API_KEY is not set in environment variables')
+}
+if (!CLIENT_ID) {
+  console.error('VITE_GOOGLE_CLIENT_ID is not set in environment variables')
+}
+
 let tokenClient
 let gapiInited = false
 let gisInited = false
@@ -135,6 +150,13 @@ export const initializeGoogleApi = () => {
 export const initializeGIS = () => {
   return new Promise((resolve) => {
     try {
+      // Validate CLIENT_ID before initializing
+      if (!CLIENT_ID) {
+        console.error('Missing required parameter client_id. VITE_GOOGLE_CLIENT_ID is not set.')
+        resolve(false)
+        return
+      }
+
       tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: SCOPES,

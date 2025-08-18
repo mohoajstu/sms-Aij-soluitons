@@ -53,5 +53,9 @@ export default defineConfig(() => {
         // https://vitejs.dev/config/server-options.html
       },
     },
+    // Ensure environment variables are properly loaded
+    define: {
+      'process.env': {}
+    }
   }
 })
