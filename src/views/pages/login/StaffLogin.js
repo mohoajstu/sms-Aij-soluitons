@@ -22,7 +22,6 @@ const googleProvider = new GoogleAuthProvider()
 googleProvider.addScope('https://www.googleapis.com/auth/drive.file')
 googleProvider.addScope('https://www.googleapis.com/auth/calendar.readonly')
 googleProvider.addScope('https://www.googleapis.com/auth/calendar.events')
-googleProvider.addScope('https://www.googleapis.com/auth/spreadsheets')
 
 
 const db = getFirestore()
