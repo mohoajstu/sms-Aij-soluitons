@@ -22,7 +22,7 @@ import { cilChatBubble, cilBell, cilBellExclamation } from '@coreui/icons'
 import NotificationService from '../../services/notificationService'
 import { toast } from 'react-hot-toast'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore'
 import { firestore } from '../../Firebase/firebase'
 import useAuth from '../../Firebase/useAuth'
 import './attendanceTable.css'
@@ -33,6 +33,7 @@ const AttendanceTable = () => {
   const [students, setStudents] = useState([])
   const [studentsLoading, setStudentsLoading] = useState(false)
   const [attendanceData, setAttendanceData] = useState({})
+  const [originalAttendanceData, setOriginalAttendanceData] = useState({})
   const [showModal, setShowModal] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState(null)
   const [commentInput, setCommentInput] = useState('')
@@ -117,12 +118,15 @@ const AttendanceTable = () => {
               }
             })
             setAttendanceData(loadedAttendance)
+            setOriginalAttendanceData(loadedAttendance)
             setAttendanceExists(true)
           } else {
             setAttendanceData({})
+            setOriginalAttendanceData({})
           }
         } else {
           setAttendanceData({})
+          setOriginalAttendanceData({})
         }
       } catch (err) {
         console.error('Error loading attendance:', err)
@@ -304,6 +308,47 @@ const AttendanceTable = () => {
           courses: [newCourseRecord],
         })
       }
+
+      // Update attendance counters on student docs based on deltas
+      const updatePromises = []
+      students.forEach((student) => {
+        const studentId = student.id
+        const prevStatus = originalAttendanceData[studentId]?.status
+        const newStatus = attendanceData[studentId]?.status
+
+        if (prevStatus === newStatus || !newStatus) {
+          return
+        }
+
+        let lateDelta = 0
+        let absenceDelta = 0
+
+        const wasLate = prevStatus === 'Late'
+        const isLate = newStatus === 'Late'
+        if (!wasLate && isLate) lateDelta += 1
+        if (wasLate && !isLate) lateDelta -= 1
+
+        const wasAbsent = prevStatus === 'Absent'
+        const isAbsent = newStatus === 'Absent'
+        if (!wasAbsent && isAbsent) absenceDelta += 1
+        if (wasAbsent && !isAbsent) absenceDelta -= 1
+
+        if (lateDelta !== 0 || absenceDelta !== 0) {
+          const studentRef = doc(firestore, 'students', studentId)
+          const updatePayload = {}
+          if (lateDelta !== 0) {
+            updatePayload['attendanceStats.currentTermLateCount'] = increment(lateDelta)
+            updatePayload['attendanceStats.yearLateCount'] = increment(lateDelta)
+          }
+          if (absenceDelta !== 0) {
+            updatePayload['attendanceStats.currentTermAbsenceCount'] = increment(absenceDelta)
+            updatePayload['attendanceStats.yearAbsenceCount'] = increment(absenceDelta)
+          }
+          updatePromises.push(updateDoc(studentRef, updatePayload))
+        }
+      })
+
+      await Promise.all(updatePromises)
 
       toast.success('Attendance saved!')
       navigate('/attendance')
