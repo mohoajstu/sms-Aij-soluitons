@@ -18,66 +18,12 @@ import {
   CAccordionHeader,
   CAccordionBody
 } from "@coreui/react";
-import CIcon from '@coreui/icons-react';
-import { cilStar } from '@coreui/icons';
-
-/**
- * AIInputField component for text fields with AI generation capability
- */
-const AIInputField = ({ label, value, onChange, onGenerate, isGenerating, placeholder }) => {
-  const [isFocused, setIsFocused] = useState(false);
-
-  return (
-    <div className="ai-input-field">
-      <CFormLabel>{label}</CFormLabel>
-      <div className="ai-input-container">
-        <CFormTextarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className={`ai-input-textarea ${isGenerating ? "generating" : ""}`}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-        />
-        <CButton
-          type="button"
-          className="ai-generate-button"
-          onClick={onGenerate}
-          disabled={isGenerating}
-        >
-          <CIcon icon={cilStar} />
-          <span className="visually-hidden">Generate with AI</span>
-        </CButton>
-      </div>
-      {isGenerating && (
-        <p className="ai-generating-text">
-          Generating content...
-        </p>
-      )}
-    </div>
-  );
-};
-
-AIInputField.propTypes = {
-  label: PropTypes.string.isRequired,
-  value: PropTypes.string.isRequired,
-  onChange: PropTypes.func.isRequired,
-  onGenerate: PropTypes.func.isRequired,
-  isGenerating: PropTypes.bool,
-  placeholder: PropTypes.string
-};
-
-AIInputField.defaultProps = {
-  isGenerating: false,
-  placeholder: ""
-};
+import AIReportCommentInput from '../../../components/AIReportCommentInput';
 
 /**
  * ReportCardForm component for editing report card data
  */
 export function ReportCardForm({ formData, handleChange, handleSubmit }) {
-  const [isGenerating, setIsGenerating] = useState({});
-
   // Rating options for learning skills
   const ratingOptions = [
     { value: "E", label: "E - Excellent" },
@@ -106,33 +52,6 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
     { value: "2", label: "Term 2" },
     { value: "3", label: "Term 3" },
   ];
-
-  // This would be replaced with an actual AI generation function
-  const handleAIGenerate = (field, context) => {
-    setIsGenerating(prev => ({ ...prev, [field]: true }));
-    
-    // Mock AI generation with a timeout
-    setTimeout(() => {
-      let generatedText = "";
-      
-      switch(field) {
-        case "strengths_next_steps":
-          generatedText = `${formData.student_name || 'The student'} demonstrates strong critical thinking skills in math and science. They excel at problem-solving and applying concepts to new situations. Next steps include improving organization of written work and participating more actively in class discussions. ${formData.student_name || 'The student'} should focus on completing homework assignments on time and double-checking their work for accuracy.`;
-          break;
-        case "teacher_comments":
-          generatedText = `${formData.student_name || 'The student'} has shown consistent effort and improvement throughout this term. They demonstrate good understanding of key concepts and work well with peers during group activities.`;
-          break;
-        default:
-          generatedText = "Generated content for " + field;
-      }
-      
-      handleChange(field, generatedText);
-      setIsGenerating(prev => ({ ...prev, [field]: false }));
-      
-      // Toast notification would go here
-      alert("Successfully generated content for " + field.replace(/_/g, ' '));
-    }, 1500);
-  };
 
   return (
     <CForm id="report-card-form" onSubmit={handleSubmit} className="report-card-form">
@@ -494,25 +413,37 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
           <CAccordionBody className="report-card-accordion-body">
             <CCard className="report-card-form-card">
               <CCardBody>
+                {/* Traditional text areas for editing */}
                 <div className="mb-4">
-                  <AIInputField
-                    label="Strengths and Next Steps for Improvement"
+                  <CFormLabel>Strengths and Next Steps for Improvement</CFormLabel>
+                  <CFormTextarea
                     value={formData.strengths_next_steps}
-                    onChange={(value) => handleChange('strengths_next_steps', value)}
-                    onGenerate={() => handleAIGenerate('strengths_next_steps')}
-                    isGenerating={isGenerating.strengths_next_steps}
+                    onChange={(e) => handleChange('strengths_next_steps', e.target.value)}
                     placeholder="Describe student strengths and areas for improvement..."
+                    rows={4}
                   />
                 </div>
 
                 <div className="mb-4">
-                  <AIInputField
-                    label="Teacher Comments"
+                  <CFormLabel>Teacher Comments</CFormLabel>
+                  <CFormTextarea
                     value={formData.teacher_comments}
-                    onChange={(value) => handleChange('teacher_comments', value)}
-                    onGenerate={() => handleAIGenerate('teacher_comments')}
-                    isGenerating={isGenerating.teacher_comments}
+                    onChange={(e) => handleChange('teacher_comments', e.target.value)}
                     placeholder="Additional teacher comments..."
+                    rows={4}
+                  />
+                </div>
+
+                {/* AI Generation Button */}
+                <div className="mb-4">
+                  <AIReportCommentInput
+                    label="AI Comment Generator"
+                    formData={formData}
+                    handleChange={handleChange}
+                    buttonText="Generate Professional Comments"
+                    onJson={(json) => {
+                      console.log('Generated AI comments:', json);
+                    }}
                   />
                 </div>
 
