@@ -26,12 +26,13 @@ import { cilStar, cilLightbulb, cilUser, cilBook, cilCommentSquare, cilArrowRigh
 import { FormControlLabel, Checkbox } from '@mui/material';
 import { pink, green, blue, orange, purple } from '@mui/material/colors';
 import SignatureCanvas from 'react-signature-canvas';
+import AIReportCommentInput from '../../../components/AIReportCommentInput';
 
 /**
  * AI-Enhanced Text Area
  * A reusable component for text areas with an AI generation button.
  */
-const AICommentField = ({ name, value, onChange, placeholder, rows = 10, isGenerating = false, onGenerate, maxLength }) => {
+const AICommentField = ({ name, value, onChange, placeholder, rows = 10, isGenerating = false, onGenerate, maxLength, formData, onFormDataChange }) => {
   const currentLength = value?.length || 0;
 
   return (
@@ -52,30 +53,36 @@ const AICommentField = ({ name, value, onChange, placeholder, rows = 10, isGener
           fontSize: '1rem',
         }}
       />
-      <CButton
-        type="button"
-        title="Generate with AI"
-        className="ai-generate-button position-absolute"
-        style={{
-          top: '10px',
-          right: '10px',
-          background: 'none',
-          border: 'none',
-          color: isGenerating ? '#0d6efd' : '#6c757d',
-        }}
-        onClick={() => onGenerate(name)}
-        disabled={isGenerating}
-      >
-        {isGenerating ? <CSpinner size="sm" /> : <CIcon icon={cilLightbulb} size="lg" />}
-      </CButton>
+      
+      {/* AI Generation Button */}
+      <div className="position-absolute" style={{ top: '10px', right: '10px' }}>
+        <AIReportCommentInput
+          label=""
+          formData={{
+            student_name: formData.student,
+            grade: formData.grade,
+            subject: getSubjectForField(name),
+          }}
+          handleChange={(field, aiValue) => {
+            // Map AI output directly to the specific field
+            if (field === 'teacher_comments' || field === 'strengths_next_steps') {
+              onFormDataChange({ ...formData, [name]: aiValue })
+            }
+          }}
+          buttonText=""
+          explicitReportType="Kindergarten Communication of Learning"
+          className="ai-button-minimal"
+        />
+      </div>
+      
       {maxLength && (
-        <div 
+        <div
           className="position-absolute"
-          style={{ 
-            bottom: '8px', 
-            right: '15px', 
-            fontSize: '0.8rem', 
-            color: currentLength > maxLength ? '#dc3545' : '#6c757d'
+          style={{
+            bottom: '8px',
+            right: '15px',
+            fontSize: '0.8rem',
+            color: currentLength > maxLength ? '#dc3545' : '#6c757d',
           }}
         >
           {currentLength}/{maxLength}
@@ -84,6 +91,14 @@ const AICommentField = ({ name, value, onChange, placeholder, rows = 10, isGener
     </div>
   );
 };
+
+// Helper function to determine subject based on field name
+const getSubjectForField = (fieldName) => {
+  if (fieldName === 'keyLearning' || fieldName === 'keyLearning2') return 'Key Learning'
+  if (fieldName === 'growthInLearning' || fieldName === 'growthInLearning2') return 'Growth in Learning'
+  if (fieldName === 'nextStepsInLearning' || fieldName === 'nextStepsInLearning2') return 'Next Steps in Learning'
+  return 'Kindergarten Learning'
+}
 
 AICommentField.propTypes = {
   name: PropTypes.string.isRequired,
@@ -94,6 +109,8 @@ AICommentField.propTypes = {
   isGenerating: PropTypes.bool,
   onGenerate: PropTypes.func.isRequired,
   maxLength: PropTypes.number,
+  formData: PropTypes.object.isRequired,
+  onFormDataChange: PropTypes.func.isRequired,
 };
 
 /**
@@ -637,6 +654,8 @@ const KeyLearningSection = ({ formData, onFormDataChange, onGenerate, isGenerati
           isGenerating={isGenerating}
           onGenerate={onGenerate}
           maxLength={1500}
+          formData={formData}
+          onFormDataChange={onFormDataChange}
         />
         <AICommentField
           name="keyLearning2"
@@ -648,6 +667,8 @@ const KeyLearningSection = ({ formData, onFormDataChange, onGenerate, isGenerati
           onGenerate={onGenerate}
           maxLength={500}
           className="mt-3"
+          formData={formData}
+          onFormDataChange={onFormDataChange}
         />
       </CCardBody>
     </CCard>
@@ -705,55 +726,54 @@ SignatureSection.propTypes = {
 /**
  * Main component for kindergarten initial observation report card
  */
-const KindergartenInitialUI = ({
-  formData, 
-  onFormDataChange, 
-  onSubmit, 
-  loading = false, 
-  error = null 
-}) => {
-  const [generatingFields, setGeneratingFields] = useState(new Set());
+const KindergartenInitialUI = ({ formData, onFormDataChange, onSubmit, loading, error }) => {
   const [activeAccordion, setActiveAccordion] = useState(['student-info', 'key-learning', 'signatures']);
 
   const handleAccordionChange = (newActive) => {
     setActiveAccordion(newActive);
   };
 
-  const handleAIGenerate = async (fieldName) => {
-    setGeneratingFields(prev => new Set(prev).add(fieldName));
-    try {
-      // Mock AI generation - replace with actual AI service call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const studentName = formData.student || 'The student';
-      let generatedText = `Based on observations, ${studentName} shows strong potential in collaborating with peers. A key area for growth is developing greater independence during learning activities. Next steps should focus on encouraging ${studentName} to initiate tasks and persevere through challenges with minimal guidance.`;
-      
-      if (fieldName === 'keyLearning2') {
-        generatedText = `Further development in self-regulation will also be beneficial. We will continue to support ${studentName} in building these essential skills.`;
-      }
-      
-      onFormDataChange({ ...formData, [fieldName]: generatedText });
-
-    } catch (error) {
-      console.error('Error generating AI content:', error);
-    } finally {
-      setGeneratingFields(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(fieldName);
-        return newSet;
-      });
-    }
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (onSubmit) {
-      onSubmit(formData);
-    }
+    console.log('Form submitted:', formData);
+  };
+
+  // Dummy function for compatibility with AICommentField - actual AI generation is handled by AIReportCommentInput
+  const handleAIGenerate = () => {
+    // This function is not used anymore since AIReportCommentInput handles the AI generation
   };
 
   return (
-    <div className="modern-report-card-form">
+    <div className="kindergarten-initial-form">
+      <style>
+        {`
+          .ai-button-minimal .ai-input-container {
+            margin-bottom: 0 !important;
+          }
+          .ai-button-minimal .ai-input-container button {
+            background: none !important;
+            border: none !important;
+            color: #6c757d !important;
+            padding: 4px !important;
+            min-width: auto !important;
+            width: auto !important;
+            height: auto !important;
+          }
+          .ai-button-minimal .ai-input-container button:hover {
+            color: #0d6efd !important;
+            background: none !important;
+          }
+          .ai-button-minimal .ai-input-container button:disabled {
+            color: #adb5bd !important;
+          }
+          .ai-button-minimal label {
+            display: none !important;
+          }
+          .ai-button-minimal small {
+            display: none !important;
+          }
+        `}
+      </style>
       <CForm onSubmit={handleSubmit}>
         {error && (
           <CAlert color="danger" className="mb-4">
@@ -783,7 +803,7 @@ const KindergartenInitialUI = ({
                 formData={formData}
                 onFormDataChange={onFormDataChange}
                 onGenerate={handleAIGenerate}
-                isGenerating={generatingFields.has('keyLearning') || generatingFields.has('keyLearning2')}
+                isGenerating={false} // No longer generating here, handled by AIReportCommentInput
               />
             </CAccordionBody>
           </CAccordionItem>
@@ -815,4 +835,4 @@ KindergartenInitialUI.defaultProps = {
   formData: {}
 };
 
-export default KindergartenInitialUI; 
+export default KindergartenInitialUI;
