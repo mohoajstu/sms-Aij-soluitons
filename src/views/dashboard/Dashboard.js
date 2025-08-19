@@ -30,6 +30,8 @@ import {
   cilCalendar,
   cilPencil,
   cilTrash,
+  cilPeople,
+  cilGroup,
 } from '@coreui/icons'
 
 import './Dashboard.css'
@@ -68,10 +70,11 @@ const Dashboard = () => {
           if (userDoc.exists()) {
             const userData = userDoc.data()
             setUserFirstName(userData.personalInfo?.firstName || userData.firstName || 'User')
-            setUserRole(userData.personalInfo?.role || userData.role || '')
+            const role = userData.personalInfo?.role || userData.role || ''
+            setUserRole(role)
             
             // If user is admin, fetch dashboard statistics
-            if (userData.personalInfo?.role?.toLowerCase() === 'admin' || userData.role?.toLowerCase() === 'admin') {
+            if (role.toLowerCase() === 'admin') {
               await fetchDashboardStats()
             }
           }
@@ -173,13 +176,84 @@ const Dashboard = () => {
     setAnnouncementToDelete(null)
   }
 
-  // Quick links data
-  const quickLinks = [
+  // Role-based quick links
+  const getQuickLinks = () => {
+    const isAdmin = userRole?.toLowerCase() === 'admin'
+    const isFaculty = userRole?.toLowerCase() === 'faculty'
+
+    if (isAdmin) {
+      return [
+        { id: 1, title: 'Take Attendance', icon: cilCheckCircle, path: '/attendance' },
+        { id: 2, title: 'Create Report Cards', icon: cilFile, path: '/reportcards' },
+        { id: 3, title: 'View Calendar', icon: cilCalendar, path: '/calendar' },
+        { id: 4, title: 'Manage Courses', icon: cilBook, path: '/courses' },
+      ]
+    } else if (isFaculty) {
+      return [
+        { id: 1, title: 'Take Attendance', icon: cilCheckCircle, path: '/attendance' },
+        { id: 2, title: 'Create Report Cards', icon: cilFile, path: '/reportcards' },
+        { id: 3, title: 'View My Classes', icon: cilBook, path: '/courses' },
+        { id: 4, title: 'View Schedule', icon: cilCalendar, path: '/schedule' },
+      ]
+    }
+
+    // Default links for other roles
+    return [
     { id: 1, title: 'Take Attendance', icon: cilCheckCircle, path: '/attendance' },
     { id: 2, title: 'Create Report Cards', icon: cilFile, path: '/reportcards' },
     { id: 3, title: 'View Calendar', icon: cilCalendar, path: '/calendar' },
     { id: 4, title: 'Manage Courses', icon: cilBook, path: '/courses' },
   ]
+  }
+
+  const quickLinks = getQuickLinks()
+
+  // Role-based welcome actions
+  const getWelcomeActions = () => {
+    const isAdmin = userRole?.toLowerCase() === 'admin'
+    const isFaculty = userRole?.toLowerCase() === 'faculty'
+
+    const baseActions = [
+      {
+        id: 1,
+        icon: cilCheckCircle,
+        iconClass: 'attendance-icon',
+        title: 'Daily Attendance',
+        description: 'You need to mark today\'s attendance',
+        buttonText: 'Mark Now',
+        buttonColor: 'primary',
+        onClick: () => navigate('/attendance')
+      },
+      {
+        id: 2,
+        icon: cilFile,
+        iconClass: 'report-icon',
+        title: 'Report Cards',
+        description: '25 days until final submission',
+        buttonText: 'Continue Work',
+        buttonColor: 'success',
+        onClick: () => navigate('/reportcards')
+      }
+    ]
+
+    if (isAdmin) {
+      baseActions.push({
+        id: 3,
+        icon: cilCalendar,
+        iconClass: 'event-icon',
+        title: 'Upcoming Event',
+        description: 'Parent-Teacher Meeting (Feb 14)',
+        buttonText: 'View Details',
+        buttonColor: 'info',
+        onClick: () => navigate('/events')
+      })
+    }
+    // Faculty users don't get the "Upcoming Event" section
+
+    return baseActions
+  }
+
+  const welcomeActions = getWelcomeActions()
 
   return (
     <div className="dashboard-container">
@@ -230,50 +304,26 @@ const Dashboard = () => {
           </div>
 
           <div className="welcome-actions">
-            <div className="action-card">
-              <div className="action-icon attendance-icon">
-                <CIcon icon={cilCheckCircle} size="xl" />
+            {welcomeActions.map((action) => (
+              <div key={action.id} className="action-card">
+                <div className={`action-icon ${action.iconClass}`}>
+                  <CIcon icon={action.icon} size="xl" />
               </div>
               <div className="action-content">
-                <h4>Daily Attendance</h4>
-                <p>You need to mark today's attendance</p>
-                <CButton color="primary" size="sm" onClick={() => navigate('/attendance')}>
-                  Mark Now
+                  <h4>{action.title}</h4>
+                  <p>{action.description}</p>
+                  <CButton color={action.buttonColor} size="sm" onClick={action.onClick}>
+                    {action.buttonText}
                 </CButton>
               </div>
-            </div>
-
-            <div className="action-card">
-              <div className="action-icon report-icon">
-                <CIcon icon={cilFile} size="xl" />
               </div>
-              <div className="action-content">
-                <h4>Report Cards</h4>
-                <p>25 days until final submission</p>
-                <CButton color="success" size="sm" onClick={() => navigate('/reportcards')}>
-                  Continue Work
-                </CButton>
-              </div>
-            </div>
-
-            <div className="action-card">
-              <div className="action-icon event-icon">
-                <CIcon icon={cilCalendar} size="xl" />
-              </div>
-              <div className="action-content">
-                <h4>Upcoming Event</h4>
-                <p>Parent-Teacher Meeting (Feb 14)</p>
-                <CButton color="info" size="sm" onClick={() => navigate('/events')}>
-                  View Details
-                </CButton>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Stats Row */}
-      {userRole?.toLowerCase() !== 'faculty' && (
+      {/* Stats Row - Only show for Admin users */}
+      {userRole?.toLowerCase() === 'admin' && (
         <div className="stats-row">
           <CRow>
             <CCol lg={3} md={6} sm={12}>

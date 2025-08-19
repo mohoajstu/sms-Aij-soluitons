@@ -31,13 +31,14 @@ const _nav = [
     to: '/registration',
     // Use the MUI icon directly, instead of <CIcon ...>
     icon: <BeenhereOutlinedIcon className="nav-icon" />,
+    hideFor: ['parent', 'student', 'teacher', 'faculty'],
   },
   {
     component: CNavItem,
     name: 'Registration Processing',
     to: '/registration/processing',
     icon: <BeenhereOutlinedIcon className="nav-icon" />,
-    hideFor: ['parent', 'student', 'teacher'],
+    hideFor: ['parent', 'student', 'teacher', 'faculty'],
   },
   {
     component: CNavItem,

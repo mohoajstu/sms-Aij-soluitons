@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
-import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
+import { getFirestore, doc, setDoc, getDoc, serverTimestamp, collection, getDocs } from 'firebase/firestore'
 import { auth } from '../../../Firebase/firebase'
 import { STAFF_AUTHORIZED_DOMAINS, isStaffEmailAuthorized } from '../../../config/authConfig'
 import {
@@ -45,11 +45,11 @@ const StaffLogin = () => {
       
       // Check if user has admin role in Firestore
       let isAdmin = false
-      const userRef = doc(db, 'users', user.uid)
-      const userDoc = await getDoc(userRef)
+      let initialUserRef = doc(db, 'users', user.uid)
+      let initialUserDoc = await getDoc(initialUserRef)
       
-      if (userDoc.exists()) {
-        const userData = userDoc.data()
+      if (initialUserDoc.exists()) {
+        const userData = initialUserDoc.data()
         isAdmin = userData.role === 'admin'
       }
 
@@ -73,32 +73,103 @@ const StaffLogin = () => {
       }
 
       // Check/create user document in Firestore
-      if (!userDoc.exists()) {
-        const [firstName, lastName] = user.displayName?.split(' ') || ['', '']
-        // Set role based on domain authorization or existing admin status
-        const userRole = isAuthorizedDomain ? 'staff' : (isAdmin ? 'admin' : 'staff')
+      // First check if there's already a user document with this email (should be Tarbiyah ID-based)
+      console.log('🔍 Searching for existing user document by email:', user.email)
+      const usersSnapshot = await getDocs(collection(db, 'users'))
+      let existingUserDoc = null
+      let existingUserId = null
+      
+      usersSnapshot.docs.forEach(doc => {
+        const data = doc.data()
+        // Check both contact.email and root email fields
+        const docEmail = data.contact?.email || data.email
+        if (docEmail === user.email) {
+          existingUserDoc = data
+          existingUserId = doc.id
+          console.log(`🎯 Found existing user document: ${doc.id} with email: ${docEmail}`)
+        }
+      })
+      
+      if (existingUserDoc && existingUserId) {
+        console.log(`🔗 Found existing user document ${existingUserId} for email ${user.email}`)
+        console.log('🔄 Updating existing Tarbiyah ID-based user document...')
+        console.log('📄 Existing user data:', existingUserDoc)
         
-        await setDoc(userRef, {
-          firstName,
-          lastName,
-          email: user.email,
-          role: userRole,
+        // Update the EXISTING Tarbiyah ID-based document (DO NOT create a new UID-based document)
+        const tarbiyahUserRef = doc(db, 'users', existingUserId)
+        await setDoc(tarbiyahUserRef, {
+          ...existingUserDoc, // Preserve ALL existing data
+          firebaseAuthUID: user.uid, // Store Firebase Auth UID for reference
+          email: user.email, // Ensure email is at root level for compatibility
+          lastLogin: serverTimestamp(),
+          loginCount: (existingUserDoc.loginCount || existingUserDoc.stats?.loginCount || 0) + 1,
           emailDomain: user.email.split('@')[1],
           isVerified: true,
           isAuthorizedDomain,
+          linkedAt: serverTimestamp(), // Track when linking occurred
+          updatedAt: serverTimestamp(),
+          // Update stats object if it exists
+          ...(existingUserDoc.stats && {
+            stats: {
+              ...existingUserDoc.stats,
+              loginCount: (existingUserDoc.stats.loginCount || 0) + 1,
+              lastLoginAt: serverTimestamp(),
+            }
+          })
+        }, { merge: true })
+        
+        console.log(`✅ Successfully updated Tarbiyah ID document ${existingUserId} with Auth UID ${user.uid}`)
+        console.log(`✅ Preserved user role: ${existingUserDoc.role || existingUserDoc.personalInfo?.role}`)
+      } else {
+        // No existing user found, create new one with a temporary ID structure
+        // This should rarely happen since People Page should create users first
+        console.log('⚠️ No existing user document found for', user.email)
+        console.log('📝 Creating new temporary user document - should be converted to Tarbiyah ID via People Page')
+        
+        const [firstName, lastName] = user.displayName?.split(' ') || ['', '']
+        const userRole = isAuthorizedDomain ? 'Faculty' : (isAdmin ? 'Admin' : 'Faculty')
+        
+        // Generate a temporary Tarbiyah-style ID for new users
+        // This should be properly assigned when they're added via People Page
+        const tempTarbiyahId = `TEMP_${Date.now()}`
+        const tempUserRef = doc(db, 'users', tempTarbiyahId)
+        
+        // Create user document with proper People Page structure using temp Tarbiyah ID
+        await setDoc(tempUserRef, {
+          tarbiyahId: tempTarbiyahId,
+          schoolId: tempTarbiyahId,
+          firebaseAuthUID: user.uid, // Store Firebase Auth UID for reference
+          personalInfo: {
+            firstName,
+            lastName,
+            role: userRole,
+          },
+          role: userRole,
+          contact: {
+            email: user.email,
+            phone1: '',
+            phone2: '',
+            emergencyPhone: '',
+          },
+          emailDomain: user.email.split('@')[1],
+          isVerified: true,
+          isAuthorizedDomain,
+          active: true,
+          isTemporary: true, // Flag this as temporary
+          dashboard: {
+            theme: 'default',
+          },
+          stats: {
+            loginCount: 1,
+            lastLoginAt: serverTimestamp(),
+          },
           createdAt: serverTimestamp(),
           lastLogin: serverTimestamp(),
-          loginCount: 1,
+          updatedAt: serverTimestamp(),
         })
-      } else {
-        // Update last login and verify domain again
-        await setDoc(userRef, {
-          lastLogin: serverTimestamp(),
-          loginCount: (userDoc.data().loginCount || 0) + 1,
-          emailDomain: user.email.split('@')[1],
-          isVerified: true,
-          isAuthorizedDomain,
-        }, { merge: true })
+        
+        console.log(`📝 Created temporary user document ${tempTarbiyahId} - should be properly assigned via People Page`)
+        console.log(`⚠️ User ${user.email} should be added to People Page with proper Tarbiyah ID`)
       }
 
       navigate('/')
