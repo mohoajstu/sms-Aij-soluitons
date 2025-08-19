@@ -422,6 +422,42 @@ const AttendanceTable = () => {
           onChange={(e) => handleSetAllPresent(e.target.checked)}
         />
 
+        <div className="d-flex align-items-center bg-light rounded p-2 shadow-sm">
+          <CButton
+            color="primary"
+            variant="outline"
+            onClick={() => setAttendanceDate((d) => new Date(d.setDate(d.getDate() - 1)))}
+            className="me-2 px-3"
+            style={{ borderRadius: '8px', fontWeight: '500' }}
+          >
+            ← Previous
+          </CButton>
+          <div className="mx-3">
+            <CFormInput
+              type="date"
+              value={attendanceDate.toISOString().split('T')[0]}
+              onChange={(e) => setAttendanceDate(new Date(e.target.value))}
+              style={{ 
+                minWidth: '160px',
+                borderRadius: '8px',
+                border: '2px solid #e3e6f0',
+                padding: '8px 12px',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            />
+          </div>
+          <CButton
+            color="primary"
+            variant="outline"
+            onClick={() => setAttendanceDate((d) => new Date(d.setDate(d.getDate() + 1)))}
+            className="ms-2 px-3"
+            style={{ borderRadius: '8px', fontWeight: '500' }}
+          >
+            Next →
+          </CButton>
+        </div>
+
         {smsNotificationEnabled && (
           <CFormSwitch
             label="Send SMS Notifications"
