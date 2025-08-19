@@ -443,6 +443,12 @@ const PeoplePage = () => {
             program: '',
             returningStudentYear: '',
           },
+          attendanceStats: {
+            currentTermLateCount: 0,
+            yearLateCount: 0,
+            currentTermAbsenceCount: 0,
+            yearAbsenceCount: 0,
+          },
         };
       case 'parents':
         return {

@@ -395,17 +395,17 @@ const RegistrationProcessingDashboard = () => {
               <h1 className="h2 fw-bold">Registration Processing</h1>
               <p className="text-medium-emphasis mt-1">Review and process student applications</p>
             </div>
-            <CButton
-              variant="outline"
-              color="secondary"
-              onClick={() => setShowArchived(!showArchived)}
-              className="d-flex align-items-center gap-2"
-            >
-              <CIcon icon={cilInbox} />
-              {showArchived
-                ? `Show Active (${activeApplications.length})`
-                : 'Show Archived'}
-            </CButton>
+              <CButton
+                variant="outline"
+                color="secondary"
+                onClick={() => setShowArchived(!showArchived)}
+                className="d-flex align-items-center gap-2"
+              >
+                <CIcon icon={cilInbox} />
+                {showArchived
+                  ? `Show Active (${activeApplications.length})`
+                  : 'Show Archived'}
+              </CButton>
           </div>
 
           {/* Stats Cards - Only show for active applications */}
@@ -466,23 +466,23 @@ const RegistrationProcessingDashboard = () => {
                 {filteredApplications.length})
               </CCardTitle>
             </CCardHeader>
-            <div className="px-3 pt-3 pb-1">
-              <CFormLabel htmlFor="search" className="visually-hidden">
-                Search Applications
-              </CFormLabel>
-              <div className="position-relative">
-                <span className="position-absolute top-50 start-0 translate-middle-y ms-3">
-                  <CIcon icon={cilSearch} className="text-medium-emphasis" />
-                </span>
-                <CFormInput
-                  id="search"
-                  placeholder="Search by student name or application ID..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="ps-5"
-                />
+              <div className="px-3 pt-3 pb-1">
+                <CFormLabel htmlFor="search" className="visually-hidden">
+                  Search Applications
+                </CFormLabel>
+                <div className="position-relative">
+                  <span className="position-absolute top-50 start-0 translate-middle-y ms-3">
+                    <CIcon icon={cilSearch} className="text-medium-emphasis" />
+                  </span>
+                  <CFormInput
+                    id="search"
+                    placeholder="Search by student name or application ID..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="ps-5"
+                  />
+                </div>
               </div>
-            </div>
             <CCardBody className="pt-0">
               <div style={{ height: 600, width: '100%' }}>
                 <ThemeProvider theme={theme}>
