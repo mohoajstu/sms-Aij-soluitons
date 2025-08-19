@@ -1,6 +1,6 @@
 import React from 'react'
 import CIcon from '@coreui/icons-react'
-import { cilHome, cilList, cilNotes, cilSpeedometer, cilCalendar, cilClock, cilPeople } from '@coreui/icons'
+import { cilHome, cilList, cilNotes, cilSpeedometer, cilCalendar, cilClock, cilPeople, cilStar } from '@coreui/icons'
 import BeenhereOutlinedIcon from '@mui/icons-material/BeenhereOutlined'
 import { CNavItem } from '@coreui/react'
 import AutoStoriesOutlinedIcon from '@mui/icons-material/AutoStoriesOutlined'
