@@ -49,13 +49,6 @@ const _nav = [
   },
   {
     component: CNavItem,
-    name: 'Onboarding Admin',
-    to: '/onboarding/admin',
-    icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
-    hideFor: ['parent', 'student', 'teacher'],
-  },
-  {
-    component: CNavItem,
     name: 'People Management',
     to: '/people',
     icon: <CIcon icon={cilPeople} customClassName="nav-icon" />,

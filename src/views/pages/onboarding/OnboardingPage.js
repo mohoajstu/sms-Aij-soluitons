@@ -13,7 +13,7 @@ import {
   deleteField,
   writeBatch,
 } from 'firebase/firestore';
-import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
+import { updatePassword, reauthenticateWithCredential, EmailAuthProvider, onAuthStateChanged } from 'firebase/auth';
 import {
   CCard,
   CCardBody,
@@ -48,6 +48,7 @@ const OnboardingPage = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [forcePasswordChange, setForcePasswordChange] = useState(false);
+  const [hasPasswordStep, setHasPasswordStep] = useState(false);
   const [loading, setLoading] = useState(false);
   const [toast, addToast] = useState(0);
   const toaster = useRef();
@@ -179,46 +180,40 @@ const OnboardingPage = () => {
     fetchParentData()
   }, [verificationData.tarbiyahId])
 
-  // Detect mustChangePassword and preload Tarbiyah ID; do not change the step order
+  // Detect mustChangePassword and preload Tarbiyah ID; wait for auth state to be ready
   useEffect(() => {
-    const checkMustChangePassword = async () => {
-      const user = auth.currentUser
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) return
       try {
-        const userSnap = await getDoc(doc(firestore, 'users', user.uid))
-        if (userSnap.exists()) {
-          const userData = userSnap.data() || {}
-          const parentId = userData.tarbiyahId || userData.schoolId || user.uid
-          setVerifiedParentId(parentId)
-          setVerificationData((prev) => ({ ...prev, tarbiyahId: parentId }))
-          if (userData?.mustChangePassword === true) {
-            setForcePasswordChange(true)
+        // Try direct doc by UID (in our system UID == Tarbiyah ID for parent email accounts)
+        let userDocRef = doc(firestore, 'users', user.uid)
+        let userSnap = await getDoc(userDocRef)
+        let userData = userSnap.exists() ? userSnap.data() : null
+
+        // Fallback: find by firebaseAuthUID mapping if doc ID != UID
+        if (!userData) {
+          const q = query(collection(firestore, 'users'), where('firebaseAuthUID', '==', user.uid))
+          const qs = await getDocs(q)
+          if (!qs.empty) {
+            userSnap = qs.docs[0]
+            userData = userSnap.data()
           }
         }
-      } catch (err) {
-        // noop
-      }
-    }
-    checkMustChangePassword()
-  }, [])
 
-  // Preload Tarbiyah ID for signed-in users even if not forced to change password
-  useEffect(() => {
-    const preloadTarbiyahId = async () => {
-      const user = auth.currentUser
-      if (!user) return
-      try {
-        const userSnap = await getDoc(doc(firestore, 'users', user.uid))
-        if (userSnap.exists()) {
-          const userData = userSnap.data() || {}
-          const parentId = userData.tarbiyahId || userData.schoolId || user.uid
+        if (userData) {
+          const parentId = userData.tarbiyahId || userData.schoolId || userSnap.id || user.uid
+          setVerifiedParentId(parentId)
           setVerificationData((prev) => ({ ...prev, tarbiyahId: parentId }))
+          if (userData.mustChangePassword === true) {
+            setForcePasswordChange(true)
+            setHasPasswordStep(true)
+          }
         }
       } catch (_) {
         // ignore
       }
-    }
-    preloadTarbiyahId()
+    })
+    return () => unsubscribe()
   }, [])
 
   // Step 3: Student Registration
@@ -312,6 +307,8 @@ const OnboardingPage = () => {
         await updatePassword(user, password)
         await updateDoc(doc(firestore, 'users', user.uid), { mustChangePassword: false })
         addToast(successToast('Password updated successfully.'))
+        // Keep the password step visible in this session's progress bar,
+        // but allow moving forward to confirmation.
         setForcePasswordChange(false)
         setCurrentStep(5)
         return
@@ -503,28 +500,23 @@ const OnboardingPage = () => {
   };
 
   const renderProgressBar = () => {
-    const progress = currentStep >= 5 ? 100 : currentStep >= 4 ? 80 : currentStep >= 3 ? 60 : currentStep >= 2 ? 40 : 20;
+    const steps = hasPasswordStep
+      ? ['Verify Identity', 'Parent Info', 'Register Students', 'Set Password', 'Confirm & Finish']
+      : ['Verify Identity', 'Parent Info', 'Register Students', 'Confirm & Finish']
+    const totalSteps = steps.length
+    const safeCurrent = Math.min(currentStep, totalSteps)
+    const progress = Math.round((safeCurrent / totalSteps) * 100)
     return (
       <div className="mb-4">
         <CProgress value={progress} className="mb-2">
           <span className="text-white fw-bold">{progress}%</span>
         </CProgress>
         <div className="d-flex justify-content-between text-sm">
-          <span className={currentStep >= 1 ? 'text-success' : 'text-muted'}>
-            1. Verify Identity
-          </span>
-          <span className={currentStep >= 2 ? 'text-success' : 'text-muted'}>
-            2. Parent Info
-          </span>
-          <span className={currentStep >= 3 ? 'text-success' : 'text-muted'}>
-            3. Register Students
-          </span>
-          <span className={currentStep >= 4 ? 'text-success' : 'text-muted'}>
-            4. Set Password
-          </span>
-          <span className={currentStep >= 5 ? 'text-success' : 'text-muted'}>
-            5. Confirm & Finish
-          </span>
+          {steps.map((label, idx) => (
+            <span key={`step-${idx}`} className={safeCurrent >= idx + 1 ? 'text-success' : 'text-muted'}>
+              {idx + 1}. {label}
+            </span>
+          ))}
         </div>
       </div>
     );
@@ -1353,7 +1345,7 @@ const OnboardingPage = () => {
       </CCard>
 
       <div className="mt-3">
-        <CButton color="primary" onClick={() => setCurrentStep(forcePasswordChange ? 4 : 5)}>
+        <CButton color="primary" onClick={() => setCurrentStep(4)}>
           {forcePasswordChange ? 'Continue to Set Password' : 'Review & Finish'}
         </CButton>
       </div>
@@ -1438,8 +1430,8 @@ const OnboardingPage = () => {
               {currentStep === 1 && renderStep1()}
               {currentStep === 2 && renderStep2()}
               {currentStep === 3 && renderStep3()}
-              {currentStep === 4 && renderStep4()}
-              {currentStep === 5 && renderStep5()}
+              {currentStep === 4 && (forcePasswordChange ? renderStep4() : renderStep5())}
+              {forcePasswordChange && currentStep === 5 && renderStep5()}
             </div>
           </CCol>
         </CRow>

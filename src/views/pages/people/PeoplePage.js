@@ -180,26 +180,6 @@ const PeoplePage = () => {
       }
 
       await batch.commit();
-      // If a new parent was created, set temp password via Cloud Function
-      if (collectionName === 'parents' && modalType === 'create') {
-        try {
-          const idToken = await currentUser?.getIdToken?.();
-          if (idToken) {
-            await fetch('https://northamerica-northeast1-tarbiyah-sms.cloudfunctions.net/setParentTempPassword', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${idToken}`,
-              },
-              body: JSON.stringify({ tarbiyahId: documentId }),
-            });
-          } else {
-            console.warn('No auth token available to call setParentTempPassword');
-          }
-        } catch (e) {
-          console.error('Failed to set temp password via Cloud Function:', e);
-        }
-      }
       await fetchAllCollections();
       addToast(successToast(`${getSingularName(collectionName)} deleted successfully`));
     } catch (error) {
@@ -280,20 +260,12 @@ const PeoplePage = () => {
 
         const userDocPayload = {
           tarbiyahId: documentId,
-          schoolId: documentId, // Also store as schoolId for compatibility
+          linkedCollection: collectionName,
+          active: saveData.active !== undefined ? !!saveData.active : true,
           personalInfo: {
             firstName,
             lastName,
-            role: roleMap[collectionName], // Store role inside personalInfo for consistency
-          },
-          role: roleMap[collectionName], // Also store at root level
-          linkedCollection: collectionName,
-          active: saveData.active !== undefined ? !!saveData.active : true,
-          contact: {
-            email: saveData.contact?.email || '',
-            phone1: saveData.contact?.phone1 || '',
-            phone2: saveData.contact?.phone2 || '',
-            emergencyPhone: saveData.contact?.emergencyPhone || '',
+            role: roleMap[collectionName],
           },
           dashboard: {
             theme: 'default',
@@ -303,7 +275,6 @@ const PeoplePage = () => {
             lastLoginAt: null,
           },
           createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
         };
 
         // Ensure parents created via People Management must change password on first login
@@ -325,6 +296,28 @@ const PeoplePage = () => {
       }
 
       await batch.commit();
+
+      // Set temp password in Auth for newly created parents (mirror auto-creation flow)
+      if (collectionName === 'parents' && modalType === 'create') {
+        try {
+          const token = await currentUser?.getIdToken?.();
+          if (token) {
+            await fetch('https://northamerica-northeast1-tarbiyah-sms.cloudfunctions.net/setParentTempPassword', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ tarbiyahId: documentId }),
+            });
+          } else {
+            console.warn('No auth token available to call setParentTempPassword (people management)');
+          }
+        } catch (e) {
+          console.error('Failed to set temp password via Cloud Function (people management):', e);
+        }
+      }
+
       await fetchAllCollections();
       setShowModal(false);
       addToast(successToast(`${getSingularName(collectionName)} ${modalType}d successfully`));

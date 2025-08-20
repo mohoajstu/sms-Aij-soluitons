@@ -357,42 +357,32 @@ const RegistrationProcessingDashboard = () => {
 
         // User documents
         batch.set(studentUserRef, {
-          active: true,
-          createdAt: serverTimestamp(),
-          dashboard: {
-            theme: 'default',
-          },
+          tarbiyahId: studentId,
           linkedCollection: 'students',
+          active: true,
           personalInfo: {
             firstName: studentData.firstName || '',
             lastName: studentData.lastName || '',
+            role: 'Student',
           },
-          role: 'Student',
-          stats: {
-            lastLoginAt: null,
-            loginCount: 0,
-          },
-          tarbiyahId: studentId,
+          dashboard: { theme: 'default' },
+          stats: { lastLoginAt: null, loginCount: 0 },
+          createdAt: serverTimestamp(),
         })
 
         if (!primaryGuardianExists) {
           batch.set(motherUserRef, {
-            active: true,
-            createdAt: serverTimestamp(),
-            dashboard: {
-              theme: 'default',
-            },
+            tarbiyahId: motherId,
             linkedCollection: 'parents',
+            active: true,
             personalInfo: {
               firstName: primaryGuardianData.firstName || '',
               lastName: primaryGuardianData.lastName || '',
+              role: 'Parent',
             },
-            role: 'Parent',
-            stats: {
-              lastLoginAt: null,
-              loginCount: 0,
-            },
-            tarbiyahId: motherId,
+            dashboard: { theme: 'default' },
+            stats: { lastLoginAt: null, loginCount: 0 },
+            createdAt: serverTimestamp(),
             mustChangePassword: true,
           })
           // Set temp password in Auth for new parent
@@ -491,22 +481,17 @@ const RegistrationProcessingDashboard = () => {
           }
           if (!secondaryGuardianExists) {
             batch.set(fatherUserRef, {
-              active: true,
-              createdAt: serverTimestamp(),
-              dashboard: {
-                theme: 'default',
-              },
+              tarbiyahId: fatherId,
               linkedCollection: 'parents',
+              active: true,
               personalInfo: {
                 firstName: secondaryGuardianData.firstName || '',
                 lastName: secondaryGuardianData.lastName || '',
+                role: 'Parent',
               },
-              role: 'Parent',
-              stats: {
-                lastLoginAt: null,
-                loginCount: 0,
-              },
-              tarbiyahId: fatherId,
+              dashboard: { theme: 'default' },
+              stats: { lastLoginAt: null, loginCount: 0 },
+              createdAt: serverTimestamp(),
               mustChangePassword: true,
             })
             // Set temp password in Auth for new parent
