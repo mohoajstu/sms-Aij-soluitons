@@ -9,7 +9,6 @@ import {
   CFormLabel,
   CFormSelect,
   CFormTextarea,
-  CFormCheck,
   CRow,
   CButton,
   CButtonGroup,
@@ -858,15 +857,27 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                             .map((field) => {
                               const label = accommodationLabels['na'] || field
                               return (
-                                <CFormCheck
-                                  key={field}
-                                  id={field}
-                                  name={field}
-                                  label={label}
-                                  checked={formData[field] || false}
-                                  onChange={handleInputChange}
-                                  className="me-2"
-                                />
+                                <div key={field} className="me-2">
+                                  <input
+                                    type="checkbox"
+                                    id={field}
+                                    name={field}
+                                    checked={formData[field] || false}
+                                    onChange={handleInputChange}
+                                    style={{
+                                      width: '16px',
+                                      height: '16px',
+                                      marginRight: '8px',
+                                      cursor: 'pointer',
+                                    }}
+                                  />
+                                  <label
+                                    htmlFor={field}
+                                    style={{ cursor: 'pointer', marginBottom: '0' }}
+                                  >
+                                    {label}
+                                  </label>
+                                </div>
                               )
                             })}
                         </div>
@@ -888,15 +899,27 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                               else if (fieldLower.includes('iep')) accommodationType = 'iep'
                               const label = accommodationLabels[accommodationType] || field
                               return (
-                                <CFormCheck
-                                  key={field}
-                                  id={field}
-                                  name={field}
-                                  label={label}
-                                  checked={formData[field] || false}
-                                  onChange={handleInputChange}
-                                  className="me-2"
-                                />
+                                <div key={field} className="me-2">
+                                  <input
+                                    type="checkbox"
+                                    id={field}
+                                    name={field}
+                                    checked={formData[field] || false}
+                                    onChange={handleInputChange}
+                                    style={{
+                                      width: '16px',
+                                      height: '16px',
+                                      marginRight: '8px',
+                                      cursor: 'pointer',
+                                    }}
+                                  />
+                                  <label
+                                    htmlFor={field}
+                                    style={{ cursor: 'pointer', marginBottom: '0' }}
+                                  >
+                                    {label}
+                                  </label>
+                                </div>
                               )
                             })}
                         </div>
@@ -918,15 +941,27 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                               else if (fieldLower.includes('iep')) accommodationType = 'iep'
                               const label = accommodationLabels[accommodationType] || field
                               return (
-                                <CFormCheck
-                                  key={field}
-                                  id={field}
-                                  name={field}
-                                  label={label}
-                                  checked={formData[field] || false}
-                                  onChange={handleInputChange}
-                                  className="me-2"
-                                />
+                                <div key={field} className="me-2">
+                                  <input
+                                    type="checkbox"
+                                    id={field}
+                                    name={field}
+                                    checked={formData[field] || false}
+                                    onChange={handleInputChange}
+                                    style={{
+                                      width: '16px',
+                                      height: '16px',
+                                      marginRight: '8px',
+                                      cursor: 'pointer',
+                                    }}
+                                  />
+                                  <label
+                                    htmlFor={field}
+                                    style={{ cursor: 'pointer', marginBottom: '0' }}
+                                  >
+                                    {label}
+                                  </label>
+                                </div>
                               )
                             })}
                         </div>
@@ -948,15 +983,27 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                               else if (fieldLower.includes('iep')) accommodationType = 'iep'
                               const label = accommodationLabels[accommodationType] || field
                               return (
-                                <CFormCheck
-                                  key={field}
-                                  id={field}
-                                  name={field}
-                                  label={label}
-                                  checked={formData[field] || false}
-                                  onChange={handleInputChange}
-                                  className="me-2"
-                                />
+                                <div key={field} className="me-2">
+                                  <input
+                                    type="checkbox"
+                                    id={field}
+                                    name={field}
+                                    checked={formData[field] || false}
+                                    onChange={handleInputChange}
+                                    style={{
+                                      width: '16px',
+                                      height: '16px',
+                                      marginRight: '8px',
+                                      cursor: 'pointer',
+                                    }}
+                                  />
+                                  <label
+                                    htmlFor={field}
+                                    style={{ cursor: 'pointer', marginBottom: '0' }}
+                                  >
+                                    {label}
+                                  </label>
+                                </div>
                               )
                             })}
                         </div>
@@ -978,15 +1025,27 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                               else if (fieldLower.includes('iep')) accommodationType = 'iep'
                               const label = accommodationLabels[accommodationType] || field
                               return (
-                                <CFormCheck
-                                  key={field}
-                                  id={field}
-                                  name={field}
-                                  label={label}
-                                  checked={formData[field] || false}
-                                  onChange={handleInputChange}
-                                  className="me-2"
-                                />
+                                <div key={field} className="me-2">
+                                  <input
+                                    type="checkbox"
+                                    id={field}
+                                    name={field}
+                                    checked={formData[field] || false}
+                                    onChange={handleInputChange}
+                                    style={{
+                                      width: '16px',
+                                      height: '16px',
+                                      marginRight: '8px',
+                                      cursor: 'pointer',
+                                    }}
+                                  />
+                                  <label
+                                    htmlFor={field}
+                                    style={{ cursor: 'pointer', marginBottom: '0' }}
+                                  >
+                                    {label}
+                                  </label>
+                                </div>
                               )
                             })}
                         </div>
@@ -1012,15 +1071,27 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                                 accommodationType = 'extended'
                               const label = accommodationLabels[accommodationType] || field
                               return (
-                                <CFormCheck
-                                  key={field}
-                                  id={field}
-                                  name={field}
-                                  label={label}
-                                  checked={formData[field] || false}
-                                  onChange={handleInputChange}
-                                  className="me-2"
-                                />
+                                <div key={field} className="me-2">
+                                  <input
+                                    type="checkbox"
+                                    id={field}
+                                    name={field}
+                                    checked={formData[field] || false}
+                                    onChange={handleInputChange}
+                                    style={{
+                                      width: '16px',
+                                      height: '16px',
+                                      marginRight: '8px',
+                                      cursor: 'pointer',
+                                    }}
+                                  />
+                                  <label
+                                    htmlFor={field}
+                                    style={{ cursor: 'pointer', marginBottom: '0' }}
+                                  >
+                                    {label}
+                                  </label>
+                                </div>
                               )
                             })}
                         </div>
@@ -1050,15 +1121,24 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                         const label = accommodationLabels[accommodationType] || field
 
                         return (
-                          <CFormCheck
-                            key={field}
-                            id={field}
-                            name={field}
-                            label={label}
-                            checked={formData[field] || false}
-                            onChange={handleInputChange}
-                            className="me-3"
-                          />
+                          <div key={field} className="me-3">
+                            <input
+                              type="checkbox"
+                              id={field}
+                              name={field}
+                              checked={formData[field] || false}
+                              onChange={handleInputChange}
+                              style={{
+                                width: '16px',
+                                height: '16px',
+                                marginRight: '8px',
+                                cursor: 'pointer',
+                              }}
+                            />
+                            <label htmlFor={field} style={{ cursor: 'pointer', marginBottom: '0' }}>
+                              {label}
+                            </label>
+                          </div>
                         )
                       })}
                     </div>
