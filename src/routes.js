@@ -12,9 +12,11 @@ const CalendarDemo = React.lazy(() => import('./views/CalendarDemo'))
 // Attendance
 const AttendanceTabs = React.lazy(() => import('./views/attendance/attendanceTabs'))
 const AttendanceTable = React.lazy(() => import('./views/attendance/attendanceTable'))
+const ParentAttendance = React.lazy(() => import('./views/parent/ParentAttendance'))
 //Report Cards
 const ReportCard = React.lazy(() => import('./views/ReportCard/utils.js'))
 const ReportCardTabs = React.lazy(() => import('./views/ReportCard/ReportCardTabs'))
+const ParentReportCards = React.lazy(() => import('./views/parent/ParentReportCards'))
 // Courses
 const Courses = React.lazy(() => import('./views/Courses/courses'))
 const CourseDetailPage = React.lazy(() => import('./views/Courses/courseDetails'))
@@ -45,16 +47,13 @@ const Placeholders = React.lazy(() => import('./views/base/placeholders/Placehol
 const Popovers = React.lazy(() => import('./views/base/popovers/Popovers'))
 const Progress = React.lazy(() => import('./views/base/progress/Progress'))
 const Spinners = React.lazy(() => import('./views/base/spinners/Spinners'))
-const Tabs = React.lazy(() => import('./views/base/tabs/Tabs'))
 const Tables = React.lazy(() => import('./views/base/tables/Tables'))
-const Tooltips = React.lazy(() => import('./views/base/tooltips/Tooltips'))
-
+const Tabs = React.lazy(() => import('./views/base/tabs/Tabs'))
 // Buttons
 const Buttons = React.lazy(() => import('./views/buttons/buttons/Buttons'))
 const ButtonGroups = React.lazy(() => import('./views/buttons/button-groups/ButtonGroups'))
 const Dropdowns = React.lazy(() => import('./views/buttons/dropdowns/Dropdowns'))
-
-//Forms
+// Forms
 const ChecksRadios = React.lazy(() => import('./views/forms/checks-radios/ChecksRadios'))
 const FloatingLabels = React.lazy(() => import('./views/forms/floating-labels/FloatingLabels'))
 const FormControl = React.lazy(() => import('./views/forms/form-control/FormControl'))
@@ -63,49 +62,45 @@ const Layout = React.lazy(() => import('./views/forms/layout/Layout'))
 const Range = React.lazy(() => import('./views/forms/range/Range'))
 const Select = React.lazy(() => import('./views/forms/select/Select'))
 const Validation = React.lazy(() => import('./views/forms/validation/Validation'))
-
-const Charts = React.lazy(() => import('./views/charts/Charts'))
-
 // Icons
 const CoreUIIcons = React.lazy(() => import('./views/icons/coreui-icons/CoreUIIcons'))
-const Flags = React.lazy(() => import('./views/icons/flags/Flags'))
 const Brands = React.lazy(() => import('./views/icons/brands/Brands'))
-
+const Flags = React.lazy(() => import('./views/icons/flags/Flags'))
 // Notifications
 const Alerts = React.lazy(() => import('./views/notifications/alerts/Alerts'))
 const Badges = React.lazy(() => import('./views/notifications/badges/Badges'))
 const Modals = React.lazy(() => import('./views/notifications/modals/Modals'))
 const Toasts = React.lazy(() => import('./views/notifications/toasts/Toasts'))
-
+// Widgets
 const Widgets = React.lazy(() => import('./views/widgets/Widgets'))
-
-// Report Card templates (one component per PDF)
-const KindergartenInitialPage = React.lazy(() => import('./views/ReportCard/ReportCards/KindergartenInitialPage.js'));
-const KindergartenReportCardPage = React.lazy(() => import('./views/ReportCard/ReportCards/KindergartenReportCardPage.js'));
-const Grades1to6ProgressPage = React.lazy(() => import('./views/ReportCard/ReportCards/Grades1to6ProgressPage.js'));
-const Grades1to6ReportCardPage = React.lazy(() => import('./views/ReportCard/ReportCards/Grades1to6ReportCardPage.js'));
-const Grades7to8ProgressPage = React.lazy(() => import('./views/ReportCard/ReportCards/Grades7to8ProgressPage.js'));
-const Grades7to8ReportCardPage = React.lazy(() => import('./views/ReportCard/ReportCards/Grades7to8ReportCardPage.js'));
-
-const NewAnnouncement = React.lazy(() => import('./views/Announcements/NewAnnouncement'))
-const AllAnnouncements = React.lazy(() => import('./views/Announcements/AllAnnouncements'))
-const ProfilePage = React.lazy(() => import('./views/pages/profile/ProfilePage'))
-const OnboardingPage = React.lazy(() => import('./views/pages/onboarding/OnboardingPage'))
+// Pages
 const Page404 = React.lazy(() => import('./views/pages/page404/Page404'))
 const Page500 = React.lazy(() => import('./views/pages/page500/Page500'))
-const PrivacyPolicy = React.lazy(() => import('./views/pages/privacyPolicy/PrivacyPolicy'))
-const PeoplePage = React.lazy(() => import('./views/pages/people/PeoplePage'))
 
-// const routes = [
-//   { path: '/', exact: true, name: 'Home' },
-//   { path: '/dashboard', name: 'Dashboard', element: Dashboard },
-//   { path: '/attendance', name: 'Attendance', element: Typography },
-//   { path: '/reportcards', name: 'Report Cards', element: Typography }
-// ];
+const PeoplePage = React.lazy(() => import('./views/pages/people/PeoplePage'))
+// Report Card templates (one component per PDF)
+const KindergartenInitialPage = React.lazy(() => import('./views/ReportCard/ReportCards/KindergartenInitialPage.js'))
+const KindergartenReportCardPage = React.lazy(() => import('./views/ReportCard/ReportCards/KindergartenReportCardPage.js'))
+const Grades1to6ProgressPage = React.lazy(() => import('./views/ReportCard/ReportCards/Grades1to6ProgressPage.js'))
+const Grades1to6ReportCardPage = React.lazy(() => import('./views/ReportCard/ReportCards/Grades1to6ReportCardPage.js'))
+const Grades7to8ProgressPage = React.lazy(() => import('./views/ReportCard/ReportCards/Grades7to8ProgressPage.js'))
+const Grades7to8ReportCardPage = React.lazy(() => import('./views/ReportCard/ReportCards/Grades7to8ReportCardPage.js'))
+
+// Announcements
+const NewAnnouncement = React.lazy(() => import('./views/Announcements/NewAnnouncement'))
+const AllAnnouncements = React.lazy(() => import('./views/Announcements/AllAnnouncements'))
+
+// Profile
+const ProfilePage = React.lazy(() => import('./views/pages/profile/ProfilePage'))
+const OnboardingPage = React.lazy(() => import('./views/pages/onboarding/OnboardingPage'))
+// Removed duplicate Page404 and Page500 declarations
+// const Page404 = React.lazy(() => import('./views/pages/page404/Page404'))
+// const Page500 = React.lazy(() => import('./views/pages/page500/Page500'))
+// const PrivacyPolicy = React.lazy(() => import('./views/pages/privacyPolicy/PrivacyPolicy'))
 
 const routes = [
   { path: '/', exact: true, name: 'Home' },
-  { path: '/dashboard', name: 'Dashboard', element: Dashboard, auth: true },
+  { path: '/dashboard', name: 'Dashboard', element: DashboardSwitch },
   {
     path: '/onboarding',
     name: 'Student Onboarding',
@@ -113,10 +108,11 @@ const routes = [
   },
   // Onboarding Admin removed
 
-  { path: '/attendance', name: 'Attendance', element: AttendanceTabs },
-  { path: '/reportcards', name: 'Report Cards', element: ReportCardTabs },
-  { path: '/registration', name: 'Registration', element: RegistrationPage },
-  { path: '/registration/thankYouPage', name: 'Thank You', element: ThankYouPage },
+  { path: '/attendance', name: 'Attendance', element: AttendanceTabs, hideFor: ['parent'] },
+  { path: '/attendance/parent', name: 'Parent Attendance', element: ParentAttendance },
+  { path: '/reportcards', name: 'Report Cards', element: ReportCardTabs, hideFor: ['parent'] },
+  { path: '/reportcards/parent', name: 'Parent Report Cards', element: ParentReportCards },
+  // registration and thankYouPage are public-only routes, defined in App.js
   {
     path: '/registration/processing',
     name: 'Registration Processing',
@@ -126,7 +122,7 @@ const routes = [
   { path: '/courses/new', name: 'Create Course', element: CourseForm },
   { path: '/courses/edit/:id', name: 'Edit Course', element: CourseForm },
   { path: '/courses/timetable', name: 'Timetable', element: Timetable },
-  { path: '/calendar', name: 'Enhanced Calendar', element: CalendarDemo },
+  { path: '/calendar', name: 'Enhanced Calendar', element: CalendarDemo, hideFor: ['parent'] },
   //{ path: '/courses/:id/schedule', name: 'Course Schedule', element: SchedulePage },
   { path: '/courses/:id/assignments', name: 'Course Assignments', element: AssignmentsPage },
   { path: '/courses/:id/budget', name: 'Course Budget', element: BudgetPage },
@@ -135,7 +131,6 @@ const routes = [
   { path: '/attendance/attendance-table-page', name: 'Attendance Table', element: AttendanceTable },
   { path: '/announcements/new', name: 'New Announcement', element: NewAnnouncement },
   { path: '/announcements', name: 'All Announcements', element: AllAnnouncements },
-  { path: '/assignments', name: 'All Assignments', element: AllAssignments },
   { path: '/profile', name: 'Profile', element: ProfilePage },
   { path: '/people', name: 'People Management', element: PeoplePage },
   { path: '/schedule', name: 'Schedule', element: ScheduleMainPage },
@@ -165,32 +160,9 @@ const routes = [
   // { path: '/base/progress', name: 'Progress', element: Progress },
   // { path: '/base/spinners', name: 'Spinners', element: Spinners },
   // { path: '/base/tabs', name: 'Tabs', element: Tabs },
-  // { path: '/base/tables', name: 'Tables', element: Tables },
-  // { path: '/base/tooltips', name: 'Tooltips', element: Tooltips },
   // { path: '/buttons', name: 'Buttons', element: Buttons, exact: true },
   // { path: '/buttons/buttons', name: 'Buttons', element: Buttons },
   // { path: '/buttons/dropdowns', name: 'Dropdowns', element: Dropdowns },
-  // { path: '/buttons/button-groups', name: 'Button Groups', element: ButtonGroups },
-  // { path: '/charts', name: 'Charts', element: Charts },
-  // { path: '/forms', name: 'Forms', element: FormControl, exact: true },
-  // { path: '/forms/form-control', name: 'Form Control', element: FormControl },
-  // { path: '/forms/select', name: 'Select', element: Select },
-  // { path: '/forms/checks-radios', name: 'Checks & Radios', element: ChecksRadios },
-  // { path: '/forms/range', name: 'Range', element: Range },
-  // { path: '/forms/input-group', name: 'Input Group', element: InputGroup },
-  // { path: '/forms/floating-labels', name: 'Floating Labels', element: FloatingLabels },
-  // { path: '/forms/layout', name: 'Layout', element: Layout },
-  // { path: '/forms/validation', name: 'Validation', element: Validation },
-  // { path: '/icons', exact: true, name: 'Icons', element: CoreUIIcons },
-  // { path: '/icons/coreui-icons', name: 'CoreUI Icons', element: CoreUIIcons },
-  // { path: '/icons/flags', name: 'Flags', element: Flags },
-  // { path: '/icons/brands', name: 'Brands', element: Brands },
-  // { path: '/notifications', name: 'Notifications', element: Alerts, exact: true },
-  // { path: '/notifications/alerts', name: 'Alerts', element: Alerts },
-  // { path: '/notifications/badges', name: 'Badges', element: Badges },
-  // { path: '/notifications/modals', name: 'Modals', element: Modals },
-  // { path: '/notifications/toasts', name: 'Toasts', element: Toasts },
-  // { path: '/widgets', name: 'Widgets', element: Widgets },
 ]
 
 export default routes

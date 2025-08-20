@@ -13,17 +13,35 @@ const _nav = [
     // For a CoreUI icon:
     icon: <CIcon icon={cilHome} customClassName="nav-icon" />,
   },
+  // Parent-specific routes
+  {
+    component: CNavItem,
+    name: 'Attendance',
+    to: '/attendance/parent',
+    icon: <CIcon icon={cilList} customClassName="nav-icon" />,
+    hideFor: ['admin', 'faculty', 'teacher', 'student'],
+  },
+  {
+    component: CNavItem,
+    name: 'Report Cards',
+    to: '/reportcards/parent',
+    icon: <CIcon icon={cilNotes} customClassName="nav-icon" />,
+    hideFor: ['admin', 'faculty', 'teacher', 'student'],
+  },
+  // Non-parent routes
   {
     component: CNavItem,
     name: 'Attendance',
     to: '/attendance',
     icon: <CIcon icon={cilList} customClassName="nav-icon" />,
+    hideFor: ['parent'],
   },
   {
     component: CNavItem,
     name: 'Report Cards',
     to: '/reportcards',
     icon: <CIcon icon={cilNotes} customClassName="nav-icon" />,
+    hideFor: ['parent'],
   },
   {
     component: CNavItem,
@@ -73,6 +91,7 @@ const _nav = [
     name: 'Calendar',
     to: '/calendar',
     icon: <CIcon icon={cilCalendar} customClassName="nav-icon" />,
+    hideFor: ['parent'],
   },
 ]
 

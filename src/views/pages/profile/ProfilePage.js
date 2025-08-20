@@ -25,6 +25,7 @@ import { cilCheckCircle, cilUser, cilPencil, cilSave } from '@coreui/icons';
 import { firestore } from 'src/firebase';
 import useAuth from 'src/Firebase/useAuth';
 import './ProfilePage.css';
+import { loadCurrentUserProfile } from 'src/utils/userProfile';
 
 const ProfilePage = () => {
   const { user: currentUser } = useAuth();
@@ -36,6 +37,7 @@ const ProfilePage = () => {
   const [activeChildIdx, setActiveChildIdx] = useState(0);
   const [toast, addToast] = useState(0);
   const toaster = useRef();
+  const [tarbiyahId, setTarbiyahId] = useState(null);
 
   const successToast = (
     <CToast color="success" className="text-white align-items-center">
@@ -54,31 +56,24 @@ const ProfilePage = () => {
 
       setLoading(true);
       try {
-        // First, get the user document to determine their role and linked collection
-          const userRef = doc(firestore, 'users', currentUser.uid);
-          console.log('currentUser id:', currentUser.uid);
-          console.log('userRef', userRef);
-        const userDoc = await getDoc(userRef);
-        console.log('userDoc', userDoc);
-
-        if (!userDoc.exists()) {
-          console.error('User document not found');
+        // Load user profile via email-based lookup to get canonical Tarbiyah ID
+        const profile = await loadCurrentUserProfile(firestore, currentUser);
+        if (!profile) {
+          console.error('No user profile found for:', currentUser.email);
           setLoading(false);
           return;
         }
-        
 
-        const userData = userDoc.data();
-        const tarbiyahId = userData.tarbiyahId || userData.schoolId || currentUser.uid; // Fallback to UID if tarbiyahId is not present
-        console.log('tarbiyahId', tarbiyahId);
-        setUserData(userData);
+        const loadedUserData = profile.data;
+        const loadedTarbiyahId = profile.id;
+        setUserData(loadedUserData);
+        setTarbiyahId(loadedTarbiyahId);
 
+        // Determine linked collection by role
         let linkedCollection;
-        // The role from the user data determines the collection
-        const userRoleRaw = userData.role || '';
+        const userRoleRaw = loadedUserData.role || loadedUserData?.personalInfo?.role || '';
         const userRole = userRoleRaw.toString().toLowerCase();
-        console.log('userRole', userRole);
-        switch(userRole) {
+        switch (userRole) {
           case 'faculty':
             linkedCollection = 'faculty';
             break;
@@ -97,21 +92,38 @@ const ProfilePage = () => {
             console.error(`Unknown role: ${userRoleRaw}. Falling back to 'parents'.`);
             linkedCollection = 'parents';
         }
-        
-        const profileRef = doc(firestore, linkedCollection, tarbiyahId);
+
+        const profileRef = doc(firestore, linkedCollection, loadedTarbiyahId);
         const profileDoc = await getDoc(profileRef);
 
         if (profileDoc.exists()) {
           setProfileData(profileDoc.data());
-      } else {
-          console.error(`Profile document not found in '${linkedCollection}' with ID '${tarbiyahId}'`);
+        } else {
+          console.error(`Profile document not found in '${linkedCollection}' with ID '${loadedTarbiyahId}'`);
+          const defaultProfile = {
+            personalInfo: loadedUserData.personalInfo || {
+              firstName: loadedUserData.firstName || loadedUserData.name || '',
+              lastName: loadedUserData.lastName || '',
+              role: loadedUserData.role || loadedUserData?.personalInfo?.role || '',
+            },
+            contact: loadedUserData.contact || { email: loadedUserData.email || currentUser.email || '' },
+            address: loadedUserData.address || {},
+            citizenship: loadedUserData.citizenship || {},
+            language: loadedUserData.language || {},
+            employment: loadedUserData.employment || {},
+            courses: loadedUserData.courses || [],
+            schooling: loadedUserData.schooling || {},
+            notes: loadedUserData.notes || '',
+            schoolId: loadedUserData.schoolId || loadedTarbiyahId,
+          };
+          setProfileData(defaultProfile);
         }
 
         // If the user is a parent, fetch their children (students) they are linked to
-        if ((userRole || userRoleRaw).toString().toLowerCase() === 'parent') {
+        if (userRole === 'parent') {
           try {
-            const qFather = query(collection(firestore, 'students'), where('parents.father.tarbiyahId', '==', tarbiyahId));
-            const qMother = query(collection(firestore, 'students'), where('parents.mother.tarbiyahId', '==', tarbiyahId));
+            const qFather = query(collection(firestore, 'students'), where('parents.father.tarbiyahId', '==', loadedTarbiyahId));
+            const qMother = query(collection(firestore, 'students'), where('parents.mother.tarbiyahId', '==', loadedTarbiyahId));
             const [snapF, snapM] = await Promise.all([getDocs(qFather), getDocs(qMother)]);
             const merged = new Map();
             snapF.forEach((d) => merged.set(d.id, { id: d.id, data: d.data() }));
@@ -122,10 +134,10 @@ const ProfilePage = () => {
             console.error('Failed to fetch children for parent:', e);
           }
         }
-        } catch (error) {
+      } catch (error) {
         console.error('Error fetching profile data:', error);
-        } finally {
-          setLoading(false);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -148,13 +160,13 @@ const ProfilePage = () => {
     setSaving(true);
     try {
       const batch = writeBatch(firestore);
-      const tarbiyahId = userData.tarbiyahId || userData.schoolId || currentUser.uid;
+      const effectiveTarbiyahId = tarbiyahId;
       
       // Update the profile document
       let linkedCollection = userData.dashboard?.linkedCollection;
       if (!linkedCollection) {
-        const roleLower = (userData.role || '').toLowerCase();
-        switch(roleLower) {
+        const roleLower = (userData.role || userData?.personalInfo?.role || '').toLowerCase();
+        switch (roleLower) {
           case 'faculty': linkedCollection = 'faculty'; break;
           case 'student': linkedCollection = 'students'; break;
           case 'parent': linkedCollection = 'parents'; break;
@@ -164,7 +176,7 @@ const ProfilePage = () => {
           default: linkedCollection = 'parents';
         }
       }
-      const profileRef = doc(firestore, linkedCollection, tarbiyahId);
+      const profileRef = doc(firestore, linkedCollection, effectiveTarbiyahId);
       
       let updateData = {
         ...profileData,
@@ -195,7 +207,7 @@ const ProfilePage = () => {
       batch.update(userRef, userUpdate);
 
       // If parent, also save currently selected child's changes if any edits were made in UI
-      if ((userData?.role || '').toLowerCase() === 'parent' && children.length > 0) {
+      if ((userData?.role || userData?.personalInfo?.role || '').toLowerCase() === 'parent' && children.length > 0) {
         const activeChild = children[activeChildIdx];
         if (activeChild && activeChild.data) {
           const childRef = doc(firestore, 'students', activeChild.id);
@@ -968,8 +980,8 @@ const ProfilePage = () => {
                 {profileData.personalInfo?.firstName} {profileData.personalInfo?.lastName}
               </h1>
               <div className="profile-role">
-                <CBadge color="primary">{getRoleDisplayName(userData.role)}</CBadge>
-                <span className="profile-id">ID: {profileData.schoolId || userData.tarbiyahId}</span>
+                <CBadge color="primary">{getRoleDisplayName(userData?.personalInfo?.role || userData.role)}</CBadge>
+                <span className="profile-id">ID: {profileData.schoolId || tarbiyahId}</span>
               </div>
             </div>
           </div>

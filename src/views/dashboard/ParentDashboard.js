@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CButton, CCard, CCardBody, CCardFooter, CCardHeader, CCol, CRow } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
@@ -14,95 +14,143 @@ import {
 } from '@coreui/icons'
 import './ParentDashboard.css'
 import sygnet from '../../assets/brand/TLA_logo_simple.svg'
+import { collection, getDocs, query, where, orderBy, limit, documentId } from 'firebase/firestore'
+import { firestore } from '../../firebase'
+import useAuth from '../../Firebase/useAuth'
+import { loadCurrentUserProfile } from '../../utils/userProfile'
+import dayjs from 'dayjs'
 
 const ParentDashboard = () => {
   const navigate = useNavigate()
+  const { user } = useAuth()
 
-  // Sample student data - works for 1, 2, 3+ children
-  const studentData = [
-    {
-      id: 1,
-      name: 'Aisha Khan',
-      grade: 'Grade 5',
-      attendance: 94,
-    },
-    {
-      id: 2,
-      name: 'Omar Khan',
-      grade: 'Grade 3',
-      attendance: 97,
-    },
-    {
-      id: 3,
-      name: 'Fatima Khan',
-      grade: 'Grade 1',
-      attendance: 98,
-    },
-  ]
+  const [parentName, setParentName] = useState('')
+  const [children, setChildren] = useState([]) // [{ id, name, grade, attendancePercent }]
+  const [announcements, setAnnouncements] = useState([])
 
-  // Simplified announcements
-  const announcements = [
-    {
-      id: 1,
-      title: 'Parent-Teacher Meetings - February 14th',
-      date: 'January 20, 2025',
-      priority: 'high',
-    },
-    {
-      id: 2,
-      title: 'Term 1 Report Cards Available February 7th',
-      date: 'January 25, 2025',
-      priority: 'medium',
-    },
-    {
-      id: 3,
-      title: 'Winter Break - February 17-21',
-      date: 'January 30, 2025',
-      priority: 'low',
-    },
-  ]
+  useEffect(() => {
+    if (!user) return
 
-  // Upcoming events data
-  const upcomingEvents = [
-    {
-      id: 1,
-      title: 'Science Fair',
-      date: 'Feb 10',
-      type: 'academic',
-    },
-    {
-      id: 2,
-      title: 'Parent-Teacher Meeting',
-      date: 'Feb 14',
-      type: 'meeting',
-    },
-    {
-      id: 3,
-      title: 'Winter Break',
-      date: 'Feb 17',
-      type: 'holiday',
-    },
-    {
-      id: 4,
-      title: 'Sports Day',
-      date: 'Feb 28',
-      type: 'activity',
-    },
-  ]
+    const loadData = async () => {
+      try {
+        // Get canonical parent profile and Tarbiyah ID
+        const profile = await loadCurrentUserProfile(firestore, user)
+        if (!profile) return
+        const parentId = profile.id
+        const firstName = profile.data?.personalInfo?.firstName || ''
+        const lastName = profile.data?.personalInfo?.lastName || ''
+        setParentName(`${firstName} ${lastName}`.trim())
+
+        // Fetch children (students) linked to this parent by tarbiyahId
+        const qFather = query(
+          collection(firestore, 'students'),
+          where('parents.father.tarbiyahId', '==', parentId),
+        )
+        const qMother = query(
+          collection(firestore, 'students'),
+          where('parents.mother.tarbiyahId', '==', parentId),
+        )
+        const [snapF, snapM] = await Promise.all([getDocs(qFather), getDocs(qMother)])
+        const merged = new Map()
+        snapF.forEach((d) => merged.set(d.id, { id: d.id, data: d.data() }))
+        snapM.forEach((d) => merged.set(d.id, { id: d.id, data: d.data() }))
+
+        const childIds = Array.from(merged.keys())
+        // Initialize children list with name and grade
+        const baseChildren = Array.from(merged.values()).map(({ id, data }) => {
+          const first = data?.personalInfo?.firstName || ''
+          const last = data?.personalInfo?.lastName || ''
+          const grade =
+            data?.schooling?.gradeLevel ||
+            data?.schooling?.grade ||
+            data?.gradeLevel ||
+            data?.grade ||
+            ''
+          return {
+            id,
+            name: `${first} ${last}`.trim() || id,
+            grade: grade ? (String(grade).startsWith('Grade') ? grade : `Grade ${grade}`) : '',
+            attendancePercent: null,
+          }
+        })
+
+        setChildren(baseChildren)
+
+        // Compute recent attendance rates (last 60 days) from attendance collection
+        if (childIds.length > 0) {
+          const endDate = dayjs()
+          const startDate = endDate.subtract(60, 'day')
+          let attQuery = query(
+            collection(firestore, 'attendance'),
+            where(documentId(), '>=', startDate.format('YYYY-MM-DD')),
+            where(documentId(), '<=', endDate.format('YYYY-MM-DD')),
+          )
+          const attSnap = await getDocs(attQuery)
+
+          const totals = new Map() // id -> { total, present, late, absent }
+          childIds.forEach((id) => totals.set(id, { total: 0, present: 0, late: 0, absent: 0 }))
+
+          attSnap.forEach((docSnap) => {
+            const daily = docSnap.data() || {}
+            const courses = daily.courses || []
+            courses.forEach((course) => {
+              const students = course.students || []
+              students.forEach((s) => {
+                const sid = s.studentId
+                if (!totals.has(sid)) return
+                const t = totals.get(sid)
+                t.total += 1
+                if (s.status === 'Present') t.present += 1
+                else if (s.status === 'Late') t.late += 1
+                else if (s.status === 'Absent') t.absent += 1
+              })
+            })
+          })
+
+          setChildren((prev) =>
+            prev.map((c) => {
+              const t = totals.get(c.id)
+              if (!t || t.total === 0) return c
+              const attended = t.present + t.late // count Late as attended
+              const pct = Math.round((attended / t.total) * 100)
+              return { ...c, attendancePercent: pct }
+            }),
+          )
+        }
+      } catch (e) {
+        console.error('Failed to load parent dashboard data:', e)
+      }
+    }
+
+    const loadAnnouncements = async () => {
+      try {
+        const ref = collection(firestore, 'announcements')
+        const qy = query(ref, orderBy('date', 'desc'), limit(5))
+        const snapshot = await getDocs(qy)
+        const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
+        setAnnouncements(data)
+      } catch (e) {
+        console.error('Failed to load announcements:', e)
+        setAnnouncements([])
+      }
+    }
+
+    loadData()
+    loadAnnouncements()
+  }, [user])
 
   // Simplified quick actions
   const quickActions = [
-    { id: 1, title: 'View Report Cards', icon: cilFile, path: '/parent/reportcards' },
-    { id: 2, title: 'Check Attendance', icon: cilCheckCircle, path: '/parent/attendance' },
-    { id: 3, title: 'Schedule Meeting', icon: cilCalendar, path: '/parent/meetings' },
-    { id: 4, title: 'Pay Fees', icon: cilMoney, path: '/parent/payments' },
-  ]
+    { id: 1, title: 'View Report Cards', icon: cilFile, path: '/reportcards/parent' },
+    { id: 2, title: 'Check Attendance', icon: cilCheckCircle, path: '/attendance/parent' },
+      ]
 
   // Calculate totals for multiple children
-  const totalChildren = studentData.length
-  const averageAttendance = Math.round(
-    studentData.reduce((sum, student) => sum + student.attendance, 0) / totalChildren,
-  )
+  const totalChildren = children.length
+  const attendanceValues = children.map((c) => c.attendancePercent).filter((v) => typeof v === 'number')
+  const averageAttendance = attendanceValues.length
+    ? Math.round(attendanceValues.reduce((sum, v) => sum + v, 0) / attendanceValues.length)
+    : 0
 
   // Determine grid class based on number of children
   const getGridClass = (childCount) => {
@@ -124,7 +172,7 @@ const ParentDashboard = () => {
           </div>
         </div>
         <div className="user-section">
-          <span className="parent-name">Welcome, Mrs. Khan</span>
+          <span className="parent-name">Welcome, {parentName || 'Parent'}</span>
         </div>
       </div>
 
@@ -146,26 +194,21 @@ const ParentDashboard = () => {
           </div>
 
           <div className={`children-grid ${getGridClass(totalChildren)}`}>
-            {studentData.map((student) => (
+            {children.map((student) => (
               <div key={student.id} className="child-card">
                 <div className="child-info">
                   <h4>{student.name}</h4>
-                  <p className="child-grade">{student.grade}</p>
+                  {student.grade && <p className="child-grade">{student.grade}</p>}
                 </div>
                 <div className="child-stats">
                   <div className="stat-row">
                     <span className="stat-label">Attendance Rate:</span>
-                    <span className="stat-value">{student.attendance}%</span>
+                    <span className="stat-value">
+                      {typeof student.attendancePercent === 'number' ? `${student.attendancePercent}%` : 'N/A'}
+                    </span>
                   </div>
                 </div>
-                <CButton
-                  color="light"
-                  size="sm"
-                  onClick={() => navigate(`/parent/student/${student.id}`)}
-                  className="view-details-btn"
-                >
-                  View Full Details
-                </CButton>
+
               </div>
             ))}
           </div>
@@ -174,23 +217,6 @@ const ParentDashboard = () => {
 
       {/* Key Stats */}
       <CRow className="stats-row">
-        <CCol lg={3} md={6} sm={12}>
-          <CCard className="stat-card fees-card">
-            <CCardBody className="d-flex align-items-center">
-              <div className="stat-icon">
-                <CIcon icon={cilMoney} size="3xl" />
-              </div>
-              <div className="stat-content">
-                <h3 className="stat-number">$0</h3>
-                <p className="stat-label">OUTSTANDING FEES</p>
-              </div>
-            </CCardBody>
-            <CCardFooter className="stat-footer" onClick={() => navigate('/parent/payments')}>
-              <span>View Payments</span>
-              <CIcon icon={cilArrowRight} />
-            </CCardFooter>
-          </CCard>
-        </CCol>
 
         <CCol lg={3} md={6} sm={12}>
           <CCard className="stat-card attendance-card">
@@ -203,30 +229,14 @@ const ParentDashboard = () => {
                 <p className="stat-label">AVERAGE ATTENDANCE</p>
               </div>
             </CCardBody>
-            <CCardFooter className="stat-footer" onClick={() => navigate('/parent/attendance')}>
+            <CCardFooter className="stat-footer" onClick={() => navigate('/attendance/parent')}>
               <span>View Attendance</span>
               <CIcon icon={cilArrowRight} />
             </CCardFooter>
           </CCard>
         </CCol>
 
-        <CCol lg={3} md={6} sm={12}>
-          <CCard className="stat-card meetings-card">
-            <CCardBody className="d-flex align-items-center">
-              <div className="stat-icon">
-                <CIcon icon={cilCalendar} size="3xl" />
-              </div>
-              <div className="stat-content">
-                <h3 className="stat-number">1</h3>
-                <p className="stat-label">UPCOMING MEETING</p>
-              </div>
-            </CCardBody>
-            <CCardFooter className="stat-footer" onClick={() => navigate('/parent/meetings')}>
-              <span>Schedule Meeting</span>
-              <CIcon icon={cilArrowRight} />
-            </CCardFooter>
-          </CCard>
-        </CCol>
+
 
         <CCol lg={3} md={6} sm={12}>
           <CCard className="stat-card children-card">
@@ -239,10 +249,7 @@ const ParentDashboard = () => {
                 <p className="stat-label">{totalChildren === 1 ? 'CHILD' : 'CHILDREN'}</p>
               </div>
             </CCardBody>
-            <CCardFooter className="stat-footer" onClick={() => navigate('/parent/children')}>
-              <span>View Details</span>
-              <CIcon icon={cilArrowRight} />
-            </CCardFooter>
+            
           </CCard>
         </CCol>
       </CRow>
@@ -291,7 +298,7 @@ const ParentDashboard = () => {
                 {announcements.map((announcement) => (
                   <div
                     key={announcement.id}
-                    className={`announcement-item priority-${announcement.priority}`}
+                    className={`announcement-item priority-${announcement.priority || 'low'}`}
                   >
                     <div className="announcement-content">
                       <h4 className="announcement-title">{announcement.title}</h4>
@@ -300,17 +307,20 @@ const ParentDashboard = () => {
                           <CIcon icon={cilCalendar} className="me-1" />
                           {announcement.date}
                         </span>
-                        <span className={`priority-badge priority-${announcement.priority}`}>
-                          {announcement.priority.toUpperCase()}
-                        </span>
+                        {announcement.priority && (
+                          <span className={`priority-badge priority-${announcement.priority}`}>
+                            {String(announcement.priority).toUpperCase()}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
                 ))}
+                {announcements.length === 0 && <div>No announcements</div>}
               </div>
             </CCardBody>
             <CCardFooter className="text-center">
-              <CButton color="link" onClick={() => navigate('/parent/announcements')}>
+              <CButton color="link" onClick={() => navigate('/announcements')}>
                 View All Announcements
                 <CIcon icon={cilArrowRight} className="ms-1" />
               </CButton>
@@ -319,38 +329,8 @@ const ParentDashboard = () => {
         </CCol>
       </CRow>
 
-      {/* Upcoming Events */}
-      <CRow className="mt-4">
-        <CCol md={12}>
-          <CCard className="events-card">
-            <CCardHeader className="card-header">
-              <h3>
-                <CIcon icon={cilClock} className="me-2" />
-                Upcoming Events
-              </h3>
-            </CCardHeader>
-            <CCardBody>
-              <div className="events-grid">
-                {upcomingEvents.map((event) => (
-                  <div key={event.id} className="event-item">
-                    <div className="event-date">{event.date}</div>
-                    <div className="event-details">
-                      <h5>{event.title}</h5>
-                      <span className={`event-type ${event.type}`}>{event.type}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CCardBody>
-            <CCardFooter className="text-center">
-              <CButton color="link" onClick={() => navigate('/parent/calendar')}>
-                View Full Calendar
-                <CIcon icon={cilArrowRight} className="ms-1" />
-              </CButton>
-            </CCardFooter>
-          </CCard>
-        </CCol>
-      </CRow>
+
+
 
       {/* Footer */}
       <div className="dashboard-footer">

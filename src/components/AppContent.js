@@ -1,6 +1,7 @@
 import React, { Suspense, useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { CContainer, CSpinner } from '@coreui/react'
+import useAuth from '../Firebase/useAuth'
 
 // routes config
 import routes from '../routes'
@@ -32,6 +33,7 @@ const AppContent = () => {
     }
     enforceOnboarding()
   }, [location.pathname])
+  const { role } = useAuth()
   
   // Routes that should use full width
   const fullWidthRoutes = ['/reportcards']
@@ -39,11 +41,17 @@ const AppContent = () => {
     location.pathname.startsWith(route)
   )
   
+  const filteredRoutes = routes.filter((route) => {
+    if (!route.hideFor) return true
+    if (!Array.isArray(route.hideFor)) return true
+    return !route.hideFor.includes((role || '').toLowerCase())
+  })
+  
   return (
     <CContainer className="px-4" lg={!shouldUseFullWidth} fluid={shouldUseFullWidth}>
       <Suspense fallback={<CSpinner color="primary" />}>
         <Routes>
-          {routes.map((route, idx) => {
+          {filteredRoutes.map((route, idx) => {
             return (
               route.element && (
                 <Route

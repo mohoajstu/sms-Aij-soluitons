@@ -17,6 +17,8 @@ const TermsOfService = React.lazy(() => import('./views/pages/termsOfService/Ter
 const ParentLogin = React.lazy(() => import('./views/pages/login/ParentLogin'))
 const StaffLogin = React.lazy(() => import('./views/pages/login/StaffLogin'))
 const ChangePassword = React.lazy(() => import('./views/pages/login/ChangePassword'))
+const RegistrationPage = React.lazy(() => import('./views/registration/registrationPage'))
+const ThankYouPage = React.lazy(() => import('./views/registration/thankYouPage'))
 
 const App = () => {
   const { user, loading } = useAuth()
@@ -27,6 +29,16 @@ const App = () => {
         <CSpinner color="primary" variant="grow" />
       </div>
     )
+  }
+
+  // Ensure public registration pages are reachable when accessed without the hash
+  if (
+    !window.location.hash &&
+    (window.location.pathname === '/registration' ||
+      window.location.pathname === '/registration/thankYouPage')
+  ) {
+    window.location.replace(`#${window.location.pathname}`)
+    return null
   }
 
   return (
@@ -77,6 +89,8 @@ const App = () => {
           <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/404" element={<Page404 />} />
           <Route path="/500" element={<Page500 />} />
+          <Route path="/registration" element={<RegistrationPage />} />
+          <Route path="/registration/thankYouPage" element={<ThankYouPage />} />
 
           {/* Protected Routes */}
           <Route path="/*" element={user ? <DefaultLayout /> : <Navigate to="/home" replace />} />
