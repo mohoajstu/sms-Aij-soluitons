@@ -612,10 +612,10 @@ const CourseForm = () => {
       const successMessage = shouldAddCurrentUser 
         ? 'Course created successfully! You have been automatically added as an instructor.'
         : 'Course created successfully!'
-      
+
       setSuccess(successMessage)
       setTimeout(() => {
-        navigate('/courses')
+      navigate('/courses')
       }, 2000)
 
     } catch (error) {
@@ -637,40 +637,40 @@ const CourseForm = () => {
       const calendarIds = []
       for (const day of Object.keys(course.schedule.sessions)) {
         if (course.schedule.sessions[day].enabled) {
-          // Get the next occurrence of this day
-          const nextDate = getNextDayOfWeek(new Date(), day)
+        // Get the next occurrence of this day
+        const nextDate = getNextDayOfWeek(new Date(), day)
 
-          // Create event object
-          const event = {
-            summary: `${course.title} (${course.grade})`,
-            description: course.description,
+        // Create event object
+        const event = {
+          summary: `${course.title} (${course.grade})`,
+          description: course.description,
             location: course.schedule.sessions[day].room,
-            start: {
+          start: {
               dateTime: getDateTimeString(nextDate, course.schedule.sessions[day].startTime),
-              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            },
-            end: {
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          },
+          end: {
               dateTime: getDateTimeString(nextDate, course.schedule.sessions[day].endTime),
-              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            },
-            recurrence: [
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          },
+          recurrence: [
               `RRULE:FREQ=WEEKLY;BYDAY=${getDayOfWeekCode(day)};COUNT=16`, // 16 weeks (typical semester length)
-            ],
+          ],
             attendees: faculty.filter((instructor) => course.staff.some(s => s.id === instructor.id)).map(
-              (instructor) => ({ email: `${instructor.id}@example.com` }),
-            ), // Mock emails
-            reminders: {
-              useDefault: false,
-              overrides: [
-                { method: 'email', minutes: 24 * 60 }, // 1 day before
-                { method: 'popup', minutes: 30 }, // 30 minutes before
-              ],
-            },
-          }
+            (instructor) => ({ email: `${instructor.id}@example.com` }),
+          ), // Mock emails
+          reminders: {
+            useDefault: false,
+            overrides: [
+              { method: 'email', minutes: 24 * 60 }, // 1 day before
+              { method: 'popup', minutes: 30 }, // 30 minutes before
+            ],
+          },
+        }
 
-          // Create the event
+        // Create the event
           const result = await createEvent('primary', event)
-          calendarIds.push(result.id)
+        calendarIds.push(result.id)
         }
       }
 
@@ -808,13 +808,13 @@ const CourseForm = () => {
                     <CSpinner size="sm" /> Loading faculty...
                   </div>
                 ) : (
-                  <CFormSelect
-                    id="staff"
-                    multiple
+                <CFormSelect
+                  id="staff"
+                  multiple
                     onChange={handleInstructorSelection}
                     value={formData.staff.map(instructor => instructor.id)}
-                    size="5"
-                  >
+                  size="5"
+                >
                     {faculty.map((instructor) => (
                       <option 
                         key={instructor.id} 
@@ -822,9 +822,9 @@ const CourseForm = () => {
                         data-name={instructor.name}
                       >
                         {instructor.name} ({instructor.id})
-                      </option>
-                    ))}
-                  </CFormSelect>
+                    </option>
+                  ))}
+                </CFormSelect>
                 )}
                 <small className="form-text text-muted">
                   Hold Ctrl/Cmd key to select multiple instructors
@@ -855,7 +855,7 @@ const CourseForm = () => {
                   </p>
                 </div>
 
-                {DAYS_OF_WEEK.map((day) => (
+                  {DAYS_OF_WEEK.map((day) => (
                   <div key={day} className="mb-3 p-3 border rounded">
                     <CFormCheck
                       id={`day-${day}`}
@@ -871,36 +871,36 @@ const CourseForm = () => {
                       <CRow className="g-2">
                         <CCol md={4}>
                           <CFormLabel htmlFor={`${day}-startTime`}>Start Time</CFormLabel>
-                          <CFormInput
-                            type="time"
+                    <CFormInput
+                      type="time"
                             id={`${day}-startTime`}
                             value={formData.schedule.sessions[day].startTime}
                             onChange={(e) => handleScheduleChange(day, 'startTime', e.target.value)}
                             size="sm"
-                          />
-                        </CCol>
+                    />
+                  </CCol>
                         <CCol md={4}>
                           <CFormLabel htmlFor={`${day}-endTime`}>End Time</CFormLabel>
-                          <CFormInput
-                            type="time"
+                    <CFormInput
+                      type="time"
                             id={`${day}-endTime`}
                             value={formData.schedule.sessions[day].endTime}
                             onChange={(e) => handleScheduleChange(day, 'endTime', e.target.value)}
                             size="sm"
-                          />
-                        </CCol>
+                    />
+                  </CCol>
                         <CCol md={4}>
                           <CFormLabel htmlFor={`${day}-room`}>Room</CFormLabel>
-                          <CFormInput
-                            type="text"
+                    <CFormInput
+                      type="text"
                             id={`${day}-room`}
                             value={formData.schedule.sessions[day].room}
                             onChange={(e) => handleScheduleChange(day, 'room', e.target.value)}
-                            placeholder="e.g., Room 101"
+                      placeholder="e.g., Room 101"
                             size="sm"
-                          />
-                        </CCol>
-                      </CRow>
+                    />
+                  </CCol>
+                </CRow>
                     )}
                   </div>
                 ))}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
-import { getFirestore, doc, setDoc, getDoc, serverTimestamp, collection, getDocs } from 'firebase/firestore'
+import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 import { auth } from '../../../Firebase/firebase'
 import { STAFF_AUTHORIZED_DOMAINS, isStaffEmailAuthorized } from '../../../config/authConfig'
 import {
@@ -16,6 +16,8 @@ import {
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilUser, cilHome } from '@coreui/icons'
+import { loadCurrentUserProfile } from '../../../utils/userProfile'
+import { toast } from 'react-hot-toast'
 
 // Configure Google Provider for staff with additional scopes
 const googleProvider = new GoogleAuthProvider()
@@ -43,21 +45,28 @@ const StaffLogin = () => {
       // Check if the email domain is authorized
       const isAuthorizedDomain = isStaffEmailAuthorized(user.email)
       
-      // Check if user has admin role in Firestore
-      let isAdmin = false
-      let initialUserRef = doc(db, 'users', user.uid)
-      let initialUserDoc = await getDoc(initialUserRef)
-      
-      if (initialUserDoc.exists()) {
-        const userData = initialUserDoc.data()
-        isAdmin = userData.role === 'admin'
+      // Determine role from user profile via email-based lookup
+      let normalizedRole = 'guest'
+      try {
+        const profile = await loadCurrentUserProfile(db, user)
+        if (profile) {
+          const profileRole = profile.data?.personalInfo?.role || profile.data?.role || 'guest'
+          normalizedRole = String(profileRole).toLowerCase()
+        }
+      } catch (e) {
+        // fallback: keep as guest
+        console.warn('Could not load profile during staff login role check:', e)
       }
 
-      // Allow access if either domain is authorized OR user is admin
-      if (!isAuthorizedDomain && !isAdmin) {
+      const isAdminOrFaculty = normalizedRole === 'admin' || normalizedRole === 'faculty'
+
+      // Allow access if either domain is authorized OR user is admin/faculty
+      if (!isAuthorizedDomain && !isAdminOrFaculty) {
         // Sign out the user immediately
         await auth.signOut()
-        setError(`Access denied. Only staff members with authorized email domains or admin users are allowed. Your email domain: ${user.email.split('@')[1]}`)
+        const reason = `Access denied. Only staff with authorized email domains or admin/faculty users are allowed. Your email domain: ${user.email.split('@')[1]}`
+        setError(reason)
+        toast.error(reason)
         setLoading(false)
         return
       }
@@ -72,104 +81,36 @@ const StaffLogin = () => {
         localStorage.setItem(SHARED_GOOGLE_AUTH_TOKEN_KEY, JSON.stringify(token))
       }
 
-      // Check/create user document in Firestore
-      // First check if there's already a user document with this email (should be Tarbiyah ID-based)
-      console.log('🔍 Searching for existing user document by email:', user.email)
-      const usersSnapshot = await getDocs(collection(db, 'users'))
-      let existingUserDoc = null
-      let existingUserId = null
-      
-      usersSnapshot.docs.forEach(doc => {
-        const data = doc.data()
-        // Check both contact.email and root email fields
-        const docEmail = data.contact?.email || data.email
-        if (docEmail === user.email) {
-          existingUserDoc = data
-          existingUserId = doc.id
-          console.log(`🎯 Found existing user document: ${doc.id} with email: ${docEmail}`)
-        }
-      })
-      
-      if (existingUserDoc && existingUserId) {
-        console.log(`🔗 Found existing user document ${existingUserId} for email ${user.email}`)
-        console.log('🔄 Updating existing Tarbiyah ID-based user document...')
-        console.log('📄 Existing user data:', existingUserDoc)
-        
-        // Update the EXISTING Tarbiyah ID-based document (DO NOT create a new UID-based document)
-        const tarbiyahUserRef = doc(db, 'users', existingUserId)
-        await setDoc(tarbiyahUserRef, {
-          ...existingUserDoc, // Preserve ALL existing data
-          firebaseAuthUID: user.uid, // Store Firebase Auth UID for reference
-          email: user.email, // Ensure email is at root level for compatibility
-          lastLogin: serverTimestamp(),
-          loginCount: (existingUserDoc.loginCount || existingUserDoc.stats?.loginCount || 0) + 1,
-          emailDomain: user.email.split('@')[1],
-          isVerified: true,
-          isAuthorizedDomain,
-          linkedAt: serverTimestamp(), // Track when linking occurred
-          updatedAt: serverTimestamp(),
-          // Update stats object if it exists
-          ...(existingUserDoc.stats && {
-            stats: {
-              ...existingUserDoc.stats,
-              loginCount: (existingUserDoc.stats.loginCount || 0) + 1,
-              lastLoginAt: serverTimestamp(),
-            }
-          })
-        }, { merge: true })
-        
-        console.log(`✅ Successfully updated Tarbiyah ID document ${existingUserId} with Auth UID ${user.uid}`)
-        console.log(`✅ Preserved user role: ${existingUserDoc.role || existingUserDoc.personalInfo?.role}`)
-      } else {
-        // No existing user found, create new one with a temporary ID structure
-        // This should rarely happen since People Page should create users first
-        console.log('⚠️ No existing user document found for', user.email)
-        console.log('📝 Creating new temporary user document - should be converted to Tarbiyah ID via People Page')
-        
+      // Check/create user document in Firestore (by auth uid)
+      const userRef = doc(db, 'users', user.uid)
+      const userDoc = await getDoc(userRef)
+
+      if (!userDoc.exists()) {
         const [firstName, lastName] = user.displayName?.split(' ') || ['', '']
-        const userRole = isAuthorizedDomain ? 'Faculty' : (isAdmin ? 'Admin' : 'Faculty')
+        // Set role based on domain authorization or existing profile role
+        const userRole = isAuthorizedDomain ? 'staff' : (isAdminOrFaculty ? normalizedRole : 'staff')
         
-        // Generate a temporary Tarbiyah-style ID for new users
-        // This should be properly assigned when they're added via People Page
-        const tempTarbiyahId = `TEMP_${Date.now()}`
-        const tempUserRef = doc(db, 'users', tempTarbiyahId)
-        
-        // Create user document with proper People Page structure using temp Tarbiyah ID
-        await setDoc(tempUserRef, {
-          tarbiyahId: tempTarbiyahId,
-          schoolId: tempTarbiyahId,
-          firebaseAuthUID: user.uid, // Store Firebase Auth UID for reference
-          personalInfo: {
-            firstName,
-            lastName,
-            role: userRole,
-          },
+        await setDoc(userRef, {
+          firstName,
+          lastName,
+          email: user.email,
           role: userRole,
-          contact: {
-            email: user.email,
-            phone1: '',
-            phone2: '',
-            emergencyPhone: '',
-          },
           emailDomain: user.email.split('@')[1],
           isVerified: true,
           isAuthorizedDomain,
-          active: true,
-          isTemporary: true, // Flag this as temporary
-          dashboard: {
-            theme: 'default',
-          },
-          stats: {
-            loginCount: 1,
-            lastLoginAt: serverTimestamp(),
-          },
           createdAt: serverTimestamp(),
           lastLogin: serverTimestamp(),
-          updatedAt: serverTimestamp(),
+          loginCount: 1,
         })
-        
-        console.log(`📝 Created temporary user document ${tempTarbiyahId} - should be properly assigned via People Page`)
-        console.log(`⚠️ User ${user.email} should be added to People Page with proper Tarbiyah ID`)
+      } else {
+        // Update last login and verify domain again
+        await setDoc(userRef, {
+          lastLogin: serverTimestamp(),
+          loginCount: (userDoc.data().loginCount || 0) + 1,
+          emailDomain: user.email.split('@')[1],
+          isVerified: true,
+          isAuthorizedDomain,
+        }, { merge: true })
       }
 
       navigate('/')
@@ -329,7 +270,10 @@ const StaffLogin = () => {
             
             <div className="text-center mt-3">
               <Link to="/login/parent" className="text-white text-decoration-none">
-                Are you a parent? <strong>Click here for Parent Login</strong>
+                <CButton color="light" variant="outline" size="sm">
+                  <CIcon icon={cilUser} className="me-2" />
+                  Parent Portal
+                </CButton>
               </Link>
             </div>
           </CCol>

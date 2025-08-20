@@ -1,8 +1,8 @@
 // hooks/useAuth.js
 import { useEffect, useState } from 'react'
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth'
-import { auth, firestore } from './firebase' // ← add firestore
-import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore' // ← updated imports
+import { auth, firestore } from './firebase'
+import { loadCurrentUserProfile } from '../utils/userProfile'
 
 const useAuth = () => {
   const [user, setUser] = useState(null)
@@ -10,95 +10,63 @@ const useAuth = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // 1️⃣ Listen for sign-in / sign-out
-    const unsubAuth = onAuthStateChanged(auth, async (u) => {
-      if (!u) {
+    // Listen for sign-in / sign-out
+    const unsubAuth = onAuthStateChanged(auth, async (authUser) => {
+      if (!authUser) {
         // signed out
-        setUser(null)
+        setUser(authUser)
         setRole(null)
         setLoading(false)
         return
       }
 
-      // signed in
-      setUser(u)
-
-      // 2️⃣ Find user document by firebaseAuthUID field (not by document ID)
-      console.log('🔍 Looking for user document with firebaseAuthUID:', u.uid)
+      // signed in - load profile by email lookup
+      setUser(authUser)
       
       try {
-        // Query users collection for document where firebaseAuthUID equals current user's UID
-        const usersRef = collection(firestore, 'users')
-        const q = query(usersRef, where('firebaseAuthUID', '==', u.uid))
-        const querySnapshot = await getDocs(q)
+        const profile = await loadCurrentUserProfile(firestore, authUser)
         
-        if (!querySnapshot.empty) {
-          // Found user document with matching firebaseAuthUID
-          const userDoc = querySnapshot.docs[0]
-          const data = userDoc.data()
-          const tarbiyahId = userDoc.id
+        if (profile) {
+          // Extract role from profile data
+          const userRole = profile.data?.personalInfo?.role || profile.data?.role || 'guest'
+          const normalizedRole = userRole.toLowerCase()
           
-          console.log('✅ Found user document:', tarbiyahId)
-          console.log('📄 User data:', data)
+          console.log('✅ Found user profile:', profile.id)
+          console.log('📄 User data:', profile.data)
+          console.log('🔑 Extracted role:', normalizedRole)
           
-          // Handle different role storage patterns
-          let userRole = data?.role || data?.personalInfo?.role || 'guest'
-          
-          // Convert role to lowercase for consistency
-          userRole = userRole.toLowerCase()
-          
-          // Debug logging
-          console.log('useAuth: User data:', data)
-          console.log('useAuth: Extracted role:', userRole)
-          console.log('useAuth: Tarbiyah ID:', tarbiyahId)
-          
-          setRole(userRole)
-          setLoading(false)
-          
-          // 3️⃣ Set up real-time listener for this specific document
-          const unsubDoc = onSnapshot(
-            userDoc.ref,
-            (snap) => {
-              const updatedData = snap.data()
-              let updatedRole = updatedData?.role || updatedData?.personalInfo?.role || 'guest'
-              updatedRole = updatedRole.toLowerCase()
-              
-              console.log('🔄 User document updated:', updatedData)
-              console.log('🔄 Updated role:', updatedRole)
-              
-              setRole(updatedRole)
-            },
-            (err) => {
-              console.error('User document listener error:', err)
-              setRole('guest')
-            }
-          )
-          
-          // Return cleanup function for document listener
-          return () => unsubDoc()
+          setRole(normalizedRole)
         } else {
-          // No user document found with this firebaseAuthUID
-          console.warn('⚠️ No user document found for firebaseAuthUID:', u.uid)
+          console.warn('⚠️ No user profile found for:', authUser.email)
           console.warn('⚠️ User may need to be added via People Page first')
           setRole('guest')
-          setLoading(false)
         }
-      } catch (err) {
-        console.error('Error finding user document:', err)
+      } catch (error) {
+        console.error('Error loading user profile:', error)
         setRole('guest')
+      } finally {
         setLoading(false)
       }
     })
 
-    return () => unsubAuth()
+    // cleanup
+    return unsubAuth
   }, [])
 
-  // same sign-out helper you already had
   const signOut = async () => {
-    await firebaseSignOut(auth)
+    try {
+      await firebaseSignOut(auth)
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
   }
 
-  return { user, role, loading, signOut }
+  return {
+    user,
+    role,
+    loading,
+    signOut,
+  }
 }
 
 export default useAuth

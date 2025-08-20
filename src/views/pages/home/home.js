@@ -266,9 +266,6 @@ const Home = () => {
           </CRow>
         </CContainer>
       </CFooter>
-
-      {/* Environment Variables Debug - Temporary */}
-      <EnvDebug />
       
       <style jsx>{`
         .login-card {

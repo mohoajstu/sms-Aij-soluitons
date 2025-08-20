@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { auth, firestore } from '../../firebase'
 import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
+import { loadCurrentUserProfile } from '../../utils/userProfile'
 import './courses.css'
 import { CButton, CButtonGroup, CCard, CCardBody, CCardHeader, CCol, CRow } from '@coreui/react'
 
@@ -51,27 +52,24 @@ function CoursesPage() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
-          // Use the same logic as useAuth.js - query by firebaseAuthUID
-          console.log('🔍 Looking for user document with firebaseAuthUID:', user.uid)
-          const usersRef = collection(firestore, 'users')
-          const q = query(usersRef, where('firebaseAuthUID', '==', user.uid))
-          const querySnapshot = await getDocs(q)
+          // Use the same logic as useAuth.js - email-based lookup
+          console.log('🔍 Looking up user profile for:', user.email)
+          const profile = await loadCurrentUserProfile(firestore, user)
           
           let userRole = null
           let userData = null
+          let tarbiyahId = null
           
-          if (!querySnapshot.empty) {
-            // Found user document with matching firebaseAuthUID
-            const userDoc = querySnapshot.docs[0]
-            userData = userDoc.data()
-            const tarbiyahId = userDoc.id // This is the actual Tarbiyah ID
-            
-            console.log('✅ Found user document with Tarbiyah ID:', tarbiyahId)
-            console.log('📄 User data:', userData)
-            
+          if (profile) {
+            userData = profile.data
+            tarbiyahId = profile.id // This is the actual Tarbiyah ID (document ID)
             userRole = userData.personalInfo?.role || userData.role || null
+            
+            console.log('✅ Found user profile with Tarbiyah ID:', tarbiyahId)
+            console.log('📄 User data:', userData)
+            console.log('🔑 User role:', userRole)
           } else {
-            console.warn('⚠️ No user document found for firebaseAuthUID:', user.uid)
+            console.warn('⚠️ No user profile found for:', user.email)
             console.warn('⚠️ User may need to be added via People Page first')
           }
 
@@ -83,91 +81,125 @@ function CoursesPage() {
             console.log('👑 ADMIN: Found', userCourses.length, 'courses')
             setCourses(userCourses)
           } else if (userRole?.toLowerCase() === 'faculty') {
-            // Get the Tarbiyah ID from the user document we found
-            console.log('👨‍🏫 Faculty user detected, using correct Tarbiyah ID...')
-            const tarbiyahId = userData.tarbiyahId || userData.schoolId || querySnapshot.docs[0].id
-            console.log('🆔 Tarbiyah ID from user document:', tarbiyahId)
+            console.log('👨‍🏫 Faculty user detected')
+            console.log('🆔 Tarbiyah ID:', tarbiyahId)
             console.log('🆔 Auth UID:', user.uid)
             
-            try {
-              // Search courses collection for courses where this faculty member is assigned
-              const allCoursesSnapshot = await getDocs(coursesCollectionRef)
-              console.log(`📚 Found ${allCoursesSnapshot.docs.length} total courses in collection`)
+            // First, check if the user has a courses array in their document
+            if (userData.courses && Array.isArray(userData.courses) && userData.courses.length > 0) {
+              console.log('📚 Found courses array in user document:', userData.courses)
               
-              const userCourses = []
-              
-              allCoursesSnapshot.docs.forEach(doc => {
-                const courseData = doc.data()
-                const docId = doc.id
+              try {
+                // Fetch the actual course documents using the course IDs from the user's courses array
+                const userCourses = []
                 
-                // Check multiple places where the teacher might be stored
-                const teacherIds = courseData.teacherIds || []
-                const teacherAuthUIDs = courseData.teacherAuthUIDs || []
-                const teacherTarbiyahIds = courseData.teacherTarbiyahIds || []
-                
-                // Check if either Auth UID or Tarbiyah ID is in any of the teacher arrays
-                const isInTeacherIds = teacherIds.includes(tarbiyahId) || teacherIds.includes(user.uid)
-                const isInAuthUIDs = teacherAuthUIDs.includes(user.uid)
-                const isInTarbiyahIds = teacherTarbiyahIds.includes(tarbiyahId)
-                
-                // Also check legacy teachers array (for backward compatibility)
-                let isInTeachersArray = false
-                if (Array.isArray(courseData.teachers)) {
-                  isInTeachersArray = courseData.teachers.some(teacher => {
-                    if (typeof teacher === 'string') {
-                      return teacher === tarbiyahId || teacher === user.uid
-                    } else if (typeof teacher === 'object' && teacher.schoolId) {
-                      return teacher.schoolId === tarbiyahId || teacher.schoolId === user.uid
+                for (const courseId of userData.courses) {
+                  try {
+                    const courseDocRef = doc(firestore, 'courses', courseId)
+                    const courseDoc = await getDoc(courseDocRef)
+                    
+                    if (courseDoc.exists()) {
+                      const courseData = courseDoc.data()
+                      userCourses.push({ id: courseDoc.id, ...courseData })
+                      console.log(`✅ Found course: ${courseData.title || courseData.name} (${courseId})`)
+                    } else {
+                      console.warn(`⚠️ Course document not found: ${courseId}`)
                     }
-                    return false
-                  })
+                  } catch (error) {
+                    console.error(`❌ Error fetching course ${courseId}:`, error)
+                  }
                 }
                 
-                // Also check teacher array (enhanced format)
-                let isInTeacherArray = false
-                if (Array.isArray(courseData.teacher)) {
-                  isInTeacherArray = courseData.teacher.some(teacher => {
-                    if (typeof teacher === 'object') {
-                      return teacher.schoolId === tarbiyahId || 
-                             teacher.schoolId === user.uid ||
-                             teacher.authUID === user.uid ||
-                             teacher.tarbiyahId === tarbiyahId
-                    }
-                    return false
-                  })
-                }
+                console.log(`🎯 Successfully loaded ${userCourses.length} courses from user's courses array`)
+                setCourses(userCourses)
                 
-                console.log(`📝 Course ${docId} (${courseData.title || courseData.name}):`, {
-                  teacherIds: teacherIds,
-                  teacherAuthUIDs: teacherAuthUIDs,
-                  teacherTarbiyahIds: teacherTarbiyahIds,
-                  isInTeacherIds: isInTeacherIds,
-                  isInAuthUIDs: isInAuthUIDs,
-                  isInTarbiyahIds: isInTarbiyahIds,
-                  teachers: courseData.teachers,
-                  isInTeachersArray: isInTeachersArray,
-                  teacher: courseData.teacher,
-                  isInTeacherArray: isInTeacherArray,
-                  searchingFor: {
-                    tarbiyahId: tarbiyahId,
-                    authUID: user.uid
+              } catch (error) {
+                console.error('❌ Error fetching courses from user courses array:', error)
+                setCourses([])
+              }
+            } else {
+              // Fallback: Search through all courses to find ones where this faculty member is assigned
+              console.log('📚 No courses array found in user document, searching through all courses...')
+              
+              try {
+                const allCoursesSnapshot = await getDocs(coursesCollectionRef)
+                console.log(`📚 Found ${allCoursesSnapshot.docs.length} total courses in collection`)
+                
+                const userCourses = []
+                
+                allCoursesSnapshot.docs.forEach(doc => {
+                  const courseData = doc.data()
+                  const docId = doc.id
+                  
+                  // Check multiple places where the teacher might be stored
+                  const teacherIds = courseData.teacherIds || []
+                  const teacherAuthUIDs = courseData.teacherAuthUIDs || []
+                  const teacherTarbiyahIds = courseData.teacherTarbiyahIds || []
+                  
+                  // Check if either Auth UID or Tarbiyah ID is in any of the teacher arrays
+                  const isInTeacherIds = teacherIds.includes(tarbiyahId) || teacherIds.includes(user.uid)
+                  const isInAuthUIDs = teacherAuthUIDs.includes(user.uid)
+                  const isInTarbiyahIds = teacherTarbiyahIds.includes(tarbiyahId)
+                  
+                  // Also check legacy teachers array (for backward compatibility)
+                  let isInTeachersArray = false
+                  if (Array.isArray(courseData.teachers)) {
+                    isInTeachersArray = courseData.teachers.some(teacher => {
+                      if (typeof teacher === 'string') {
+                        return teacher === tarbiyahId || teacher === user.uid
+                      } else if (typeof teacher === 'object' && teacher.schoolId) {
+                        return teacher.schoolId === tarbiyahId || teacher.schoolId === user.uid
+                      }
+                      return false
+                    })
+                  }
+                  
+                  // Also check teacher array (enhanced format)
+                  let isInTeacherArray = false
+                  if (Array.isArray(courseData.teacher)) {
+                    isInTeacherArray = courseData.teacher.some(teacher => {
+                      if (typeof teacher === 'object') {
+                        return teacher.schoolId === tarbiyahId || 
+                               teacher.schoolId === user.uid ||
+                               teacher.authUID === user.uid ||
+                               teacher.tarbiyahId === tarbiyahId
+                      }
+                      return false
+                    })
+                  }
+                  
+                  console.log(`📝 Course ${docId} (${courseData.title || courseData.name}):`, {
+                    teacherIds: teacherIds,
+                    teacherAuthUIDs: teacherAuthUIDs,
+                    teacherTarbiyahIds: teacherTarbiyahIds,
+                    isInTeacherIds: isInTeacherIds,
+                    isInAuthUIDs: isInAuthUIDs,
+                    isInTarbiyahIds: isInTarbiyahIds,
+                    teachers: courseData.teachers,
+                    isInTeachersArray: isInTeachersArray,
+                    teacher: courseData.teacher,
+                    isInTeacherArray: isInTeacherArray,
+                    searchingFor: {
+                      tarbiyahId: tarbiyahId,
+                      authUID: user.uid
+                    }
+                  })
+                  
+                  if (isInTeacherIds || isInAuthUIDs || isInTarbiyahIds || isInTeachersArray || isInTeacherArray) {
+                    console.log(`✅ Faculty member is assigned to course: ${courseData.title || courseData.name}`)
+                    userCourses.push({ id: docId, ...courseData })
                   }
                 })
                 
-                if (isInTeacherIds || isInAuthUIDs || isInTarbiyahIds || isInTeachersArray || isInTeacherArray) {
-                  console.log(`✅ Faculty member is assigned to course: ${courseData.title || courseData.name}`)
-                  userCourses.push({ id: docId, ...courseData })
-                }
-              })
-              
-              console.log(`🎯 Found ${userCourses.length} courses for faculty member`)
-              console.log('🎯 Faculty courses:', userCourses.map(c => ({ id: c.id, title: c.title || c.name })))
-              
-              setCourses(userCourses)
-              
-            } catch (error) {
-              console.error('❌ Error searching courses for faculty:', error)
-              setCourses([])
+                console.log(`🎯 Found ${userCourses.length} courses for faculty member via course search`)
+                console.log('🎯 Faculty courses:', userCourses.map(c => ({ id: c.id, title: c.title || c.name })))
+                
+                setCourses(userCourses)
+                
+              } catch (error) {
+                console.error('❌ Error searching courses for faculty:', error)
+                setCourses([])
+              }
             }
           } else {
             console.log('🚫 User role not recognized or user not found:', userRole)
