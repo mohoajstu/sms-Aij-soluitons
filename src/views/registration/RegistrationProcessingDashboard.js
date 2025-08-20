@@ -261,6 +261,12 @@ const RegistrationProcessingDashboard = () => {
             primary: '',
             secondary: '',
           },
+          attendanceStats: {
+            currentTermLateCount: 0,
+            yearLateCount: 0,
+            currentTermAbsenceCount: 0,
+            yearAbsenceCount: 0,
+          },
           parents: studentParentsField,
           personalInfo: {
             dob: studentData.dateOfBirth || '',
@@ -387,6 +393,7 @@ const RegistrationProcessingDashboard = () => {
               loginCount: 0,
             },
             tarbiyahId: motherId,
+            mustChangePassword: true,
           })
         }
 
@@ -482,6 +489,7 @@ const RegistrationProcessingDashboard = () => {
                 loginCount: 0,
               },
               tarbiyahId: fatherId,
+              mustChangePassword: true,
             })
           }
         }
