@@ -166,26 +166,7 @@ const RegistrationProcessingDashboard = () => {
     return newIds
   }
 
-  const generateRegistrationCode = async () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    let newCode = ''
-    let isUnique = false
-
-    while (!isUnique) {
-      newCode = ''
-      for (let i = 0; i < 6; i++) {
-        newCode += chars.charAt(Math.floor(Math.random() * chars.length))
-      }
-
-      const q = query(collection(firestore, 'registrations'), where('registrationCode', '==', newCode))
-      const querySnapshot = await getDocs(q)
-
-      if (querySnapshot.empty) {
-        isUnique = true
-      }
-    }
-    return newCode
-  }
+  // Registration code no longer used
 
   const handleStatusChange = async (application, newStatus) => {
     try {
@@ -206,8 +187,7 @@ const RegistrationProcessingDashboard = () => {
       const batch = writeBatch(firestore)
 
       if (newStatus === 'approved') {
-        const registrationCode = await generateRegistrationCode()
-        updateData.registrationCode = registrationCode
+        // Registration codes removed; no code generated or stored
 
         // Default to empty objects to handle incomplete application data
         const studentData = appData.student || {}
@@ -224,8 +204,7 @@ const RegistrationProcessingDashboard = () => {
         const motherId = primaryGuardianExists ? primaryGuardianData.schoolId : newParentIds.shift()
         const fatherId = hasSecondaryGuardian ? (secondaryGuardianExists ? secondaryGuardianData.schoolId : newParentIds.shift()) : null
 
-        const onboardingCodeMother = !primaryGuardianExists ? Math.random().toString(36).substring(2, 8).toUpperCase() : null
-        const onboardingCodeFather = hasSecondaryGuardian && !secondaryGuardianExists ? Math.random().toString(36).substring(2, 8).toUpperCase() : null
+        // Onboarding codes are no longer used
 
 
         console.log('--- Creating Documents ---')
@@ -358,7 +337,6 @@ const RegistrationProcessingDashboard = () => {
               },
             ],
             onboarding: false,
-            onboardingCode: onboardingCodeMother,
             createdAt: serverTimestamp(),
             uploadedAt: serverTimestamp(),
           }
@@ -466,7 +444,6 @@ const RegistrationProcessingDashboard = () => {
                 },
               ],
               onboarding: false,
-              onboardingCode: onboardingCodeFather,
               createdAt: serverTimestamp(),
               uploadedAt: serverTimestamp(),
             }
@@ -793,9 +770,7 @@ const RegistrationProcessingDashboard = () => {
               <CButton
                 color="primary"
                 onClick={() => setShowEmailModal(true)}
-                disabled={
-                  loading || !applications.some((app) => app.status === 'approved' && app.registrationCode)
-                }
+                disabled={loading || !applications.some((app) => app.status === 'approved')}
               >
                 <CIcon icon={cilEnvelopeClosed} className="me-2" />
                 Send Acceptance Emails

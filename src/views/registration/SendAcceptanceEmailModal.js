@@ -101,7 +101,7 @@ const SendAcceptanceEmailModal = ({
         name: guardianName,
         student_name: studentName,
         tarbiyah_id: parentId,
-        onboarding_code: querySnapshot.docs[0].data().onboardingCode,
+        // Onboarding codes removed
         onboarding_link: onboardingLink,
         school_year: selectedSchoolYear,
       }
@@ -136,7 +136,7 @@ const SendAcceptanceEmailModal = ({
   }
 
   const acceptedApplications = applications.filter(
-    (app) => app.status === 'approved' && app.registrationCode,
+    (app) => app.status === 'approved',
   )
 
   const renderStepOne = () => (
@@ -197,7 +197,6 @@ const SendAcceptanceEmailModal = ({
                 <strong>Acceptance Email Details:</strong><br />
                 • Parents will receive their Tarbiyah ID and generated password<br />
                 • Login link will be provided to access the parent portal<br />
-                • Student registration code will be included<br />
                 • Email template: "Congratulations on joining Tarbiyah Learning Academy"
               </CAlert>
               <CAlert color="info">
@@ -216,7 +215,6 @@ const SendAcceptanceEmailModal = ({
                     <CTableHeaderCell>Student Name</CTableHeaderCell>
                     <CTableHeaderCell>Guardian Name</CTableHeaderCell>
                     <CTableHeaderCell>Guardian Email</CTableHeaderCell>
-                    <CTableHeaderCell>Registration Code</CTableHeaderCell>
                     <CTableHeaderCell>Will Receive</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
@@ -232,9 +230,6 @@ const SendAcceptanceEmailModal = ({
                           : 'N/A'}
                       </CTableDataCell>
                       <CTableDataCell>{app.primaryGuardian?.email || 'Missing Email'}</CTableDataCell>
-                      <CTableDataCell>
-                        <strong>{app.registrationCode}</strong>
-                      </CTableDataCell>
                       <CTableDataCell>
                         {app.primaryGuardian?.email ? (
                           <span className="text-success">✓ Acceptance Email</span>
