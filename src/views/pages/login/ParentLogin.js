@@ -40,6 +40,14 @@ const ParentLogin = () => {
       const userCredential = await signInWithEmailAndPassword(auth, loginEmail, password)
       const user = userCredential.user
 
+      // Force password change if flagged in user's doc
+      const userDocRef = doc(firestore, 'users', user.uid)
+      const userDoc = await getDoc(userDocRef)
+      if (userDoc.exists() && userDoc.data()?.mustChangePassword === true) {
+        navigate('/change-password')
+        return
+      }
+
       // Check for onboarding status
       const parentDocRef = doc(firestore, 'parents', user.uid)
       const parentDoc = await getDoc(parentDocRef)
