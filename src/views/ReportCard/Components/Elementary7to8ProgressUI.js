@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import {
   CCard,
   CCardBody,
@@ -20,6 +20,7 @@ import {
   CAccordionBody,
   CSpinner,
 } from '@coreui/react'
+import useCurrentTeacher from '../../../hooks/useCurrentTeacher'
 import {
   cilBook,
   cilLightbulb,
@@ -143,6 +144,8 @@ SignaturePad.propTypes = {
  * Modern form section for student and school details
  */
 const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
+  const { teacherName, loading } = useCurrentTeacher()
+
   const handleInputChange = (e) => {
     const { name, value } = e.target
     onFormDataChange({
@@ -150,6 +153,16 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
       [name]: value,
     })
   }
+
+  // Auto-populate teacher name when component mounts or teacher name changes
+  useEffect(() => {
+    if (teacherName && !formData.teacher) {
+      onFormDataChange({
+        ...formData,
+        teacher: teacherName,
+      })
+    }
+  }, [teacherName, formData.teacher, onFormDataChange])
 
   return (
     <div>
@@ -206,10 +219,11 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               id="teacher"
               name="teacher"
-              value={formData.teacher || ''}
+              value={formData.teacher || teacherName || ''}
               onChange={handleInputChange}
-              placeholder="Enter teacher's name"
+              placeholder={loading ? 'Loading...' : "Enter teacher's name"}
               required
+              disabled={loading}
             />
           </div>
         </CCol>
@@ -324,9 +338,11 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               name="daysAbsent"
               value={formData.daysAbsent || ''}
               onChange={handleInputChange}
-              placeholder="0"
+              placeholder="Will be auto-filled"
               type="number"
               min="0"
+              readOnly
+              className="bg-light"
             />
           </div>
         </CCol>
@@ -339,9 +355,11 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               name="totalDaysAbsent"
               value={formData.totalDaysAbsent || ''}
               onChange={handleInputChange}
-              placeholder="0"
+              placeholder="Will be auto-filled"
               type="number"
               min="0"
+              readOnly
+              className="bg-light"
             />
           </div>
         </CCol>
@@ -354,9 +372,11 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               name="timesLate"
               value={formData.timesLate || ''}
               onChange={handleInputChange}
-              placeholder="0"
+              placeholder="Will be auto-filled"
               type="number"
               min="0"
+              readOnly
+              className="bg-light"
             />
           </div>
         </CCol>
@@ -369,9 +389,11 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               name="totalTimesLate"
               value={formData.totalTimesLate || ''}
               onChange={handleInputChange}
-              placeholder="0"
+              placeholder="Will be auto-filled"
               type="number"
               min="0"
+              readOnly
+              className="bg-light"
             />
           </div>
         </CCol>
@@ -627,6 +649,15 @@ const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerat
       [name]: newValue,
     })
   }
+
+  const getMarkOptions = () => [
+    { value: 'A', label: 'A (80-100%)' },
+    { value: 'B', label: 'B (70-79%)' },
+    { value: 'C', label: 'C (60-69%)' },
+    { value: 'D', label: 'D (50-59%)' },
+    { value: 'R', label: 'R (Below 50%)' },
+    { value: 'I', label: 'I (Insufficient Evidence)' },
+  ]
 
   const subjects = [
     {
@@ -1362,40 +1393,28 @@ const Elementary7to8ProgressUI = ({
           <CAccordionItem itemKey="student-info">
             <CAccordionHeader>Student & School Information</CAccordionHeader>
             <CAccordionBody>
-              <StudentSchoolInfoSection
-                formData={formData}
-                onFormDataChange={onFormDataChange}
-              />
+              <StudentSchoolInfoSection formData={formData} onFormDataChange={onFormDataChange} />
             </CAccordionBody>
           </CAccordionItem>
 
           <CAccordionItem itemKey="learning-skills">
             <CAccordionHeader>Learning Skills & Work Habits</CAccordionHeader>
             <CAccordionBody>
-              <LearningSkillsSection
-                formData={formData}
-                onFormDataChange={onFormDataChange}
-              />
+              <LearningSkillsSection formData={formData} onFormDataChange={onFormDataChange} />
             </CAccordionBody>
           </CAccordionItem>
 
           <CAccordionItem itemKey="subject-areas">
             <CAccordionHeader>Subject Areas</CAccordionHeader>
             <CAccordionBody>
-              <SubjectAreasSection
-                formData={formData}
-                onFormDataChange={onFormDataChange}
-              />
+              <SubjectAreasSection formData={formData} onFormDataChange={onFormDataChange} />
             </CAccordionBody>
           </CAccordionItem>
 
           <CAccordionItem itemKey="comments-signatures">
             <CAccordionHeader>Comments & Signatures</CAccordionHeader>
             <CAccordionBody>
-              <CommentsSignaturesSection
-                formData={formData}
-                onFormDataChange={onFormDataChange}
-              />
+              <CommentsSignaturesSection formData={formData} onFormDataChange={onFormDataChange} />
             </CAccordionBody>
           </CAccordionItem>
         </CAccordion>

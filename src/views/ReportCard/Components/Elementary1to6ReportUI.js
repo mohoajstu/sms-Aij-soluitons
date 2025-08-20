@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import {
   CCard,
   CCardBody,
@@ -20,6 +20,7 @@ import {
   CAccordionBody,
   CSpinner,
 } from '@coreui/react'
+import useCurrentTeacher from '../../../hooks/useCurrentTeacher'
 import {
   cilBook,
   cilLightbulb,
@@ -71,7 +72,7 @@ const AICommentField = ({
           fontSize: '1rem',
         }}
       />
-      
+
       {/* AI Generation Button */}
       <div className="position-absolute" style={{ top: '10px', right: '10px' }}>
         <AIReportCommentInput
@@ -92,7 +93,7 @@ const AICommentField = ({
           className="ai-button-minimal"
         />
       </div>
-      
+
       {maxLength && (
         <div
           className="position-absolute"
@@ -248,6 +249,8 @@ SignaturePad.propTypes = {
  * Modern form section for student and school details
  */
 const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
+  const { teacherName, loading } = useCurrentTeacher()
+
   const handleInputChange = (e) => {
     const { name, value } = e.target
     onFormDataChange({
@@ -255,6 +258,16 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
       [name]: value,
     })
   }
+
+  // Auto-populate teacher name when component mounts or teacher name changes
+  useEffect(() => {
+    if (teacherName && !formData.teacher) {
+      onFormDataChange({
+        ...formData,
+        teacher: teacherName,
+      })
+    }
+  }, [teacherName, formData.teacher, onFormDataChange])
 
   return (
     <div>
@@ -273,8 +286,10 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               name="student"
               value={formData.student || ''}
               onChange={handleInputChange}
-              placeholder="Enter student's full name"
+              placeholder="Student name will be auto-filled"
               required
+              readOnly
+              className="bg-light"
             />
           </div>
 
@@ -285,9 +300,11 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               name="OEN"
               value={formData.OEN || ''}
               onChange={handleInputChange}
-              placeholder="9-digit OEN"
+              placeholder="OEN will be auto-filled"
               maxLength={9}
               required
+              readOnly
+              className="bg-light"
             />
           </div>
 
@@ -299,6 +316,8 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               value={formData.grade || ''}
               onChange={handleInputChange}
               required
+              disabled={formData.grade ? true : false}
+              className={formData.grade ? 'bg-light' : ''}
             >
               <option value="">Select Grade</option>
               <option value="1">Grade 1</option>
@@ -315,10 +334,11 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               id="teacher"
               name="teacher"
-              value={formData.teacher || ''}
+              value={formData.teacher || teacherName || ''}
               onChange={handleInputChange}
-              placeholder="Enter teacher's name"
+              placeholder={loading ? 'Loading...' : "Enter teacher's name"}
               required
+              disabled={loading}
             />
           </div>
         </CCol>
@@ -433,9 +453,11 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               name="daysAbsent"
               value={formData.daysAbsent || ''}
               onChange={handleInputChange}
-              placeholder="0"
+              placeholder="Will be auto-filled"
               type="number"
               min="0"
+              readOnly
+              className="bg-light"
             />
           </div>
         </CCol>
@@ -448,9 +470,11 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               name="totalDaysAbsent"
               value={formData.totalDaysAbsent || ''}
               onChange={handleInputChange}
-              placeholder="0"
+              placeholder="Will be auto-filled"
               type="number"
               min="0"
+              readOnly
+              className="bg-light"
             />
           </div>
         </CCol>
@@ -463,9 +487,11 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               name="timesLate"
               value={formData.timesLate || ''}
               onChange={handleInputChange}
-              placeholder="0"
+              placeholder="Will be auto-filled"
               type="number"
               min="0"
+              readOnly
+              className="bg-light"
             />
           </div>
         </CCol>
@@ -478,9 +504,11 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               name="totalTimesLate"
               value={formData.totalTimesLate || ''}
               onChange={handleInputChange}
-              placeholder="0"
+              placeholder="Will be auto-filled"
               type="number"
               min="0"
+              readOnly
+              className="bg-light"
             />
           </div>
         </CCol>

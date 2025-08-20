@@ -27,17 +27,16 @@ import Elementary1to6ProgressUI from './Components/Elementary1to6ProgressUI'
 import Elementary1to6ReportUI from './Components/Elementary1to6ReportUI'
 import Elementary7to8ProgressUI from './Components/Elementary7to8ProgressUI'
 import Elementary7to8ReportUI from './Components/Elementary7to8ReportUI'
-import PDFFieldInspector from './Components/PDFFieldInspector'
 import './ReportCard.css'
 import './ModernReportCard.css'
 import { PDFDocument } from 'pdf-lib'
-import DynamicReportCardForm from './Components/DynamicReportCardForm'
 import { useNavigate } from 'react-router-dom'
 // Firebase Storage & Firestore
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { storage, firestore } from '../../Firebase/firebase'
 import useAuth from '../../Firebase/useAuth'
+import StudentSelector from '../../components/StudentSelector'
 
 // NOTE: All PDF assets are served from the public folder so we can access them by URL at runtime.
 // The folder name is "ReportCards" (no space).
@@ -126,14 +125,13 @@ export const REPORT_CARD_TYPES = [
 // Accept an optional presetReportCardId. If provided the dropdown is hidden and the supplied
 // template will be used immediately. This lets us reuse this component inside wrapper pages.
 const ReportCard = ({ presetReportCardId = null }) => {
+  const [selectedStudent, setSelectedStudent] = useState(null)
   const [selectedReportCard, setSelectedReportCard] = useState(presetReportCardId || '')
   const [formData, setFormData] = useState({})
   const [isGenerating, setIsGenerating] = useState(false)
   const [fields, setFields] = useState([])
   const [filledPdfBytes, setFilledPdfBytes] = useState(null)
   const [currentTab, setCurrentTab] = useState('form')
-  const [showFieldInspector, setShowFieldInspector] = useState(false)
-  const [useModernForm, setUseModernForm] = useState(true)
   const [formLoading, setFormLoading] = useState(false)
   const [formError, setFormError] = useState(null)
 
@@ -158,9 +156,150 @@ const ReportCard = ({ presetReportCardId = null }) => {
     setFilledPdfBytes(bytes)
   }
 
+  // Handle student selection
+  const handleStudentSelect = (student) => {
+    setSelectedStudent(student)
+
+    // Auto-populate form data with student information
+    if (student) {
+      const newFormData = {
+        ...formData,
+        // Basic student info
+        student: student.fullName,
+        student_name: student.fullName,
+        OEN: student.oen || '',
+        oen: student.oen || '',
+        grade: student.grade || student.program || '',
+
+        // Attendance data
+        daysAbsent: student.currentTermAbsenceCount || 0,
+        totalDaysAbsent: student.yearAbsenceCount || 0,
+        timesLate: student.currentTermLateCount || 0,
+        totalTimesLate: student.yearLateCount || 0,
+
+        // Contact information
+        email: student.email || '',
+        phone1: student.phone1 || '',
+        phone2: student.phone2 || '',
+        emergencyPhone: student.emergencyPhone || '',
+
+        // Address information
+        address: student.streetAddress || '',
+        address_1: student.streetAddress || '',
+        address_2: student.residentialArea || '',
+        residentialArea: student.residentialArea || '',
+        poBox: student.poBox || '',
+
+        // Citizenship
+        nationality: student.nationality || '',
+        nationalId: student.nationalId || '',
+        nationalIdExpiry: student.nationalIdExpiry || '',
+
+        // Language
+        primaryLanguage: student.primaryLanguage || '',
+        secondaryLanguage: student.secondaryLanguage || '',
+
+        // Parents
+        fatherName: student.fatherName || '',
+        motherName: student.motherName || '',
+        fatherId: student.fatherId || '',
+        motherId: student.motherId || '',
+        parent_name: student.fatherName || student.motherName || '',
+
+        // Personal info
+        dob: student.dob || '',
+        gender: student.gender || '',
+        salutation: student.salutation || '',
+        nickName: student.nickName || '',
+        middleName: student.middleName || '',
+
+        // Schooling
+        program: student.program || '',
+        daySchoolEmployer: student.daySchoolEmployer || '',
+        notes: student.notes || '',
+        returningStudentYear: student.returningStudentYear || '',
+        custodyDetails: student.custodyDetails || '',
+        primaryRole: student.primaryRole || '',
+
+        // School information
+        school: 'Tarbiyah Learning Academy',
+        schoolAddress: '3990 Old Richmond Rd, Nepean, ON K2H 8W3',
+        board: 'Tarbiyah Learning Academy',
+        principal: 'Ghazala Choudhary',
+        telephone: student.phone1 || student.emergencyPhone || '',
+
+        // Keep existing teacher name if already set
+        teacher: formData.teacher || '',
+        teacher_name: formData.teacher_name || '',
+      }
+      setFormData(newFormData)
+    }
+  }
+
+  // Ensure student data is preserved when switching report card types
+  useEffect(() => {
+    if (selectedStudent && selectedReportCard) {
+      // Re-apply student data to ensure it's available in all report card types
+      const studentData = {
+        student: selectedStudent.fullName,
+        student_name: selectedStudent.fullName,
+        OEN: selectedStudent.oen || '',
+        oen: selectedStudent.oen || '',
+        grade: selectedStudent.grade || selectedStudent.program || '',
+        daysAbsent: selectedStudent.currentTermAbsenceCount || 0,
+        totalDaysAbsent: selectedStudent.yearAbsenceCount || 0,
+        timesLate: selectedStudent.currentTermLateCount || 0,
+        totalTimesLate: selectedStudent.yearLateCount || 0,
+        email: selectedStudent.email || '',
+        phone1: selectedStudent.phone1 || '',
+        phone2: selectedStudent.phone2 || '',
+        emergencyPhone: selectedStudent.emergencyPhone || '',
+        address: selectedStudent.streetAddress || '',
+        address_1: selectedStudent.streetAddress || '',
+        address_2: selectedStudent.residentialArea || '',
+        residentialArea: selectedStudent.residentialArea || '',
+        poBox: selectedStudent.poBox || '',
+        nationality: selectedStudent.nationality || '',
+        nationalId: selectedStudent.nationalId || '',
+        nationalIdExpiry: selectedStudent.nationalIdExpiry || '',
+        primaryLanguage: selectedStudent.primaryLanguage || '',
+        secondaryLanguage: selectedStudent.secondaryLanguage || '',
+        fatherName: selectedStudent.fatherName || '',
+        motherName: selectedStudent.motherName || '',
+        fatherId: selectedStudent.fatherId || '',
+        motherId: selectedStudent.motherId || '',
+        parent_name: selectedStudent.fatherName || selectedStudent.motherName || '',
+        dob: selectedStudent.dob || '',
+        gender: selectedStudent.gender || '',
+        salutation: selectedStudent.salutation || '',
+        nickName: selectedStudent.nickName || '',
+        middleName: selectedStudent.middleName || '',
+        program: selectedStudent.program || '',
+        daySchoolEmployer: selectedStudent.daySchoolEmployer || '',
+        notes: selectedStudent.notes || '',
+        returningStudentYear: selectedStudent.returningStudentYear || '',
+        custodyDetails: selectedStudent.custodyDetails || '',
+        primaryRole: selectedStudent.primaryRole || '',
+        school: 'Tarbiyah Learning Academy',
+        schoolAddress: '3990 Old Richmond Rd, Nepean, ON K2H 8W3',
+        board: 'Tarbiyah Learning Academy',
+        principal: 'Ghazala Choudhary',
+        telephone: selectedStudent.phone1 || selectedStudent.emergencyPhone || '',
+      }
+
+      // Merge with existing form data, preserving any user-entered data
+      setFormData((prevData) => ({
+        ...prevData,
+        ...studentData,
+        // Preserve teacher name if already set
+        teacher: prevData.teacher || '',
+        teacher_name: prevData.teacher_name || '',
+      }))
+    }
+  }, [selectedStudent, selectedReportCard])
+
   // Handle form data changes with improved structure
   const handleFormDataChange = (newFormData) => {
-    console.log('Form data changed:', newFormData)
     setFormData(newFormData)
   }
 
@@ -169,371 +308,10 @@ const ReportCard = ({ presetReportCardId = null }) => {
     const id = e.target.value
     setSelectedReportCard(id)
 
-    // Find route and navigate
-    const config = REPORT_CARD_TYPES.find((t) => t.id === id)
-    if (config?.route) {
-      navigate(config.route)
-    }
+    // Don't navigate to individual routes when selecting from dropdown
+    // This prevents duplicate rendering of the ReportCard component
+    // The form will be rendered based on the selected type
   }
-
-  // Handle field inspection results
-  const handleFieldsInspected = (fields) => {
-    console.log('PDF fields inspected:', fields)
-    setFields(fields)
-  }
-
-  // Load PDF fields for modern form
-  const loadPDFFields = async (reportCardType) => {
-    if (!reportCardType || !reportCardType.pdfPath) {
-      setFields([])
-      setFormData({})
-      return
-    }
-
-    setFormLoading(true)
-    setFormError(null)
-
-    try {
-      console.log('Loading PDF fields from:', reportCardType.pdfPath)
-
-      const response = await fetch(reportCardType.pdfPath)
-      if (!response.ok) {
-        throw new Error(`Failed to fetch PDF: ${response.status}`)
-      }
-
-      const pdfBytes = await response.arrayBuffer()
-      const pdfDoc = await PDFDocument.load(pdfBytes)
-      const form = pdfDoc.getForm()
-      const pdfFields = form.getFields()
-
-      console.log(`Found ${pdfFields.length} fields in PDF`)
-
-      // Process fields for form generation (using same logic as DynamicReportCardForm)
-      const processedFields = pdfFields.map((field, index) => {
-        const fieldName = field.getName()
-        const fieldType = field.constructor.name
-
-        let options = []
-        if (fieldType === 'PDFDropdown' || fieldType === 'PDFRadioGroup') {
-          try {
-            options = field.getOptions()
-          } catch (e) {
-            console.warn(`Could not get options for field ${fieldName}:`, e)
-          }
-        }
-
-        const section = determineSection(fieldName, reportCardType)
-
-        return {
-          id: `field_${index}`,
-          name: fieldName,
-          type: fieldType,
-          label: generateFieldLabel(fieldName),
-          options,
-          inputType: determineInputType(fieldName, fieldType),
-          size: determineFieldSize(fieldName, fieldType),
-          maxLength: determineMaxLength(fieldName, fieldType, section, reportCardType),
-          section,
-        }
-      })
-
-      setFields(processedFields)
-
-      // Initialize form data with empty values
-      const initialFormData = {}
-      processedFields.forEach((field) => {
-        initialFormData[field.name] = field.inputType === 'checkbox' ? false : ''
-      })
-
-      setFormData(initialFormData)
-    } catch (err) {
-      console.error('Error loading PDF fields:', err)
-      setFormError(`Failed to load PDF fields: ${err.message}`)
-    } finally {
-      setFormLoading(false)
-    }
-  }
-
-  // Helper functions (same as DynamicReportCardForm)
-  const generateFieldLabel = (fieldName) => {
-    return fieldName
-      .replace(/[_-]/g, ' ')
-      .replace(/([a-z])([A-Z])/g, '$1 $2')
-      .split(' ')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ')
-  }
-
-  const determineInputType = (fieldName, fieldType) => {
-    const lowerName = fieldName.toLowerCase()
-
-    // Specific checkbox fields from the report card
-    const checkboxFields = [
-      'languageNA',
-      'languageESL',
-      'languageIEP',
-      'frenchListeningESL',
-      'frenchSpeakingESL',
-      'frenchReadingESL',
-      'frenchWritingESL',
-      'frenchCore',
-      'nativeLanguageESL',
-      'nativeLanguageIEP',
-      'nativeLanguageNA',
-      'mathESL',
-      'mathIEP',
-      'mathFrench',
-      'scienceESL',
-      'scienceIEP',
-      'scienceFrench',
-      'frenchNA',
-      'frenchListeningIEP',
-      'frenchSpeakingIEP',
-      'frenchReadingIEP',
-      'frenchWritingIEP',
-      'frenchImmersion',
-      'frenchExtended',
-      'socialStudiesESL',
-      'socialStudiesIEP',
-      'socialStudiesFrench',
-      'healthEdESL',
-      'healthEdFrench',
-      'peESL',
-      'peFrench',
-      'healthEdIEP',
-      'peIEP',
-      'danceFrench',
-      'danceIEP',
-      'Checkbox_29',
-      'danceESL',
-      'dramaESL',
-      'musicESL',
-      'visualArtsESL',
-      'otherESL',
-      'otherFrench',
-      'dramaIEP',
-      'musicFrench',
-      'musicIEP',
-      'Checkbox_39',
-      'visualArtsIEP',
-      'otherIEP',
-      'otherNA',
-      'danceNA',
-      'dramaNA',
-      'musicNA',
-      'visualArtsNA',
-      'ERSCompletedYes',
-      'ERSCompletedNo',
-      'ERSCompletedNA',
-      'ERSBenchmarkYes',
-      'ERSBenchmarkNo',
-      'year1',
-      'year2',
-      'Year1',
-      'Year2',
-      'keyLearningESL',
-      'keyLearningIEP',
-      'keyLearning2ESL',
-      'keyLearning2IEP',
-      'placementInSeptemberGrade1',
-      'placementInSeptemberKg2',
-    ]
-
-    if (checkboxFields.includes(fieldName)) {
-      return 'checkbox'
-    }
-
-    if (fieldType === 'PDFTextField') {
-      if (
-        lowerName.includes('comment') ||
-        lowerName.includes('note') ||
-        lowerName.includes('observation') ||
-        lowerName.includes('strength') ||
-        lowerName.includes('next') ||
-        lowerName.includes('goal')
-      ) {
-        return 'textarea'
-      }
-      if (
-        lowerName.includes('phone') ||
-        lowerName.includes('number') ||
-        lowerName.includes('absent') ||
-        lowerName.includes('late')
-      ) {
-        return 'number'
-      }
-      return 'text'
-    }
-
-    if (fieldType === 'PDFDropdown') {
-      return 'select'
-    }
-
-    if (fieldType === 'PDFCheckBox') {
-      return 'checkbox'
-    }
-
-    return 'text'
-  }
-
-  const determineFieldSize = (fieldName, fieldType) => {
-    const lowerName = fieldName.toLowerCase()
-
-    // Large fields
-    if (
-      lowerName.includes('comment') ||
-      lowerName.includes('note') ||
-      lowerName.includes('observation') ||
-      lowerName.includes('strength') ||
-      lowerName.includes('next') ||
-      lowerName.includes('goal')
-    ) {
-      return 'full'
-    }
-
-    // Small fields
-    if (
-      lowerName.includes('grade') ||
-      lowerName.includes('term') ||
-      lowerName.includes('absent') ||
-      lowerName.includes('late') ||
-      lowerName.includes('year') ||
-      fieldType === 'PDFCheckBox'
-    ) {
-      return 'small'
-    }
-
-    // Medium fields
-    if (
-      lowerName.includes('name') ||
-      lowerName.includes('teacher') ||
-      lowerName.includes('principal') ||
-      lowerName.includes('school') ||
-      lowerName.includes('phone') ||
-      lowerName.includes('telephone')
-    ) {
-      return 'medium'
-    }
-
-    return 'medium'
-  }
-
-  const determineMaxLength = (fieldName, fieldType, section, reportCardType) => {
-    const lowerName = fieldName.toLowerCase()
-
-    if (
-      lowerName.includes('comment') ||
-      lowerName.includes('note') ||
-      lowerName.includes('observation') ||
-      lowerName.includes('strength') ||
-      lowerName.includes('next') ||
-      lowerName.includes('goal')
-    ) {
-      return 500
-    }
-
-    if (
-      lowerName.includes('name') ||
-      lowerName.includes('school') ||
-      lowerName.includes('address')
-    ) {
-      return 100
-    }
-
-    if (
-      lowerName.includes('phone') ||
-      lowerName.includes('telephone') ||
-      lowerName.includes('oen')
-    ) {
-      return 20
-    }
-
-    return 50
-  }
-
-  const determineSection = (fieldName, reportCardType) => {
-    const lowerName = fieldName.toLowerCase()
-
-    if (
-      lowerName.includes('student') ||
-      lowerName.includes('name') ||
-      lowerName.includes('grade') ||
-      lowerName.includes('oen') ||
-      lowerName.includes('school') ||
-      lowerName.includes('board') ||
-      lowerName.includes('address') ||
-      lowerName.includes('principal') ||
-      lowerName.includes('telephone') ||
-      lowerName.includes('phone')
-    ) {
-      return 'Student Information'
-    }
-
-    if (
-      lowerName.includes('responsibility') ||
-      lowerName.includes('organization') ||
-      lowerName.includes('independent') ||
-      lowerName.includes('collaboration') ||
-      lowerName.includes('initiative') ||
-      lowerName.includes('regulation')
-    ) {
-      return 'Learning Skills'
-    }
-
-    if (
-      lowerName.includes('strength') ||
-      lowerName.includes('next') ||
-      lowerName.includes('goal') ||
-      lowerName.includes('improvement')
-    ) {
-      return 'Next Steps'
-    }
-
-    if (
-      lowerName.includes('comment') ||
-      lowerName.includes('note') ||
-      lowerName.includes('observation')
-    ) {
-      return 'Comments'
-    }
-
-    if (
-      lowerName.includes('signature') ||
-      lowerName.includes('teacher') ||
-      lowerName.includes('parent') ||
-      lowerName.includes('guardian')
-    ) {
-      return 'Signatures'
-    }
-
-    if (
-      lowerName.includes('math') ||
-      lowerName.includes('language') ||
-      lowerName.includes('science') ||
-      lowerName.includes('social') ||
-      lowerName.includes('french') ||
-      lowerName.includes('art') ||
-      lowerName.includes('music') ||
-      lowerName.includes('drama') ||
-      lowerName.includes('dance') ||
-      lowerName.includes('health') ||
-      lowerName.includes('physical')
-    ) {
-      return 'Academic Performance'
-    }
-
-    return 'Other'
-  }
-
-  // Load fields when report card type changes and modern form is selected
-  useEffect(() => {
-    if (useModernForm && selectedReportCard) {
-      const reportType = getCurrentReportType()
-      if (reportType) {
-        loadPDFFields(reportType)
-      }
-    }
-  }, [useModernForm, selectedReportCard])
 
   /* ------------------------------------------------------------------
      LocalStorage persistence
@@ -544,14 +322,66 @@ const ReportCard = ({ presetReportCardId = null }) => {
     try {
       const saved = localStorage.getItem(`reportcard_form_${selectedReportCard}`)
       if (saved) {
-        setFormData(JSON.parse(saved))
+        const savedData = JSON.parse(saved)
+        // Preserve auto-populated student data when switching report card types
+        const currentStudentData = {
+          student: formData.student,
+          student_name: formData.student_name,
+          OEN: formData.OEN,
+          oen: formData.oen,
+          grade: formData.grade,
+          daysAbsent: formData.daysAbsent,
+          totalDaysAbsent: formData.totalDaysAbsent,
+          timesLate: formData.timesLate,
+          totalTimesLate: formData.totalTimesLate,
+          email: formData.email,
+          phone1: formData.phone1,
+          phone2: formData.phone2,
+          emergencyPhone: formData.emergencyPhone,
+          address: formData.address,
+          address_1: formData.address_1,
+          address_2: formData.address_2,
+          residentialArea: formData.residentialArea,
+          poBox: formData.poBox,
+          nationality: formData.nationality,
+          nationalId: formData.nationalId,
+          nationalIdExpiry: formData.nationalIdExpiry,
+          primaryLanguage: formData.primaryLanguage,
+          secondaryLanguage: formData.secondaryLanguage,
+          fatherName: formData.fatherName,
+          motherName: formData.motherName,
+          fatherId: formData.fatherId,
+          motherId: formData.motherId,
+          parent_name: formData.parent_name,
+          dob: formData.dob,
+          gender: formData.gender,
+          salutation: formData.salutation,
+          nickName: formData.nickName,
+          middleName: formData.middleName,
+          program: formData.program,
+          daySchoolEmployer: formData.daySchoolEmployer,
+          notes: formData.notes,
+          returningStudentYear: formData.returningStudentYear,
+          school: formData.school,
+          schoolAddress: formData.schoolAddress,
+          board: formData.board,
+          boardAddress: formData.boardAddress,
+          principal: formData.principal,
+          telephone: formData.telephone,
+          teacher: formData.teacher,
+          teacher_name: formData.teacher_name,
+        }
+
+        // Merge saved data with current student data, prioritizing student data
+        const mergedData = { ...savedData, ...currentStudentData }
+        setFormData(mergedData)
       } else {
         setFormData({})
       }
     } catch (err) {
       console.warn('Unable to parse saved form data:', err)
     }
-  }, [selectedReportCard])
+  }, [selectedReportCard]) // Only depend on selectedReportCard to avoid infinite loops
 
   // Auto-save current form on every change
   useEffect(() => {
@@ -660,15 +490,119 @@ const ReportCard = ({ presetReportCardId = null }) => {
     <CContainer fluid>
       <CRow>
         <CCol>
-          <h2>Report Card Generator</h2>
+          <h2>
+            {presetReportCardId
+              ? `${getCurrentReportType()?.name || 'Report Card Generator'}`
+              : 'Report Card Generator'}
+          </h2>
+
+          {/* Progress Indicator - Only show when not on individual report card page */}
+          {!presetReportCardId && (
+            <CCard className="mb-4">
+              <CCardBody>
+                <div className="d-flex align-items-center">
+                  <div className={`step-indicator ${selectedStudent ? 'completed' : 'active'}`}>
+                    <span className="step-number">1</span>
+                    <span className="step-text">Select Student</span>
+                  </div>
+                  <div className="step-connector"></div>
+                  <div
+                    className={`step-indicator ${selectedStudent && selectedReportCard ? 'completed' : selectedStudent ? 'active' : ''}`}
+                  >
+                    <span className="step-number">2</span>
+                    <span className="step-text">Select Report Card</span>
+                  </div>
+                  <div className="step-connector"></div>
+                  <div
+                    className={`step-indicator ${selectedStudent && selectedReportCard ? 'active' : ''}`}
+                  >
+                    <span className="step-number">3</span>
+                    <span className="step-text">Fill Report Card</span>
+                  </div>
+                </div>
+              </CCardBody>
+            </CCard>
+          )}
+
+          {/* Student Selection */}
+          {!selectedStudent && (
+            <CCard className="mb-4">
+              <CCardBody>
+                <h5 className="mb-3">
+                  {presetReportCardId ? 'Select Student' : 'Step 1: Select Student'}
+                </h5>
+                <StudentSelector
+                  selectedStudent={selectedStudent}
+                  onStudentSelect={handleStudentSelect}
+                  placeholder="Search and select a student..."
+                  required={true}
+                />
+              </CCardBody>
+            </CCard>
+          )}
+
+          {/* Selected Student Info */}
+          {selectedStudent && (
+            <CCard className="mb-4">
+              <CCardBody>
+                <h5 className="mb-3">Selected Student</h5>
+                <div className="p-3 bg-light rounded">
+                  <div className="row">
+                    <div className="col-md-6">
+                      <strong>Name:</strong> {selectedStudent.fullName}
+                    </div>
+                    <div className="col-md-3">
+                      <strong>Grade:</strong>{' '}
+                      {selectedStudent.grade || selectedStudent.program || 'Not specified'}
+                    </div>
+                    <div className="col-md-3">
+                      <strong>ID:</strong> {selectedStudent.schoolId}
+                    </div>
+                  </div>
+                  <div className="row mt-2">
+                    <div className="col-md-4">
+                      <strong>OEN:</strong> {selectedStudent.oen || 'Not specified'}
+                    </div>
+                    <div className="col-md-4">
+                      <strong>Absences:</strong> {selectedStudent.currentTermAbsenceCount || 0}{' '}
+                      (term) / {selectedStudent.yearAbsenceCount || 0} (year)
+                    </div>
+                    <div className="col-md-4">
+                      <strong>Late:</strong> {selectedStudent.currentTermLateCount || 0} (term) /{' '}
+                      {selectedStudent.yearLateCount || 0} (year)
+                    </div>
+                  </div>
+                  {selectedStudent.streetAddress && (
+                    <div className="row mt-2">
+                      <div className="col-md-12">
+                        <strong>Address:</strong> {selectedStudent.streetAddress}
+                        {selectedStudent.residentialArea && `, ${selectedStudent.residentialArea}`}
+                        {selectedStudent.poBox && `, PO Box: ${selectedStudent.poBox}`}
+                      </div>
+                    </div>
+                  )}
+                  <div className="mt-3">
+                    <CButton
+                      color="outline-secondary"
+                      size="sm"
+                      onClick={() => setSelectedStudent(null)}
+                    >
+                      Change Student
+                    </CButton>
+                  </div>
+                </div>
+              </CCardBody>
+            </CCard>
+          )}
 
           {/* Report Card Type Selector – hide if a preset report card was supplied */}
           {!presetReportCardId && (
             <CCard className="mb-4">
               <CCardBody>
+                <h5 className="mb-3">Step 2: Select Report Card Type</h5>
                 <div className="report-card-type-selector">
                   <label htmlFor="reportCardType" className="form-label">
-                    Select Report Card Type:
+                    Report Card Type:
                   </label>
                   <CFormSelect
                     id="reportCardType"
@@ -688,37 +622,8 @@ const ReportCard = ({ presetReportCardId = null }) => {
             </CCard>
           )}
 
-          {/* Toggle Field Inspector */}
-          {selectedReportCard && (
-            <div className="mb-4">
-              <CButton
-                variant="outline"
-                onClick={() => setShowFieldInspector(!showFieldInspector)}
-                className="mb-3 me-2"
-              >
-                {showFieldInspector ? 'Hide' : 'Show'} PDF Field Inspector
-              </CButton>
-
-              <CButton
-                variant="outline"
-                color={useModernForm ? 'primary' : 'secondary'}
-                onClick={() => setUseModernForm(!useModernForm)}
-                className="mb-3"
-              >
-                {useModernForm ? 'Switch to Classic Form' : 'Switch to Modern Form'}
-              </CButton>
-
-              {showFieldInspector && (
-                <PDFFieldInspector
-                  pdfUrl={getCurrentReportType()?.pdfPath}
-                  onFieldsInspected={handleFieldsInspected}
-                />
-              )}
-            </div>
-          )}
-
           {/* Main Content */}
-          {selectedReportCard && (
+          {selectedReportCard && selectedStudent && (
             <CRow>
               {/* PDF Section */}
               <CCol lg={6} className="pdf-section">
@@ -741,64 +646,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
               {/* Form Section */}
               <CCol lg={6} className="form-section">
-                {useModernForm ? (
-                  renderModernForm()
-                ) : (
-                  <CCard>
-                    <CCardHeader>
-                      <h5>Fill out the form to see live preview on the left</h5>
-                      <small className="text-muted">
-                        Form fields are dynamically generated based on the selected PDF document
-                      </small>
-                    </CCardHeader>
-                    <CCardBody>
-                      <DynamicReportCardForm
-                        reportCardType={getCurrentReportType()}
-                        onFormDataChange={handleFormDataChange}
-                      />
-
-                      <div className="mt-4">
-                        <CButton
-                          color="success"
-                          onClick={downloadFilledPDF}
-                          disabled={isGenerating}
-                          className="me-2"
-                        >
-                          {isGenerating ? (
-                            <>
-                              <CSpinner size="sm" className="me-2" />
-                              Downloading PDF...
-                            </>
-                          ) : (
-                            'Download Filled PDF'
-                          )}
-                        </CButton>
-                      </div>
-                    </CCardBody>
-                  </CCard>
-                )}
-
-                {/* Download Button for Modern Form */}
-                {useModernForm && (
-                  <div className="mt-4">
-                    <CButton
-                      color="success"
-                      onClick={downloadFilledPDF}
-                      disabled={isGenerating}
-                      className="me-2"
-                      size="lg"
-                    >
-                      {isGenerating ? (
-                        <>
-                          <CSpinner size="sm" className="me-2" />
-                          Downloading PDF...
-                        </>
-                      ) : (
-                        'Download Filled PDF'
-                      )}
-                    </CButton>
-                  </div>
-                )}
+                {renderModernForm()}
               </CCol>
             </CRow>
           )}
