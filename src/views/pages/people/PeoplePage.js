@@ -254,16 +254,26 @@ const PeoplePage = () => {
 
         const firstName = saveData.personalInfo?.firstName || '';
         const lastName = saveData.personalInfo?.lastName || '';
+        
+        // CRITICAL: Use the Tarbiyah ID (documentId) as the user document ID, not a random UID
         const userRef = doc(firestore, 'users', documentId);
 
         const userDocPayload = {
           tarbiyahId: documentId,
-          role: roleMap[collectionName],
-          linkedCollection: collectionName,
-          active: saveData.active !== undefined ? !!saveData.active : true,
+          schoolId: documentId, // Also store as schoolId for compatibility
           personalInfo: {
             firstName,
             lastName,
+            role: roleMap[collectionName], // Store role inside personalInfo for consistency
+          },
+          role: roleMap[collectionName], // Also store at root level
+          linkedCollection: collectionName,
+          active: saveData.active !== undefined ? !!saveData.active : true,
+          contact: {
+            email: saveData.contact?.email || '',
+            phone1: saveData.contact?.phone1 || '',
+            phone2: saveData.contact?.phone2 || '',
+            emergencyPhone: saveData.contact?.emergencyPhone || '',
           },
           dashboard: {
             theme: 'default',
@@ -273,9 +283,13 @@ const PeoplePage = () => {
             lastLoginAt: null,
           },
           createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
         };
 
-        // Merge to avoid overwriting any existing custom fields
+        console.log(`📝 Creating user document with ID: ${documentId} for ${roleMap[collectionName]}`);
+        console.log('📝 User document payload:', userDocPayload);
+
+        // Use the Tarbiyah ID as the document ID - this is critical for our architecture
         batch.set(userRef, userDocPayload, { merge: true });
       }
 
@@ -442,6 +456,12 @@ const PeoplePage = () => {
             notes: '',
             program: '',
             returningStudentYear: '',
+          },
+          attendanceStats: {
+            currentTermLateCount: 0,
+            yearLateCount: 0,
+            currentTermAbsenceCount: 0,
+            yearAbsenceCount: 0,
           },
         };
       case 'parents':

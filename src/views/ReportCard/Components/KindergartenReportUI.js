@@ -16,11 +16,10 @@ import PlacementSection from './PlacementSection'
 import LearningSection from './LearningSection'
 import EarlyReadingScreeningSection from './EarlyReadingScreeningSection'
 import SignatureSection from './SignatureSection'
+import AIReportCommentInput from '../../../components/AIReportCommentInput'
 import './KindergartenReportCardUI.css'
 
 const KindergartenReportUI = ({ formData, onFormDataChange, loading, error }) => {
-  const [generatingFields, setGeneratingFields] = useState(new Set())
-
   const handleInputChange = (e) => {
     onFormDataChange({ ...formData, [e.target.name]: e.target.value })
   }
@@ -42,8 +41,8 @@ const KindergartenReportUI = ({ formData, onFormDataChange, loading, error }) =>
         newFormData.frenchExtended = false
       }
       if (name === 'frenchExtended') {
-        newFormData.frenchImmersion = false
         newFormData.frenchCore = false
+        newFormData.frenchImmersion = false
       }
       if (name === 'placementInSeptemberKG2') {
         newFormData.placementInSeptemberGrade1 = false
@@ -56,29 +55,9 @@ const KindergartenReportUI = ({ formData, onFormDataChange, loading, error }) =>
     onFormDataChange(newFormData)
   }
 
-  const handleAIGenerate = async (fieldName) => {
-    setGeneratingFields((prev) => new Set(prev).add(fieldName))
-    try {
-      // Mock AI generation - replace with actual AI service call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      const studentName = formData.student || 'The student'
-      let generatedText = `Based on observations, ${studentName} shows strong potential in collaborating with peers. A key area for growth is developing greater independence during learning activities. Next steps should focus on encouraging ${studentName} to initiate tasks and persevere through challenges with minimal guidance.`
-
-      if (fieldName.includes('Self-Regulation')) {
-        generatedText = `Further development in self-regulation will also be beneficial. We will continue to support ${studentName} in building these essential skills.`
-      }
-
-      onFormDataChange({ ...formData, [fieldName]: generatedText })
-    } catch (error) {
-      console.error('Error generating AI content:', error)
-    } finally {
-      setGeneratingFields((prev) => {
-        const newSet = new Set(prev)
-        newSet.delete(fieldName)
-        return newSet
-      })
-    }
+  // Dummy function for compatibility - actual AI generation is handled by AIReportCommentInput
+  const handleAIGenerate = () => {
+    // This function is not used anymore since AIReportCommentInput handles the AI generation
   }
 
   useEffect(() => {
@@ -391,7 +370,7 @@ const KindergartenReportUI = ({ formData, onFormDataChange, loading, error }) =>
               eslFieldName={section.eslFieldName}
               iepFieldName={section.iepFieldName}
               onGenerate={handleAIGenerate}
-              isGenerating={generatingFields.has(section.commentFieldName)}
+              isGenerating={false}
             />
           </CAccordionBody>
         </CAccordionItem>

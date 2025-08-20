@@ -23,9 +23,39 @@ const AppSidebar = () => {
 
   if (loading) return null
 
-  const filteredNavigation = navigation.filter(
-    (item) => !item.hideFor || !item.hideFor.includes(role),
-  )
+  // Debug logging
+  console.log('=== AppSidebar Debug ===')
+  console.log('Current user role:', role, 'Type:', typeof role)
+  console.log('Navigation items before filtering:', navigation.map(item => ({
+    name: item.name,
+    hideFor: item.hideFor
+  })))
+
+  const filteredNavigation = navigation.filter((item) => {
+    // If no hideFor property, show the item
+    if (!item.hideFor) {
+      console.log(`✅ Showing "${item.name}" - no hideFor property`)
+      return true
+    }
+
+    // If hideFor is not an array, show the item
+    if (!Array.isArray(item.hideFor)) {
+      console.log(`✅ Showing "${item.name}" - hideFor is not an array:`, item.hideFor)
+      return true
+    }
+
+    // Check if current role is in the hideFor array
+    const shouldHide = item.hideFor.includes(role)
+    console.log(`${shouldHide ? '❌' : '✅'} Item "${item.name}":`)
+    console.log(`   - hideFor: [${item.hideFor.join(', ')}]`)
+    console.log(`   - current role: "${role}"`)
+    console.log(`   - shouldHide: ${shouldHide}`)
+    
+    return !shouldHide
+  })
+
+  console.log('Filtered navigation items:', filteredNavigation.map(item => item.name))
+  console.log('=== End AppSidebar Debug ===')
 
   return (
     <CSidebar
@@ -43,6 +73,19 @@ const AppSidebar = () => {
           <img src={logo} alt="TLA Logo" height="60" className="sidebar-brand-full" />
           <img src={smallLogo} alt="TLA Logo" height="50" className="sidebar-brand-narrow" />
         </CSidebarBrand>
+        {/* Temporary debug indicator */}
+        <div style={{ 
+          position: 'absolute', 
+          bottom: '5px', 
+          left: '10px', 
+          fontSize: '10px', 
+          color: '#fff',
+          background: 'rgba(0,0,0,0.5)',
+          padding: '2px 5px',
+          borderRadius: '3px'
+        }}>
+          Role: {role || 'none'}
+        </div>
         <CCloseButton
           className="d-lg-none"
           dark

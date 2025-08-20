@@ -18,11 +18,10 @@ import {
   CBadge,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilChatBubble, cilBell, cilBellExclamation } from '@coreui/icons'
-import NotificationService from '../../services/notificationService'
+import { cilChatBubble, cilBellExclamation } from '@coreui/icons'
 import { toast } from 'react-hot-toast'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore'
 import { firestore } from '../../Firebase/firebase'
 import useAuth from '../../Firebase/useAuth'
 import './attendanceTable.css'
@@ -33,15 +32,15 @@ const AttendanceTable = () => {
   const [students, setStudents] = useState([])
   const [studentsLoading, setStudentsLoading] = useState(false)
   const [attendanceData, setAttendanceData] = useState({})
+  const [originalAttendanceData, setOriginalAttendanceData] = useState({})
   const [showModal, setShowModal] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState(null)
   const [commentInput, setCommentInput] = useState('')
   const [allPresent, setAllPresent] = useState(false)
-  const [attendanceDate, setAttendanceDate] = useState(new Date())
-  const [smsSendingStatus, setSmsSendingStatus] = useState({})
-  const [smsNotificationEnabled, setSmsNotificationEnabled] = useState(true)
-  const [showSmsErrorModal, setShowSmsErrorModal] = useState(false)
-  const [smsErrorDetails, setSmsErrorDetails] = useState('')
+  const [attendanceDate, setAttendanceDate] = useState(
+    location.state?.selectedDate ? new Date(location.state.selectedDate) : new Date(),
+  )
+
   const { user } = useAuth()
   const navigate = useNavigate()
   const [attendanceLoaded, setAttendanceLoaded] = useState(false)
@@ -117,12 +116,15 @@ const AttendanceTable = () => {
               }
             })
             setAttendanceData(loadedAttendance)
+            setOriginalAttendanceData(loadedAttendance)
             setAttendanceExists(true)
           } else {
             setAttendanceData({})
+            setOriginalAttendanceData({})
           }
         } else {
           setAttendanceData({})
+          setOriginalAttendanceData({})
         }
       } catch (err) {
         console.error('Error loading attendance:', err)
@@ -134,23 +136,7 @@ const AttendanceTable = () => {
     // Only reload if course or date changes
   }, [selectedCourse, attendanceDate])
 
-  useEffect(() => {
-    // Check if SMS notification is properly configured
-    const checkSmsConfig = async () => {
-      try {
-        const isConfigured = await NotificationService.checkSmsConfiguration()
-        setSmsNotificationEnabled(isConfigured)
-        if (!isConfigured) {
-          console.warn('SMS notification is not properly configured')
-        }
-      } catch (error) {
-        console.error('Error checking SMS configuration:', error)
-        setSmsNotificationEnabled(false)
-      }
-    }
 
-    checkSmsConfig()
-  }, [])
 
   const handleSetAllPresent = (checked) => {
     const newAttendance = {}
@@ -165,8 +151,6 @@ const AttendanceTable = () => {
   }
 
   const handleAttendanceChange = async (student, status) => {
-    const previousStatus = attendanceData[student.id]?.status
-
     // Update attendance status
     setAttendanceData({
       ...attendanceData,
@@ -175,62 +159,9 @@ const AttendanceTable = () => {
         comment: attendanceData[student.id]?.comment || '',
       },
     })
-
-    // If newly marked as absent AND SMS notifications are enabled, send notification
-    if (status === 'Absent' && previousStatus !== 'Absent' && smsNotificationEnabled) {
-      await sendAbsenceNotification(student)
-    }
   }
 
-  const sendAbsenceNotification = async (student) => {
-    // Set the sending status for this student
-    setSmsSendingStatus((prev) => ({
-      ...prev,
-      [student.id]: 'sending',
-    }))
 
-    try {
-      const courseTitle = selectedCourse?.name || selectedCourse?.label || 'the class'
-      const result = await NotificationService.sendAbsenceNotification({
-        phoneNumber: student.parentPhoneNumber,
-        studentName: student.name,
-        className: courseTitle,
-        date: attendanceDate.toISOString(),
-      })
-
-      // Update sending status
-      setSmsSendingStatus((prev) => ({
-        ...prev,
-        [student.id]: 'sent',
-      }))
-
-      // Show success toast
-      toast.success(`SMS notification sent to ${student.parentName}`)
-
-      // Automatically clear the success status after 5 seconds
-      setTimeout(() => {
-        setSmsSendingStatus((prev) => {
-          const newStatus = { ...prev }
-          delete newStatus[student.id]
-          return newStatus
-        })
-      }, 5000)
-    } catch (error) {
-      console.error('Error sending SMS notification:', error)
-
-      // Update sending status to error
-      setSmsSendingStatus((prev) => ({
-        ...prev,
-        [student.id]: 'error',
-      }))
-
-      // Show error toast
-      toast.error('Failed to send SMS notification')
-
-      // Store error details for modal
-      setSmsErrorDetails(error.message || 'Unknown error occurred')
-    }
-  }
 
   const openCommentModal = (student) => {
     setSelectedStudent(student)
@@ -305,6 +236,47 @@ const AttendanceTable = () => {
         })
       }
 
+      // Update attendance counters on student docs based on deltas
+      const updatePromises = []
+      students.forEach((student) => {
+        const studentId = student.id
+        const prevStatus = originalAttendanceData[studentId]?.status
+        const newStatus = attendanceData[studentId]?.status
+
+        if (prevStatus === newStatus || !newStatus) {
+          return
+        }
+
+        let lateDelta = 0
+        let absenceDelta = 0
+
+        const wasLate = prevStatus === 'Late'
+        const isLate = newStatus === 'Late'
+        if (!wasLate && isLate) lateDelta += 1
+        if (wasLate && !isLate) lateDelta -= 1
+
+        const wasAbsent = prevStatus === 'Absent'
+        const isAbsent = newStatus === 'Absent'
+        if (!wasAbsent && isAbsent) absenceDelta += 1
+        if (wasAbsent && !isAbsent) absenceDelta -= 1
+
+        if (lateDelta !== 0 || absenceDelta !== 0) {
+          const studentRef = doc(firestore, 'students', studentId)
+          const updatePayload = {}
+          if (lateDelta !== 0) {
+            updatePayload['attendanceStats.currentTermLateCount'] = increment(lateDelta)
+            updatePayload['attendanceStats.yearLateCount'] = increment(lateDelta)
+          }
+          if (absenceDelta !== 0) {
+            updatePayload['attendanceStats.currentTermAbsenceCount'] = increment(absenceDelta)
+            updatePayload['attendanceStats.yearAbsenceCount'] = increment(absenceDelta)
+          }
+          updatePromises.push(updateDoc(studentRef, updatePayload))
+        }
+      })
+
+      await Promise.all(updatePromises)
+
       toast.success('Attendance saved!')
       navigate('/attendance')
     } catch (err) {
@@ -313,38 +285,7 @@ const AttendanceTable = () => {
     }
   }
 
-  const getNotificationStatusIcon = (studentId) => {
-    const status = smsSendingStatus[studentId]
 
-    if (!status) return null
-
-    switch (status) {
-      case 'sending':
-        return <CSpinner size="sm" color="info" />
-      case 'sent':
-        return (
-          <CBadge color="success" shape="rounded-pill">
-            SMS Sent
-          </CBadge>
-        )
-      case 'error':
-        return (
-          <CBadge
-            color="danger"
-            shape="rounded-pill"
-            style={{ cursor: 'pointer' }}
-            onClick={() => {
-              setSmsErrorDetails(smsErrorDetails || 'Error sending notification')
-              setShowSmsErrorModal(true)
-            }}
-          >
-            SMS Failed
-          </CBadge>
-        )
-      default:
-        return null
-    }
-  }
 
   return (
     <div style={{ position: 'relative', paddingBottom: '60px' }}>
@@ -359,15 +300,7 @@ const AttendanceTable = () => {
         </CAlert>
       )}
 
-      {/* SMS Notification Status */}
-      {!smsNotificationEnabled && (
-        <CAlert color="warning" className="d-flex align-items-center mb-3">
-          <CIcon icon={cilBellExclamation} className="flex-shrink-0 me-2" />
-          <div>
-            SMS notifications are not properly configured. Parents will not be notified of absences.
-          </div>
-        </CAlert>
-      )}
+
 
       {/* Mark All Present Switch */}
       <div className="d-flex justify-content-between align-items-center mb-3">
@@ -377,13 +310,22 @@ const AttendanceTable = () => {
           onChange={(e) => handleSetAllPresent(e.target.checked)}
         />
 
-        {smsNotificationEnabled && (
-          <CFormSwitch
-            label="Send SMS Notifications"
-            checked={smsNotificationEnabled}
-            onChange={(e) => setSmsNotificationEnabled(e.target.checked)}
+        <div className="d-flex align-items-center bg-light rounded p-2 shadow-sm">
+          <CFormInput
+            type="date"
+            value={attendanceDate.toISOString().split('T')[0]}
+            readOnly
+            style={{
+              minWidth: '160px',
+              borderRadius: '8px',
+              border: '2px solid #e3e6f0',
+              padding: '8px 12px',
+              fontSize: '14px',
+              fontWeight: '500',
+              backgroundColor: '#f8f9fa',
+            }}
           />
-        )}
+        </div>
       </div>
 
       {/* Attendance Table */}
@@ -491,34 +433,21 @@ const AttendanceTable = () => {
                     </div>
                   </CTableDataCell>
                   <CTableDataCell>
-                    {attendanceData[student.id]?.status === 'Absent' && smsNotificationEnabled && (
-                      <div className="d-flex align-items-center">
-                        {getNotificationStatusIcon(student.id) || (
-                          <CButton
-                            color="info"
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => sendAbsenceNotification(student)}
-                          >
-                            <CIcon icon={cilBell} /> Notify
-                          </CButton>
-                        )}
-                      </div>
+                    {attendanceData[student.id]?.status && (
+                      <CBadge
+                        color={
+                          attendanceData[student.id]?.status === 'Present'
+                            ? 'success'
+                            : attendanceData[student.id]?.status === 'Late'
+                            ? 'warning'
+                            : attendanceData[student.id]?.status === 'Absent'
+                            ? 'danger'
+                            : 'primary'
+                        }
+                      >
+                        {attendanceData[student.id]?.status}
+                      </CBadge>
                     )}
-                    {attendanceData[student.id]?.status &&
-                      attendanceData[student.id]?.status !== 'Absent' && (
-                        <CBadge
-                          color={
-                            attendanceData[student.id]?.status === 'Present'
-                              ? 'success'
-                              : attendanceData[student.id]?.status === 'Late'
-                              ? 'warning'
-                              : 'primary'
-                          }
-                        >
-                          {attendanceData[student.id]?.status}
-                        </CBadge>
-                      )}
                   </CTableDataCell>
                   <CTableDataCell
                     style={{
@@ -552,7 +481,11 @@ const AttendanceTable = () => {
 
       {/* Comment Modal */}
       <CModal visible={showModal} onClose={() => setShowModal(false)}>
-        <CModalHeader closeButton>{selectedStudent?.name}'s Comment</CModalHeader>
+        <CModalHeader closeButton>
+          Comment for {selectedStudent?.personalInfo 
+            ? `${selectedStudent.personalInfo.firstName || ''} ${selectedStudent.personalInfo.lastName || ''}`.trim()
+            : selectedStudent?.name || 'Student'}
+        </CModalHeader>
         <CModalBody>
           <CFormInput
             type="text"
@@ -571,25 +504,7 @@ const AttendanceTable = () => {
         </CModalFooter>
       </CModal>
 
-      {/* SMS Error Modal */}
-      <CModal visible={showSmsErrorModal} onClose={() => setShowSmsErrorModal(false)}>
-        <CModalHeader closeButton>SMS Notification Error</CModalHeader>
-        <CModalBody>
-          <p>There was an error sending the SMS notification:</p>
-          <CAlert color="danger">{smsErrorDetails}</CAlert>
-          <p>This could be due to:</p>
-          <ul>
-            <li>Invalid phone number format</li>
-            <li>Twilio account issues</li>
-            <li>Network connectivity problems</li>
-          </ul>
-        </CModalBody>
-        <CModalFooter>
-          <CButton color="secondary" onClick={() => setShowSmsErrorModal(false)}>
-            Close
-          </CButton>
-        </CModalFooter>
-      </CModal>
+
 
       {/* Complete Button at Bottom Right */}
       <CButton

@@ -1,7 +1,7 @@
 // Authentication configuration for Tarbiyah Learning Academy
 
 export const STAFF_AUTHORIZED_DOMAINS = [
-  'tarbiyahlearning.com',
+  'tarbiyahlearning.ca',
   // Add more authorized domains here as needed
   // 'newdomain.com',
 ]
@@ -29,6 +29,18 @@ export const canAccessStaffPortal = async (user, db, doc, getDoc) => {
     if (userDoc.exists()) {
       const userData = userDoc.data()
       return userData.role === 'admin'
+    }
+  } catch (error) {
+    console.error('Error checking user role:', error)
+  }
+
+  try {
+    const userRef = doc(db, 'users', user.uid)
+    const userDoc = await getDoc(userRef)
+    
+    if (userDoc.exists()) {
+      const userData = userDoc.data()
+      return userData.role === 'faculty'
     }
   } catch (error) {
     console.error('Error checking user role:', error)

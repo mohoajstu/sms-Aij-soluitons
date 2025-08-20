@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Box, Button } from '@mui/material'
 import Grid from '@mui/material/Grid'
 import ClassSelector from '../../components/ClassSelector'
-import DateSelector from '../../components/DateSelector'
+import { CFormInput } from '@coreui/react'
 import AttendanceReportTable from './attendenceReportTable'
 import ManualSmsNotification from './ManualSmsNotification'
 import './attendanceTabs.css'
@@ -14,6 +14,13 @@ const AttendanceTabs = () => {
   const navigate = useNavigate()
   const { role } = useAuth()
   const [selectedCourse, setSelectedCourse] = useState(null)
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0') // Months are 0-indexed
+    const day = String(today.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  })
 
   useEffect(() => {
     if (role === 'parent') {
@@ -80,14 +87,20 @@ const AttendanceTabs = () => {
                   <label className="at-field-label">Set Date:</label>
                 </Grid>
                 <Grid item size={4}>
-                  <DateSelector fullWidth />
+                  <CFormInput
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                  />
                 </Grid>
               </Grid>
             </Grid>
             <Button
               variant="contained"
               className="at-action-button"
-              onClick={() => navigate('./attendance-table-page', { state: { selectedCourse } })}
+              onClick={() =>
+                navigate('./attendance-table-page', { state: { selectedCourse, selectedDate } })
+              }
             >
               Take Attendance
             </Button>
@@ -105,7 +118,8 @@ const AttendanceTabs = () => {
           <Box className="at-sms-test-content">
             <div className="at-note-box">
               <strong>Send Manual SMS:</strong> Use this form to manually send SMS notifications.
-              Enter your own message or select a parent from the dropdown to auto-fill their phone number.
+              Enter your own message or select a parent from the dropdown to auto-fill their phone
+              number.
             </div>
             <ManualSmsNotification />
           </Box>

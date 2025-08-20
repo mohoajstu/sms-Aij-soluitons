@@ -33,84 +33,7 @@ import {
 import CIcon from '@coreui/icons-react'
 import SignatureCanvas from 'react-signature-canvas'
 import PropTypes from 'prop-types'
-
-/**
- * AI-Enhanced Text Area
- * A reusable component for text areas with an AI generation button.
- */
-const AICommentField = ({
-  name,
-  value,
-  onChange,
-  placeholder,
-  rows = 10,
-  isGenerating = false,
-  onGenerate,
-  maxLength,
-}) => {
-  const currentLength = value?.length || 0
-
-  return (
-    <div className="ai-input-field position-relative mb-3">
-      <CFormTextarea
-        name={name}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        rows={rows}
-        maxLength={maxLength}
-        style={{
-          resize: 'vertical',
-          paddingRight: '50px',
-          paddingBottom: '25px', // Make space for character counter
-          borderRadius: '8px',
-          border: '2px solid #e9ecef',
-          fontSize: '1rem',
-        }}
-      />
-      <CButton
-        type="button"
-        title="Generate with AI"
-        className="ai-generate-button position-absolute"
-        style={{
-          top: '10px',
-          right: '10px',
-          background: 'none',
-          border: 'none',
-          color: isGenerating ? '#0d6efd' : '#6c757d',
-        }}
-        onClick={() => onGenerate(name)}
-        disabled={isGenerating}
-      >
-        {isGenerating ? <CSpinner size="sm" /> : <CIcon icon={cilLightbulb} size="lg" />}
-      </CButton>
-      {maxLength && (
-        <div
-          className="position-absolute"
-          style={{
-            bottom: '8px',
-            right: '15px',
-            fontSize: '0.8rem',
-            color: currentLength > maxLength ? '#dc3545' : '#6c757d',
-          }}
-        >
-          {currentLength}/{maxLength}
-        </div>
-      )}
-    </div>
-  )
-}
-
-AICommentField.propTypes = {
-  name: PropTypes.string.isRequired,
-  value: PropTypes.string,
-  onChange: PropTypes.func.isRequired,
-  placeholder: PropTypes.string,
-  rows: PropTypes.number,
-  isGenerating: PropTypes.bool,
-  onGenerate: PropTypes.func.isRequired,
-  maxLength: PropTypes.number,
-}
+import AIReportCommentInput from '../../../components/AIReportCommentInput'
 
 /**
  * Signature Pad Component
@@ -219,7 +142,7 @@ SignaturePad.propTypes = {
  * Student/School Information Section
  * Modern form section for student and school details
  */
-const StudentSchoolInfoSection = ({ formData, onFormDataChange, onGenerate, isGenerating }) => {
+const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target
     onFormDataChange({
@@ -454,7 +377,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange, onGenerate, isGe
         </CCol>
       </CRow>
 
-      {/* Board Information */}
+      {/* Board Information with AI */}
       <CRow className="mt-3">
         <CCol md={12}>
           <div className="mb-3">
@@ -462,17 +385,36 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange, onGenerate, isGe
               <CIcon icon={cilSchool} className="me-2" />
               Board Information
             </CFormLabel>
-            <AICommentField
+            <CFormTextarea
+              id="boardInfo"
               name="boardInfo"
               value={formData.boardInfo || ''}
               onChange={handleInputChange}
               placeholder="Enter board information..."
               rows={3}
-              isGenerating={isGenerating}
-              onGenerate={onGenerate}
-              maxLength={500}
             />
+            <small className="text-muted">
+              {(formData.boardInfo || '').length} / 500 characters
+            </small>
           </div>
+
+          {/* AI Generation for Board Info */}
+          <AIReportCommentInput
+            label="Generate Board Information"
+            formData={{
+              student_name: formData.student,
+              grade: formData.grade,
+              subject: 'Board Information',
+            }}
+            handleChange={(field, value) => {
+              // Map AI output to the actual form field
+              if (field === 'teacher_comments' || field === 'strengths_next_steps') {
+                onFormDataChange({ ...formData, boardInfo: value })
+              }
+            }}
+            buttonText="Generate Board Info"
+            explicitReportType="Elementary 7-8 Progress Report"
+          />
         </CCol>
       </CRow>
     </div>
@@ -621,15 +563,21 @@ const LearningSkillsSection = ({ formData, onFormDataChange, onGenerate, isGener
               <CIcon icon={cilLightbulb} className="me-2" />
               Strengths and Next Steps for Improvement
             </CFormLabel>
-            <AICommentField
-              name="strengthsAndNextStepsForImprovment"
-              value={formData.strengthsAndNextStepsForImprovment || ''}
-              onChange={handleInputChange}
-              placeholder="Describe the student's strengths in learning skills and work habits, and identify specific next steps for improvement..."
-              rows={6}
-              isGenerating={isGenerating}
-              onGenerate={onGenerate}
-              maxLength={1000}
+            <AIReportCommentInput
+              label="Generate Strengths and Next Steps"
+              formData={{
+                student_name: formData.student,
+                grade: formData.grade,
+                subject: 'Strengths and Next Steps',
+              }}
+              handleChange={(field, value) => {
+                // Map AI output to the actual form field
+                if (field === 'teacher_comments' || field === 'strengths_next_steps') {
+                  onFormDataChange({ ...formData, strengthsAndNextStepsForImprovment: value })
+                }
+              }}
+              buttonText="Generate Strengths & Next Steps"
+              explicitReportType="Elementary 7-8 Progress Report"
             />
             <div className="form-text">
               Provide specific, constructive feedback on the student's learning skills and work
@@ -1190,15 +1138,21 @@ const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerat
                       <CIcon icon={cilLightbulb} className="me-2" />
                       {subject.name} - Strengths and Next Steps
                     </CFormLabel>
-                    <AICommentField
-                      name={subject.commentField}
-                      value={formData[subject.commentField] || ''}
-                      onChange={handleInputChange}
-                      placeholder={`Provide comments about the student's performance in ${subject.name.toLowerCase()}...`}
-                      rows={3}
-                      isGenerating={isGenerating}
-                      onGenerate={onGenerate}
-                      maxLength={500}
+                    <AIReportCommentInput
+                      label="Generate Subject Comments"
+                      formData={{
+                        student_name: formData.student,
+                        grade: formData.grade,
+                        subject: subject.name,
+                      }}
+                      handleChange={(field, value) => {
+                        // Map AI output to the actual subject comment field
+                        if (field === 'teacher_comments' || field === 'strengths_next_steps') {
+                          onFormDataChange({ ...formData, [subject.commentField]: value })
+                        }
+                      }}
+                      buttonText="Generate Comments"
+                      explicitReportType="Elementary 7-8 Progress Report"
                     />
                   </div>
                 </CCol>
@@ -1216,15 +1170,21 @@ const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerat
               <CIcon icon={cilLightbulb} className="me-2" />
               Additional Comments for Subject Areas
             </CFormLabel>
-            <AICommentField
-              name="strengthsAndNextStepsForImprovement2"
-              value={formData.strengthsAndNextStepsForImprovement2 || ''}
-              onChange={handleInputChange}
-              placeholder="Provide additional comments about the student's performance across subject areas..."
-              rows={4}
-              isGenerating={isGenerating}
-              onGenerate={onGenerate}
-              maxLength={500}
+            <AIReportCommentInput
+              label="Generate Additional Subject Comments"
+              formData={{
+                student_name: formData.student,
+                grade: formData.grade,
+                subject: 'Additional Comments',
+              }}
+              handleChange={(field, value) => {
+                // Map AI output to the actual form field
+                if (field === 'teacher_comments' || field === 'strengths_next_steps') {
+                  onFormDataChange({ ...formData, strengthsAndNextStepsForImprovement2: value })
+                }
+              }}
+              buttonText="Generate Additional Comments"
+              explicitReportType="Elementary 7-8 Progress Report"
             />
             <div className="form-text">
               Optional comments about the student's overall academic performance and areas for
@@ -1273,15 +1233,21 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange, onGenerate, isG
               <CIcon icon={cilLightbulb} className="me-2" />
               Additional Comments
             </CFormLabel>
-            <AICommentField
-              name="boardSpace"
-              value={formData.boardSpace || ''}
-              onChange={handleInputChange}
-              placeholder="Provide any additional comments about the student's progress, achievements, or areas for improvement..."
-              rows={4}
-              isGenerating={isGenerating}
-              onGenerate={onGenerate}
-              maxLength={500}
+            <AIReportCommentInput
+              label="Generate Additional Comments"
+              formData={{
+                student_name: formData.student,
+                grade: formData.grade,
+                subject: 'Additional Comments',
+              }}
+              handleChange={(field, value) => {
+                // Map AI output to the actual form field
+                if (field === 'teacher_comments' || field === 'strengths_next_steps') {
+                  onFormDataChange({ ...formData, boardSpace: value })
+                }
+              }}
+              buttonText="Generate Additional Comments"
+              explicitReportType="Elementary 7-8 Progress Report"
             />
             <div className="form-text">
               Optional additional comments about the student's overall progress and achievements.
@@ -1356,51 +1322,9 @@ const Elementary7to8ProgressUI = ({
     'subject-areas',
     'comments-signatures',
   ])
-  const [generatingFields, setGeneratingFields] = useState(new Set())
 
   const handleAccordionChange = (newActive) => {
     setActiveAccordion(newActive)
-  }
-
-  const handleAIGenerate = async (fieldName) => {
-    setGeneratingFields((prev) => new Set(prev).add(fieldName))
-    try {
-      // Mock AI generation - replace with actual AI service call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      const studentName = formData.student || 'The student'
-      let generatedText = `Based on observations, ${studentName} demonstrates strong organizational skills and consistently completes assignments on time. A key area for growth is developing greater independence during group activities. Next steps should focus on encouraging ${studentName} to take initiative in collaborative settings and persevere through challenging tasks with minimal guidance.`
-
-      if (fieldName === 'strengthsAndNextStepsForImprovment') {
-        generatedText = `Strengths: ${studentName} shows excellent responsibility in completing homework and demonstrates good collaboration skills when working with peers. The student is organized and follows classroom routines effectively. Next Steps: Continue to support ${studentName} in developing greater initiative during independent work periods and building confidence in taking on leadership roles within group activities.`
-      }
-
-      if (fieldName === 'strengthsAndNextStepsForImprovement2') {
-        generatedText = `Academic Performance: ${studentName} demonstrates strong foundational skills across core subjects. The student shows particular strength in mathematics and science, consistently applying problem-solving strategies effectively. Areas for continued growth include developing more detailed written responses in language arts and social studies. Next Steps: Focus on expanding vocabulary usage in written work and encouraging deeper analysis of social studies concepts.`
-      }
-
-      if (fieldName === 'boardSpace') {
-        generatedText = `Additional Comments: ${studentName} has shown consistent growth throughout this reporting period. The student demonstrates a positive attitude toward learning and actively participates in classroom discussions. Areas for continued development include strengthening independent work habits and building confidence in taking academic risks. Overall, ${studentName} is making excellent progress and should continue to be encouraged in their learning journey.`
-      }
-
-      if (fieldName === 'boardInfo') {
-        generatedText = `Board Information: This report card is issued by the school board in accordance with Ontario Ministry of Education guidelines. The board provides ongoing support for student achievement and well-being through comprehensive educational programs and services.`
-      }
-
-      if (fieldName === 'text_1') {
-        generatedText = `Overall Assessment: ${studentName} has made excellent progress this term. The student consistently demonstrates a positive attitude toward learning and shows strong engagement in classroom activities. Continued support in developing independent work habits will further enhance academic achievement.`
-      }
-
-      onFormDataChange({ ...formData, [fieldName]: generatedText })
-    } catch (error) {
-      console.error('Error generating AI content:', error)
-    } finally {
-      setGeneratingFields((prev) => {
-        const newSet = new Set(prev)
-        newSet.delete(fieldName)
-        return newSet
-      })
-    }
   }
 
   if (loading) {
@@ -1441,8 +1365,6 @@ const Elementary7to8ProgressUI = ({
               <StudentSchoolInfoSection
                 formData={formData}
                 onFormDataChange={onFormDataChange}
-                onGenerate={handleAIGenerate}
-                isGenerating={generatingFields.has('boardInfo')}
               />
             </CAccordionBody>
           </CAccordionItem>
@@ -1453,8 +1375,6 @@ const Elementary7to8ProgressUI = ({
               <LearningSkillsSection
                 formData={formData}
                 onFormDataChange={onFormDataChange}
-                onGenerate={handleAIGenerate}
-                isGenerating={generatingFields.has('strengthsAndNextStepsForImprovment')}
               />
             </CAccordionBody>
           </CAccordionItem>
@@ -1465,8 +1385,6 @@ const Elementary7to8ProgressUI = ({
               <SubjectAreasSection
                 formData={formData}
                 onFormDataChange={onFormDataChange}
-                onGenerate={handleAIGenerate}
-                isGenerating={generatingFields.has('strengthsAndNextStepsForImprovement2')}
               />
             </CAccordionBody>
           </CAccordionItem>
@@ -1477,8 +1395,6 @@ const Elementary7to8ProgressUI = ({
               <CommentsSignaturesSection
                 formData={formData}
                 onFormDataChange={onFormDataChange}
-                onGenerate={handleAIGenerate}
-                isGenerating={generatingFields.has('boardSpace')}
               />
             </CAccordionBody>
           </CAccordionItem>
