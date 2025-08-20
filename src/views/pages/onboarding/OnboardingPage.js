@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   collection,
   getDocs,
@@ -12,6 +13,7 @@ import {
   deleteField,
   writeBatch,
 } from 'firebase/firestore';
+import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import {
   CCard,
   CCardBody,
@@ -38,12 +40,14 @@ import {
 } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
 import { cilCheckCircle, cilWarning, cilUser, cilUserPlus, cilLockLocked } from '@coreui/icons';
-import { firestore } from 'src/firebase';
+import { auth, firestore } from 'src/firebase';
 import bcrypt from 'bcryptjs';
 import './OnboardingPage.css';
 
 const OnboardingPage = () => {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
+  const [forcePasswordChange, setForcePasswordChange] = useState(false);
   const [loading, setLoading] = useState(false);
   const [toast, addToast] = useState(0);
   const toaster = useRef();
@@ -51,12 +55,12 @@ const OnboardingPage = () => {
   // Step 1: Parent Verification
   const [verificationData, setVerificationData] = useState({
     tarbiyahId: '',
-    onboardingCode: '',
   });
   const [parentExists, setParentExists] = useState(false);
   const [verifiedParentId, setVerifiedParentId] = useState(null);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
 
   // Step 2: Parent Information
   const [parentData, setParentData] = useState({
@@ -115,6 +119,51 @@ const OnboardingPage = () => {
             ...existingParentData,
             id: parentDoc.id,
           })
+          // Also load linked students
+          try {
+            setStudentsLoading(true)
+            const linked = existingParentData?.students || []
+            const ids = linked.map((s) => s.studentId).filter(Boolean)
+            const uniqueIds = Array.from(new Set(ids))
+            const docs = []
+            for (const sid of uniqueIds) {
+              const sSnap = await getDoc(doc(firestore, 'students', sid))
+              if (sSnap.exists()) {
+                const sdata = sSnap.data()
+                docs.push({ id: sid, data: sdata })
+              }
+            }
+            setStudentDocs(docs)
+            // Initialize forms with filtered editable fields
+            const forms = {}
+            for (const { id, data } of docs) {
+              forms[id] = {
+                personalInfo: {
+                  firstName: data.personalInfo?.firstName || '',
+                  middleName: data.personalInfo?.middleName || '',
+                  lastName: data.personalInfo?.lastName || '',
+                  nickName: data.personalInfo?.nickName || '',
+                  dob: data.personalInfo?.dob || '',
+                  gender: data.personalInfo?.gender || '',
+                  salutation: data.personalInfo?.salutation || '',
+                },
+                address: { ...data.address },
+                citizenship: { ...data.citizenship },
+                contact: { ...data.contact },
+                language: { ...data.language },
+                schooling: {
+                  custodyDetails: data.schooling?.custodyDetails || '',
+                  daySchoolEmployer: data.schooling?.daySchoolEmployer || '',
+                  notes: data.schooling?.notes || '',
+                  program: data.schooling?.program || '',
+                  returningStudentYear: data.schooling?.returningStudentYear || '',
+                },
+              }
+            }
+            setStudentForms(forms)
+          } finally {
+            setStudentsLoading(false)
+          }
         } else {
           // This case might happen if the link is manually changed to a non-existent ID
           addToast(errorToast('No parent found with this ID.'))
@@ -130,58 +179,58 @@ const OnboardingPage = () => {
     fetchParentData()
   }, [verificationData.tarbiyahId])
 
-  // Step 3: Student Registration
-  const [studentCode, setStudentCode] = useState('');
-  const [studentData, setStudentData] = useState({
-    personalInfo: {
-      firstName: '',
-      middleName: '',
-      lastName: '',
-      dob: '',
-      gender: '',
-      salutation: '',
-      nickName: '',
-    },
-    address: {
-      poBox: '',
-      residentialArea: '',
-      streetAddress: '',
-    },
-    citizenship: {
-      nationalId: '',
-      nationalIdExpiry: '',
-      nationality: '',
-    },
-    contact: {
-      email: '',
-      emergencyPhone: '',
-      phone1: '',
-      phone2: '',
-    },
-    language: {
-      primary: '',
-      secondary: '',
-    },
-    schooling: {
-      custodyDetails: '',
-      daySchoolEmployer: '',
-      notes: '',
-      program: '',
-      returningStudentYear: '',
-    },
-    active: true,
-    primaryRole: 'Student',
-    parents: {
-      father: { name: '', tarbiyahId: '' },
-      mother: { name: '', tarbiyahId: '' },
-    },
-  });
+  // Detect mustChangePassword and preload Tarbiyah ID; do not change the step order
+  useEffect(() => {
+    const checkMustChangePassword = async () => {
+      const user = auth.currentUser
+      if (!user) return
+      try {
+        const userSnap = await getDoc(doc(firestore, 'users', user.uid))
+        if (userSnap.exists()) {
+          const userData = userSnap.data() || {}
+          const parentId = userData.tarbiyahId || userData.schoolId || user.uid
+          setVerifiedParentId(parentId)
+          setVerificationData((prev) => ({ ...prev, tarbiyahId: parentId }))
+          if (userData?.mustChangePassword === true) {
+            setForcePasswordChange(true)
+          }
+        }
+      } catch (err) {
+        // noop
+      }
+    }
+    checkMustChangePassword()
+  }, [])
 
-  const [registeredStudents, setRegisteredStudents] = useState([]);
-  const [availableStudentCodes, setAvailableStudentCodes] = useState([]);
+  // Preload Tarbiyah ID for signed-in users even if not forced to change password
+  useEffect(() => {
+    const preloadTarbiyahId = async () => {
+      const user = auth.currentUser
+      if (!user) return
+      try {
+        const userSnap = await getDoc(doc(firestore, 'users', user.uid))
+        if (userSnap.exists()) {
+          const userData = userSnap.data() || {}
+          const parentId = userData.tarbiyahId || userData.schoolId || user.uid
+          setVerificationData((prev) => ({ ...prev, tarbiyahId: parentId }))
+        }
+      } catch (_) {
+        // ignore
+      }
+    }
+    preloadTarbiyahId()
+  }, [])
+
+  // Step 3: Student Registration
+  // legacy create-student UI removed for parents; they only view/edit linked students
+
+  // Linked students editing state
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const [studentDocs, setStudentDocs] = useState([]); // [{ id, data }]
+  const [studentForms, setStudentForms] = useState({}); // id -> editable clone
 
   const successToast = (message) => (
-    <CToast color="success" className="text-white align-items-center">
+    <CToast key={`succ-${Date.now()}-${Math.random()}`} color="success" className="text-white align-items-center">
       <div className="d-flex">
         <CToastBody>
           <CIcon icon={cilCheckCircle} className="me-2" />
@@ -192,7 +241,7 @@ const OnboardingPage = () => {
   );
 
   const errorToast = (message) => (
-    <CToast color="danger" className="text-white align-items-center">
+    <CToast key={`err-${Date.now()}-${Math.random()}`} color="danger" className="text-white align-items-center">
       <div className="d-flex">
         <CToastBody>
           <CIcon icon={cilWarning} className="me-2" />
@@ -204,8 +253,8 @@ const OnboardingPage = () => {
 
   // Check if parent already exists
   const verifyParentCredentials = async () => {
-    if (!verificationData.tarbiyahId || !verificationData.onboardingCode) {
-      addToast(errorToast('Please enter both Tarbiyah ID and Onboarding Code'))
+    if (!verificationData.tarbiyahId) {
+      addToast(errorToast('Please enter your Tarbiyah ID'))
       return
     }
 
@@ -213,22 +262,14 @@ const OnboardingPage = () => {
     try {
       const parentDoc = await getDoc(doc(firestore, 'parents', verificationData.tarbiyahId))
 
-      if (
-        parentDoc.exists() &&
-        parentDoc.data().onboardingCode === verificationData.onboardingCode
-      ) {
+      if (parentDoc.exists()) {
         const existingParentData = parentDoc.data()
         setVerifiedParentId(parentDoc.id)
         setParentExists(true)
         setParentData(existingParentData)
-
-        if (existingParentData.onboarding === false) {
-          setCurrentStep(1.5) // New password step
-        } else {
-          setCurrentStep(2) // Skip to parent info
-        }
+        setCurrentStep(2)
       } else {
-        addToast(errorToast('Invalid credentials. Please check your Tarbiyah ID and Onboarding Code.'))
+        addToast(errorToast('No parent found with this Tarbiyah ID.'))
       }
     } catch (error) {
       console.error('Error verifying credentials:', error)
@@ -243,13 +284,40 @@ const OnboardingPage = () => {
       addToast(errorToast('Passwords do not match.'))
       return
     }
-    if (password.length < 6) {
-      addToast(errorToast('Password must be at least 6 characters long.'))
+    if (password.length < 8) {
+      addToast(errorToast('Password must be at least 8 characters long.'))
       return
     }
 
     setLoading(true)
     try {
+      const user = auth.currentUser
+      if (user && forcePasswordChange) {
+        // Re-authenticate to satisfy requires-recent-login error
+        const email = user.email
+        if (!email) {
+          addToast(errorToast('Missing email on account. Please sign out and sign in again.'))
+          setLoading(false)
+          return
+        }
+        const credential = EmailAuthProvider.credential(email, currentPassword)
+        try {
+          await reauthenticateWithCredential(user, credential)
+        } catch (e) {
+          addToast(errorToast('Current password is incorrect.'))
+          setLoading(false)
+          return
+        }
+
+        await updatePassword(user, password)
+        await updateDoc(doc(firestore, 'users', user.uid), { mustChangePassword: false })
+        addToast(successToast('Password updated successfully.'))
+        setForcePasswordChange(false)
+        setCurrentStep(5)
+        return
+      }
+
+      // Fallback legacy flow: hash and store in Firestore if not authenticated
       const salt = await bcrypt.genSalt(10)
       const passwordHash = await bcrypt.hash(password, salt)
       const parentRef = doc(firestore, 'parents', verifiedParentId)
@@ -258,7 +326,7 @@ const OnboardingPage = () => {
       const batch = writeBatch(firestore)
       batch.update(parentRef, {
         onboarding: true,
-        onboardingCode: deleteField(), // Remove the temporary code
+        onboardingCode: deleteField(),
       })
       batch.set(authRef, {
         passwordHash: passwordHash,
@@ -435,7 +503,7 @@ const OnboardingPage = () => {
   };
 
   const renderProgressBar = () => {
-    const progress = currentStep === 1 ? 33 : currentStep === 2 ? 66 : 100;
+    const progress = currentStep >= 5 ? 100 : currentStep >= 4 ? 80 : currentStep >= 3 ? 60 : currentStep >= 2 ? 40 : 20;
     return (
       <div className="mb-4">
         <CProgress value={progress} className="mb-2">
@@ -450,6 +518,12 @@ const OnboardingPage = () => {
           </span>
           <span className={currentStep >= 3 ? 'text-success' : 'text-muted'}>
             3. Register Students
+          </span>
+          <span className={currentStep >= 4 ? 'text-success' : 'text-muted'}>
+            4. Set Password
+          </span>
+          <span className={currentStep >= 5 ? 'text-success' : 'text-muted'}>
+            5. Confirm & Finish
           </span>
         </div>
       </div>
@@ -468,7 +542,7 @@ const OnboardingPage = () => {
         <CAlert color="info">
           <strong>Welcome to Tarbiyah Learning Academy!</strong>
           <br />
-          Please enter the Tarbiyah ID and Onboarding Code provided in your acceptance email.
+          Please confirm your Tarbiyah ID to continue.
         </CAlert>
 
         <CForm>
@@ -477,28 +551,8 @@ const OnboardingPage = () => {
             <CFormInput
               type="text"
               value={verificationData.tarbiyahId}
-              onChange={(e) =>
-                setVerificationData({
-                  ...verificationData,
-                  tarbiyahId: e.target.value.toUpperCase(),
-                })
-              }
+              readOnly
               placeholder="e.g., TP123456"
-              required
-            />
-          </div>
-          <div className="mb-4">
-            <CFormLabel>Onboarding Code *</CFormLabel>
-            <CFormInput
-              type="text"
-              value={verificationData.onboardingCode}
-              onChange={(e) =>
-                setVerificationData({
-                  ...verificationData,
-                  onboardingCode: e.target.value.toUpperCase(),
-                })
-              }
-              placeholder="Enter the code from your email"
               required
             />
           </div>
@@ -516,7 +570,7 @@ const OnboardingPage = () => {
     </CCard>
   );
 
-  const renderStep1_5 = () => (
+  const renderStep4 = () => (
     <CCard>
       <CCardHeader>
         <h4>
@@ -527,6 +581,16 @@ const OnboardingPage = () => {
       <CCardBody>
         <CAlert color="info">Please set a secure password for your account.</CAlert>
         <CForm>
+          <div className="mb-3">
+            <CFormLabel>Current Password *</CFormLabel>
+            <CFormInput
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
+          </div>
           <div className="mb-3">
             <CFormLabel>New Password *</CFormLabel>
             <CFormInput
@@ -953,554 +1017,411 @@ const OnboardingPage = () => {
 
   const renderStep3 = () => (
     <div>
-      {/* Parent Information Summary for existing parents */}
-      {parentExists && (
-        <CCard className="mb-4">
-          <CCardHeader>
-            <div className="d-flex justify-content-between align-items-center">
-              <h5>
-                <CIcon icon={cilUser} className="me-2" />
-                Your Parent Profile
-              </h5>
-              <CButton
-                color="outline-primary"
-                size="sm"
-                onClick={() => setCurrentStep(2)}
-              >
-                Edit Profile
-              </CButton>
-            </div>
-          </CCardHeader>
-          <CCardBody>
-            <div className="row">
-              <div className="col-md-6">
-                <strong>Name:</strong> {parentData.personalInfo?.salutation} {parentData.personalInfo?.firstName} {parentData.personalInfo?.lastName}
-              </div>
-              <div className="col-md-6">
-                <strong>Email:</strong> {parentData.contact?.email}
-              </div>
-            </div>
-            <div className="row mt-2">
-              <div className="col-md-6">
-                <strong>Phone:</strong> {parentData.contact?.phone1}
-              </div>
-              <div className="col-md-6">
-                <strong>Existing Students:</strong> {parentData.students?.length || 0}
-              </div>
-            </div>
-          </CCardBody>
-        </CCard>
-      )}
-
       <CCard className="mb-4">
         <CCardHeader>
           <h4>
             <CIcon icon={cilUserPlus} className="me-2" />
-            Register Students
+            Your Children
           </h4>
         </CCardHeader>
         <CCardBody>
-          {registeredStudents.length > 0 && (
-            <CAlert color="success" className="mb-4">
-              <strong>Registered Students:</strong>
-              <ul className="mb-0 mt-2">
-                {registeredStudents.map((student, index) => (
-                  <li key={index}>
-                    {student.personalInfo.firstName} {student.personalInfo.lastName} - ID: {student.schoolId}
-                  </li>
-                ))}
-              </ul>
-            </CAlert>
+          {studentsLoading ? (
+            <CSpinner />
+          ) : studentDocs.length === 0 ? (
+            <CAlert color="info">No children linked to this account.</CAlert>
+          ) : (
+            <CAccordion alwaysOpen>
+              {studentDocs.map(({ id, data }) => (
+                <CAccordionItem key={id} itemKey={id}>
+                  <CAccordionHeader>
+                    {data.personalInfo?.firstName} {data.personalInfo?.lastName} — ID: {data.schoolId}
+                  </CAccordionHeader>
+                  <CAccordionBody>
+                    <CForm>
+                      <div className="row mb-3">
+                        <div className="col-md-3">
+                          <CFormLabel>Salutation</CFormLabel>
+                          <CFormSelect
+                            value={studentForms[id]?.personalInfo?.salutation || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: {
+                                ...prev[id],
+                                personalInfo: { ...prev[id].personalInfo, salutation: e.target.value },
+                              },
+                            }))}
+                          >
+                            <option value="">Select</option>
+                            <option value="Master">Master</option>
+                            <option value="Miss">Miss</option>
+                          </CFormSelect>
+                        </div>
+                        <div className="col-md-3">
+                          <CFormLabel>First Name *</CFormLabel>
+                          <CFormInput
+                            value={studentForms[id]?.personalInfo?.firstName || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: {
+                                ...prev[id],
+                                personalInfo: { ...prev[id].personalInfo, firstName: e.target.value },
+                              },
+                            }))}
+                          />
+                        </div>
+                        <div className="col-md-3">
+                          <CFormLabel>Middle Name</CFormLabel>
+                          <CFormInput
+                            value={studentForms[id]?.personalInfo?.middleName || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: {
+                                ...prev[id],
+                                personalInfo: { ...prev[id].personalInfo, middleName: e.target.value },
+                              },
+                            }))}
+                          />
+                        </div>
+                        <div className="col-md-3">
+                          <CFormLabel>Last Name *</CFormLabel>
+                          <CFormInput
+                            value={studentForms[id]?.personalInfo?.lastName || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: {
+                                ...prev[id],
+                                personalInfo: { ...prev[id].personalInfo, lastName: e.target.value },
+                              },
+                            }))}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="row mb-3">
+                        <div className="col-md-4">
+                          <CFormLabel>Nickname</CFormLabel>
+                          <CFormInput
+                            value={studentForms[id]?.personalInfo?.nickName || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: {
+                                ...prev[id],
+                                personalInfo: { ...prev[id].personalInfo, nickName: e.target.value },
+                              },
+                            }))}
+                          />
+                        </div>
+                        <div className="col-md-4">
+                          <CFormLabel>Date of Birth *</CFormLabel>
+                          <CFormInput
+                            type="date"
+                            value={studentForms[id]?.personalInfo?.dob || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: {
+                                ...prev[id],
+                                personalInfo: { ...prev[id].personalInfo, dob: e.target.value },
+                              },
+                            }))}
+                          />
+                        </div>
+                        <div className="col-md-4">
+                          <CFormLabel>Gender</CFormLabel>
+                          <CFormSelect
+                            value={studentForms[id]?.personalInfo?.gender || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: {
+                                ...prev[id],
+                                personalInfo: { ...prev[id].personalInfo, gender: e.target.value },
+                              },
+                            }))}
+                          >
+                            <option value="">Select Gender</option>
+                            <option value="M">Male</option>
+                            <option value="F">Female</option>
+                            <option value="Other">Other</option>
+                          </CFormSelect>
+                        </div>
+                      </div>
+
+                      {/* Contact */}
+                      <div className="row mb-3">
+                        <div className="col-md-6">
+                          <CFormLabel>Email</CFormLabel>
+                          <CFormInput
+                            type="email"
+                            value={studentForms[id]?.contact?.email || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: { ...prev[id], contact: { ...prev[id].contact, email: e.target.value } },
+                            }))}
+                          />
+                        </div>
+                        <div className="col-md-6">
+                          <CFormLabel>Primary Phone</CFormLabel>
+                          <CFormInput
+                            value={studentForms[id]?.contact?.phone1 || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: { ...prev[id], contact: { ...prev[id].contact, phone1: e.target.value } },
+                            }))}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="row mb-3">
+                        <div className="col-md-6">
+                          <CFormLabel>Secondary Phone</CFormLabel>
+                          <CFormInput
+                            value={studentForms[id]?.contact?.phone2 || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: { ...prev[id], contact: { ...prev[id].contact, phone2: e.target.value } },
+                            }))}
+                          />
+                        </div>
+                        <div className="col-md-6">
+                          <CFormLabel>Emergency Phone</CFormLabel>
+                          <CFormInput
+                            value={studentForms[id]?.contact?.emergencyPhone || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: { ...prev[id], contact: { ...prev[id].contact, emergencyPhone: e.target.value } },
+                            }))}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Address */}
+                      <div className="row mb-3">
+                        <div className="col-md-6">
+                          <CFormLabel>Street Address</CFormLabel>
+                          <CFormInput
+                            value={studentForms[id]?.address?.streetAddress || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: { ...prev[id], address: { ...prev[id].address, streetAddress: e.target.value } },
+                            }))}
+                          />
+                        </div>
+                        <div className="col-md-6">
+                          <CFormLabel>Residential Area</CFormLabel>
+                          <CFormInput
+                            value={studentForms[id]?.address?.residentialArea || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: { ...prev[id], address: { ...prev[id].address, residentialArea: e.target.value } },
+                            }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="row mb-3">
+                        <div className="col-md-6">
+                          <CFormLabel>PO Box</CFormLabel>
+                          <CFormInput
+                            value={studentForms[id]?.address?.poBox || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: { ...prev[id], address: { ...prev[id].address, poBox: e.target.value } },
+                            }))}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Citizenship */}
+                      <div className="row mb-3">
+                        <div className="col-md-4">
+                          <CFormLabel>Nationality</CFormLabel>
+                          <CFormInput
+                            value={studentForms[id]?.citizenship?.nationality || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: { ...prev[id], citizenship: { ...prev[id].citizenship, nationality: e.target.value } },
+                            }))}
+                          />
+                        </div>
+                        <div className="col-md-4">
+                          <CFormLabel>National ID</CFormLabel>
+                          <CFormInput
+                            value={studentForms[id]?.citizenship?.nationalId || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: { ...prev[id], citizenship: { ...prev[id].citizenship, nationalId: e.target.value } },
+                            }))}
+                          />
+                        </div>
+                        <div className="col-md-4">
+                          <CFormLabel>National ID Expiry</CFormLabel>
+                          <CFormInput
+                            type="date"
+                            value={studentForms[id]?.citizenship?.nationalIdExpiry || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: { ...prev[id], citizenship: { ...prev[id].citizenship, nationalIdExpiry: e.target.value } },
+                            }))}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Schooling */}
+                      <div className="row mb-3">
+                        <div className="col-md-6">
+                          <CFormLabel>Program</CFormLabel>
+                          <CFormInput
+                            value={studentForms[id]?.schooling?.program || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: { ...prev[id], schooling: { ...prev[id].schooling, program: e.target.value } },
+                            }))}
+                          />
+                        </div>
+                        <div className="col-md-6">
+                          <CFormLabel>Returning Student Year</CFormLabel>
+                          <CFormInput
+                            value={studentForms[id]?.schooling?.returningStudentYear || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: { ...prev[id], schooling: { ...prev[id].schooling, returningStudentYear: e.target.value } },
+                            }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="row mb-3">
+                        <div className="col-md-6">
+                          <CFormLabel>Day School Employer</CFormLabel>
+                          <CFormInput
+                            value={studentForms[id]?.schooling?.daySchoolEmployer || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: { ...prev[id], schooling: { ...prev[id].schooling, daySchoolEmployer: e.target.value } },
+                            }))}
+                          />
+                        </div>
+                        <div className="col-md-6">
+                          <CFormLabel>Custody Details</CFormLabel>
+                          <CFormInput
+                            value={studentForms[id]?.schooling?.custodyDetails || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: { ...prev[id], schooling: { ...prev[id].schooling, custodyDetails: e.target.value } },
+                            }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="row mb-3">
+                        <div className="col-md-12">
+                          <CFormLabel>Additional Notes</CFormLabel>
+                          <CFormTextarea
+                            rows={3}
+                            value={studentForms[id]?.schooling?.notes || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: { ...prev[id], schooling: { ...prev[id].schooling, notes: e.target.value } },
+                            }))}
+                            placeholder="Any additional information or notes"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="d-flex gap-2">
+                        <CButton color="primary" onClick={async () => {
+                          try {
+                            const form = studentForms[id]
+                            await updateDoc(doc(firestore, 'students', id), {
+                              personalInfo: { ...data.personalInfo, ...form.personalInfo },
+                              address: form.address,
+                              citizenship: form.citizenship,
+                              contact: form.contact,
+                              language: form.language,
+                              schooling: form.schooling,
+                              uploadedAt: serverTimestamp(),
+                            })
+                            addToast(successToast('Student updated'))
+                          } catch (e) {
+                            addToast(errorToast('Failed to update student'))
+                          }
+                        }}>Save Changes</CButton>
+                      </div>
+                    </CForm>
+                  </CAccordionBody>
+                </CAccordionItem>
+              ))}
+            </CAccordion>
           )}
-
-          <CAlert color="info">
-            Enter the unique student code provided in your acceptance email for each student.
-          </CAlert>
-
-          <div className="mb-4">
-            <CFormLabel>Student Code *</CFormLabel>
-            <CFormInput
-              type="text"
-              value={studentCode}
-              onChange={(e) => setStudentCode(e.target.value.toUpperCase())}
-              placeholder="e.g., SC123456"
-              required
-            />
-          </div>
-
-          {studentCode && (
-            <CForm>
-              <CAccordion flush>
-                {/* Personal Information */}
-                <CAccordionItem itemKey="student-personal">
-                  <CAccordionHeader>Student Personal Information</CAccordionHeader>
-                  <CAccordionBody>
-                    <div className="row mb-3">
-                      <div className="col-md-3">
-                        <CFormLabel>Salutation</CFormLabel>
-                        <CFormSelect
-                          value={studentData.personalInfo?.salutation || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              personalInfo: {
-                                ...studentData.personalInfo,
-                                salutation: e.target.value,
-                              },
-                            })
-                          }
-                        >
-                          <option value="">Select</option>
-                          <option value="Master">Master</option>
-                          <option value="Miss">Miss</option>
-                        </CFormSelect>
-                      </div>
-                      <div className="col-md-3">
-                        <CFormLabel>First Name *</CFormLabel>
-                        <CFormInput
-                          value={studentData.personalInfo?.firstName || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              personalInfo: {
-                                ...studentData.personalInfo,
-                                firstName: e.target.value,
-                              },
-                            })
-                          }
-                          required
-                        />
-                      </div>
-                      <div className="col-md-3">
-                        <CFormLabel>Middle Name</CFormLabel>
-                        <CFormInput
-                          value={studentData.personalInfo?.middleName || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              personalInfo: {
-                                ...studentData.personalInfo,
-                                middleName: e.target.value,
-                              },
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="col-md-3">
-                        <CFormLabel>Last Name *</CFormLabel>
-                        <CFormInput
-                          value={studentData.personalInfo?.lastName || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              personalInfo: {
-                                ...studentData.personalInfo,
-                                lastName: e.target.value,
-                              },
-                            })
-                          }
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="row mb-3">
-                      <div className="col-md-4">
-                        <CFormLabel>Nickname</CFormLabel>
-                        <CFormInput
-                          value={studentData.personalInfo?.nickName || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              personalInfo: {
-                                ...studentData.personalInfo,
-                                nickName: e.target.value,
-                              },
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="col-md-4">
-                        <CFormLabel>Date of Birth *</CFormLabel>
-                        <CFormInput
-                          type="date"
-                          value={studentData.personalInfo?.dob || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              personalInfo: {
-                                ...studentData.personalInfo,
-                                dob: e.target.value,
-                              },
-                            })
-                          }
-                          required
-                        />
-                      </div>
-                      <div className="col-md-4">
-                        <CFormLabel>Gender</CFormLabel>
-                        <CFormSelect
-                          value={studentData.personalInfo?.gender || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              personalInfo: {
-                                ...studentData.personalInfo,
-                                gender: e.target.value,
-                              },
-                            })
-                          }
-                        >
-                          <option value="">Select Gender</option>
-                          <option value="M">Male</option>
-                          <option value="F">Female</option>
-                          <option value="Other">Other</option>
-                        </CFormSelect>
-                      </div>
-                    </div>
-                  </CAccordionBody>
-                </CAccordionItem>
-
-                {/* Contact Information */}
-                <CAccordionItem itemKey="student-contact">
-                  <CAccordionHeader>Contact Information</CAccordionHeader>
-                  <CAccordionBody>
-                    <div className="row mb-3">
-                      <div className="col-md-6">
-                        <CFormLabel>Email</CFormLabel>
-                        <CFormInput
-                          type="email"
-                          value={studentData.contact?.email || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              contact: { ...studentData.contact, email: e.target.value },
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="col-md-6">
-                        <CFormLabel>Primary Phone</CFormLabel>
-                        <CFormInput
-                          value={studentData.contact?.phone1 || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              contact: { ...studentData.contact, phone1: e.target.value },
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div className="row mb-3">
-                      <div className="col-md-6">
-                        <CFormLabel>Secondary Phone</CFormLabel>
-                        <CFormInput
-                          value={studentData.contact?.phone2 || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              contact: { ...studentData.contact, phone2: e.target.value },
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="col-md-6">
-                        <CFormLabel>Emergency Phone</CFormLabel>
-                        <CFormInput
-                          value={studentData.contact?.emergencyPhone || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              contact: { ...studentData.contact, emergencyPhone: e.target.value },
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-                  </CAccordionBody>
-                </CAccordionItem>
-
-                {/* Address Information */}
-                <CAccordionItem itemKey="student-address">
-                  <CAccordionHeader>Address Information</CAccordionHeader>
-                  <CAccordionBody>
-                    <div className="row mb-3">
-                      <div className="col-md-6">
-                        <CFormLabel>Street Address</CFormLabel>
-                        <CFormInput
-                          value={studentData.address?.streetAddress || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              address: { ...studentData.address, streetAddress: e.target.value },
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="col-md-6">
-                        <CFormLabel>Residential Area</CFormLabel>
-                        <CFormInput
-                          value={studentData.address?.residentialArea || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              address: { ...studentData.address, residentialArea: e.target.value },
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div className="row mb-3">
-                      <div className="col-md-6">
-                        <CFormLabel>PO Box</CFormLabel>
-                        <CFormInput
-                          value={studentData.address?.poBox || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              address: { ...studentData.address, poBox: e.target.value },
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-                  </CAccordionBody>
-                </CAccordionItem>
-
-                {/* Citizenship Information */}
-                <CAccordionItem itemKey="student-citizenship">
-                  <CAccordionHeader>Citizenship Information</CAccordionHeader>
-                  <CAccordionBody>
-                    <div className="row mb-3">
-                      <div className="col-md-4">
-                        <CFormLabel>Nationality</CFormLabel>
-                        <CFormInput
-                          value={studentData.citizenship?.nationality || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              citizenship: { ...studentData.citizenship, nationality: e.target.value },
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="col-md-4">
-                        <CFormLabel>National ID</CFormLabel>
-                        <CFormInput
-                          value={studentData.citizenship?.nationalId || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              citizenship: { ...studentData.citizenship, nationalId: e.target.value },
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="col-md-4">
-                        <CFormLabel>National ID Expiry</CFormLabel>
-                        <CFormInput
-                          type="date"
-                          value={studentData.citizenship?.nationalIdExpiry || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              citizenship: { ...studentData.citizenship, nationalIdExpiry: e.target.value },
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-                  </CAccordionBody>
-                </CAccordionItem>
-
-                {/* Language Information */}
-                <CAccordionItem itemKey="student-language">
-                  <CAccordionHeader>Language Information</CAccordionHeader>
-                  <CAccordionBody>
-                    <div className="row mb-3">
-                      <div className="col-md-6">
-                        <CFormLabel>Primary Language</CFormLabel>
-                        <CFormInput
-                          value={studentData.language?.primary || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              language: { ...studentData.language, primary: e.target.value },
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="col-md-6">
-                        <CFormLabel>Secondary Language</CFormLabel>
-                        <CFormInput
-                          value={studentData.language?.secondary || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              language: { ...studentData.language, secondary: e.target.value },
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-                  </CAccordionBody>
-                </CAccordionItem>
-
-                {/* Schooling Information */}
-                <CAccordionItem itemKey="student-schooling">
-                  <CAccordionHeader>Schooling Information</CAccordionHeader>
-                  <CAccordionBody>
-                    <div className="row mb-3">
-                      <div className="col-md-6">
-                        <CFormLabel>Program</CFormLabel>
-                        <CFormInput
-                          value={studentData.schooling?.program || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              schooling: { ...studentData.schooling, program: e.target.value },
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="col-md-6">
-                        <CFormLabel>Returning Student Year</CFormLabel>
-                        <CFormInput
-                          value={studentData.schooling?.returningStudentYear || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              schooling: { ...studentData.schooling, returningStudentYear: e.target.value },
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div className="row mb-3">
-                      <div className="col-md-6">
-                        <CFormLabel>Day School Employer</CFormLabel>
-                        <CFormInput
-                          value={studentData.schooling?.daySchoolEmployer || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              schooling: { ...studentData.schooling, daySchoolEmployer: e.target.value },
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="col-md-6">
-                        <CFormLabel>Custody Details</CFormLabel>
-                        <CFormInput
-                          value={studentData.schooling?.custodyDetails || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              schooling: { ...studentData.schooling, custodyDetails: e.target.value },
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div className="row mb-3">
-                      <div className="col-md-12">
-                        <CFormLabel>Additional Notes</CFormLabel>
-                        <CFormTextarea
-                          rows={3}
-                          value={studentData.schooling?.notes || ''}
-                          onChange={(e) =>
-                            setStudentData({
-                              ...studentData,
-                              schooling: { ...studentData.schooling, notes: e.target.value },
-                            })
-                          }
-                          placeholder="Any additional information or notes"
-                        />
-                      </div>
-                    </div>
-                  </CAccordionBody>
-                </CAccordionItem>
-              </CAccordion>
-            </CForm>
-          )}
-
-          <div className="mt-4">
-            <CButton
-              color="success"
-              onClick={registerStudent}
-              disabled={loading || !studentCode || !studentData.personalInfo?.firstName || !studentData.personalInfo?.lastName || !studentData.personalInfo?.dob}
-              className="me-2"
-            >
-              {loading ? <CSpinner size="sm" className="me-2" /> : null}
-              Register Student
-            </CButton>
-            <CButton
-              color="info"
-              onClick={() => {
-                setStudentCode('');
-                setStudentData({
-                  personalInfo: {
-                    firstName: '',
-                    middleName: '',
-                    lastName: '',
-                    dob: '',
-                    gender: '',
-                    salutation: '',
-                    nickName: '',
-                  },
-                  address: {
-                    poBox: '',
-                    residentialArea: '',
-                    streetAddress: '',
-                  },
-                  citizenship: {
-                    nationalId: '',
-                    nationalIdExpiry: '',
-                    nationality: '',
-                  },
-                  contact: {
-                    email: '',
-                    emergencyPhone: '',
-                    phone1: '',
-                    phone2: '',
-                  },
-                  language: {
-                    primary: '',
-                    secondary: '',
-                  },
-                  schooling: {
-                    custodyDetails: '',
-                    daySchoolEmployer: '',
-                    notes: '',
-                    program: '',
-                    returningStudentYear: '',
-                  },
-                  active: true,
-                  primaryRole: 'Student',
-                  parents: {
-                    father: { name: '', tarbiyahId: '' },
-                    mother: { name: '', tarbiyahId: '' },
-                  },
-                });
-              }}
-              className="me-2"
-            >
-              Add Another Student
-            </CButton>
-            <CButton
-              color="primary"
-              onClick={() => {
-                addToast(successToast('Onboarding completed successfully! Welcome to Tarbiyah Learning Academy.'));
-                // Redirect to dashboard or login page
-              }}
-            >
-              Complete Onboarding
-            </CButton>
-          </div>
         </CCardBody>
       </CCard>
+
+      <div className="mt-3">
+        <CButton color="primary" onClick={() => setCurrentStep(forcePasswordChange ? 4 : 5)}>
+          {forcePasswordChange ? 'Continue to Set Password' : 'Review & Finish'}
+        </CButton>
+      </div>
     </div>
   );
+
+  const renderStep5 = () => (
+    <CCard>
+      <CCardHeader>
+        <h4>
+          <CIcon icon={cilCheckCircle} className="me-2" />
+          Confirm & Finish
+        </h4>
+      </CCardHeader>
+      <CCardBody>
+        <CAlert color="info">
+          Please review your information below. When ready, complete onboarding.
+        </CAlert>
+
+        <div className="mb-4">
+          <h5>Parent</h5>
+          <div className="row">
+            <div className="col-md-6">
+              <strong>Tarbiyah ID:</strong> {verificationData.tarbiyahId || verifiedParentId}
+            </div>
+            <div className="col-md-6">
+              <strong>Name:</strong> {parentData.personalInfo?.salutation} {parentData.personalInfo?.firstName} {parentData.personalInfo?.lastName}
+            </div>
+          </div>
+          <div className="row mt-2">
+            <div className="col-md-6">
+              <strong>Email:</strong> {parentData.contact?.email}
+            </div>
+            <div className="col-md-6">
+              <strong>Phone:</strong> {parentData.contact?.phone1}
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <h5>Students {(studentDocs?.length || 0) > 0 ? `(${studentDocs.length})` : ''}</h5>
+          <ul className="mb-0">
+            {(studentDocs || []).map((s) => (
+              <li key={`r-${s.id}`}>{s.data?.personalInfo?.firstName} {s.data?.personalInfo?.lastName} - ID: {s.data?.schoolId || s.id}</li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="mt-4 d-flex gap-2">
+          <CButton color="secondary" onClick={() => setCurrentStep(3)}>Back to Students</CButton>
+          <CButton
+            color="primary"
+            onClick={async () => {
+              try {
+                await updateDoc(doc(firestore, 'parents', verifiedParentId || verificationData.tarbiyahId), { onboarding: true, uploadedAt: serverTimestamp() })
+                addToast(successToast('Onboarding completed successfully! Welcome to Tarbiyah Learning Academy.'))
+                navigate('/dashboard')
+              } catch (e) {
+                addToast(errorToast('Failed to complete onboarding. Please try again.'))
+              }
+            }}
+          >
+            Complete Onboarding
+          </CButton>
+        </div>
+      </CCardBody>
+    </CCard>
+  )
 
   return (
     <>
@@ -1515,9 +1436,10 @@ const OnboardingPage = () => {
               {renderProgressBar()}
               
               {currentStep === 1 && renderStep1()}
-              {currentStep === 1.5 && renderStep1_5()}
               {currentStep === 2 && renderStep2()}
               {currentStep === 3 && renderStep3()}
+              {currentStep === 4 && renderStep4()}
+              {currentStep === 5 && renderStep5()}
             </div>
           </CCol>
         </CRow>
