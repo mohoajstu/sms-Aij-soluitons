@@ -45,7 +45,7 @@ import {
   serverTimestamp,
   getDoc,
 } from 'firebase/firestore'
-import { firestore } from 'src/firebase'
+import { auth, firestore } from 'src/firebase'
 import ApplicationDetailModal from './ApplicationDetailModal'
 import PaymentModal from './PaymentModal'
 import SendAcceptanceEmailModal from './SendAcceptanceEmailModal'
@@ -395,6 +395,24 @@ const RegistrationProcessingDashboard = () => {
             tarbiyahId: motherId,
             mustChangePassword: true,
           })
+          // Set temp password in Auth for new parent
+          try {
+            const token = await auth.currentUser?.getIdToken?.()
+            if (token) {
+              await fetch('https://northamerica-northeast1-tarbiyah-sms.cloudfunctions.net/setParentTempPassword', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ tarbiyahId: motherId }),
+              })
+            } else {
+              console.warn('No auth token available to call setParentTempPassword (mother)')
+            }
+          } catch (e) {
+            console.error('Failed to set temp password for mother via Cloud Function:', e)
+          }
         }
 
         // Father and Father's User documents (conditional)
@@ -491,6 +509,24 @@ const RegistrationProcessingDashboard = () => {
               tarbiyahId: fatherId,
               mustChangePassword: true,
             })
+            // Set temp password in Auth for new parent
+            try {
+              const token = await auth.currentUser?.getIdToken?.()
+              if (token) {
+                await fetch('https://northamerica-northeast1-tarbiyah-sms.cloudfunctions.net/setParentTempPassword', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({ tarbiyahId: fatherId }),
+                })
+              } else {
+                console.warn('No auth token available to call setParentTempPassword (father)')
+              }
+            } catch (e) {
+              console.error('Failed to set temp password for father via Cloud Function:', e)
+            }
           }
         }
       }

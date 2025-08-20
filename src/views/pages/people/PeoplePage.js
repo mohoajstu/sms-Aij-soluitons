@@ -180,6 +180,26 @@ const PeoplePage = () => {
       }
 
       await batch.commit();
+      // If a new parent was created, set temp password via Cloud Function
+      if (collectionName === 'parents' && modalType === 'create') {
+        try {
+          const idToken = await currentUser?.getIdToken?.();
+          if (idToken) {
+            await fetch('https://northamerica-northeast1-tarbiyah-sms.cloudfunctions.net/setParentTempPassword', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${idToken}`,
+              },
+              body: JSON.stringify({ tarbiyahId: documentId }),
+            });
+          } else {
+            console.warn('No auth token available to call setParentTempPassword');
+          }
+        } catch (e) {
+          console.error('Failed to set temp password via Cloud Function:', e);
+        }
+      }
       await fetchAllCollections();
       addToast(successToast(`${getSingularName(collectionName)} deleted successfully`));
     } catch (error) {
@@ -285,6 +305,11 @@ const PeoplePage = () => {
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         };
+
+        // Ensure parents created via People Management must change password on first login
+        if (collectionName === 'parents' && modalType === 'create') {
+          userDocPayload.mustChangePassword = true;
+        }
 
         console.log(`📝 Creating user document with ID: ${documentId} for ${roleMap[collectionName]}`);
         console.log('📝 User document payload:', userDocPayload);
@@ -1577,3 +1602,4 @@ const PeoplePage = () => {
 };
 
 export default PeoplePage; 
+
