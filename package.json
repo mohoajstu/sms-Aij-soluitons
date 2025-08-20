@@ -19,7 +19,9 @@
     "start": "vite",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "onboard": "node src/scripts/addOnboardingToParents.js"
+    "onboard": "node src/scripts/addOnboardingToParents.js",
+    "fb:config:push": "node scripts/push-firebase-config.js",
+    "fb:config:get": "npx --yes firebase functions:config:get | cat"
   },
   "dependencies": {
     "@coreui/chartjs": "^4.1.0",

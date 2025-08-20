@@ -5,9 +5,9 @@ const cors = require('cors')
 
 admin.initializeApp()
 
-const accountSid = functions.config().twilio.accountsid
-const authToken = functions.config().twilio.authtoken
-const twilioNumber = functions.config().twilio.phonenumber
+const accountSid = process.env.TWILIO_ACCOUNT_SID || functions.config().twilio?.accountsid
+const authToken = process.env.TWILIO_AUTH_TOKEN || functions.config().twilio?.authtoken
+const twilioNumber = process.env.TWILIO_PHONE_NUMBER || functions.config().twilio?.phonenumber
 
 const client = new twilio(accountSid, authToken)
 
