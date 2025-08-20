@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import {
   CCard,
   CCardBody,
@@ -9,7 +9,6 @@ import {
   CFormLabel,
   CFormSelect,
   CFormTextarea,
-  CFormCheck,
   CRow,
   CButton,
   CButtonGroup,
@@ -20,6 +19,8 @@ import {
   CAccordionBody,
   CSpinner,
 } from '@coreui/react'
+import useCurrentTeacher from '../../../hooks/useCurrentTeacher'
+import SaveButton from '../../../components/SaveButton'
 import {
   cilBook,
   cilLightbulb,
@@ -142,6 +143,8 @@ SignaturePad.propTypes = {
  * Modern form section for student and school details
  */
 const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
+  const { teacherName, loading } = useCurrentTeacher()
+
   const handleInputChange = (e) => {
     const { name, value } = e.target
     onFormDataChange({
@@ -149,6 +152,16 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
       [name]: value,
     })
   }
+
+  // Auto-populate teacher name when component mounts or teacher name changes
+  useEffect(() => {
+    if (teacherName && !formData.teacher) {
+      onFormDataChange({
+        ...formData,
+        teacher: teacherName,
+      })
+    }
+  }, [teacherName, formData.teacher, onFormDataChange])
 
   return (
     <div>
@@ -167,7 +180,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               name="student"
               value={formData.student || ''}
               onChange={handleInputChange}
-              placeholder="Enter student's full name"
+              placeholder="Enter student name"
               required
             />
           </div>
@@ -179,7 +192,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               name="OEN"
               value={formData.OEN || ''}
               onChange={handleInputChange}
-              placeholder="9-digit OEN"
+              placeholder="Enter OEN"
               maxLength={9}
               required
             />
@@ -209,10 +222,11 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               id="teacher"
               name="teacher"
-              value={formData.teacher || ''}
+              value={formData.teacher || teacherName || ''}
               onChange={handleInputChange}
-              placeholder="Enter teacher's name"
+              placeholder={loading ? 'Loading...' : "Enter teacher's name"}
               required
+              disabled={loading}
             />
           </div>
         </CCol>
@@ -327,9 +341,11 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               name="daysAbsent"
               value={formData.daysAbsent || ''}
               onChange={handleInputChange}
-              placeholder="0"
+              placeholder="Will be auto-filled"
               type="number"
               min="0"
+              readOnly
+              className="bg-light"
             />
           </div>
         </CCol>
@@ -342,9 +358,11 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               name="totalDaysAbsent"
               value={formData.totalDaysAbsent || ''}
               onChange={handleInputChange}
-              placeholder="0"
+              placeholder="Will be auto-filled"
               type="number"
               min="0"
+              readOnly
+              className="bg-light"
             />
           </div>
         </CCol>
@@ -357,9 +375,11 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               name="timesLate"
               value={formData.timesLate || ''}
               onChange={handleInputChange}
-              placeholder="0"
+              placeholder="Will be auto-filled"
               type="number"
               min="0"
+              readOnly
+              className="bg-light"
             />
           </div>
         </CCol>
@@ -372,9 +392,11 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               name="totalTimesLate"
               value={formData.totalTimesLate || ''}
               onChange={handleInputChange}
-              placeholder="0"
+              placeholder="Will be auto-filled"
               type="number"
               min="0"
+              readOnly
+              className="bg-light"
             />
           </div>
         </CCol>
@@ -747,15 +769,24 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                       const label = accommodationLabels[accommodationType] || field
 
                       return (
-                        <CFormCheck
-                          key={field}
-                          id={field}
-                          name={field}
-                          label={label}
-                          checked={formData[field] || false}
-                          onChange={handleInputChange}
-                          className="me-3"
-                        />
+                        <div key={field} className="me-3">
+                          <input
+                            type="checkbox"
+                            id={field}
+                            name={field}
+                            checked={formData[field] || false}
+                            onChange={handleInputChange}
+                            style={{
+                              width: '16px',
+                              height: '16px',
+                              marginRight: '8px',
+                              cursor: 'pointer',
+                            }}
+                          />
+                          <label htmlFor={field} style={{ cursor: 'pointer', marginBottom: '0' }}>
+                            {label}
+                          </label>
+                        </div>
                       )
                     })}
                   </div>
@@ -779,15 +810,24 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                       const label = performanceLabels[performanceType] || field
 
                       return (
-                        <CFormCheck
-                          key={field}
-                          id={field}
-                          name={field}
-                          label={label}
-                          checked={formData[field] || false}
-                          onChange={handleInputChange}
-                          className="me-3"
-                        />
+                        <div key={field} className="me-3">
+                          <input
+                            type="checkbox"
+                            id={field}
+                            name={field}
+                            checked={formData[field] || false}
+                            onChange={handleInputChange}
+                            style={{
+                              width: '16px',
+                              height: '16px',
+                              marginRight: '8px',
+                              cursor: 'pointer',
+                            }}
+                          />
+                          <label htmlFor={field} style={{ cursor: 'pointer', marginBottom: '0' }}>
+                            {label}
+                          </label>
+                        </div>
                       )
                     })}
                   </div>
@@ -970,6 +1010,11 @@ const Elementary1to6ProgressUI = ({
   onFormDataChange,
   loading = false,
   error = null,
+  onSaveDraft,
+  isSaving,
+  saveMessage,
+  selectedStudent,
+  selectedReportCard,
 }) => {
   const [activeAccordion, setActiveAccordion] = useState([
     'student-info',
@@ -1015,39 +1060,74 @@ const Elementary1to6ProgressUI = ({
           onActiveItemChange={handleAccordionChange}
         >
           <CAccordionItem itemKey="student-info">
-            <CAccordionHeader>Student & School Information</CAccordionHeader>
+            <CAccordionHeader>
+              <div className="d-flex justify-content-between align-items-center w-100 me-3">
+                <span>Student & School Information</span>
+                <SaveButton
+                  onSave={onSaveDraft}
+                  isSaving={isSaving}
+                  saveMessage={saveMessage}
+                  disabled={!selectedStudent || !selectedReportCard}
+                  className="ms-auto"
+                />
+              </div>
+            </CAccordionHeader>
             <CAccordionBody>
               <StudentSchoolInfoSection formData={formData} onFormDataChange={onFormDataChange} />
             </CAccordionBody>
           </CAccordionItem>
 
           <CAccordionItem itemKey="learning-skills">
-            <CAccordionHeader>Learning Skills & Work Habits</CAccordionHeader>
+            <CAccordionHeader>
+              <div className="d-flex justify-content-between align-items-center w-100 me-3">
+                <span>Learning Skills & Work Habits</span>
+                <SaveButton
+                  onSave={onSaveDraft}
+                  isSaving={isSaving}
+                  saveMessage={saveMessage}
+                  disabled={!selectedStudent || !selectedReportCard}
+                  className="ms-auto"
+                />
+              </div>
+            </CAccordionHeader>
             <CAccordionBody>
-              <LearningSkillsSection
-                formData={formData}
-                onFormDataChange={onFormDataChange}
-              />
+              <LearningSkillsSection formData={formData} onFormDataChange={onFormDataChange} />
             </CAccordionBody>
           </CAccordionItem>
 
           <CAccordionItem itemKey="subject-areas">
-            <CAccordionHeader>Subject Areas</CAccordionHeader>
+            <CAccordionHeader>
+              <div className="d-flex justify-content-between align-items-center w-100 me-3">
+                <span>Subject Areas</span>
+                <SaveButton
+                  onSave={onSaveDraft}
+                  isSaving={isSaving}
+                  saveMessage={saveMessage}
+                  disabled={!selectedStudent || !selectedReportCard}
+                  className="ms-auto"
+                />
+              </div>
+            </CAccordionHeader>
             <CAccordionBody>
-              <SubjectAreasSection
-                formData={formData}
-                onFormDataChange={onFormDataChange}
-              />
+              <SubjectAreasSection formData={formData} onFormDataChange={onFormDataChange} />
             </CAccordionBody>
           </CAccordionItem>
 
           <CAccordionItem itemKey="comments-signatures">
-            <CAccordionHeader>Comments & Signatures</CAccordionHeader>
+            <CAccordionHeader>
+              <div className="d-flex justify-content-between align-items-center w-100 me-3">
+                <span>Comments & Signatures</span>
+                <SaveButton
+                  onSave={onSaveDraft}
+                  isSaving={isSaving}
+                  saveMessage={saveMessage}
+                  disabled={!selectedStudent || !selectedReportCard}
+                  className="ms-auto"
+                />
+              </div>
+            </CAccordionHeader>
             <CAccordionBody>
-              <CommentsSignaturesSection
-                formData={formData}
-                onFormDataChange={onFormDataChange}
-              />
+              <CommentsSignaturesSection formData={formData} onFormDataChange={onFormDataChange} />
             </CAccordionBody>
           </CAccordionItem>
         </CAccordion>

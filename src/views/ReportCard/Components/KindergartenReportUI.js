@@ -6,7 +6,6 @@ import {
   CAccordionItem,
   CCard,
   CCardBody,
-  CFormCheck,
   CRow,
   CCol,
   CFormInput,
@@ -17,12 +16,33 @@ import LearningSection from './LearningSection'
 import EarlyReadingScreeningSection from './EarlyReadingScreeningSection'
 import SignatureSection from './SignatureSection'
 import AIReportCommentInput from '../../../components/AIReportCommentInput'
+import useCurrentTeacher from '../../../hooks/useCurrentTeacher'
+import SaveButton from '../../../components/SaveButton'
 import './KindergartenReportCardUI.css'
 
-const KindergartenReportUI = ({ formData, onFormDataChange, loading, error }) => {
+const KindergartenReportUI = ({
+  formData,
+  onFormDataChange,
+  loading,
+  error,
+  onSaveDraft,
+  isSaving,
+  saveMessage,
+  selectedStudent,
+  selectedReportCard,
+}) => {
+  const { teacherName, loading: teacherLoading } = useCurrentTeacher()
+
   const handleInputChange = (e) => {
     onFormDataChange({ ...formData, [e.target.name]: e.target.value })
   }
+
+  // Auto-populate teacher name when component mounts or teacher name changes
+  useEffect(() => {
+    if (teacherName && !formData.teacher) {
+      onFormDataChange({ ...formData, teacher: teacherName })
+    }
+  }, [teacherName, formData.teacher, onFormDataChange])
 
   const handleCheckboxChange = (e) => {
     const { name, checked } = e.target
@@ -67,6 +87,26 @@ const KindergartenReportUI = ({ formData, onFormDataChange, loading, error }) =>
     }
   }, [formData.date, onFormDataChange])
 
+  // Auto-populate grade level based on student's grade
+  useEffect(() => {
+    if (formData.grade && !formData.year1 && !formData.year2) {
+      const grade = formData.grade.toLowerCase()
+      let newFormData = { ...formData }
+
+      if (grade.includes('1') || grade.includes('year 1') || grade.includes('grade 1')) {
+        newFormData.year1 = true
+        newFormData.year2 = false
+      } else if (grade.includes('2') || grade.includes('year 2') || grade.includes('grade 2')) {
+        newFormData.year1 = false
+        newFormData.year2 = true
+      }
+
+      if (newFormData.year1 !== formData.year1 || newFormData.year2 !== formData.year2) {
+        onFormDataChange(newFormData)
+      }
+    }
+  }, [formData.grade]) // Only depend on grade, not on year1/year2 to avoid interference
+
   if (loading) {
     return <div>Loading...</div>
   }
@@ -105,86 +145,119 @@ const KindergartenReportUI = ({ formData, onFormDataChange, loading, error }) =>
   return (
     <CAccordion alwaysOpen>
       <CAccordionItem itemKey={1}>
-        <CAccordionHeader>Student & School Information</CAccordionHeader>
+        <CAccordionHeader>
+          <div className="d-flex justify-content-between align-items-center w-100 me-3">
+            <span>Student & School Information</span>
+            <SaveButton
+              onSave={onSaveDraft}
+              isSaving={isSaving}
+              saveMessage={saveMessage}
+              disabled={!selectedStudent || !selectedReportCard}
+              className="ms-auto"
+            />
+          </div>
+        </CAccordionHeader>
         <CAccordionBody>
-        <CRow className="mb-3">
-          <CCol md={{ span: 4, offset: 8 }}>
+          <CRow className="mb-3">
+            <CCol md={{ span: 4, offset: 8 }}>
               <CFormLabel htmlFor="date">Date</CFormLabel>
-            <CFormInput
-              type="date"
-              id="date"
-              name="date"
-              value={formData.date || ''}
-              onChange={handleInputChange}
-            />
-          </CCol>
-        </CRow>
+              <CFormInput
+                type="date"
+                id="date"
+                name="date"
+                value={formData.date || ''}
+                onChange={handleInputChange}
+              />
+            </CCol>
+          </CRow>
 
-        <CRow className="mb-3">
-          <CCol md={6}>
+          <CRow className="mb-3">
+            <CCol md={6}>
               <CFormLabel htmlFor="student">Student</CFormLabel>
-            <CFormInput
-              type="text"
-              id="student"
-              name="student"
-              value={formData.student || ''}
-              onChange={handleInputChange}
-            />
-          </CCol>
-          <CCol md={2}>
+              <CFormInput
+                type="text"
+                id="student"
+                name="student"
+                value={formData.student || ''}
+                onChange={handleInputChange}
+                placeholder="Enter student name"
+              />
+            </CCol>
+            <CCol md={2}>
               <CFormLabel htmlFor="OEN">OEN</CFormLabel>
-            <CFormInput
-              type="text"
-              id="OEN"
-              name="OEN"
-              value={formData.OEN || ''}
-              onChange={handleInputChange}
-            />
-          </CCol>
-          <CCol md={2}>
+              <CFormInput
+                type="text"
+                id="OEN"
+                name="OEN"
+                value={formData.OEN || ''}
+                onChange={handleInputChange}
+                placeholder="Enter OEN"
+              />
+            </CCol>
+            <CCol md={2}>
               <CFormLabel htmlFor="daysAbsent">Days Absent</CFormLabel>
-            <CFormInput
-              type="number"
-              id="daysAbsent"
-              name="daysAbsent"
-              value={formData.daysAbsent || ''}
-              onChange={handleInputChange}
-            />
-          </CCol>
-          <CCol md={2}>
+              <CFormInput
+                type="number"
+                id="daysAbsent"
+                name="daysAbsent"
+                value={formData.daysAbsent || ''}
+                onChange={handleInputChange}
+                placeholder="Enter days absent"
+              />
+            </CCol>
+            <CCol md={2}>
               <CFormLabel htmlFor="totalDaysAbsent">Total Days Absent</CFormLabel>
-            <CFormInput
-              type="number"
-              id="totalDaysAbsent"
-              name="totalDaysAbsent"
-              value={formData.totalDaysAbsent || ''}
-              onChange={handleInputChange}
-            />
-          </CCol>
-        </CRow>
+              <CFormInput
+                type="number"
+                id="totalDaysAbsent"
+                name="totalDaysAbsent"
+                value={formData.totalDaysAbsent || ''}
+                onChange={handleInputChange}
+                placeholder="Enter total days absent"
+              />
+            </CCol>
+          </CRow>
 
           <CRow className="mb-3 align-items-end">
             <CCol md={4} className="d-flex align-items-center">
               <CFormLabel className="me-3 mb-0">Year:</CFormLabel>
-            <CFormCheck
-              inline
-              type="checkbox"
-              id="year1"
-              name="year1"
-              label="1"
-              checked={formData.year1 || false}
-              onChange={handleCheckboxChange}
-            />
-            <CFormCheck
-              inline
-              type="checkbox"
-              id="year2"
-              name="year2"
-              label="2"
-              checked={formData.year2 || false}
-              onChange={handleCheckboxChange}
-            />
-          </CCol>
+              <div className="me-2">
+                <input
+                  type="checkbox"
+                  id="year1"
+                  name="year1"
+                  checked={formData.year1 || false}
+                  onChange={handleCheckboxChange}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    marginRight: '8px',
+                    cursor: 'pointer',
+                  }}
+                />
+                <label htmlFor="year1" style={{ cursor: 'pointer', marginBottom: '0' }}>
+                  1
+                </label>
+              </div>
+              <div>
+                <input
+                  type="checkbox"
+                  id="year2"
+                  name="year2"
+                  checked={formData.year2 || false}
+                  onChange={handleCheckboxChange}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    marginRight: '8px',
+                    cursor: 'pointer',
+                  }}
+                />
+                <label htmlFor="year2" style={{ cursor: 'pointer', marginBottom: '0' }}>
+                  2
+                </label>
+              </div>
+            </CCol>
             <CCol md={4}>
               <CFormLabel htmlFor="timesLate">Times Late</CFormLabel>
               <CFormInput
@@ -193,6 +266,9 @@ const KindergartenReportUI = ({ formData, onFormDataChange, loading, error }) =>
                 name="timesLate"
                 value={formData.timesLate || ''}
                 onChange={handleInputChange}
+                placeholder="Will be auto-filled"
+                readOnly
+                className="bg-light"
               />
             </CCol>
             <CCol md={4}>
@@ -203,6 +279,9 @@ const KindergartenReportUI = ({ formData, onFormDataChange, loading, error }) =>
                 name="totalTimesLate"
                 value={formData.totalTimesLate || ''}
                 onChange={handleInputChange}
+                placeholder="Will be auto-filled"
+                readOnly
+                className="bg-light"
               />
             </CCol>
           </CRow>
@@ -210,127 +289,156 @@ const KindergartenReportUI = ({ formData, onFormDataChange, loading, error }) =>
           <CRow className="mb-3 align-items-center">
             <CCol md={12} className="d-flex align-items-center">
               <CFormLabel className="me-3 mb-0">French:</CFormLabel>
-            <CFormCheck
-              inline
-              type="checkbox"
-              id="frenchImmersion"
-              name="frenchImmersion"
-              label="Immersion"
-              checked={formData.frenchImmersion || false}
-              onChange={handleCheckboxChange}
-            />
-            <CFormCheck
-              inline
-              type="checkbox"
-              id="frenchCore"
-              name="frenchCore"
-              label="Core"
-              checked={formData.frenchCore || false}
-              onChange={handleCheckboxChange}
-            />
-            <CFormCheck
-              inline
-              type="checkbox"
-              id="frenchExtended"
-              name="frenchExtended"
-              label="Extended"
-              checked={formData.frenchExtended || false}
-              onChange={handleCheckboxChange}
-            />
-          </CCol>
-        </CRow>
+              <div className="me-3">
+                <input
+                  type="checkbox"
+                  id="frenchImmersion"
+                  name="frenchImmersion"
+                  checked={formData.frenchImmersion || false}
+                  onChange={handleCheckboxChange}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    marginRight: '8px',
+                    cursor: 'pointer',
+                  }}
+                />
+                <label htmlFor="frenchImmersion" style={{ cursor: 'pointer', marginBottom: '0' }}>
+                  Immersion
+                </label>
+              </div>
+              <div className="me-3">
+                <input
+                  type="checkbox"
+                  id="frenchCore"
+                  name="frenchCore"
+                  checked={formData.frenchCore || false}
+                  onChange={handleCheckboxChange}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    marginRight: '8px',
+                    cursor: 'pointer',
+                  }}
+                />
+                <label htmlFor="frenchCore" style={{ cursor: 'pointer', marginBottom: '0' }}>
+                  Core
+                </label>
+              </div>
+              <div>
+                <input
+                  type="checkbox"
+                  id="frenchExtended"
+                  name="frenchExtended"
+                  checked={formData.frenchExtended || false}
+                  onChange={handleCheckboxChange}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    marginRight: '8px',
+                    cursor: 'pointer',
+                  }}
+                />
+                <label htmlFor="frenchExtended" style={{ cursor: 'pointer', marginBottom: '0' }}>
+                  Extended
+                </label>
+              </div>
+            </CCol>
+          </CRow>
 
-        <CRow className="mb-3">
-          <CCol md={6}>
+          <CRow className="mb-3">
+            <CCol md={6}>
               <CFormLabel htmlFor="teacher">Teacher</CFormLabel>
-            <CFormInput
-              type="text"
-              id="teacher"
-              name="teacher"
-              value={formData.teacher || ''}
-              onChange={handleInputChange}
-            />
-          </CCol>
-          <CCol md={6}>
-              <CFormLabel htmlFor="earlyChildhoodEducator">Early Childhood Educator</CFormLabel>
-            <CFormInput
-              type="text"
-              id="earlyChildhoodEducator"
-              name="earlyChildhoodEducator"
-              value={formData.earlyChildhoodEducator || ''}
-              onChange={handleInputChange}
-            />
-          </CCol>
-        </CRow>
-
-        <CRow className="mb-3">
-          <CCol md={6}>
-              <CFormLabel htmlFor="school">School</CFormLabel>
-            <CFormInput
-              type="text"
-              id="school"
-              name="school"
-              value={formData.school || ''}
-              onChange={handleInputChange}
-            />
-          </CCol>
-          <CCol md={6}>
-              <CFormLabel htmlFor="board">Board</CFormLabel>
-            <CFormInput
-              type="text"
-              id="board"
-              name="board"
-              value={formData.board || ''}
-              onChange={handleInputChange}
-            />
-          </CCol>
-        </CRow>
-
-        <CRow className="mb-3">
-          <CCol md={6}>
-              <CFormLabel htmlFor="schoolAddress">Address</CFormLabel>
-            <CFormInput
-              type="text"
-              id="schoolAddress"
-              name="schoolAddress"
-              value={formData.schoolAddress || ''}
-              onChange={handleInputChange}
-            />
-          </CCol>
-          <CCol md={6}>
-              <CFormLabel htmlFor="boardAddress">Address</CFormLabel>
-            <CFormInput
-              type="text"
-              id="boardAddress"
-              name="boardAddress"
-              value={formData.boardAddress || ''}
-              onChange={handleInputChange}
-            />
-          </CCol>
-        </CRow>
-
-        <CRow className="mb-3">
-          <CCol md={6}>
-              <CFormLabel htmlFor="principal">Principal</CFormLabel>
-            <CFormInput
-              type="text"
-              id="principal"
-              name="principal"
-              value={formData.principal || ''}
-              onChange={handleInputChange}
-            />
-          </CCol>
-          <CCol md={6}>
-              <CFormLabel htmlFor="telephone">Tel.</CFormLabel>
-            <CFormInput
-              type="tel"
-              id="telephone"
-              name="telephone"
-              value={formData.telephone || ''}
-              onChange={handleInputChange}
+              <CFormInput
+                type="text"
+                id="teacher"
+                name="teacher"
+                value={formData.teacher || teacherName || ''}
+                onChange={handleInputChange}
+                placeholder={teacherLoading ? 'Loading...' : "Enter teacher's name"}
+                disabled={teacherLoading}
               />
-          </CCol>
-        </CRow>
+            </CCol>
+            <CCol md={6}>
+              <CFormLabel htmlFor="earlyChildhoodEducator">Early Childhood Educator</CFormLabel>
+              <CFormInput
+                type="text"
+                id="earlyChildhoodEducator"
+                name="earlyChildhoodEducator"
+                value={formData.earlyChildhoodEducator || ''}
+                onChange={handleInputChange}
+              />
+            </CCol>
+          </CRow>
+
+          <CRow className="mb-3">
+            <CCol md={6}>
+              <CFormLabel htmlFor="school">School</CFormLabel>
+              <CFormInput
+                type="text"
+                id="school"
+                name="school"
+                value={formData.school || ''}
+                onChange={handleInputChange}
+              />
+            </CCol>
+            <CCol md={6}>
+              <CFormLabel htmlFor="board">Board</CFormLabel>
+              <CFormInput
+                type="text"
+                id="board"
+                name="board"
+                value={formData.board || ''}
+                onChange={handleInputChange}
+              />
+            </CCol>
+          </CRow>
+
+          <CRow className="mb-3">
+            <CCol md={6}>
+              <CFormLabel htmlFor="schoolAddress">Address</CFormLabel>
+              <CFormInput
+                type="text"
+                id="schoolAddress"
+                name="schoolAddress"
+                value={formData.schoolAddress || ''}
+                onChange={handleInputChange}
+              />
+            </CCol>
+            <CCol md={6}>
+              <CFormLabel htmlFor="boardAddress">Address</CFormLabel>
+              <CFormInput
+                type="text"
+                id="boardAddress"
+                name="boardAddress"
+                value={formData.boardAddress || ''}
+                onChange={handleInputChange}
+              />
+            </CCol>
+          </CRow>
+
+          <CRow className="mb-3">
+            <CCol md={6}>
+              <CFormLabel htmlFor="principal">Principal</CFormLabel>
+              <CFormInput
+                type="text"
+                id="principal"
+                name="principal"
+                value={formData.principal || ''}
+                onChange={handleInputChange}
+              />
+            </CCol>
+            <CCol md={6}>
+              <CFormLabel htmlFor="telephone">Tel.</CFormLabel>
+              <CFormInput
+                type="tel"
+                id="telephone"
+                name="telephone"
+                value={formData.telephone || ''}
+                onChange={handleInputChange}
+              />
+            </CCol>
+          </CRow>
           <PlacementSection formData={formData} onCheckboxChange={handleCheckboxChange} />
         </CAccordionBody>
       </CAccordionItem>
@@ -341,24 +449,57 @@ const KindergartenReportUI = ({ formData, onFormDataChange, loading, error }) =>
             <CRow className="w-100 align-items-center">
               <CCol>{section.title}</CCol>
               <CCol xs="auto">
-          <CFormCheck
-            inline
-            type="checkbox"
-                  id={section.eslFieldName}
-                  name={section.eslFieldName}
-            label="ESL"
-                  checked={formData[section.eslFieldName] || false}
-                  onChange={handleCheckboxChange}
-          />
-          <CFormCheck
-            inline
-            type="checkbox"
-                  id={section.iepFieldName}
-                  name={section.iepFieldName}
-            label="IEP"
-                  checked={formData[section.iepFieldName] || false}
-                  onChange={handleCheckboxChange}
+                <SaveButton
+                  onSave={onSaveDraft}
+                  isSaving={isSaving}
+                  saveMessage={saveMessage}
+                  disabled={!selectedStudent || !selectedReportCard}
+                  className="me-2"
                 />
+              </CCol>
+              <CCol xs="auto">
+                <div className="me-2">
+                  <input
+                    type="checkbox"
+                    id={section.eslFieldName}
+                    name={section.eslFieldName}
+                    checked={formData[section.eslFieldName] || false}
+                    onChange={handleCheckboxChange}
+                    style={{
+                      width: '16px',
+                      height: '16px',
+                      marginRight: '8px',
+                      cursor: 'pointer',
+                    }}
+                  />
+                  <label
+                    htmlFor={section.eslFieldName}
+                    style={{ cursor: 'pointer', marginBottom: '0' }}
+                  >
+                    ESL
+                  </label>
+                </div>
+                <div>
+                  <input
+                    type="checkbox"
+                    id={section.iepFieldName}
+                    name={section.iepFieldName}
+                    checked={formData[section.iepFieldName] || false}
+                    onChange={handleCheckboxChange}
+                    style={{
+                      width: '16px',
+                      height: '16px',
+                      marginRight: '8px',
+                      cursor: 'pointer',
+                    }}
+                  />
+                  <label
+                    htmlFor={section.iepFieldName}
+                    style={{ cursor: 'pointer', marginBottom: '0' }}
+                  >
+                    IEP
+                  </label>
+                </div>
               </CCol>
             </CRow>
           </CAccordionHeader>
@@ -377,21 +518,41 @@ const KindergartenReportUI = ({ formData, onFormDataChange, loading, error }) =>
       ))}
 
       <CAccordionItem itemKey={learningSections.length + 2}>
-          <CAccordionHeader>
-          Early Reading Screening (ERS) for Year 2 of Kindergarten Only
-          </CAccordionHeader>
-          <CAccordionBody>
+        <CAccordionHeader>
+          <div className="d-flex justify-content-between align-items-center w-100 me-3">
+            <span>Early Reading Screening (ERS) for Year 2 of Kindergarten Only</span>
+            <SaveButton
+              onSave={onSaveDraft}
+              isSaving={isSaving}
+              saveMessage={saveMessage}
+              disabled={!selectedStudent || !selectedReportCard}
+              className="ms-auto"
+            />
+          </div>
+        </CAccordionHeader>
+        <CAccordionBody>
           <EarlyReadingScreeningSection formData={formData} onFormDataChange={onFormDataChange} />
-          </CAccordionBody>
-        </CAccordionItem>
+        </CAccordionBody>
+      </CAccordionItem>
       <CAccordionItem itemKey={learningSections.length + 3}>
-        <CAccordionHeader>Signatures</CAccordionHeader>
-          <CAccordionBody>
+        <CAccordionHeader>
+          <div className="d-flex justify-content-between align-items-center w-100 me-3">
+            <span>Signatures</span>
+            <SaveButton
+              onSave={onSaveDraft}
+              isSaving={isSaving}
+              saveMessage={saveMessage}
+              disabled={!selectedStudent || !selectedReportCard}
+              className="ms-auto"
+            />
+          </div>
+        </CAccordionHeader>
+        <CAccordionBody>
           <SignatureSection formData={formData} onFormDataChange={onFormDataChange} />
-          </CAccordionBody>
-        </CAccordionItem>
-      </CAccordion>
+        </CAccordionBody>
+      </CAccordionItem>
+    </CAccordion>
   )
 }
 
-export default KindergartenReportUI 
+export default KindergartenReportUI
