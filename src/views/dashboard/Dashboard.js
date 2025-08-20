@@ -236,20 +236,6 @@ const Dashboard = () => {
       }
     ]
 
-    if (isAdmin) {
-      baseActions.push({
-        id: 3,
-        icon: cilCalendar,
-        iconClass: 'event-icon',
-        title: 'Upcoming Event',
-        description: 'Parent-Teacher Meeting (Feb 14)',
-        buttonText: 'View Details',
-        buttonColor: 'info',
-        onClick: () => navigate('/events')
-      })
-    }
-    // Faculty users don't get the "Upcoming Event" section
-
     return baseActions
   }
 
@@ -339,7 +325,7 @@ const Dashboard = () => {
                     <p className="stat-label">ACTIVE STUDENTS</p>
                   </div>
                 </CCardBody>
-                <CCardFooter className="stat-footer" onClick={() => navigate('/students')}>
+                <CCardFooter className="stat-footer" onClick={() => navigate('/people')}>
                   <span>View Student Directory</span>
                   <CIcon icon={cilArrowRight} />
                 </CCardFooter>
@@ -359,7 +345,7 @@ const Dashboard = () => {
                     <p className="stat-label">ACTIVE FACULTY</p>
                   </div>
                 </CCardBody>
-                <CCardFooter className="stat-footer" onClick={() => navigate('/faculty')}>
+                <CCardFooter className="stat-footer" onClick={() => navigate('/people')}>
                   <span>View Faculty</span>
                   <CIcon icon={cilArrowRight} />
                 </CCardFooter>
