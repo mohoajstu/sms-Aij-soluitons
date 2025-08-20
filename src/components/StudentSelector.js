@@ -49,7 +49,7 @@ const StudentSelector = ({
               firstName,
               lastName,
               grade: data.schooling?.program || data.personalInfo?.grade || data.grade || '',
-              oen: data.personalInfo?.oen || data.oen || data.schoolId || '', // Fall back to schoolId if no OEN
+              oen: data.personalInfo?.oen || data.oen || '', // Only use actual OEN, no fallback to schoolId
               schoolId: data.personalInfo?.schoolId || data.schoolId || data.tarbiyahId || doc.id,
               // Attendance data
               currentTermAbsenceCount: data.attendanceStats?.currentTermAbsenceCount || 0,

@@ -17,9 +17,20 @@ import EarlyReadingScreeningSection from './EarlyReadingScreeningSection'
 import SignatureSection from './SignatureSection'
 import AIReportCommentInput from '../../../components/AIReportCommentInput'
 import useCurrentTeacher from '../../../hooks/useCurrentTeacher'
+import SaveButton from '../../../components/SaveButton'
 import './KindergartenReportCardUI.css'
 
-const KindergartenReportUI = ({ formData, onFormDataChange, loading, error }) => {
+const KindergartenReportUI = ({
+  formData,
+  onFormDataChange,
+  loading,
+  error,
+  onSaveDraft,
+  isSaving,
+  saveMessage,
+  selectedStudent,
+  selectedReportCard,
+}) => {
   const { teacherName, loading: teacherLoading } = useCurrentTeacher()
 
   const handleInputChange = (e) => {
@@ -134,7 +145,18 @@ const KindergartenReportUI = ({ formData, onFormDataChange, loading, error }) =>
   return (
     <CAccordion alwaysOpen>
       <CAccordionItem itemKey={1}>
-        <CAccordionHeader>Student & School Information</CAccordionHeader>
+        <CAccordionHeader>
+          <div className="d-flex justify-content-between align-items-center w-100 me-3">
+            <span>Student & School Information</span>
+            <SaveButton
+              onSave={onSaveDraft}
+              isSaving={isSaving}
+              saveMessage={saveMessage}
+              disabled={!selectedStudent || !selectedReportCard}
+              className="ms-auto"
+            />
+          </div>
+        </CAccordionHeader>
         <CAccordionBody>
           <CRow className="mb-3">
             <CCol md={{ span: 4, offset: 8 }}>
@@ -158,9 +180,7 @@ const KindergartenReportUI = ({ formData, onFormDataChange, loading, error }) =>
                 name="student"
                 value={formData.student || ''}
                 onChange={handleInputChange}
-                placeholder="Student name will be auto-filled"
-                readOnly
-                className="bg-light"
+                placeholder="Enter student name"
               />
             </CCol>
             <CCol md={2}>
@@ -171,9 +191,7 @@ const KindergartenReportUI = ({ formData, onFormDataChange, loading, error }) =>
                 name="OEN"
                 value={formData.OEN || ''}
                 onChange={handleInputChange}
-                placeholder="OEN will be auto-filled"
-                readOnly
-                className="bg-light"
+                placeholder="Enter OEN"
               />
             </CCol>
             <CCol md={2}>
@@ -184,9 +202,7 @@ const KindergartenReportUI = ({ formData, onFormDataChange, loading, error }) =>
                 name="daysAbsent"
                 value={formData.daysAbsent || ''}
                 onChange={handleInputChange}
-                placeholder="Will be auto-filled"
-                readOnly
-                className="bg-light"
+                placeholder="Enter days absent"
               />
             </CCol>
             <CCol md={2}>
@@ -197,9 +213,7 @@ const KindergartenReportUI = ({ formData, onFormDataChange, loading, error }) =>
                 name="totalDaysAbsent"
                 value={formData.totalDaysAbsent || ''}
                 onChange={handleInputChange}
-                placeholder="Will be auto-filled"
-                readOnly
-                className="bg-light"
+                placeholder="Enter total days absent"
               />
             </CCol>
           </CRow>
@@ -435,6 +449,15 @@ const KindergartenReportUI = ({ formData, onFormDataChange, loading, error }) =>
             <CRow className="w-100 align-items-center">
               <CCol>{section.title}</CCol>
               <CCol xs="auto">
+                <SaveButton
+                  onSave={onSaveDraft}
+                  isSaving={isSaving}
+                  saveMessage={saveMessage}
+                  disabled={!selectedStudent || !selectedReportCard}
+                  className="me-2"
+                />
+              </CCol>
+              <CCol xs="auto">
                 <div className="me-2">
                   <input
                     type="checkbox"
@@ -496,14 +519,34 @@ const KindergartenReportUI = ({ formData, onFormDataChange, loading, error }) =>
 
       <CAccordionItem itemKey={learningSections.length + 2}>
         <CAccordionHeader>
-          Early Reading Screening (ERS) for Year 2 of Kindergarten Only
+          <div className="d-flex justify-content-between align-items-center w-100 me-3">
+            <span>Early Reading Screening (ERS) for Year 2 of Kindergarten Only</span>
+            <SaveButton
+              onSave={onSaveDraft}
+              isSaving={isSaving}
+              saveMessage={saveMessage}
+              disabled={!selectedStudent || !selectedReportCard}
+              className="ms-auto"
+            />
+          </div>
         </CAccordionHeader>
         <CAccordionBody>
           <EarlyReadingScreeningSection formData={formData} onFormDataChange={onFormDataChange} />
         </CAccordionBody>
       </CAccordionItem>
       <CAccordionItem itemKey={learningSections.length + 3}>
-        <CAccordionHeader>Signatures</CAccordionHeader>
+        <CAccordionHeader>
+          <div className="d-flex justify-content-between align-items-center w-100 me-3">
+            <span>Signatures</span>
+            <SaveButton
+              onSave={onSaveDraft}
+              isSaving={isSaving}
+              saveMessage={saveMessage}
+              disabled={!selectedStudent || !selectedReportCard}
+              className="ms-auto"
+            />
+          </div>
+        </CAccordionHeader>
         <CAccordionBody>
           <SignatureSection formData={formData} onFormDataChange={onFormDataChange} />
         </CAccordionBody>

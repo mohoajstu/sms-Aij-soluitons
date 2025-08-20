@@ -20,6 +20,7 @@ import {
   CSpinner,
 } from '@coreui/react'
 import useCurrentTeacher from '../../../hooks/useCurrentTeacher'
+import SaveButton from '../../../components/SaveButton'
 import {
   cilBook,
   cilLightbulb,
@@ -337,11 +338,9 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               name="daysAbsent"
               value={formData.daysAbsent || ''}
               onChange={handleInputChange}
-              placeholder="Will be auto-filled"
+              placeholder="Enter days absent"
               type="number"
               min="0"
-              readOnly
-              className="bg-light"
             />
           </div>
         </CCol>
@@ -354,11 +353,9 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               name="totalDaysAbsent"
               value={formData.totalDaysAbsent || ''}
               onChange={handleInputChange}
-              placeholder="Will be auto-filled"
+              placeholder="Enter total days absent"
               type="number"
               min="0"
-              readOnly
-              className="bg-light"
             />
           </div>
         </CCol>
@@ -371,11 +368,9 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               name="timesLate"
               value={formData.timesLate || ''}
               onChange={handleInputChange}
-              placeholder="Will be auto-filled"
+              placeholder="Enter times late"
               type="number"
               min="0"
-              readOnly
-              className="bg-light"
             />
           </div>
         </CCol>
@@ -388,11 +383,9 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               name="totalTimesLate"
               value={formData.totalTimesLate || ''}
               onChange={handleInputChange}
-              placeholder="Will be auto-filled"
+              placeholder="Enter total times late"
               type="number"
               min="0"
-              readOnly
-              className="bg-light"
             />
           </div>
         </CCol>
@@ -1426,6 +1419,11 @@ const Elementary7to8ProgressUI = ({
   onFormDataChange,
   loading = false,
   error = null,
+  onSaveDraft,
+  isSaving,
+  saveMessage,
+  selectedStudent,
+  selectedReportCard,
 }) => {
   const [activeAccordion, setActiveAccordion] = useState([
     'student-info',
@@ -1471,28 +1469,72 @@ const Elementary7to8ProgressUI = ({
           onActiveItemChange={handleAccordionChange}
         >
           <CAccordionItem itemKey="student-info">
-            <CAccordionHeader>Student & School Information</CAccordionHeader>
+            <CAccordionHeader>
+              <div className="d-flex justify-content-between align-items-center w-100 me-3">
+                <span>Student & School Information</span>
+                <SaveButton
+                  onSave={onSaveDraft}
+                  isSaving={isSaving}
+                  saveMessage={saveMessage}
+                  disabled={!selectedStudent || !selectedReportCard}
+                  className="ms-auto"
+                />
+              </div>
+            </CAccordionHeader>
             <CAccordionBody>
               <StudentSchoolInfoSection formData={formData} onFormDataChange={onFormDataChange} />
             </CAccordionBody>
           </CAccordionItem>
 
           <CAccordionItem itemKey="learning-skills">
-            <CAccordionHeader>Learning Skills & Work Habits</CAccordionHeader>
+            <CAccordionHeader>
+              <div className="d-flex justify-content-between align-items-center w-100 me-3">
+                <span>Learning Skills & Work Habits</span>
+                <SaveButton
+                  onSave={onSaveDraft}
+                  isSaving={isSaving}
+                  saveMessage={saveMessage}
+                  disabled={!selectedStudent || !selectedReportCard}
+                  className="ms-auto"
+                />
+              </div>
+            </CAccordionHeader>
             <CAccordionBody>
               <LearningSkillsSection formData={formData} onFormDataChange={onFormDataChange} />
             </CAccordionBody>
           </CAccordionItem>
 
           <CAccordionItem itemKey="subject-areas">
-            <CAccordionHeader>Subject Areas</CAccordionHeader>
+            <CAccordionHeader>
+              <div className="d-flex justify-content-between align-items-center w-100 me-3">
+                <span>Subject Areas</span>
+                <SaveButton
+                  onSave={onSaveDraft}
+                  isSaving={isSaving}
+                  saveMessage={saveMessage}
+                  disabled={!selectedStudent || !selectedReportCard}
+                  className="ms-auto"
+                />
+              </div>
+            </CAccordionHeader>
             <CAccordionBody>
               <SubjectAreasSection formData={formData} onFormDataChange={onFormDataChange} />
             </CAccordionBody>
           </CAccordionItem>
 
           <CAccordionItem itemKey="comments-signatures">
-            <CAccordionHeader>Comments & Signatures</CAccordionHeader>
+            <CAccordionHeader>
+              <div className="d-flex justify-content-between align-items-center w-100 me-3">
+                <span>Comments & Signatures</span>
+                <SaveButton
+                  onSave={onSaveDraft}
+                  isSaving={isSaving}
+                  saveMessage={saveMessage}
+                  disabled={!selectedStudent || !selectedReportCard}
+                  className="ms-auto"
+                />
+              </div>
+            </CAccordionHeader>
             <CAccordionBody>
               <CommentsSignaturesSection formData={formData} onFormDataChange={onFormDataChange} />
             </CAccordionBody>

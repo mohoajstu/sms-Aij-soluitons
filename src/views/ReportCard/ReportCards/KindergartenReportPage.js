@@ -1,13 +1,8 @@
-import React from 'react';
-import KindergartenReportUI from '../Components/KindergartenReportUI';
+import React from 'react'
+import ReportCard from '../utils'
 
 const KindergartenReportPage = () => {
-  return (
-    <div>
-      <h1 className="text-3xl font-bold text-center my-8">Kindergarten Report Card</h1>
-      <KindergartenReportUI />
-    </div>
-  );
-};
+  return <ReportCard presetReportCardId="kg-report" />
+}
 
-export default KindergartenReportPage; 
+export default KindergartenReportPage
