@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import PropTypes from 'prop-types';
+import React, { useState, useEffect, useRef } from 'react'
+import PropTypes from 'prop-types'
 import {
   CForm,
   CFormLabel,
@@ -19,21 +19,41 @@ import {
   CSpinner,
   CAlert,
   CButtonGroup,
-  CFormCheck
-} from '@coreui/react';
-import CIcon from '@coreui/icons-react';
-import { cilStar, cilLightbulb, cilUser, cilBook, cilCommentSquare, cilArrowRight, cilPencil, cilMenu } from '@coreui/icons';
-import { FormControlLabel, Checkbox } from '@mui/material';
-import { pink, green, blue, orange, purple } from '@mui/material/colors';
-import SignatureCanvas from 'react-signature-canvas';
-import AIReportCommentInput from '../../../components/AIReportCommentInput';
+} from '@coreui/react'
+import useCurrentTeacher from '../../../hooks/useCurrentTeacher'
+import SaveButton from '../../../components/SaveButton'
+import CIcon from '@coreui/icons-react'
+import {
+  cilStar,
+  cilLightbulb,
+  cilUser,
+  cilBook,
+  cilCommentSquare,
+  cilArrowRight,
+  cilPencil,
+  cilMenu,
+} from '@coreui/icons'
+
+import SignatureCanvas from 'react-signature-canvas'
+import AIReportCommentInput from '../../../components/AIReportCommentInput'
 
 /**
  * AI-Enhanced Text Area
  * A reusable component for text areas with an AI generation button.
  */
-const AICommentField = ({ name, value, onChange, placeholder, rows = 10, isGenerating = false, onGenerate, maxLength, formData, onFormDataChange }) => {
-  const currentLength = value?.length || 0;
+const AICommentField = ({
+  name,
+  value,
+  onChange,
+  placeholder,
+  rows = 10,
+  isGenerating = false,
+  onGenerate,
+  maxLength,
+  formData,
+  onFormDataChange,
+}) => {
+  const currentLength = value?.length || 0
 
   return (
     <div className="ai-input-field position-relative mb-3">
@@ -53,7 +73,7 @@ const AICommentField = ({ name, value, onChange, placeholder, rows = 10, isGener
           fontSize: '1rem',
         }}
       />
-      
+
       {/* AI Generation Button */}
       <div className="position-absolute" style={{ top: '10px', right: '10px' }}>
         <AIReportCommentInput
@@ -74,7 +94,7 @@ const AICommentField = ({ name, value, onChange, placeholder, rows = 10, isGener
           className="ai-button-minimal"
         />
       </div>
-      
+
       {maxLength && (
         <div
           className="position-absolute"
@@ -89,14 +109,16 @@ const AICommentField = ({ name, value, onChange, placeholder, rows = 10, isGener
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
 // Helper function to determine subject based on field name
 const getSubjectForField = (fieldName) => {
   if (fieldName === 'keyLearning' || fieldName === 'keyLearning2') return 'Key Learning'
-  if (fieldName === 'growthInLearning' || fieldName === 'growthInLearning2') return 'Growth in Learning'
-  if (fieldName === 'nextStepsInLearning' || fieldName === 'nextStepsInLearning2') return 'Next Steps in Learning'
+  if (fieldName === 'growthInLearning' || fieldName === 'growthInLearning2')
+    return 'Growth in Learning'
+  if (fieldName === 'nextStepsInLearning' || fieldName === 'nextStepsInLearning2')
+    return 'Next Steps in Learning'
   return 'Kindergarten Learning'
 }
 
@@ -111,61 +133,69 @@ AICommentField.propTypes = {
   maxLength: PropTypes.number,
   formData: PropTypes.object.isRequired,
   onFormDataChange: PropTypes.func.isRequired,
-};
+}
 
 /**
  * Signature Pad Component
  * Provides multiple modes for capturing a signature: typing, drawing, or uploading.
  */
 const SignaturePad = ({ title, onSignatureChange }) => {
-  const [mode, setMode] = useState('typed'); // 'typed', 'drawn'
-  const [typedName, setTypedName] = useState('');
-  const signatureCanvasRef = useRef(null);
+  const [mode, setMode] = useState('typed') // 'typed', 'drawn'
+  const [typedName, setTypedName] = useState('')
+  const signatureCanvasRef = useRef(null)
 
   const handleModeChange = (newMode) => {
-    setMode(newMode);
+    setMode(newMode)
     // Clear previous signature when mode changes
     if (newMode === 'typed') {
-      if(signatureCanvasRef.current) signatureCanvasRef.current.clear();
-      onSignatureChange({ type: 'typed', value: typedName });
+      if (signatureCanvasRef.current) signatureCanvasRef.current.clear()
+      onSignatureChange({ type: 'typed', value: typedName })
     } else if (newMode === 'drawn') {
-      setTypedName('');
-      onSignatureChange({ type: 'drawn', value: null });
+      setTypedName('')
+      onSignatureChange({ type: 'drawn', value: null })
     }
-  };
+  }
 
   const handleTypedNameChange = (e) => {
-    const newName = e.target.value;
-    setTypedName(newName);
-    onSignatureChange({ type: 'typed', value: newName });
-  };
+    const newName = e.target.value
+    setTypedName(newName)
+    onSignatureChange({ type: 'typed', value: newName })
+  }
 
   const handleDrawEnd = () => {
     if (signatureCanvasRef.current) {
-      const dataUrl = signatureCanvasRef.current.toDataURL('image/png');
-      onSignatureChange({ type: 'drawn', value: dataUrl });
+      const dataUrl = signatureCanvasRef.current.toDataURL('image/png')
+      onSignatureChange({ type: 'drawn', value: dataUrl })
     }
-  };
+  }
 
   const handleClear = () => {
     if (mode === 'drawn' && signatureCanvasRef.current) {
-      signatureCanvasRef.current.clear();
-      onSignatureChange({ type: 'drawn', value: null });
+      signatureCanvasRef.current.clear()
+      onSignatureChange({ type: 'drawn', value: null })
     } else if (mode === 'typed') {
-      setTypedName('');
-      onSignatureChange({ type: 'typed', value: '' });
+      setTypedName('')
+      onSignatureChange({ type: 'typed', value: '' })
     }
-  };
+  }
 
   return (
     <div className="signature-pad-container mb-4">
       <h6 className="mb-2">{title}</h6>
       <div className="d-flex justify-content-between align-items-center mb-2">
         <CButtonGroup>
-          <CButton color="secondary" active={mode === 'typed'} onClick={() => handleModeChange('typed')}>
+          <CButton
+            color="secondary"
+            active={mode === 'typed'}
+            onClick={() => handleModeChange('typed')}
+          >
             Keyboard
           </CButton>
-          <CButton color="secondary" active={mode === 'drawn'} onClick={() => handleModeChange('drawn')}>
+          <CButton
+            color="secondary"
+            active={mode === 'drawn'}
+            onClick={() => handleModeChange('drawn')}
+          >
             Trackpad
           </CButton>
         </CButtonGroup>
@@ -193,63 +223,92 @@ const SignaturePad = ({ title, onSignatureChange }) => {
               width: 500,
               height: 150,
               className: 'signature-canvas',
-              style: { width: '100%' }
+              style: { width: '100%' },
             }}
             onEnd={handleDrawEnd}
           />
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
 SignaturePad.propTypes = {
   title: PropTypes.string.isRequired,
   onSignatureChange: PropTypes.func.isRequired,
-};
+}
 
 /**
  * Student/School Information Section
  * Matches the exact layout of the kindergarten report card
  */
 const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
+  const { teacherName, loading } = useCurrentTeacher()
+
   const handleInputChange = (e) => {
-    onFormDataChange({ ...formData, [e.target.name]: e.target.value });
-  };
+    onFormDataChange({ ...formData, [e.target.name]: e.target.value })
+  }
+
+  // Auto-populate teacher name when component mounts or teacher name changes
+  useEffect(() => {
+    if (teacherName && !formData.teacher) {
+      onFormDataChange({ ...formData, teacher: teacherName })
+    }
+  }, [teacherName, formData.teacher, onFormDataChange])
 
   const handleCheckboxChange = (e) => {
-    const { name, checked } = e.target;
-    const newFormData = { ...formData, [name]: checked };
+    const { name, checked } = e.target
+    const newFormData = { ...formData, [name]: checked }
 
     // Enforce mutual exclusivity for checkbox groups
     if (checked) {
-      if (name === 'year1') newFormData.year2 = false;
-      if (name === 'year2') newFormData.year1 = false;
-      
+      if (name === 'year1') newFormData.year2 = false
+      if (name === 'year2') newFormData.year1 = false
+
       if (name === 'frenchImmersion') {
-        newFormData.frenchCore = false;
-        newFormData.frenchExtended = false;
+        newFormData.frenchCore = false
+        newFormData.frenchExtended = false
       }
       if (name === 'frenchCore') {
-        newFormData.frenchImmersion = false;
-        newFormData.frenchExtended = false;
+        newFormData.frenchImmersion = false
+        newFormData.frenchExtended = false
       }
       if (name === 'frenchExtended') {
-        newFormData.frenchImmersion = false;
-        newFormData.frenchCore = false;
+        newFormData.frenchImmersion = false
+        newFormData.frenchCore = false
       }
     }
-    
-    onFormDataChange(newFormData);
-  };
+
+    onFormDataChange(newFormData)
+  }
 
   // Set default date to today if not already set
   React.useEffect(() => {
     if (!formData.date) {
-      const today = new Date().toISOString().split('T')[0];
-      onFormDataChange({ ...formData, date: today });
+      const today = new Date().toISOString().split('T')[0]
+      onFormDataChange({ ...formData, date: today })
     }
-  }, []);
+  }, [])
+
+  // Auto-populate grade level based on student's grade
+  React.useEffect(() => {
+    if (formData.grade && !formData.year1 && !formData.year2) {
+      const grade = formData.grade.toLowerCase()
+      let newFormData = { ...formData }
+
+      if (grade.includes('1') || grade.includes('year 1') || grade.includes('grade 1')) {
+        newFormData.year1 = true
+        newFormData.year2 = false
+      } else if (grade.includes('2') || grade.includes('year 2') || grade.includes('grade 2')) {
+        newFormData.year1 = false
+        newFormData.year2 = true
+      }
+
+      if (newFormData.year1 !== formData.year1 || newFormData.year2 !== formData.year2) {
+        onFormDataChange(newFormData)
+      }
+    }
+  }, [formData.grade]) // Only depend on grade, not on year1/year2 to avoid interference
 
   return (
     <CCard className="mb-4 shadow-sm">
@@ -289,7 +348,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               type="text"
               value={formData['student'] || ''}
               onChange={handleInputChange}
-              placeholder="Enter student's full name"
+              placeholder="Enter student name"
               className="form-control-lg"
               style={{ borderRadius: '8px', border: '2px solid #e9ecef' }}
               required
@@ -302,7 +361,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               type="text"
               value={formData['OEN'] || ''}
               onChange={handleInputChange}
-              placeholder="OEN"
+              placeholder="Enter OEN"
               style={{ borderRadius: '8px', border: '2px solid #e9ecef' }}
             />
           </CCol>
@@ -313,7 +372,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               type="number"
               value={formData['daysAbsent'] || ''}
               onChange={handleInputChange}
-              placeholder="0"
+              placeholder="Enter days absent"
               min="0"
               style={{ borderRadius: '8px', border: '2px solid #e9ecef' }}
             />
@@ -325,7 +384,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               type="number"
               value={formData['totalDaysAbsent'] || ''}
               onChange={handleInputChange}
-              placeholder="0"
+              placeholder="Enter total days absent"
               min="0"
               style={{ borderRadius: '8px', border: '2px solid #e9ecef' }}
             />
@@ -337,40 +396,42 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
           <CCol md={6}>
             <div className="d-flex align-items-center gap-2">
               <CFormLabel className="fw-semibold text-dark mb-0">Grade Level:</CFormLabel>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    name="year1"
-                    checked={formData['year1'] === true}
-                    onChange={handleCheckboxChange}
-                    sx={{ 
-                      color: blue[600], 
-                      '&.Mui-checked': { color: blue[600] },
-                      '& .MuiSvgIcon-root': { fontSize: 18 }
-                    }}
-                  />
-                }
-                label="Year 1"
-                className="text-dark"
-                sx={{ margin: 0, marginRight: '8px' }}
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    name="year2"
-                    checked={formData['year2'] === true}
-                    onChange={handleCheckboxChange}
-                    sx={{ 
-                      color: blue[600], 
-                      '&.Mui-checked': { color: blue[600] },
-                      '& .MuiSvgIcon-root': { fontSize: 18 }
-                    }}
-                  />
-                }
-                label="Year 2"
-                className="text-dark"
-                sx={{ margin: 0 }}
-              />
+              <div className="me-3">
+                <input
+                  type="checkbox"
+                  id="year1"
+                  name="year1"
+                  checked={formData.year1 || false}
+                  onChange={handleCheckboxChange}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    marginRight: '8px',
+                    cursor: 'pointer',
+                  }}
+                />
+                <label htmlFor="year1" style={{ cursor: 'pointer', marginBottom: '0' }}>
+                  Year 1
+                </label>
+              </div>
+              <div>
+                <input
+                  type="checkbox"
+                  id="year2"
+                  name="year2"
+                  checked={formData.year2 || false}
+                  onChange={handleCheckboxChange}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    marginRight: '8px',
+                    cursor: 'pointer',
+                  }}
+                />
+                <label htmlFor="year2" style={{ cursor: 'pointer', marginBottom: '0' }}>
+                  Year 2
+                </label>
+              </div>
             </div>
           </CCol>
           <CCol md={3}>
@@ -380,7 +441,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               type="number"
               value={formData['timesLate'] || ''}
               onChange={handleInputChange}
-              placeholder="0"
+              placeholder="Enter times late"
               min="0"
               style={{ borderRadius: '8px', border: '2px solid #e9ecef' }}
             />
@@ -392,7 +453,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               type="number"
               value={formData['totalTimesLate'] || ''}
               onChange={handleInputChange}
-              placeholder="0"
+              placeholder="Enter total times late"
               min="0"
               style={{ borderRadius: '8px', border: '2px solid #e9ecef' }}
             />
@@ -404,57 +465,60 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
           <CCol md={12}>
             <div className="d-flex align-items-center gap-2">
               <CFormLabel className="fw-semibold text-dark mb-0">French:</CFormLabel>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    name="frenchImmersion"
-                    checked={formData['frenchImmersion'] === true}
-                    onChange={handleCheckboxChange}
-                    sx={{ 
-                      color: green[600], 
-                      '&.Mui-checked': { color: green[600] },
-                      '& .MuiSvgIcon-root': { fontSize: 18 }
-                    }}
-                  />
-                }
-                label="Immersion"
-                className="text-dark"
-                sx={{ margin: 0, marginRight: '8px' }}
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    name="frenchCore"
-                    checked={formData['frenchCore'] === true}
-                    onChange={handleCheckboxChange}
-                    sx={{ 
-                      color: green[600], 
-                      '&.Mui-checked': { color: green[600] },
-                      '& .MuiSvgIcon-root': { fontSize: 18 }
-                    }}
-                  />
-                }
-                label="Core"
-                className="text-dark"
-                sx={{ margin: 0, marginRight: '8px' }}
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    name="frenchExtended"
-                    checked={formData['frenchExtended'] === true}
-                    onChange={handleCheckboxChange}
-                    sx={{ 
-                      color: green[600], 
-                      '&.Mui-checked': { color: green[600] },
-                      '& .MuiSvgIcon-root': { fontSize: 18 }
-                    }}
-                  />
-                }
-                label="Extended"
-                className="text-dark"
-                sx={{ margin: 0 }}
-              />
+              <div className="me-3">
+                <input
+                  type="checkbox"
+                  id="frenchImmersion"
+                  name="frenchImmersion"
+                  checked={formData.frenchImmersion || false}
+                  onChange={handleCheckboxChange}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    marginRight: '8px',
+                    cursor: 'pointer',
+                  }}
+                />
+                <label htmlFor="frenchImmersion" style={{ cursor: 'pointer', marginBottom: '0' }}>
+                  Immersion
+                </label>
+              </div>
+              <div className="me-3">
+                <input
+                  type="checkbox"
+                  id="frenchCore"
+                  name="frenchCore"
+                  checked={formData.frenchCore || false}
+                  onChange={handleCheckboxChange}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    marginRight: '8px',
+                    cursor: 'pointer',
+                  }}
+                />
+                <label htmlFor="frenchCore" style={{ cursor: 'pointer', marginBottom: '0' }}>
+                  Core
+                </label>
+              </div>
+              <div>
+                <input
+                  type="checkbox"
+                  id="frenchExtended"
+                  name="frenchExtended"
+                  checked={formData.frenchExtended || false}
+                  onChange={handleCheckboxChange}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    marginRight: '8px',
+                    cursor: 'pointer',
+                  }}
+                />
+                <label htmlFor="frenchExtended" style={{ cursor: 'pointer', marginBottom: '0' }}>
+                  Extended
+                </label>
+              </div>
             </div>
           </CCol>
         </CRow>
@@ -468,12 +532,13 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               name="teacher"
               type="text"
-              value={formData['teacher'] || ''}
+              value={formData['teacher'] || teacherName || ''}
               onChange={handleInputChange}
-              placeholder="Enter teacher's name"
+              placeholder={loading ? 'Loading...' : "Enter teacher's name"}
               className="form-control-lg"
               style={{ borderRadius: '8px', border: '2px solid #e9ecef' }}
               required
+              disabled={loading}
             />
           </CCol>
           <CCol md={6}>
@@ -568,14 +633,14 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
         </CRow>
       </CCardBody>
     </CCard>
-  );
-};
+  )
+}
 
 StudentSchoolInfoSection.propTypes = {
   formData: PropTypes.object.isRequired,
   onFormDataChange: PropTypes.func.isRequired,
-  isGenerating: PropTypes.bool
-};
+  isGenerating: PropTypes.bool,
+}
 
 /**
  * Key Learning Section
@@ -583,12 +648,12 @@ StudentSchoolInfoSection.propTypes = {
  */
 const KeyLearningSection = ({ formData, onFormDataChange, onGenerate, isGenerating }) => {
   const handleInputChange = (e) => {
-    onFormDataChange({ ...formData, [e.target.name]: e.target.value });
-  };
+    onFormDataChange({ ...formData, [e.target.name]: e.target.value })
+  }
 
   const handleCheckboxChange = (e) => {
-    onFormDataChange({ ...formData, [e.target.name]: e.target.checked });
-  };
+    onFormDataChange({ ...formData, [e.target.name]: e.target.checked })
+  }
 
   return (
     <CCard className="mb-4 shadow-sm">
@@ -607,38 +672,48 @@ const KeyLearningSection = ({ formData, onFormDataChange, onGenerate, isGenerati
                 borderRadius: '16px',
               }}
             >
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    name="keyLearningESL"
-                    checked={formData['keyLearningESL'] === true}
-                    onChange={handleCheckboxChange}
-                    sx={{
-                      color: 'rgba(255, 255, 255, 0.8)',
-                      '&.Mui-checked': { color: 'white' },
-                      padding: '4px',
-                    }}
-                  />
-                }
-                label={<span style={{ color: 'white', fontWeight: 500 }}>ESL</span>}
-                sx={{ margin: 0, marginRight: '10px' }}
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    name="keyLearningIEP"
-                    checked={formData['keyLearningIEP'] === true}
-                    onChange={handleCheckboxChange}
-                    sx={{
-                      color: 'rgba(255, 255, 255, 0.8)',
-                      '&.Mui-checked': { color: 'white' },
-                      padding: '4px',
-                    }}
-                  />
-                }
-                label={<span style={{ color: 'white', fontWeight: 500 }}>IEP</span>}
-                sx={{ margin: 0 }}
-              />
+              <div className="me-2">
+                <input
+                  type="checkbox"
+                  id="keyLearningESL"
+                  name="keyLearningESL"
+                  checked={formData.keyLearningESL || false}
+                  onChange={handleCheckboxChange}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    marginRight: '8px',
+                    cursor: 'pointer',
+                  }}
+                />
+                <label
+                  htmlFor="keyLearningESL"
+                  style={{ color: 'white', fontWeight: 500, cursor: 'pointer', marginBottom: '0' }}
+                >
+                  ESL
+                </label>
+              </div>
+              <div>
+                <input
+                  type="checkbox"
+                  id="keyLearningIEP"
+                  name="keyLearningIEP"
+                  checked={formData.keyLearningIEP || false}
+                  onChange={handleCheckboxChange}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    marginRight: '8px',
+                    cursor: 'pointer',
+                  }}
+                />
+                <label
+                  htmlFor="keyLearningIEP"
+                  style={{ color: 'white', fontWeight: 500, cursor: 'pointer', marginBottom: '0' }}
+                >
+                  IEP
+                </label>
+              </div>
             </div>
           </div>
         </div>
@@ -672,15 +747,15 @@ const KeyLearningSection = ({ formData, onFormDataChange, onGenerate, isGenerati
         />
       </CCardBody>
     </CCard>
-  );
-};
+  )
+}
 
 KeyLearningSection.propTypes = {
   formData: PropTypes.object.isRequired,
   onFormDataChange: PropTypes.func.isRequired,
   onGenerate: PropTypes.func.isRequired,
   isGenerating: PropTypes.bool,
-};
+}
 
 /**
  * Signatures Section
@@ -696,52 +771,77 @@ const SignatureSection = ({ formData, onFormDataChange }) => {
         </div>
       </CCardHeader>
       <CCardBody className="p-4">
-        <p>To Parents/Guardians: This copy of the Kindergarten Communication of Learning: Initial Observations report should be retained for reference...</p>
+        <p>
+          To Parents/Guardians: This copy of the Kindergarten Communication of Learning: Initial
+          Observations report should be retained for reference...
+        </p>
         <CRow>
           <CCol md={6}>
             <SignaturePad
               title="Teacher's Signature"
-              onSignatureChange={(value) => onFormDataChange({ ...formData, teacherSignature: value })}
+              onSignatureChange={(value) =>
+                onFormDataChange({ ...formData, teacherSignature: value })
+              }
             />
           </CCol>
           <CCol md={6}>
             <SignaturePad
               title="Principal's Signature"
-              onSignatureChange={(value) => onFormDataChange({ ...formData, principalSignature: value })}
+              onSignatureChange={(value) =>
+                onFormDataChange({ ...formData, principalSignature: value })
+              }
             />
           </CCol>
         </CRow>
         <hr className="my-4" />
-        <p>Where applicable: Early Childhood Educator(s) contributed to the observation, monitoring, and assessment...</p>
+        <p>
+          Where applicable: Early Childhood Educator(s) contributed to the observation, monitoring,
+          and assessment...
+        </p>
       </CCardBody>
     </CCard>
-  );
-};
+  )
+}
 
 SignatureSection.propTypes = {
   formData: PropTypes.object.isRequired,
   onFormDataChange: PropTypes.func.isRequired,
-};
+}
 
 /**
  * Main component for kindergarten initial observation report card
  */
-const KindergartenInitialUI = ({ formData, onFormDataChange, onSubmit, loading, error }) => {
-  const [activeAccordion, setActiveAccordion] = useState(['student-info', 'key-learning', 'signatures']);
+const KindergartenInitialUI = ({
+  formData,
+  onFormDataChange,
+  onSubmit,
+  loading,
+  error,
+  onSaveDraft,
+  isSaving,
+  saveMessage,
+  selectedStudent,
+  selectedReportCard,
+}) => {
+  const [activeAccordion, setActiveAccordion] = useState([
+    'student-info',
+    'key-learning',
+    'signatures',
+  ])
 
   const handleAccordionChange = (newActive) => {
-    setActiveAccordion(newActive);
-  };
+    setActiveAccordion(newActive)
+  }
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log('Form submitted:', formData);
-  };
+    e.preventDefault()
+    console.log('Form submitted:', formData)
+  }
 
   // Dummy function for compatibility with AICommentField - actual AI generation is handled by AIReportCommentInput
   const handleAIGenerate = () => {
     // This function is not used anymore since AIReportCommentInput handles the AI generation
-  };
+  }
 
   return (
     <div className="kindergarten-initial-form">
@@ -787,17 +887,36 @@ const KindergartenInitialUI = ({ formData, onFormDataChange, onSubmit, loading, 
           onActiveItemChange={handleAccordionChange}
         >
           <CAccordionItem itemKey="student-info">
-            <CAccordionHeader>Student & School Information</CAccordionHeader>
+            <CAccordionHeader>
+              <div className="d-flex justify-content-between align-items-center w-100 me-3">
+                <span>Student & School Information</span>
+                <SaveButton
+                  onSave={onSaveDraft}
+                  isSaving={isSaving}
+                  saveMessage={saveMessage}
+                  disabled={!selectedStudent || !selectedReportCard}
+                  className="ms-auto"
+                />
+              </div>
+            </CAccordionHeader>
             <CAccordionBody>
-              <StudentSchoolInfoSection
-                formData={formData}
-                onFormDataChange={onFormDataChange}
-              />
+              <StudentSchoolInfoSection formData={formData} onFormDataChange={onFormDataChange} />
             </CAccordionBody>
           </CAccordionItem>
 
           <CAccordionItem itemKey="key-learning">
-            <CAccordionHeader>Key Learning / Growth in Learning / Next Steps</CAccordionHeader>
+            <CAccordionHeader>
+              <div className="d-flex justify-content-between align-items-center w-100 me-3">
+                <span>Key Learning / Growth in Learning / Next Steps</span>
+                <SaveButton
+                  onSave={onSaveDraft}
+                  isSaving={isSaving}
+                  saveMessage={saveMessage}
+                  disabled={!selectedStudent || !selectedReportCard}
+                  className="ms-auto"
+                />
+              </div>
+            </CAccordionHeader>
             <CAccordionBody>
               <KeyLearningSection
                 formData={formData}
@@ -809,30 +928,38 @@ const KindergartenInitialUI = ({ formData, onFormDataChange, onSubmit, loading, 
           </CAccordionItem>
 
           <CAccordionItem itemKey="signatures">
-            <CAccordionHeader>Signatures</CAccordionHeader>
+            <CAccordionHeader>
+              <div className="d-flex justify-content-between align-items-center w-100 me-3">
+                <span>Signatures</span>
+                <SaveButton
+                  onSave={onSaveDraft}
+                  isSaving={isSaving}
+                  saveMessage={saveMessage}
+                  disabled={!selectedStudent || !selectedReportCard}
+                  className="ms-auto"
+                />
+              </div>
+            </CAccordionHeader>
             <CAccordionBody>
-              <SignatureSection
-                formData={formData}
-                onFormDataChange={onFormDataChange}
-              />
+              <SignatureSection formData={formData} onFormDataChange={onFormDataChange} />
             </CAccordionBody>
           </CAccordionItem>
         </CAccordion>
       </CForm>
     </div>
-  );
-};
+  )
+}
 
 KindergartenInitialUI.propTypes = {
   formData: PropTypes.object.isRequired,
   onFormDataChange: PropTypes.func.isRequired,
   onSubmit: PropTypes.func,
   loading: PropTypes.bool,
-  error: PropTypes.string
-};
+  error: PropTypes.string,
+}
 
 KindergartenInitialUI.defaultProps = {
-  formData: {}
-};
+  formData: {},
+}
 
-export default KindergartenInitialUI;
+export default KindergartenInitialUI

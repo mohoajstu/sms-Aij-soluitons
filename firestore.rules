@@ -4,33 +4,43 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     function getUserRole() {
-      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-      if ('primaryRole' in userData) {
-        return userData.primaryRole.lower();
-      }
-      if ('personalInfo' in userData && 'role' in userData.personalInfo) {
-        return userData.personalInfo.role.lower();
-      }
-      return '';
+      return request.auth != null &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) ?
+             (let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+              'primaryRole' in userData ? userData.primaryRole.lower() :
+              ('personalInfo' in userData && 'role' in userData.personalInfo ? 
+               userData.personalInfo.role.lower() : '')) : '';
     }
 
     // Helper functions
     function isAdmin() {
-      return getUserRole() == 'admin';
+      return request.auth != null && getUserRole() == 'admin';
     }
 
     function isFaculty() {
-      return getUserRole() == 'faculty';
+      return request.auth != null && getUserRole() == 'faculty';
     }
 
     function isParent() {
-        return getUserRole() == 'parent';
+      return request.auth != null && getUserRole() == 'parent';
     }
 
     // Announcements: anyone can read, only admins can write
     match /announcements/{docId} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    // Report Card Drafts: teachers can read/write their own drafts
+    match /reportCardDrafts/{draftId} {
+      allow read, write: if isFaculty() && resource.data.uid == request.auth.uid;
+      allow create: if isFaculty() && request.resource.data.uid == request.auth.uid;
+    }
+
+    // Report Cards: teachers can read/write their own completed reports
+    match /reportCards/{reportId} {
+      allow read, write: if isFaculty() && resource.data.uid == request.auth.uid;
+      allow create: if isFaculty() && request.resource.data.uid == request.auth.uid;
     }
 
     // Admins can read and write all other data

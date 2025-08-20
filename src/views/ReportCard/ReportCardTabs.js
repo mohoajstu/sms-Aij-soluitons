@@ -45,7 +45,7 @@ const ReportCardTabs = () => {
       {/* Content */}
       <div className="rc-tab-content">
         {role !== 'parent' && activeTab === 0 && <ReportCard />}
-        {activeTab === 1 && <PastReportCardsTable />}
+        {activeTab === 1 && <PastReportCardsTable onEditDraft={() => setActiveTab(0)} />}
       </div>
     </div>
   )

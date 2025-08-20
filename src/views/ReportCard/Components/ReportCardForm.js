@@ -1,12 +1,12 @@
-import { useState } from "react";
-import PropTypes from "prop-types";
-import { 
-  CForm, 
-  CFormLabel, 
-  CFormInput, 
+import { useState, useEffect } from 'react'
+import PropTypes from 'prop-types'
+import {
+  CForm,
+  CFormLabel,
+  CFormInput,
   CFormTextarea,
   CFormSelect,
-  CCard, 
+  CCard,
   CCardBody,
   CCardHeader,
   CCardTitle,
@@ -16,50 +16,61 @@ import {
   CAccordion,
   CAccordionItem,
   CAccordionHeader,
-  CAccordionBody
-} from "@coreui/react";
-import AIReportCommentInput from '../../../components/AIReportCommentInput';
+  CAccordionBody,
+} from '@coreui/react'
+import AIReportCommentInput from '../../../components/AIReportCommentInput'
+import useCurrentTeacher from '../../../hooks/useCurrentTeacher'
 
 /**
  * ReportCardForm component for editing report card data
  */
 export function ReportCardForm({ formData, handleChange, handleSubmit }) {
+  const { teacherName, loading } = useCurrentTeacher()
+
+  // Auto-populate teacher name when component mounts or teacher name changes
+  useEffect(() => {
+    if (teacherName && !formData.teacher_name) {
+      handleChange('teacher_name', teacherName)
+    }
+  }, [teacherName, formData.teacher_name, handleChange])
+
   // Rating options for learning skills
   const ratingOptions = [
-    { value: "E", label: "E - Excellent" },
-    { value: "G", label: "G - Good" },
-    { value: "S", label: "S - Satisfactory" },
-    { value: "N", label: "N - Needs Improvement" },
-  ];
+    { value: 'E', label: 'E - Excellent' },
+    { value: 'G', label: 'G - Good' },
+    { value: 'S', label: 'S - Satisfactory' },
+    { value: 'N', label: 'N - Needs Improvement' },
+  ]
 
   // Grade options
   const gradeOptions = [
-    { value: "JK", label: "Junior Kindergarten" },
-    { value: "SK", label: "Senior Kindergarten" },
-    { value: "1", label: "Grade 1" },
-    { value: "2", label: "Grade 2" },
-    { value: "3", label: "Grade 3" },
-    { value: "4", label: "Grade 4" },
-    { value: "5", label: "Grade 5" },
-    { value: "6", label: "Grade 6" },
-    { value: "7", label: "Grade 7" },
-    { value: "8", label: "Grade 8" },
-  ];
+    { value: 'JK', label: 'Junior Kindergarten' },
+    { value: 'SK', label: 'Senior Kindergarten' },
+    { value: '1', label: 'Grade 1' },
+    { value: '2', label: 'Grade 2' },
+    { value: '3', label: 'Grade 3' },
+    { value: '4', label: 'Grade 4' },
+    { value: '5', label: 'Grade 5' },
+    { value: '6', label: 'Grade 6' },
+    { value: '7', label: 'Grade 7' },
+    { value: '8', label: 'Grade 8' },
+  ]
 
   // Term options
   const termOptions = [
-    { value: "1", label: "Term 1" },
-    { value: "2", label: "Term 2" },
-    { value: "3", label: "Term 3" },
-  ];
+    { value: '1', label: 'Term 1' },
+    { value: '2', label: 'Term 2' },
+    { value: '3', label: 'Term 3' },
+  ]
 
   return (
     <CForm id="report-card-form" onSubmit={handleSubmit} className="report-card-form">
-      <CAccordion alwaysOpen activeItemKey={["1", "2", "3", "4"]} className="report-card-accordion">
-        
+      <CAccordion alwaysOpen activeItemKey={['1', '2', '3', '4']} className="report-card-accordion">
         {/* Student Information */}
         <CAccordionItem itemKey="1">
-          <CAccordionHeader className="report-card-accordion-header">Student Information</CAccordionHeader>
+          <CAccordionHeader className="report-card-accordion-header">
+            Student Information
+          </CAccordionHeader>
           <CAccordionBody className="report-card-accordion-body">
             <CCard className="report-card-form-card">
               <CCardBody>
@@ -83,7 +94,7 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
                       required
                     >
                       <option value="">Select Grade</option>
-                      {gradeOptions.map(option => (
+                      {gradeOptions.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
@@ -99,7 +110,7 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
                       required
                     >
                       <option value="">Select Term</option>
-                      {termOptions.map(option => (
+                      {termOptions.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
@@ -122,10 +133,11 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
                     <CFormLabel htmlFor="teacher_name">Teacher Name *</CFormLabel>
                     <CFormInput
                       id="teacher_name"
-                      value={formData.teacher_name}
+                      value={formData.teacher_name || teacherName || ''}
                       onChange={(e) => handleChange('teacher_name', e.target.value)}
-                      placeholder="Enter teacher's name"
+                      placeholder={loading ? 'Loading...' : "Enter teacher's name"}
                       required
+                      disabled={loading}
                     />
                   </CCol>
                   <CCol md={4}>
@@ -167,7 +179,9 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
 
         {/* School Information */}
         <CAccordionItem itemKey="2">
-          <CAccordionHeader className="report-card-accordion-header">School Information</CAccordionHeader>
+          <CAccordionHeader className="report-card-accordion-header">
+            School Information
+          </CAccordionHeader>
           <CAccordionBody className="report-card-accordion-body">
             <CCard className="report-card-form-card">
               <CCardBody>
@@ -252,8 +266,10 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
                       id="days_absent"
                       value={formData.days_absent}
                       onChange={(e) => handleChange('days_absent', e.target.value)}
-                      placeholder="0"
+                      placeholder="Will be auto-filled"
                       min="0"
+                      readOnly
+                      className="bg-light"
                     />
                   </CCol>
                   <CCol md={3}>
@@ -263,8 +279,10 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
                       id="total_days_absent"
                       value={formData.total_days_absent}
                       onChange={(e) => handleChange('total_days_absent', e.target.value)}
-                      placeholder="0"
+                      placeholder="Will be auto-filled"
                       min="0"
+                      readOnly
+                      className="bg-light"
                     />
                   </CCol>
                   <CCol md={3}>
@@ -274,8 +292,10 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
                       id="times_late"
                       value={formData.times_late}
                       onChange={(e) => handleChange('times_late', e.target.value)}
-                      placeholder="0"
+                      placeholder="Will be auto-filled"
                       min="0"
+                      readOnly
+                      className="bg-light"
                     />
                   </CCol>
                   <CCol md={3}>
@@ -285,8 +305,10 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
                       id="total_times_late"
                       value={formData.total_times_late}
                       onChange={(e) => handleChange('total_times_late', e.target.value)}
-                      placeholder="0"
+                      placeholder="Will be auto-filled"
                       min="0"
+                      readOnly
+                      className="bg-light"
                     />
                   </CCol>
                 </CRow>
@@ -297,7 +319,9 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
 
         {/* Learning Skills and Work Habits */}
         <CAccordionItem itemKey="4">
-          <CAccordionHeader className="report-card-accordion-header">Learning Skills and Work Habits</CAccordionHeader>
+          <CAccordionHeader className="report-card-accordion-header">
+            Learning Skills and Work Habits
+          </CAccordionHeader>
           <CAccordionBody className="report-card-accordion-body">
             <CCard className="report-card-form-card">
               <CCardBody>
@@ -306,31 +330,31 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
                     E = Excellent, G = Good, S = Satisfactory, N = Needs Improvement
                   </small>
                 </div>
-                
+
                 <CRow className="mb-3">
                   <CCol md={6}>
                     <CFormLabel>Responsibility</CFormLabel>
-                    <CFormSelect 
-                      value={formData.responsibility} 
+                    <CFormSelect
+                      value={formData.responsibility}
                       onChange={(e) => handleChange('responsibility', e.target.value)}
                     >
                       <option value="">Select rating</option>
-                      {ratingOptions.map(option => (
+                      {ratingOptions.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
                       ))}
                     </CFormSelect>
                   </CCol>
-                  
+
                   <CCol md={6}>
                     <CFormLabel>Organization</CFormLabel>
-                    <CFormSelect 
-                      value={formData.organization} 
+                    <CFormSelect
+                      value={formData.organization}
                       onChange={(e) => handleChange('organization', e.target.value)}
                     >
                       <option value="">Select rating</option>
-                      {ratingOptions.map(option => (
+                      {ratingOptions.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
@@ -338,31 +362,31 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
                     </CFormSelect>
                   </CCol>
                 </CRow>
-                
+
                 <CRow className="mb-3">
                   <CCol md={6}>
                     <CFormLabel>Independent Work</CFormLabel>
-                    <CFormSelect 
-                      value={formData.independent_work} 
+                    <CFormSelect
+                      value={formData.independent_work}
                       onChange={(e) => handleChange('independent_work', e.target.value)}
                     >
                       <option value="">Select rating</option>
-                      {ratingOptions.map(option => (
+                      {ratingOptions.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
                       ))}
                     </CFormSelect>
                   </CCol>
-                  
+
                   <CCol md={6}>
                     <CFormLabel>Collaboration</CFormLabel>
-                    <CFormSelect 
-                      value={formData.collaboration} 
+                    <CFormSelect
+                      value={formData.collaboration}
                       onChange={(e) => handleChange('collaboration', e.target.value)}
                     >
                       <option value="">Select rating</option>
-                      {ratingOptions.map(option => (
+                      {ratingOptions.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
@@ -370,31 +394,31 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
                     </CFormSelect>
                   </CCol>
                 </CRow>
-                
+
                 <CRow className="mb-3">
                   <CCol md={6}>
                     <CFormLabel>Initiative</CFormLabel>
-                    <CFormSelect 
-                      value={formData.initiative} 
+                    <CFormSelect
+                      value={formData.initiative}
                       onChange={(e) => handleChange('initiative', e.target.value)}
                     >
                       <option value="">Select rating</option>
-                      {ratingOptions.map(option => (
+                      {ratingOptions.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
                       ))}
                     </CFormSelect>
                   </CCol>
-                  
+
                   <CCol md={6}>
                     <CFormLabel>Self-Regulation</CFormLabel>
-                    <CFormSelect 
-                      value={formData.self_regulation} 
+                    <CFormSelect
+                      value={formData.self_regulation}
                       onChange={(e) => handleChange('self_regulation', e.target.value)}
                     >
                       <option value="">Select rating</option>
-                      {ratingOptions.map(option => (
+                      {ratingOptions.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
@@ -409,7 +433,9 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
 
         {/* Comments and Signatures */}
         <CAccordionItem itemKey="5">
-          <CAccordionHeader className="report-card-accordion-header">Comments & Signatures</CAccordionHeader>
+          <CAccordionHeader className="report-card-accordion-header">
+            Comments & Signatures
+          </CAccordionHeader>
           <CAccordionBody className="report-card-accordion-body">
             <CCard className="report-card-form-card">
               <CCardBody>
@@ -442,7 +468,7 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
                     handleChange={handleChange}
                     buttonText="Generate Professional Comments"
                     onJson={(json) => {
-                      console.log('Generated AI comments:', json);
+                      console.log('Generated AI comments:', json)
                     }}
                   />
                 </div>
@@ -482,11 +508,11 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
         </CAccordionItem>
       </CAccordion>
     </CForm>
-  );
+  )
 }
 
 ReportCardForm.propTypes = {
   formData: PropTypes.object.isRequired,
   handleChange: PropTypes.func.isRequired,
-  handleSubmit: PropTypes.func.isRequired
-};
+  handleSubmit: PropTypes.func.isRequired,
+}
