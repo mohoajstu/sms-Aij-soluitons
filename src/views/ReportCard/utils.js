@@ -386,6 +386,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
         teacherName: user.displayName || user.email || 'Unknown Teacher',
         studentId: selectedStudent.id,
         studentName: selectedStudent.fullName,
+        tarbiyahId: selectedStudent.schoolId || selectedStudent.id || '',
         reportCardType: selectedReportCard,
         reportCardTypeName: reportCardType?.name || 'Unknown',
         formData: cleanFormData, // Use cleaned form data
@@ -395,6 +396,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           fullName: selectedStudent.fullName,
           grade: selectedStudent.grade || '',
           oen: selectedStudent.oen || '',
+          schoolId: selectedStudent.schoolId || '',
         },
         status: 'draft',
         lastModified: serverTimestamp(),
@@ -1164,17 +1166,30 @@ const ReportCard = ({ presetReportCardId = null }) => {
             filePath,
             url: downloadURL,
             studentName: studentName,
+            tarbiyahId: selectedStudent?.schoolId || selectedStudent?.id || '',
+            status: 'complete',
+            studentId: selectedStudent?.id || '',
+            reportCardTypeName: reportCardType?.name || 'Unknown',
             createdAt: serverTimestamp(),
+            completedAt: serverTimestamp(),
           })
 
-          // Remove any corresponding draft (convert draft to completed)
+          // Convert draft to completed status instead of deleting
           if (selectedStudent) {
             const draftId = `${user.uid}_${selectedStudent.id}_${selectedReportCard}`
             try {
-              await deleteDoc(doc(firestore, 'reportCardDrafts', draftId))
-              console.log('✅ Removed draft after PDF generation')
-            } catch (deleteError) {
-              console.log('No existing draft to remove or error deleting draft:', deleteError)
+              // Update the draft to mark it as completed
+              const draftRef = doc(firestore, 'reportCardDrafts', draftId)
+              await updateDoc(draftRef, {
+                status: 'complete',
+                completedAt: serverTimestamp(),
+                tarbiyahId: selectedStudent?.schoolId || selectedStudent?.id || '',
+                finalPdfUrl: downloadURL,
+                finalPdfPath: filePath,
+              })
+              console.log('✅ Updated draft to completed status')
+            } catch (updateError) {
+              console.log('No existing draft to update or error updating draft:', updateError)
             }
           }
 
