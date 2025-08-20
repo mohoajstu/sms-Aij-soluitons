@@ -14,36 +14,35 @@ export const isStaffEmailAuthorized = (email) => {
 }
 
 // Helper function to check if user can access staff portal (domain OR admin role)
-export const canAccessStaffPortal = async (user, db, doc, getDoc) => {
+export const canAccessStaffPortal = async (user, db, doc, getDoc, loadCurrentUserProfile) => {
   if (!user || !user.email) return false
   
   // Check domain authorization first
   const isAuthorizedDomain = isStaffEmailAuthorized(user.email)
   if (isAuthorizedDomain) return true
   
-  // Check admin role in Firestore
+  // Check role via email-based profile lookup
   try {
-    const userRef = doc(db, 'users', user.uid)
-    const userDoc = await getDoc(userRef)
-    
-    if (userDoc.exists()) {
-      const userData = userDoc.data()
-      return userData.role === 'admin'
+    const profile = await loadCurrentUserProfile(db, user)
+    if (profile) {
+      const role = (profile.data?.personalInfo?.role || profile.data?.role || 'guest').toLowerCase()
+      if (role === 'admin' || role === 'faculty') return true
     }
   } catch (error) {
-    console.error('Error checking user role:', error)
+    console.error('Error checking user role via profile lookup:', error)
   }
-
+  
+  // Fallback: check by uid document if present
   try {
     const userRef = doc(db, 'users', user.uid)
     const userDoc = await getDoc(userRef)
-    
     if (userDoc.exists()) {
       const userData = userDoc.data()
-      return userData.role === 'faculty'
+      const role = String(userData.role || 'guest').toLowerCase()
+      return role === 'admin' || role === 'faculty'
     }
   } catch (error) {
-    console.error('Error checking user role:', error)
+    console.error('Error checking user role (uid fallback):', error)
   }
   
   return false

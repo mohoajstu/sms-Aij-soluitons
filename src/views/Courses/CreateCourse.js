@@ -283,8 +283,8 @@ function CreateCourse() {
       } catch (fallbackError) {
         console.error('Error in fallback course ID generation:', fallbackError)
         // Final fallback to timestamp-based ID
-        const timestamp = Date.now().toString().slice(-6)
-        return `TC${timestamp}`
+    const timestamp = Date.now().toString().slice(-6)
+    return `TC${timestamp}`
       }
     }
   }
@@ -719,8 +719,8 @@ function CreateCourse() {
                           <span key={instructor.id} className="badge bg-primary me-1">
                             {instructor.name}
                           </span>
-                        ))}
-                      </div>
+                ))}
+              </div>
                     </div>
                   )}
                 </>
