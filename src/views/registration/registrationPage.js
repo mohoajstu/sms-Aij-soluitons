@@ -2,45 +2,55 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, User, Phone, CreditCard, FileText } from 'lucide-react';
-import { getFirestore, collection, doc, setDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import {
+  getFirestore,
+  collection,
+  doc,
+  setDoc,
+  runTransaction,
+  serverTimestamp,
+  getDoc,
+} from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import FileUpload from 'src/components/FileUpload';
 import { firestore, storage } from 'src/firebase';
 import './registrationPage.css';
 
 const RegistrationForm = () => {
-  const [formData, setFormData] = useState(() => {
-    const savedData = localStorage.getItem('registrationFormData');
-    return savedData ? JSON.parse(savedData) : {
-      schoolYear: '2025',
-      grade: '',
-      firstName: '',
-      middleName: '',
-      lastName: '',
-      gender: '',
-      oen: '',
-      dateOfBirth: '',
-      previousSchool: '',
-      allergies: '',
-      photoPermission: '',
-      primaryPhone: '',
-      emergencyPhone: '',
-      primaryEmail: '',
-      studentAddress: '',
-      primaryGuardianFirstName: '',
-      primaryGuardianMiddleName: '',
-      primaryGuardianLastName: '',
-      primaryGuardianPhone: '',
-      primaryGuardianEmail: '',
-      primaryGuardianAddress: '',
-      secondaryGuardianFirstName: '',
-      secondaryGuardianMiddleName: '',
-      secondaryGuardianLastName: '',
-      secondaryGuardianPhone: '',
-      secondaryGuardianEmail: '',
-      secondaryGuardianAddress: '',
-    };
+  const [formData, setFormData] = useState({
+    schoolYear: '2025',
+    grade: '',
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    gender: '',
+    oen: '',
+    dateOfBirth: '',
+    previousSchool: '',
+    allergies: '',
+    photoPermission: '',
+    primaryPhone: '',
+    emergencyPhone: '',
+    primaryEmail: '',
+    studentAddress: '',
+    primaryGuardianFirstName: '',
+    primaryGuardianMiddleName: '',
+    primaryGuardianLastName: '',
+    primaryGuardianPhone: '',
+    primaryGuardianEmail: '',
+    primaryGuardianAddress: '',
+    secondaryGuardianFirstName: '',
+    secondaryGuardianMiddleName: '',
+    secondaryGuardianLastName: '',
+    secondaryGuardianPhone: '',
+    secondaryGuardianEmail: '',
+    secondaryGuardianAddress: '',
+    primaryGuardianTlaId: '',
+    secondaryGuardianTlaId: '',
   });
+
+  const [primaryGuardianInfo, setPrimaryGuardianInfo] = useState(null)
+  const [secondaryGuardianInfo, setSecondaryGuardianInfo] = useState(null)
 
   const [uploadedFiles, setUploadedFiles] = useState({
     immunization: [],
@@ -51,10 +61,6 @@ const RegistrationForm = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    localStorage.setItem('registrationFormData', JSON.stringify(formData));
-  }, [formData]);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -70,6 +76,37 @@ const RegistrationForm = () => {
       [type]: prev[type].filter(file => file.name !== fileToRemove.name)
     }));
   };
+
+  const handleTlaIdChange = async (guardianType, tlaId) => {
+    handleInputChange(`${guardianType}TlaId`, tlaId)
+    if (tlaId.match(/^TP\d{6}$/)) {
+      try {
+        const parentDoc = await getDoc(doc(firestore, 'parents', tlaId))
+        if (parentDoc.exists()) {
+          const parentData = parentDoc.data()
+          if (guardianType === 'primaryGuardian') {
+            setPrimaryGuardianInfo(parentData)
+          } else {
+            setSecondaryGuardianInfo(parentData)
+          }
+        } else {
+          if (guardianType === 'primaryGuardian') {
+            setPrimaryGuardianInfo(null)
+          } else {
+            setSecondaryGuardianInfo(null)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching parent data:', error)
+      }
+    } else {
+      if (guardianType === 'primaryGuardian') {
+        setPrimaryGuardianInfo(null)
+      } else {
+        setSecondaryGuardianInfo(null)
+      }
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -147,22 +184,28 @@ const RegistrationForm = () => {
           primaryEmail: formData.primaryEmail,
           studentAddress: formData.studentAddress,
         },
-        primaryGuardian: {
-          firstName: formData.primaryGuardianFirstName,
-          middleName: formData.primaryGuardianMiddleName || '',
-          lastName: formData.primaryGuardianLastName,
-          phone: formData.primaryGuardianPhone,
-          email: formData.primaryGuardianEmail,
-          address: formData.primaryGuardianAddress,
-        },
-        secondaryGuardian: {
-          firstName: formData.secondaryGuardianFirstName || '',
-          middleName: formData.secondaryGuardianMiddleName || '',
-          lastName: formData.secondaryGuardianLastName || '',
-          phone: formData.secondaryGuardianPhone || '',
-          email: formData.secondaryGuardianEmail || '',
-          address: formData.secondaryGuardianAddress || '',
-        },
+        primaryGuardian: primaryGuardianInfo
+          ? { ...primaryGuardianInfo.personalInfo, ...primaryGuardianInfo.contact }
+          : {
+              firstName: formData.primaryGuardianFirstName,
+              middleName: formData.primaryGuardianMiddleName || '',
+              lastName: formData.primaryGuardianLastName,
+              phone: formData.primaryGuardianPhone,
+              email: formData.primaryGuardianEmail,
+              address: formData.primaryGuardianAddress,
+              schoolId: formData.primaryGuardianTlaId || '',
+            },
+        secondaryGuardian: secondaryGuardianInfo
+          ? { ...secondaryGuardianInfo.personalInfo, ...secondaryGuardianInfo.contact }
+          : {
+              firstName: formData.secondaryGuardianFirstName || '',
+              middleName: formData.secondaryGuardianMiddleName || '',
+              lastName: formData.secondaryGuardianLastName || '',
+              phone: formData.secondaryGuardianPhone || '',
+              email: formData.secondaryGuardianEmail || '',
+              address: formData.secondaryGuardianAddress || '',
+              schoolId: formData.secondaryGuardianTlaId || '',
+            },
         payment: {
           method: 'cash',
           status: 'pending',
@@ -349,70 +392,215 @@ const RegistrationForm = () => {
               {/* Primary Guardian */}
               <div className="form-section">
                 <h3 className="form-section-title">Primary Guardian Information*</h3>
-                <div className="form-grid lg-grid-cols-3">
+                <div className="mb-4">
+                  <label htmlFor="primaryGuardianTlaId" className="form-label">
+                    If this guardian already has a Tarbiyah account, please enter the TLA ID here.
+                  </label>
+                  <input
+                    type="text"
+                    id="primaryGuardianTlaId"
+                    className="form-input"
+                    value={formData.primaryGuardianTlaId}
+                    onChange={(e) => handleTlaIdChange('primaryGuardian', e.target.value)}
+                  />
+                </div>
+                {!primaryGuardianInfo && (
+                  <>
+                    <div className="form-grid lg-grid-cols-3">
                       <div>
-                    <label htmlFor="primaryGuardianFirstName" className="form-label">Legal First Name*</label>
-                    <input type="text" id="primaryGuardianFirstName" className="form-input" value={formData.primaryGuardianFirstName} onChange={e => handleInputChange('primaryGuardianFirstName', e.target.value)} required />
+                        <label htmlFor="primaryGuardianFirstName" className="form-label">
+                          Legal First Name*
+                        </label>
+                        <input
+                          type="text"
+                          id="primaryGuardianFirstName"
+                          className="form-input"
+                          value={formData.primaryGuardianFirstName}
+                          onChange={(e) => handleInputChange('primaryGuardianFirstName', e.target.value)}
+                          required
+                        />
                       </div>
                       <div>
-                    <label htmlFor="primaryGuardianMiddleName" className="form-label">Middle Name</label>
-                    <input type="text" id="primaryGuardianMiddleName" className="form-input" value={formData.primaryGuardianMiddleName} onChange={e => handleInputChange('primaryGuardianMiddleName', e.target.value)} />
+                        <label htmlFor="primaryGuardianMiddleName" className="form-label">
+                          Middle Name
+                        </label>
+                        <input
+                          type="text"
+                          id="primaryGuardianMiddleName"
+                          className="form-input"
+                          value={formData.primaryGuardianMiddleName}
+                          onChange={(e) => handleInputChange('primaryGuardianMiddleName', e.target.value)}
+                        />
                       </div>
                       <div>
-                    <label htmlFor="primaryGuardianLastName" className="form-label">Legal Last Name*</label>
-                    <input type="text" id="primaryGuardianLastName" className="form-input" value={formData.primaryGuardianLastName} onChange={e => handleInputChange('primaryGuardianLastName', e.target.value)} required />
-                  </div>
+                        <label htmlFor="primaryGuardianLastName" className="form-label">
+                          Legal Last Name*
+                        </label>
+                        <input
+                          type="text"
+                          id="primaryGuardianLastName"
+                          className="form-input"
+                          value={formData.primaryGuardianLastName}
+                          onChange={(e) => handleInputChange('primaryGuardianLastName', e.target.value)}
+                          required
+                        />
                       </div>
-                <div className="form-grid md-grid-cols-2 mt-4">
-                          <div>
-                    <label htmlFor="primaryGuardianPhone" className="form-label">Phone Number*</label>
-                    <input type="tel" id="primaryGuardianPhone" className="form-input" value={formData.primaryGuardianPhone} onChange={e => handleInputChange('primaryGuardianPhone', e.target.value)} required />
-                  </div>
-                  <div>
-                    <label htmlFor="primaryGuardianEmail" className="form-label">Email Address*</label>
-                    <input type="email" id="primaryGuardianEmail" className="form-input" value={formData.primaryGuardianEmail} onChange={e => handleInputChange('primaryGuardianEmail', e.target.value)} required />
-                  </div>
-              </div>
-                <div className="mt-4">
-                  <label htmlFor="primaryGuardianAddress" className="form-label">Street Address*</label>
-                  <input type="text" id="primaryGuardianAddress" className="form-input" value={formData.primaryGuardianAddress} onChange={e => handleInputChange('primaryGuardianAddress', e.target.value)} required />
-            </div>
+                    </div>
+                    <div className="form-grid md-grid-cols-2 mt-4">
+                      <div>
+                        <label htmlFor="primaryGuardianPhone" className="form-label">
+                          Phone Number*
+                        </label>
+                        <input
+                          type="tel"
+                          id="primaryGuardianPhone"
+                          className="form-input"
+                          value={formData.primaryGuardianPhone}
+                          onChange={(e) => handleInputChange('primaryGuardianPhone', e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="primaryGuardianEmail" className="form-label">
+                          Email Address*
+                        </label>
+                        <input
+                          type="email"
+                          id="primaryGuardianEmail"
+                          className="form-input"
+                          value={formData.primaryGuardianEmail}
+                          onChange={(e) => handleInputChange('primaryGuardianEmail', e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <label htmlFor="primaryGuardianAddress" className="form-label">
+                        Street Address*
+                      </label>
+                      <input
+                        type="text"
+                        id="primaryGuardianAddress"
+                        className="form-input"
+                        value={formData.primaryGuardianAddress}
+                        onChange={(e) => handleInputChange('primaryGuardianAddress', e.target.value)}
+                        required
+                      />
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Secondary Guardian */}
               <div className="form-section-divider">
                 <h3 className="form-section-title">Secondary Guardian Information (Optional)</h3>
-                <div className="form-grid lg-grid-cols-3">
+                <div className="mb-4">
+                  <label htmlFor="secondaryGuardianTlaId" className="form-label">
+                    If this guardian already has a Tarbiyah account, please enter the TLA ID here.
+                  </label>
+                  <input
+                    type="text"
+                    id="secondaryGuardianTlaId"
+                    className="form-input"
+                    value={formData.secondaryGuardianTlaId}
+                    onChange={(e) => handleTlaIdChange('secondaryGuardian', e.target.value)}
+                  />
+                </div>
+                {!secondaryGuardianInfo && (
+                  <>
+                    <div className="form-grid lg-grid-cols-3">
                       <div>
-                    <label htmlFor="secondaryGuardianFirstName" className="form-label">Legal First Name</label>
-                    <input type="text" id="secondaryGuardianFirstName" className="form-input" value={formData.secondaryGuardianFirstName} onChange={e => handleInputChange('secondaryGuardianFirstName', e.target.value)} />
+                        <label htmlFor="secondaryGuardianFirstName" className="form-label">
+                          Legal First Name
+                        </label>
+                        <input
+                          type="text"
+                          id="secondaryGuardianFirstName"
+                          className="form-input"
+                          value={formData.secondaryGuardianFirstName}
+                          onChange={(e) =>
+                            handleInputChange('secondaryGuardianFirstName', e.target.value)
+                          }
+                        />
                       </div>
                       <div>
-                    <label htmlFor="secondaryGuardianMiddleName" className="form-label">Middle Name</label>
-                    <input type="text" id="secondaryGuardianMiddleName" className="form-input" value={formData.secondaryGuardianMiddleName} onChange={e => handleInputChange('secondaryGuardianMiddleName', e.target.value)} />
+                        <label htmlFor="secondaryGuardianMiddleName" className="form-label">
+                          Middle Name
+                        </label>
+                        <input
+                          type="text"
+                          id="secondaryGuardianMiddleName"
+                          className="form-input"
+                          value={formData.secondaryGuardianMiddleName}
+                          onChange={(e) =>
+                            handleInputChange('secondaryGuardianMiddleName', e.target.value)
+                          }
+                        />
                       </div>
                       <div>
-                    <label htmlFor="secondaryGuardianLastName" className="form-label">Legal Last Name</label>
-                    <input type="text" id="secondaryGuardianLastName" className="form-input" value={formData.secondaryGuardianLastName} onChange={e => handleInputChange('secondaryGuardianLastName', e.target.value)} />
+                        <label htmlFor="secondaryGuardianLastName" className="form-label">
+                          Legal Last Name
+                        </label>
+                        <input
+                          type="text"
+                          id="secondaryGuardianLastName"
+                          className="form-input"
+                          value={formData.secondaryGuardianLastName}
+                          onChange={(e) =>
+                            handleInputChange('secondaryGuardianLastName', e.target.value)
+                          }
+                        />
+                      </div>
+                    </div>
+                    <div className="form-grid md-grid-cols-2 mt-4">
+                      <div>
+                        <label htmlFor="secondaryGuardianPhone" className="form-label">
+                          Phone Number
+                        </label>
+                        <input
+                          type="tel"
+                          id="secondaryGuardianPhone"
+                          className="form-input"
+                          value={formData.secondaryGuardianPhone}
+                          onChange={(e) =>
+                            handleInputChange('secondaryGuardianPhone', e.target.value)
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="secondaryGuardianEmail" className="form-label">
+                          Email Address
+                        </label>
+                        <input
+                          type="email"
+                          id="secondaryGuardianEmail"
+                          className="form-input"
+                          value={formData.secondaryGuardianEmail}
+                          onChange={(e) =>
+                            handleInputChange('secondaryGuardianEmail', e.target.value)
+                          }
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <label htmlFor="secondaryGuardianAddress" className="form-label">
+                        Street Address
+                      </label>
+                      <input
+                        type="text"
+                        id="secondaryGuardianAddress"
+                        className="form-input"
+                        value={formData.secondaryGuardianAddress}
+                        onChange={(e) =>
+                          handleInputChange('secondaryGuardianAddress', e.target.value)
+                        }
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             </div>
-                <div className="form-grid md-grid-cols-2 mt-4">
-                          <div>
-                    <label htmlFor="secondaryGuardianPhone" className="form-label">Phone Number</label>
-                    <input type="tel" id="secondaryGuardianPhone" className="form-input" value={formData.secondaryGuardianPhone} onChange={e => handleInputChange('secondaryGuardianPhone', e.target.value)} />
-                  </div>
-                  <div>
-                    <label htmlFor="secondaryGuardianEmail" className="form-label">Email Address</label>
-                    <input type="email" id="secondaryGuardianEmail" className="form-input" value={formData.secondaryGuardianEmail} onChange={e => handleInputChange('secondaryGuardianEmail', e.target.value)} />
-                          </div>
-                          </div>
-                <div className="mt-4">
-                  <label htmlFor="secondaryGuardianAddress" className="form-label">Street Address</label>
-                  <input type="text" id="secondaryGuardianAddress" className="form-input" value={formData.secondaryGuardianAddress} onChange={e => handleInputChange('secondaryGuardianAddress', e.target.value)} />
-                          </div>
-              </div>
-              </div>
-            </div>
+          </div>
 
           {/* Required Files */}
           <div className="form-card">

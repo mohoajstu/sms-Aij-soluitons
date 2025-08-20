@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { signInWithEmailAndPassword } from 'firebase/auth'
-import { auth } from '../../../Firebase/firebase'
+import { doc, getDoc } from 'firebase/firestore'
+import { auth, firestore } from '../../../Firebase/firebase'
 import { formatParentEmail } from '../../../config/authConfig'
 import {
   CButton,
@@ -36,8 +37,22 @@ const ParentLogin = () => {
     const loginEmail = formatParentEmail(tarbiyahId)
 
     try {
-      await signInWithEmailAndPassword(auth, loginEmail, password)
-      navigate('/')
+      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, password)
+      const user = userCredential.user
+
+      // Check onboarding status only (mustChangePassword handled inside onboarding)
+      const userDocRef = doc(firestore, 'users', user.uid)
+      const userDoc = await getDoc(userDocRef)
+      const userData = userDoc.exists() ? userDoc.data() : {}
+      const parentId = userData?.tarbiyahId || userData?.schoolId || user.uid
+      const parentDocRef = doc(firestore, 'parents', parentId)
+      const parentDoc = await getDoc(parentDocRef)
+
+      if (parentDoc.exists() && parentDoc.data().onboarding === false) {
+        navigate('/onboarding')
+      } else {
+        navigate('/')
+      }
     } catch (err) {
       handleAuthError(err)
     } finally {
@@ -190,3 +205,9 @@ const ParentLogin = () => {
 }
 
 export default ParentLogin 
+
+
+
+
+
+

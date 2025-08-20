@@ -178,3 +178,70 @@ exports.sendSmsHttp = functions.region('northamerica-northeast1').https.onReques
     }
   })
 })
+
+// Set a parent's temp password using Admin Auth. Requires an authenticated caller with admin/staff role.
+exports.setParentTempPassword = functions
+  .region('northamerica-northeast1')
+  .https.onRequest(async (req, res) => {
+    // CORS preflight
+    if (req.method === 'OPTIONS') {
+      res.set('Access-Control-Allow-Origin', '*')
+      res.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+      res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+      res.set('Access-Control-Max-Age', '3600')
+      return res.status(204).send('')
+    }
+
+    if (req.method !== 'POST') {
+      return res.status(405).json({ success: false, message: 'Only POST allowed' })
+    }
+
+    const authHeader = req.headers.authorization || ''
+    const idToken = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null
+    if (!idToken) {
+      return res.status(401).json({ success: false, message: 'Missing Authorization token' })
+    }
+
+    try {
+      const decoded = await admin.auth().verifyIdToken(idToken)
+      const callerUid = decoded.uid
+      const db = admin.firestore()
+      const callerSnap = await db.collection('users').doc(callerUid).get()
+      const callerData = callerSnap.exists ? callerSnap.data() : {}
+      const role = (callerData?.role || callerData?.personalInfo?.role || '').toString().toLowerCase()
+      const allowed = role === 'admin' || role === 'schooladmin' || role === 'staff'
+      if (!allowed) {
+        return res.status(403).json({ success: false, message: 'Insufficient permissions' })
+      }
+
+      const { tarbiyahId } = req.body || {}
+      if (!tarbiyahId || typeof tarbiyahId !== 'string') {
+        return res.status(400).json({ success: false, message: 'Missing tarbiyahId' })
+      }
+
+      const authSvc = admin.auth()
+      const email = `${tarbiyahId}@gmail.com`
+
+      // Ensure auth user exists; create if not
+      try {
+        await authSvc.getUser(tarbiyahId)
+      } catch (e) {
+        if (e.code === 'auth/user-not-found') {
+          await authSvc.createUser({ uid: tarbiyahId, email, password: '2BeChanged', displayName: tarbiyahId })
+        } else {
+          throw e
+        }
+      }
+
+      // Set temp password
+      await authSvc.updateUser(tarbiyahId, { password: '2BeChanged', email })
+
+      // Flag in Firestore
+      await db.collection('users').doc(tarbiyahId).set({ mustChangePassword: true }, { merge: true })
+
+      return res.status(200).json({ success: true })
+    } catch (err) {
+      console.error('setParentTempPassword error:', err)
+      return res.status(500).json({ success: false, message: err.message || 'Internal error' })
+    }
+  })

@@ -90,6 +90,10 @@ const Grades7to8ReportCardPage = React.lazy(() => import('./views/ReportCard/Rep
 const NewAnnouncement = React.lazy(() => import('./views/Announcements/NewAnnouncement'))
 const AllAnnouncements = React.lazy(() => import('./views/Announcements/AllAnnouncements'))
 const ProfilePage = React.lazy(() => import('./views/pages/profile/ProfilePage'))
+const OnboardingPage = React.lazy(() => import('./views/pages/onboarding/OnboardingPage'))
+const Page404 = React.lazy(() => import('./views/pages/page404/Page404'))
+const Page500 = React.lazy(() => import('./views/pages/page500/Page500'))
+const PrivacyPolicy = React.lazy(() => import('./views/pages/privacyPolicy/PrivacyPolicy'))
 const PeoplePage = React.lazy(() => import('./views/pages/people/PeoplePage'))
 
 // const routes = [
@@ -101,8 +105,14 @@ const PeoplePage = React.lazy(() => import('./views/pages/people/PeoplePage'))
 
 const routes = [
   { path: '/', exact: true, name: 'Home' },
+  { path: '/dashboard', name: 'Dashboard', element: Dashboard, auth: true },
+  {
+    path: '/onboarding',
+    name: 'Student Onboarding',
+    element: OnboardingPage,
+  },
+  // Onboarding Admin removed
 
-  { path: '/dashboard', name: 'Dashboard', element: DashboardSwitch },
   { path: '/attendance', name: 'Attendance', element: AttendanceTabs },
   { path: '/reportcards', name: 'Report Cards', element: ReportCardTabs },
   { path: '/registration', name: 'Registration', element: RegistrationPage },

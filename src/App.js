@@ -16,6 +16,7 @@ const PrivacyPolicy = React.lazy(() => import('./views/pages/privacyPolicy/Priva
 const TermsOfService = React.lazy(() => import('./views/pages/termsOfService/TermsOfService'))
 const ParentLogin = React.lazy(() => import('./views/pages/login/ParentLogin'))
 const StaffLogin = React.lazy(() => import('./views/pages/login/StaffLogin'))
+const ChangePassword = React.lazy(() => import('./views/pages/login/ChangePassword'))
 
 const App = () => {
   const { user, loading } = useAuth()
@@ -79,6 +80,8 @@ const App = () => {
 
           {/* Protected Routes */}
           <Route path="/*" element={user ? <DefaultLayout /> : <Navigate to="/home" replace />} />
+          {/* Force password change route */}
+          <Route path="/change-password" element={<ChangePassword />} />
 
           {/* Redirect unmatched routes */}
           <Route path="*" element={<Navigate to={user ? '/' : '/home'} replace />} />

@@ -16,7 +16,10 @@
     "build": "vite build",
     "lint": "eslint",
     "serve": "vite preview",
-    "start": "vite"
+    "start": "vite",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "onboard": "node src/scripts/addOnboardingToParents.js"
   },
   "dependencies": {
     "@coreui/chartjs": "^4.1.0",
@@ -28,6 +31,7 @@
     "@coreui/utils": "^2.0.2",
     "@date-io/date-fns": "^2.17.0",
     "@date-io/dayjs": "^3.2.0",
+    "@emailjs/browser": "^4.4.1",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^6.4.6",
@@ -37,6 +41,7 @@
     "@mui/x-date-pickers": "^7.29.3",
     "@popperjs/core": "^2.11.8",
     "@reduxjs/toolkit": "^2.2.1",
+    "bcryptjs": "^3.0.2",
     "chart.js": "^4.4.7",
     "classnames": "^2.5.1",
     "core-js": "^3.40.0",
@@ -44,6 +49,8 @@
     "date-fns": "^2.30.0",
     "dayjs": "^1.11.13",
     "dotenv": "^16.5.0",
+    "email-js": "^2.0.3",
+    "emailjs-com": "^3.2.0",
     "file-saver": "^2.0.5",
     "firebase": "^11.9.1",
     "firebase-admin": "^13.4.0",

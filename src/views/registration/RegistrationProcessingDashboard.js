@@ -16,6 +16,8 @@ import {
   CTooltip,
   CRow,
   CCol,
+  CFormCheck,
+  CFormSelect,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import {
@@ -27,14 +29,28 @@ import {
   cilCheckAlt,
   cilX,
   cilFindInPage,
+  cilEnvelopeClosed,
 } from '@coreui/icons'
 import { DataGrid } from '@mui/x-data-grid'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
-import { collection, getDocs, query, orderBy, doc, updateDoc } from 'firebase/firestore'
-import { firestore } from 'src/firebase'
+import {
+  collection,
+  getDocs,
+  query,
+  orderBy,
+  doc,
+  updateDoc,
+  where,
+  writeBatch,
+  serverTimestamp,
+  getDoc,
+} from 'firebase/firestore'
+import { auth, firestore } from 'src/firebase'
 import ApplicationDetailModal from './ApplicationDetailModal'
 import PaymentModal from './PaymentModal'
+import SendAcceptanceEmailModal from './SendAcceptanceEmailModal'
 import './registrationPage.css'
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material'
 
 // Create MUI theme to match app styles
 const theme = createTheme({
@@ -70,6 +86,7 @@ const RegistrationProcessingDashboard = () => {
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
+  const [showEmailModal, setShowEmailModal] = useState(false)
   const [confirmationDialog, setConfirmationDialog] = useState({
     open: false,
     type: null,
@@ -116,13 +133,394 @@ const RegistrationProcessingDashboard = () => {
     return colorMap[status] || 'secondary'
   }
 
-  const handleStatusChange = async (appId, newStatus) => {
+  const generateIds = async (collectionName, count = 1) => {
+    const prefix = {
+      students: 'TLS',
+      parents: 'TP',
+    }
+    const collRef = collection(firestore, collectionName)
+    const snapshot = await getDocs(collRef)
+    const existingIds = snapshot.docs.map((doc) => {
+      const id = doc.data().schoolId || doc.id
+      if (id && id.startsWith(prefix[collectionName])) {
+        const numberPart = id.replace(prefix[collectionName], '')
+        return parseInt(numberPart, 10) || 0
+      }
+      return 0
+    })
+
+    const baseNumber = {
+      students: 138747,
+      parents: 105624,
+    }
+
+    let maxNumber =
+      existingIds.length > 0 ? Math.max(...existingIds) : baseNumber[collectionName] - 1
+
+    const newIds = []
+    for (let i = 0; i < count; i++) {
+      maxNumber++
+      const nextNumber = maxNumber.toString().padStart(6, '0')
+      newIds.push(`${prefix[collectionName]}${nextNumber}`)
+    }
+    return newIds
+  }
+
+  // Registration code no longer used
+
+  const handleStatusChange = async (application, newStatus) => {
     try {
-      const appDocRef = doc(firestore, 'registrations', appId)
-      await updateDoc(appDocRef, { status: newStatus })
+      const appRef = doc(firestore, 'registrations', application.id)
+      let appData = application
+
+      // If full data isn't present, fetch it
+      if (!appData.student || !appData.mother || !appData.father) {
+        const docSnap = await getDoc(appRef)
+        if (docSnap.exists()) {
+          appData = { id: docSnap.id, ...docSnap.data() }
+        } else {
+          throw new Error('Application document not found.')
+        }
+      }
+
+      const updateData = { status: newStatus }
+      const batch = writeBatch(firestore)
+
+      if (newStatus === 'approved') {
+        // Registration codes removed; no code generated or stored
+
+        // Default to empty objects to handle incomplete application data
+        const studentData = appData.student || {}
+        const primaryGuardianData = appData.primaryGuardian || {}
+        const secondaryGuardianData = appData.secondaryGuardian || {}
+        const hasSecondaryGuardian = !!secondaryGuardianData.firstName
+        const primaryGuardianExists = !!primaryGuardianData.schoolId
+        const secondaryGuardianExists = !!secondaryGuardianData.schoolId
+
+        // Create student and parent documents
+        const [studentId] = await generateIds('students', 1)
+        const parentIdsToCreate = [!primaryGuardianExists, hasSecondaryGuardian && !secondaryGuardianExists].filter(Boolean).length
+        const newParentIds = await generateIds('parents', parentIdsToCreate)
+        const motherId = primaryGuardianExists ? primaryGuardianData.schoolId : newParentIds.shift()
+        const fatherId = hasSecondaryGuardian ? (secondaryGuardianExists ? secondaryGuardianData.schoolId : newParentIds.shift()) : null
+
+        // Onboarding codes are no longer used
+
+
+        console.log('--- Creating Documents ---')
+        console.log('Student ID:', studentId)
+        console.log('Primary Guardian (Mother) ID:', motherId)
+        if (hasSecondaryGuardian) {
+          console.log('Secondary Guardian (Father) ID:', fatherId)
+        }
+        console.log('--------------------------')
+
+        const studentRef = doc(firestore, 'students', studentId)
+        const motherRef = doc(firestore, 'parents', motherId)
+        const studentUserRef = doc(firestore, 'users', studentId)
+        const motherUserRef = doc(firestore, 'users', motherId)
+
+        // Prepare student's parents field
+        const studentParentsField = {
+          mother: {
+            name: `${primaryGuardianData.firstName || ''} ${
+              primaryGuardianData.lastName || ''
+            }`.trim(),
+            tarbiyahId: motherId,
+          },
+          father: {
+            name: hasSecondaryGuardian
+              ? `${secondaryGuardianData.firstName || ''} ${
+                  secondaryGuardianData.lastName || ''
+                }`.trim()
+              : '',
+            tarbiyahId: fatherId || '',
+          },
+        }
+
+        // Student document
+        const studentDocData = {
+          active: true,
+          address: {
+            poBox: '',
+            residentialArea: 'Unknown',
+            streetAddress: appData.contact?.studentAddress || '',
+          },
+          citizenship: {
+            nationalId: '',
+            nationalIdExpiry: '',
+            nationality: '',
+          },
+          contact: {
+            email: '', // Student-specific email not on registration form
+            emergencyPhone: appData.contact?.emergencyPhone || '',
+            phone1: appData.contact?.primaryPhone || '',
+            phone2: '',
+          },
+          language: {
+            primary: '',
+            secondary: '',
+          },
+          attendanceStats: {
+            currentTermLateCount: 0,
+            yearLateCount: 0,
+            currentTermAbsenceCount: 0,
+            yearAbsenceCount: 0,
+          },
+          parents: studentParentsField,
+          personalInfo: {
+            dob: studentData.dateOfBirth || '',
+            firstName: studentData.firstName || '',
+            middleName: '', // Not collected in registration
+            lastName: studentData.lastName || '',
+            gender: studentData.gender || '',
+            nickName: '', // Not collected in registration
+            salutation: '', // Not collected in registration
+          },
+          primaryRole: 'Student',
+          schoolId: studentId,
+          schooling: {
+            custodyDetails: '',
+            daySchoolEmployer: '',
+            notes: `Allergies/Medical Conditions: ${
+              studentData.allergies || 'N/A'
+            }\nOEN: ${studentData.oen || 'N/A'}\nPrevious School: ${
+              studentData.previousSchool || 'N/A'
+            }\nPhoto Permission: ${studentData.photoPermission || 'N/A'}`,
+            program: appData.grade || '',
+            returningStudentYear: appData.schoolYear || '',
+          },
+          createdAt: serverTimestamp(),
+          uploadedAt: serverTimestamp(),
+        }
+        batch.set(studentRef, studentDocData)
+
+        // Mother document
+        if (!primaryGuardianExists) {
+          const motherDocData = {
+            active: true,
+            address: {
+              poBox: primaryGuardianData.poBox || '',
+              residentialArea: primaryGuardianData.residentialArea || 'Unknown',
+              streetAddress: primaryGuardianData.address || '',
+            },
+            citizenship: {
+              nationalId: primaryGuardianData.nationalId || '',
+              nationalIdExpiry: primaryGuardianData.nationalIdExpiry || '',
+              nationality: primaryGuardianData.nationality || '',
+            },
+            contact: {
+              email: primaryGuardianData.email || '',
+              emergencyPhone: appData.contact?.emergencyPhone || '',
+              phone1: primaryGuardianData.phone || '',
+              phone2: '',
+            },
+            language: {
+              primary: '',
+              secondary: '',
+            },
+            personalInfo: {
+              dob: primaryGuardianData.dob || '',
+              firstName: primaryGuardianData.firstName || '',
+              middleName: primaryGuardianData.middleName || '',
+              lastName: primaryGuardianData.lastName || '',
+              gender: primaryGuardianData.gender || '',
+              nickName: '',
+              salutation: '',
+            },
+            primaryRole: 'Parent',
+            schoolId: motherId,
+            schooling: {
+              custodyDetails: '',
+              daySchoolEmployer: '',
+              notes: '',
+            },
+            students: [
+              {
+                studentId: studentId,
+                studentName: `${studentData.firstName || ''} ${studentData.lastName || ''}`.trim(),
+                relationship: 'child',
+              },
+            ],
+            onboarding: false,
+            createdAt: serverTimestamp(),
+            uploadedAt: serverTimestamp(),
+          }
+          batch.set(motherRef, motherDocData)
+        } else {
+          // Update existing parent
+          const existingStudents = primaryGuardianData.students || []
+          batch.update(motherRef, {
+            students: [...existingStudents, { studentId: studentId, studentName: `${studentData.firstName || ''} ${studentData.lastName || ''}`.trim(), relationship: 'child' }]
+          })
+        }
+
+        // User documents
+        batch.set(studentUserRef, {
+          tarbiyahId: studentId,
+          linkedCollection: 'students',
+          active: true,
+          personalInfo: {
+            firstName: studentData.firstName || '',
+            lastName: studentData.lastName || '',
+            role: 'Student',
+          },
+          dashboard: { theme: 'default' },
+          stats: { lastLoginAt: null, loginCount: 0 },
+          createdAt: serverTimestamp(),
+        })
+
+        if (!primaryGuardianExists) {
+          batch.set(motherUserRef, {
+            tarbiyahId: motherId,
+            linkedCollection: 'parents',
+            active: true,
+            personalInfo: {
+              firstName: primaryGuardianData.firstName || '',
+              lastName: primaryGuardianData.lastName || '',
+              role: 'Parent',
+            },
+            dashboard: { theme: 'default' },
+            stats: { lastLoginAt: null, loginCount: 0 },
+            createdAt: serverTimestamp(),
+            mustChangePassword: true,
+          })
+          // Set temp password in Auth for new parent
+          try {
+            const token = await auth.currentUser?.getIdToken?.()
+            if (token) {
+              await fetch('https://northamerica-northeast1-tarbiyah-sms.cloudfunctions.net/setParentTempPassword', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ tarbiyahId: motherId }),
+              })
+            } else {
+              console.warn('No auth token available to call setParentTempPassword (mother)')
+            }
+          } catch (e) {
+            console.error('Failed to set temp password for mother via Cloud Function:', e)
+          }
+        }
+
+        // Father and Father's User documents (conditional)
+        if (hasSecondaryGuardian && fatherId) {
+          const fatherRef = doc(firestore, 'parents', fatherId)
+          const fatherUserRef = doc(firestore, 'users', fatherId)
+
+          if (!secondaryGuardianExists) {
+            const fatherDocData = {
+              active: true,
+              address: {
+                poBox: secondaryGuardianData.poBox || '',
+                residentialArea: secondaryGuardianData.residentialArea || 'Unknown',
+                streetAddress: secondaryGuardianData.address || '',
+              },
+              citizenship: {
+                nationalId: secondaryGuardianData.nationalId || '',
+                nationalIdExpiry: secondaryGuardianData.nationalIdExpiry || '',
+                nationality: secondaryGuardianData.nationality || '',
+              },
+              contact: {
+                email: secondaryGuardianData.email || '',
+                emergencyPhone: appData.contact?.emergencyPhone || '',
+                phone1: secondaryGuardianData.phone || '',
+                phone2: '',
+              },
+              language: {
+                primary: '',
+                secondary: '',
+              },
+              personalInfo: {
+                dob: secondaryGuardianData.dob || '',
+                firstName: secondaryGuardianData.firstName || '',
+                middleName: secondaryGuardianData.middleName || '',
+                lastName: secondaryGuardianData.lastName || '',
+                gender: secondaryGuardianData.gender || '',
+                nickName: '',
+                salutation: '',
+              },
+              primaryRole: 'Parent',
+              schoolId: fatherId,
+              schooling: {
+                custodyDetails: '',
+                daySchoolEmployer: '',
+                notes: '',
+              },
+              students: [
+                {
+                  studentId: studentId,
+                  studentName: `${studentData.firstName || ''} ${
+                    studentData.lastName || ''
+                  }`.trim(),
+                  relationship: 'child',
+                },
+              ],
+              onboarding: false,
+              createdAt: serverTimestamp(),
+              uploadedAt: serverTimestamp(),
+            }
+            batch.set(fatherRef, fatherDocData)
+          } else {
+            // Update existing parent
+            const existingStudents = secondaryGuardianData.students || []
+            batch.update(fatherRef, {
+              students: [
+                ...existingStudents,
+                {
+                  studentId: studentId,
+                  studentName: `${studentData.firstName || ''} ${
+                    studentData.lastName || ''
+                  }`.trim(),
+                  relationship: 'child',
+                },
+              ],
+            })
+          }
+          if (!secondaryGuardianExists) {
+            batch.set(fatherUserRef, {
+              tarbiyahId: fatherId,
+              linkedCollection: 'parents',
+              active: true,
+              personalInfo: {
+                firstName: secondaryGuardianData.firstName || '',
+                lastName: secondaryGuardianData.lastName || '',
+                role: 'Parent',
+              },
+              dashboard: { theme: 'default' },
+              stats: { lastLoginAt: null, loginCount: 0 },
+              createdAt: serverTimestamp(),
+              mustChangePassword: true,
+            })
+            // Set temp password in Auth for new parent
+            try {
+              const token = await auth.currentUser?.getIdToken?.()
+              if (token) {
+                await fetch('https://northamerica-northeast1-tarbiyah-sms.cloudfunctions.net/setParentTempPassword', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({ tarbiyahId: fatherId }),
+                })
+              } else {
+                console.warn('No auth token available to call setParentTempPassword (father)')
+              }
+            } catch (e) {
+              console.error('Failed to set temp password for father via Cloud Function:', e)
+            }
+          }
+        }
+      }
+
+      batch.update(appRef, updateData)
+      await batch.commit()
 
       setApplications((prev) =>
-        prev.map((app) => (app.id === appId ? { ...app, status: newStatus } : app)),
+        prev.map((app) => (app.id === application.id ? { ...app, ...updateData } : app)),
       )
     } catch (error) {
       console.error('Error updating status:', error)
@@ -178,10 +576,10 @@ const RegistrationProcessingDashboard = () => {
         handleArchiveApplication(id, archived)
         break
       case 'approve':
-        handleStatusChange(id, 'approved')
+        handleStatusChange(confirmationDialog.application, 'approved')
         break
       case 'deny':
-        handleStatusChange(id, 'denied')
+        handleStatusChange(confirmationDialog.application, 'denied')
         break
     }
   }
@@ -215,6 +613,8 @@ const RegistrationProcessingDashboard = () => {
       app.id.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesSearch
   })
+
+  const schoolYears = ['All', ...new Set(applications.map((app) => app.schoolYear).filter(Boolean))]
 
   const handleViewApplication = (application) => {
     setSelectedApplication(application)
@@ -395,6 +795,15 @@ const RegistrationProcessingDashboard = () => {
               <h1 className="h2 fw-bold">Registration Processing</h1>
               <p className="text-medium-emphasis mt-1">Review and process student applications</p>
             </div>
+            <div className="d-flex gap-2">
+              <CButton
+                color="primary"
+                onClick={() => setShowEmailModal(true)}
+                disabled={loading || !applications.some((app) => app.status === 'approved')}
+              >
+                <CIcon icon={cilEnvelopeClosed} className="me-2" />
+                Send Acceptance Emails
+              </CButton>
               <CButton
                 variant="outline"
                 color="secondary"
@@ -406,6 +815,7 @@ const RegistrationProcessingDashboard = () => {
                   ? `Show Active (${activeApplications.length})`
                   : 'Show Archived'}
               </CButton>
+            </div>
           </div>
 
           {/* Stats Cards - Only show for active applications */}
@@ -466,6 +876,28 @@ const RegistrationProcessingDashboard = () => {
                 {filteredApplications.length})
               </CCardTitle>
             </CCardHeader>
+            <CCardBody>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  {/* <CFormSelect
+                    style={{ width: 'auto', display: 'inline-block' }}
+                    value={selectedSchoolYear}
+                    onChange={(e) => setSelectedSchoolYear(e.target.value)}
+                  >
+                    {schoolYears.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </CFormSelect> */}
+                </div>
+                <CFormCheck
+                  id="showArchivedSwitch"
+                  label="Show Archived"
+                  checked={showArchived}
+                  onChange={() => setShowArchived(!showArchived)}
+                />
+              </div>
               <div className="px-3 pt-3 pb-1">
                 <CFormLabel htmlFor="search" className="visually-hidden">
                   Search Applications
@@ -483,7 +915,6 @@ const RegistrationProcessingDashboard = () => {
                   />
                 </div>
               </div>
-            <CCardBody className="pt-0">
               <div style={{ height: 600, width: '100%' }}>
                 <ThemeProvider theme={theme}>
                   <DataGrid
@@ -497,6 +928,23 @@ const RegistrationProcessingDashboard = () => {
                     }}
                     pageSizeOptions={[5, 10, 25]}
                     disableRowSelectionOnClick
+                    autoHeight
+                    rowHeight={60}
+                    sx={{
+                      '& .MuiDataGrid-columnHeaders': {
+                        backgroundColor: '#f4f4f4',
+                        fontWeight: 'bold',
+                      },
+                      '& .MuiDataGrid-cell': {
+                        padding: '0 16px',
+                      },
+                      '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
+                        outline: 'none',
+                      },
+                    }}
+                    getRowClassName={(params) =>
+                      params.indexRelativeToCurrentPage % 2 === 0 ? 'even-row' : 'odd-row'
+                    }
                   />
                 </ThemeProvider>
               </div>
@@ -523,26 +971,36 @@ const RegistrationProcessingDashboard = () => {
         )}
 
         {/* Confirmation Dialog */}
-        <CModal
-          visible={confirmationDialog.open}
+        <Dialog
+          open={confirmationDialog.open}
           onClose={() => setConfirmationDialog({ open: false, type: null, application: null })}
         >
-          <CModalHeader>
-            <CModalTitle>Confirm Action</CModalTitle>
-          </CModalHeader>
-          <CModalBody>{getConfirmationText()}</CModalBody>
-          <CModalFooter>
-            <CButton
-              color="secondary"
+          <DialogTitle>Confirm Action</DialogTitle>
+          <DialogContent>
+            <p>{getConfirmationText()}</p>
+          </DialogContent>
+          <DialogActions>
+            <Button
               onClick={() => setConfirmationDialog({ open: false, type: null, application: null })}
             >
               Cancel
-            </CButton>
-            <CButton color="primary" onClick={handleConfirmAction}>
+            </Button>
+            <Button onClick={handleConfirmAction} color="primary" autoFocus>
               Confirm
-            </CButton>
-          </CModalFooter>
-        </CModal>
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Send Acceptance Email Modal */}
+        <SendAcceptanceEmailModal
+          visible={showEmailModal}
+          onClose={() => setShowEmailModal(false)}
+          applications={applications}
+          onEmailsSent={() => {
+            setShowEmailModal(false)
+            // Optionally, refresh applications or update UI to show emails have been sent
+          }}
+        />
       </div>
     </div>
   )
