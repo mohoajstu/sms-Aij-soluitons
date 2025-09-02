@@ -147,6 +147,7 @@ const OnboardingPage = () => {
                   dob: data.personalInfo?.dob || '',
                   gender: data.personalInfo?.gender || '',
                   salutation: data.personalInfo?.salutation || '',
+                  allergies: data.personalInfo?.allergies || '',
                 },
                 address: { ...data.address },
                 citizenship: { ...data.citizenship },
@@ -158,6 +159,9 @@ const OnboardingPage = () => {
                   notes: data.schooling?.notes || '',
                   program: data.schooling?.program || '',
                   returningStudentYear: data.schooling?.returningStudentYear || '',
+                  oen: data.schooling?.oen || '',
+                  previousSchool: data.schooling?.previousSchool || '',
+                  photoPermission: data.schooling?.photoPermission || '',
                 },
               }
             }
@@ -501,8 +505,8 @@ const OnboardingPage = () => {
 
   const renderProgressBar = () => {
     const steps = hasPasswordStep
-      ? ['Verify Identity', 'Parent Info', 'Register Students', 'Set Password', 'Confirm & Finish']
-      : ['Verify Identity', 'Parent Info', 'Register Students', 'Confirm & Finish']
+      ? ['Verify Identity', 'Parent Info', 'Student Info', 'Set Password', 'Confirm & Finish']
+      : ['Verify Identity', 'Parent Info', 'Student Info', 'Confirm & Finish']
     const totalSteps = steps.length
     const safeCurrent = Math.min(currentStep, totalSteps)
     const progress = Math.round((safeCurrent / totalSteps) * 100)
@@ -1180,6 +1184,57 @@ const OnboardingPage = () => {
                             onChange={(e) => setStudentForms((prev) => ({
                               ...prev,
                               [id]: { ...prev[id], contact: { ...prev[id].contact, emergencyPhone: e.target.value } },
+                            }))}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Additional details for child */}
+                      <div className="row mb-3">
+                        <div className="col-md-6">
+                          <CFormLabel>OEN</CFormLabel>
+                          <CFormInput
+                            value={studentForms[id]?.schooling?.oen || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: { ...prev[id], schooling: { ...prev[id].schooling, oen: e.target.value } },
+                            }))}
+                          />
+                        </div>
+                        <div className="col-md-6">
+                          <CFormLabel>Previous School</CFormLabel>
+                          <CFormInput
+                            value={studentForms[id]?.schooling?.previousSchool || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: { ...prev[id], schooling: { ...prev[id].schooling, previousSchool: e.target.value } },
+                            }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="row mb-3">
+                        <div className="col-md-6">
+                          <CFormLabel>Photography Consent</CFormLabel>
+                          <CFormSelect
+                            value={studentForms[id]?.schooling?.photoPermission || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: { ...prev[id], schooling: { ...prev[id].schooling, photoPermission: e.target.value } },
+                            }))}
+                          >
+                            <option value="">Select</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                            <option value="N/A">N/A</option>
+                          </CFormSelect>
+                        </div>
+                        <div className="col-md-6">
+                          <CFormLabel>Allergies / Medical Conditions</CFormLabel>
+                          <CFormInput
+                            value={studentForms[id]?.personalInfo?.allergies || ''}
+                            onChange={(e) => setStudentForms((prev) => ({
+                              ...prev,
+                              [id]: { ...prev[id], personalInfo: { ...prev[id].personalInfo, allergies: e.target.value } },
                             }))}
                           />
                         </div>

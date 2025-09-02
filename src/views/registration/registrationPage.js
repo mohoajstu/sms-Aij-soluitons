@@ -231,7 +231,14 @@ const RegistrationForm = () => {
     }
   };
 
-  const isOenRequired = formData.grade && formData.grade.toLowerCase() !== 'kindergarten';
+  const isOenRequired = (() => {
+    const g = (formData.grade || '').toLowerCase();
+    if (!g) return false;
+    // Not required only for Jr Kindergarten
+    if (g === 'jr kindergarten' || g === 'jk') return false;
+    // Required for Sr Kindergarten and all higher grades
+    return true;
+  })();
 
   return (
     <div className="registration-form-container">
@@ -267,7 +274,8 @@ const RegistrationForm = () => {
                   <label htmlFor="grade" className="form-label">Grade Applied For*</label>
                   <select id="grade" className="form-select" value={formData.grade} onChange={e => handleInputChange('grade', e.target.value)} required>
                     <option value="">Select Grade</option>
-                    <option value="Kindergarten">Kindergarten</option>
+                    <option value="Jr Kindergarten">Jr Kindergarten</option>
+                    <option value="Sr Kindergarten">Sr Kindergarten</option>
                     <option value="Grade 1">Grade 1</option>
                     <option value="Grade 2">Grade 2</option>
                     <option value="Grade 3">Grade 3</option>

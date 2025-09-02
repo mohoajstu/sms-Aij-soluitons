@@ -276,19 +276,19 @@ const RegistrationProcessingDashboard = () => {
             gender: studentData.gender || '',
             nickName: '', // Not collected in registration
             salutation: '', // Not collected in registration
+            allergies: studentData.allergies || '',
           },
           primaryRole: 'Student',
           schoolId: studentId,
           schooling: {
             custodyDetails: '',
             daySchoolEmployer: '',
-            notes: `Allergies/Medical Conditions: ${
-              studentData.allergies || 'N/A'
-            }\nOEN: ${studentData.oen || 'N/A'}\nPrevious School: ${
-              studentData.previousSchool || 'N/A'
-            }\nPhoto Permission: ${studentData.photoPermission || 'N/A'}`,
+            notes: '',
             program: appData.grade || '',
             returningStudentYear: appData.schoolYear || '',
+            oen: studentData.oen || '',
+            previousSchool: studentData.previousSchool || '',
+            photoPermission: studentData.photoPermission || '',
           },
           createdAt: serverTimestamp(),
           uploadedAt: serverTimestamp(),

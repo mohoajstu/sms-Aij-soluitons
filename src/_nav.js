@@ -60,7 +60,7 @@ const _nav = [
   },
   {
     component: CNavItem,
-    name: 'Student Onboarding',
+    name: 'Onboarding',
     to: '/onboarding',
     icon: <CIcon icon={cilUserPlus} customClassName="nav-icon" />,
     hideFor: ['student', 'teacher'],
