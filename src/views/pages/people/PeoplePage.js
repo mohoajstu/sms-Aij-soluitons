@@ -92,6 +92,15 @@ const PeoplePage = () => {
     fetchAllCollections();
   }, []);
 
+  // Normalize storage variations to the three-option select
+  const normalizeConsent = (value) => {
+    const s = (value ?? '').toString().trim().toLowerCase();
+    if (s === 'yes' || s === 'y' || s === 'true' || s === '1') return 'Yes';
+    if (s === 'no' || s === 'n' || s === 'false' || s === '0') return 'No';
+    if (s === 'n/a' || s === 'na' || s === 'not applicable') return 'N/A';
+    return s ? 'N/A' : '';
+  };
+
   const fetchAllCollections = async () => {
     setLoading(true);
     try {
@@ -130,7 +139,44 @@ const PeoplePage = () => {
   const handleEdit = (item, collectionName) => {
     setModalType('edit');
     setSelectedItem(item);
-    setFormData({ ...item, collectionName });
+    if (collectionName === 'students') {
+      const parseSchoolingNotes = (notes) => {
+        const result = { allergies: '', oen: '', previousSchool: '', photoPermission: '' };
+        if (!notes || typeof notes !== 'string') return result;
+        const lines = notes.split(/\r?\n/);
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (/^Allergies\/Medical Conditions:\s*/i.test(trimmed)) {
+            result.allergies = trimmed.replace(/^Allergies\/Medical Conditions:\s*/i, '').trim();
+          } else if (/^OEN:\s*/i.test(trimmed)) {
+            result.oen = trimmed.replace(/^OEN:\s*/i, '').trim();
+          } else if (/^Previous School:\s*/i.test(trimmed)) {
+            result.previousSchool = trimmed.replace(/^Previous School:\s*/i, '').trim();
+          } else if (/^Photo Permission:\s*/i.test(trimmed)) {
+            result.photoPermission = trimmed.replace(/^Photo Permission:\s*/i, '').trim();
+          }
+        }
+        return result;
+      };
+
+      const parsed = parseSchoolingNotes(item?.schooling?.notes);
+      setFormData({
+        ...item,
+        collectionName,
+        personalInfo: {
+          ...item.personalInfo,
+          allergies: item?.personalInfo?.allergies ?? parsed.allergies,
+        },
+        schooling: {
+          ...item.schooling,
+          oen: item?.schooling?.oen ?? parsed.oen,
+          previousSchool: item?.schooling?.previousSchool ?? parsed.previousSchool,
+          photoPermission: normalizeConsent(item?.schooling?.photoPermission ?? parsed.photoPermission),
+        },
+      });
+    } else {
+      setFormData({ ...item, collectionName });
+    }
     setShowModal(true);
   };
 
@@ -233,6 +279,29 @@ const PeoplePage = () => {
         };
       } else {
       saveData.uploadedAt = serverTimestamp();
+      }
+
+      // Normalize student notes: remove parsed fields from notes and store individually
+      if (collectionName === 'students') {
+        const currentNotes = saveData.schooling?.notes || '';
+        const cleanedNotes = (currentNotes || '')
+          .split(/\r?\n/)
+          .filter(line => !/^Allergies\/Medical Conditions:/i.test(line)
+            && !/^OEN:/i.test(line)
+            && !/^Previous School:/i.test(line))
+          .join('\n');
+        saveData.schooling = {
+          ...saveData.schooling,
+          notes: cleanedNotes,
+          oen: saveData.schooling?.oen || '',
+          previousSchool: saveData.schooling?.previousSchool || '',
+          photoPermission: saveData.schooling?.photoPermission || '',
+        };
+        // Ensure personalInfo carries allergies
+        saveData.personalInfo = {
+          ...saveData.personalInfo,
+          allergies: saveData.personalInfo?.allergies || '',
+        };
       }
 
       batch.set(docRef, saveData, { merge: true });
@@ -474,12 +543,19 @@ const PeoplePage = () => {
             notes: '',
             program: '',
             returningStudentYear: '',
+            oen: '',
+            previousSchool: '',
           },
           attendanceStats: {
             currentTermLateCount: 0,
             yearLateCount: 0,
             currentTermAbsenceCount: 0,
             yearAbsenceCount: 0,
+          },
+          // Student-only field under Personal Information section
+          personalInfo: {
+            ...baseData.personalInfo,
+            allergies: '',
           },
         };
       case 'parents':
@@ -831,6 +907,24 @@ const PeoplePage = () => {
                       </CFormSelect>
                     </div>
                   </div>
+                  {collectionName === 'students' && (
+                    <div className="row mb-3">
+                      <div className="col-md-12">
+                        <CFormLabel>Allergies / Medical Conditions</CFormLabel>
+                        <CFormTextarea
+                          rows={2}
+                          value={formData.personalInfo?.allergies || ''}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              personalInfo: { ...formData.personalInfo, allergies: e.target.value },
+                            })
+                          }
+                          placeholder="e.g., Peanut allergy"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </CAccordionBody>
               </CAccordionItem>
 
@@ -1143,18 +1237,70 @@ const PeoplePage = () => {
                       }
                     />
                   </div>
-                  <div className="col-md-6">
+                  {collectionName === 'students' && (
+                    <>
+                      <div className="row mb-3">
+                        <div className="col-md-6">
+                          <CFormLabel>OEN</CFormLabel>
+                          <CFormInput
+                            value={formData.schooling?.oen || ''}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                schooling: { ...formData.schooling, oen: e.target.value },
+                              })
+                            }
+                            placeholder="Ontario Education Number"
+                          />
+                        </div>
+                        <div className="col-md-6">
+                          <CFormLabel>Previous School</CFormLabel>
+                          <CFormInput
+                            value={formData.schooling?.previousSchool || ''}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                schooling: { ...formData.schooling, previousSchool: e.target.value },
+                              })
+                            }
+                            placeholder="e.g., ABC Elementary"
+                          />
+                        </div>
+                      </div>
+                      <div className="row mb-3">
+                        <div className="col-md-6">
+                          <CFormLabel>Photography Consent</CFormLabel>
+                          <CFormSelect
+                            value={formData.schooling?.photoPermission || ''}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                schooling: { ...formData.schooling, photoPermission: e.target.value },
+                              })
+                            }
+                          >
+                            <option value="">Select</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                            <option value="N/A">N/A</option>
+                          </CFormSelect>
+                        </div>
+                        <div className="col-md-6">
                           <CFormLabel>Returning Student Year</CFormLabel>
                           <CFormInput
                             value={formData.schooling?.returningStudentYear || ''}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
                                 schooling: { ...formData.schooling, returningStudentYear: e.target.value },
                               })
                             }
                           />
                         </div>
+                      </div>
+                    </>
+                  )}
+                  
                       </div>
                       <div className="row mb-3">
                         <div className="col-md-6">
@@ -1194,6 +1340,7 @@ const PeoplePage = () => {
                                 schooling: { ...formData.schooling, notes: e.target.value },
                               })
                             }
+                            placeholder="General notes"
                           />
                         </div>
                       </div>

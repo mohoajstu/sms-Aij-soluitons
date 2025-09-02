@@ -827,6 +827,43 @@ const ProfilePage = () => {
           </div>
           <div className="row mb-3">
             <div className="col-md-6">
+              <CFormLabel>OEN</CFormLabel>
+              <CFormInput
+                value={childData.schooling?.oen || ''}
+                onChange={(e) => setChildField('schooling.oen', e.target.value)}
+              />
+            </div>
+            <div className="col-md-6">
+              <CFormLabel>Previous School</CFormLabel>
+              <CFormInput
+                value={childData.schooling?.previousSchool || ''}
+                onChange={(e) => setChildField('schooling.previousSchool', e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <CFormLabel>Photography Consent</CFormLabel>
+              <CFormSelect
+                value={childData.schooling?.photoPermission || ''}
+                onChange={(e) => setChildField('schooling.photoPermission', e.target.value)}
+              >
+                <option value="">Select</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+                <option value="N/A">N/A</option>
+              </CFormSelect>
+            </div>
+            <div className="col-md-6">
+              <CFormLabel>Allergies / Medical Conditions</CFormLabel>
+              <CFormInput
+                value={childData.personalInfo?.allergies || ''}
+                onChange={(e) => setChildField('personalInfo.allergies', e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="row mb-3">
+            <div className="col-md-6">
               <CFormLabel>Day School Employer</CFormLabel>
               <CFormInput
                 value={childData.schooling?.daySchoolEmployer || ''}
