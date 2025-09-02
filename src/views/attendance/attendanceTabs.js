@@ -6,6 +6,7 @@ import ClassSelector from '../../components/ClassSelector'
 import { CFormInput } from '@coreui/react'
 import AttendanceReportTable from './attendenceReportTable'
 import ManualSmsNotification from './ManualSmsNotification'
+import AttendanceSmsSettings from './AttendanceSmsSettings'
 import './attendanceTabs.css'
 import useAuth from '../../Firebase/useAuth'
 
@@ -27,6 +28,8 @@ const AttendanceTabs = () => {
       setActiveTab(1) // Force attendance report tab for parents
     }
   }, [role])
+
+  const isAdmin = role?.toLowerCase() === 'admin'
 
   return (
     <div className="at-container">
@@ -59,6 +62,18 @@ const AttendanceTabs = () => {
                 onClick={() => setActiveTab(2)}
               >
                 Manual SMS
+              </div>
+            </>
+          )}
+
+          {isAdmin && (
+            <>
+              <div className="at-tab-separator"></div>
+              <div
+                className={`at-tab-link ${activeTab === 3 ? 'at-active' : ''}`}
+                onClick={() => setActiveTab(3)}
+              >
+                SMS Settings
               </div>
             </>
           )}
@@ -122,6 +137,12 @@ const AttendanceTabs = () => {
               number.
             </div>
             <ManualSmsNotification />
+          </Box>
+        )}
+
+        {isAdmin && activeTab === 3 && (
+          <Box className="at-sms-settings-content">
+            <AttendanceSmsSettings />
           </Box>
         )}
       </div>

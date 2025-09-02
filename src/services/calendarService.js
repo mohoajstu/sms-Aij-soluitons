@@ -1,12 +1,26 @@
 // Google Calendar Service for handling API interactions
 
-const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
+let API_KEY = import.meta.env.VITE_GOOGLE_API_KEY
+let CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'
 const SCOPES =
-  'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file'
+  'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/drive.file'
 const TOKEN_STORAGE_KEY = 'google_calendar_api_token' // This is our internal token storage
 const SHARED_GOOGLE_AUTH_TOKEN_KEY = 'firebase_google_auth_token' // Token shared with Firebase auth
+
+const functionsBase = `https://northamerica-northeast1-tarbiyah-sms.cloudfunctions.net`
+
+async function hydratePublicConfigIfMissing() {
+  if (API_KEY && CLIENT_ID) return
+  try {
+    const resp = await fetch(`${functionsBase}/getPublicConfig`)
+    if (resp.ok) {
+      const data = await resp.json()
+      API_KEY = API_KEY || data.googleApiKey || null
+      CLIENT_ID = CLIENT_ID || data.googleClientId || null
+    }
+  } catch {}
+}
 
 // Debug environment variables
 console.log('Google API Configuration:', {
@@ -109,8 +123,10 @@ export const isAuthenticated = () => {
  * Initialize the Google API client
  */
 export const initializeGoogleApi = () => {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
+      await hydratePublicConfigIfMissing()
+
       // Load Google API client
       gapi.load('client', async () => {
         try {
@@ -148,8 +164,10 @@ export const initializeGoogleApi = () => {
  * Initialize Google Identity Services
  */
 export const initializeGIS = () => {
-  return new Promise((resolve) => {
+  return new Promise(async (resolve) => {
     try {
+      await hydratePublicConfigIfMissing()
+
       // Validate CLIENT_ID before initializing
       if (!CLIENT_ID) {
         console.error('Missing required parameter client_id. VITE_GOOGLE_CLIENT_ID is not set.')
