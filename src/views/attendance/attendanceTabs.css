@@ -76,9 +76,267 @@
   
   /* Content sections */
   .at-take-attendance-content,
-  .at-attendance-report-content {
+  .at-attendance-report-content,
+  .at-sms-test-content,
+  .at-sms-settings-content {
     width: 100%;
     padding: 20px 0;
+  }
+
+  /* SMS Settings specific styles */
+  .at-sms-settings-content {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .at-sms-settings-content .card {
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+  }
+
+  .at-sms-settings-content .card-header {
+    background: linear-gradient(135deg, #f5f7ff 0%, #e8ecff 100%);
+    border-bottom: 1px solid #e0e6ff;
+    border-radius: 12px 12px 0 0 !important;
+    padding: 20px 25px;
+  }
+
+  .at-sms-settings-content .card-body {
+    padding: 25px;
+  }
+
+  .at-sms-settings-content .form-label {
+    font-weight: 600;
+    color: #212631;
+    margin-bottom: 8px;
+  }
+
+  .at-sms-settings-content .form-control,
+  .at-sms-settings-content .form-select {
+    border-radius: 8px;
+    border: 1px solid #e0e6ff;
+    padding: 12px 16px;
+    transition: all 0.3s ease;
+  }
+
+  .at-sms-settings-content .form-control:focus,
+  .at-sms-settings-content .form-select:focus {
+    border-color: #212631;
+    box-shadow: 0 0 0 0.2rem rgba(33, 38, 49, 0.25);
+  }
+
+  .at-sms-settings-content .form-check {
+    margin-bottom: 8px;
+  }
+
+  .at-sms-settings-content .form-check-input:checked {
+    background-color: #212631;
+    border-color: #212631;
+  }
+
+  .at-sms-settings-content .form-switch {
+    padding-left: 2.5em;
+  }
+
+  .at-sms-settings-content .form-switch .form-check-input {
+    width: 3em;
+    height: 1.5em;
+    margin-left: -2.5em;
+  }
+
+  .at-sms-settings-content .btn {
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+  }
+
+  .at-sms-settings-content .btn-primary {
+    background-color: #212631;
+    border-color: #212631;
+  }
+
+  .at-sms-settings-content .btn-primary:hover {
+    background-color: #171b27;
+    border-color: #171b27;
+    transform: translateY(-1px);
+  }
+
+  .at-sms-settings-content .badge {
+    font-size: 0.875rem;
+    padding: 8px 12px;
+    border-radius: 6px;
+  }
+
+  .at-sms-settings-content .btn-close {
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: none;
+    font-size: 0.75rem;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+  }
+
+  .at-sms-settings-content .btn-close:hover {
+    opacity: 1;
+  }
+
+  /* Day Selection Styles */
+  .days-selection-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+
+  .day-selection-item {
+    min-width: 120px;
+  }
+
+  .day-selection-item.weekend {
+    opacity: 0.8;
+  }
+
+  .day-label {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .day-name {
+    font-weight: 600;
+    color: #212631;
+  }
+
+  .day-name.weekend {
+    font-weight: normal;
+    color: #6c757d;
+  }
+
+  .weekend-indicator {
+    font-size: 0.75rem;
+    color: #6c757d;
+    font-weight: normal;
+    margin-top: 2px;
+  }
+
+  /* Calendar Styles */
+  .calendar-container {
+    font-family: 'Roboto', sans-serif;
+  }
+
+  .calendar-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+  }
+
+  .weekday-header {
+    font-weight: 600;
+    color: #495057;
+    padding: 10px 5px;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .calendar-week {
+    margin-bottom: 2px;
+  }
+
+  .calendar-day-col {
+    padding: 2px;
+  }
+
+  .calendar-day {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    background-color: #ffffff;
+  }
+
+  .calendar-day:hover:not(.empty) {
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+    transform: scale(1.05);
+  }
+
+  .calendar-day.empty {
+    background-color: transparent;
+    border: none;
+  }
+
+  .calendar-day.today {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+    color: #1976d2;
+    font-weight: 600;
+  }
+
+  .calendar-day.past {
+    color: #9e9e9e;
+    background-color: #f5f5f5;
+  }
+
+  .calendar-day.excluded {
+    background-color: #ffebee;
+    border-color: #f44336;
+    color: #d32f2f;
+    font-weight: 600;
+  }
+
+  .calendar-day.excluded:hover {
+    background-color: #ffcdd2;
+    border-color: #d32f2f;
+  }
+
+  .excluded-indicator {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 0.7rem;
+    color: #f44336;
+    font-weight: bold;
+  }
+
+  .calendar-legend {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+  }
+
+  .legend-item {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    margin-right: 8px;
+    border: 1px solid #dee2e6;
+  }
+
+  .legend-item.normal {
+    background-color: #ffffff;
+  }
+
+  .legend-item.excluded {
+    background-color: #ffebee;
+    border-color: #f44336;
+  }
+
+  .legend-item.today {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
   }
   
   /* Field Labels */
