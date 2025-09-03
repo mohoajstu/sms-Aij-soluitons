@@ -45,6 +45,7 @@ import {
   CAccordionItem,
   CAccordionHeader,
   CAccordionBody,
+  CAlert,
 } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
 import { cilPeople, cilPlus, cilPencil, cilTrash, cilCheckCircle } from '@coreui/icons';
@@ -53,7 +54,7 @@ import useAuth from 'src/Firebase/useAuth';
 import './PeoplePage.css';
 
 const PeoplePage = () => {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, role: userRole } = useAuth();
   const [activeTab, setActiveTab] = useState('students');
   const [loading, setLoading] = useState(true);
   const [collections, setCollections] = useState({
@@ -76,6 +77,22 @@ const PeoplePage = () => {
   });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const [progressing, setProgressing] = useState(false);
+
+  // Grade progression rules
+  const GRADE_PROGRESSION = {
+    'jk': 'sk',
+    'sk': 'grade 1',
+    'grade 1': 'grade 2',
+    'grade 2': 'grade 3',
+    'grade 3': 'grade 4',
+    'grade 4': 'grade 5',
+    'grade 5': 'grade 6',
+    'grade 6': 'grade 7',
+    'grade 7': 'grade 8',
+    'grade 8': null, // No longer an active student
+  };
 
   const successToast = (message) => (
     <CToast color="success" className="text-white align-items-center">
@@ -233,6 +250,131 @@ const PeoplePage = () => {
     } finally {
       setShowDeleteModal(false);
       setItemToDelete(null);
+    }
+  };
+
+  // Handle grade progression for all students
+  const handleProgressAllStudents = async () => {
+    try {
+      setProgressing(true);
+      
+      // Get all students
+      const studentsSnapshot = await getDocs(collection(firestore, 'students'));
+      const students = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Filter active students
+      const activeStudents = students.filter(student => student.active !== false);
+      
+      if (activeStudents.length === 0) {
+        alert('No active students found to progress.');
+        return;
+      }
+
+      const batch = writeBatch(firestore);
+      let progressedCount = 0;
+      let graduatedCount = 0;
+      let errors = [];
+
+      for (const student of activeStudents) {
+        try {
+          const currentProgram = student.schooling?.program?.toLowerCase() || '';
+          const nextProgram = GRADE_PROGRESSION[currentProgram];
+          
+          if (nextProgram === null) {
+            // Student is graduating (grade 8)
+            batch.update(doc(firestore, 'students', student.id), {
+              active: false,
+              'schooling.program': 'Graduated',
+              'schooling.graduationYear': new Date().getFullYear(),
+              updatedAt: serverTimestamp()
+            });
+            graduatedCount++;
+          } else if (nextProgram) {
+            // Progress to next grade
+            batch.update(doc(firestore, 'students', student.id), {
+              'schooling.program': nextProgram,
+              updatedAt: serverTimestamp()
+            });
+            progressedCount++;
+          } else {
+            // Unknown program, skip
+            console.warn(`Unknown program for student ${student.id}: ${currentProgram}`);
+          }
+        } catch (error) {
+          console.error(`Error processing student ${student.id}:`, error);
+          errors.push(student.id);
+        }
+      }
+
+      // Commit all changes
+      await batch.commit();
+
+      // Update local state
+      await fetchAllCollections();
+
+      // Show results
+      const message = `Grade progression completed!\n\n` +
+        `✅ ${progressedCount} students progressed to next grade\n` +
+        `🎓 ${graduatedCount} students graduated\n` +
+        errors.length > 0 ? `❌ ${errors.length} students had errors` : '';
+
+      alert(message);
+      setShowProgressModal(false);
+      addToast(successToast(`Successfully progressed ${progressedCount} students`));
+      
+    } catch (error) {
+      console.error('Error during grade progression:', error);
+      alert('Failed to progress students. Please try again.');
+    } finally {
+      setProgressing(false);
+    }
+  };
+
+  // Handle grade progression for a single student
+  const handleProgressSingleStudent = async (student) => {
+    try {
+      const currentProgram = student.schooling?.program?.toLowerCase() || '';
+      const nextProgram = GRADE_PROGRESSION[currentProgram];
+      
+      if (!nextProgram && nextProgram !== null) {
+        alert(`Cannot progress student ${student.schoolId || student.id}: Unknown program "${currentProgram}"`);
+        return;
+      }
+
+      const confirmMessage = nextProgram === null 
+        ? `Student ${student.schoolId || student.id} (${student.personalInfo?.firstName || ''} ${student.personalInfo?.lastName || ''}) is in ${currentProgram}.\n\nThis student will be marked as GRADUATED and set to INACTIVE.\n\nContinue?`
+        : `Student ${student.schoolId || student.id} (${student.personalInfo?.firstName || ''} ${student.personalInfo?.lastName || ''}) is currently in ${currentProgram}.\n\nProgress to ${nextProgram}?\n\nContinue?`;
+
+      if (!confirm(confirmMessage)) {
+        return;
+      }
+
+      const studentRef = doc(firestore, 'students', student.id);
+      
+      if (nextProgram === null) {
+        // Student is graduating (grade 8)
+        await updateDoc(studentRef, {
+          active: false,
+          'schooling.program': 'Graduated',
+          'schooling.graduationYear': new Date().getFullYear(),
+          updatedAt: serverTimestamp()
+        });
+        alert(`✅ Student ${student.schoolId || student.id} has been GRADUATED and set to INACTIVE.`);
+      } else {
+        // Progress to next grade
+        await updateDoc(studentRef, {
+          'schooling.program': nextProgram,
+          updatedAt: serverTimestamp()
+        });
+        alert(`✅ Student ${student.schoolId || student.id} progressed from ${currentProgram} to ${nextProgram}.`);
+      }
+
+      // Update local state
+      await fetchAllCollections();
+      
+    } catch (error) {
+      console.error('Error progressing single student:', error);
+      alert('Failed to progress student. Please try again.');
     }
   };
 
@@ -637,7 +779,12 @@ const PeoplePage = () => {
       // 4. Phone column (only phone1 is visible)
       visibleColumnContents.push(String(item.contact?.phone1 || '').toLowerCase());
 
-      // 5. Parents/Children column (matches display logic exactly)
+      // 5. Program column (for students)
+      if (collectionName === 'students') {
+        visibleColumnContents.push(String(item.schooling?.program || '').toLowerCase());
+      }
+
+      // 6. Parents/Children column (matches display logic exactly)
       if (collectionName === 'students') {
         const parentsDisplay = [
           item.parents?.father?.name,
@@ -663,6 +810,7 @@ const PeoplePage = () => {
             <CTableHeaderCell>Name</CTableHeaderCell>
             <CTableHeaderCell>Email</CTableHeaderCell>
             <CTableHeaderCell>Phone</CTableHeaderCell>
+            {collectionName === 'students' && <CTableHeaderCell>Program</CTableHeaderCell>}
             {collectionName === 'students' && <CTableHeaderCell>Parents</CTableHeaderCell>}
             {collectionName === 'parents' && <CTableHeaderCell>Children</CTableHeaderCell>}
             <CTableHeaderCell>Actions</CTableHeaderCell>
@@ -677,6 +825,11 @@ const PeoplePage = () => {
               </CTableDataCell>
               <CTableDataCell>{item.contact?.email || ''}</CTableDataCell>
               <CTableDataCell>{item.contact?.phone1 || ''}</CTableDataCell>
+              {collectionName === 'students' && (
+                <CTableDataCell>
+                  {item.schooling?.program || 'N/A'}
+                </CTableDataCell>
+              )}
               {collectionName === 'students' && (
                 <CTableDataCell>
                   {[
@@ -700,6 +853,17 @@ const PeoplePage = () => {
                   >
                     <CIcon icon={cilPencil} />
                   </CButton>
+                  {collectionName === 'students' && userRole === 'admin' && (
+                    <CButton
+                      color="info"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleProgressSingleStudent(item)}
+                      title={`Progress ${item.schooling?.program || 'N/A'} student`}
+                    >
+                      →
+                    </CButton>
+                  )}
                   <CButton
                     color="danger"
                     variant="ghost"
@@ -1227,7 +1391,7 @@ const PeoplePage = () => {
                       <div className="row mb-3">
                   <div className="col-md-6">
                           <CFormLabel>Program</CFormLabel>
-                    <CFormInput
+                    <CFormSelect
                             value={formData.schooling?.program || ''}
                       onChange={(e) =>
                         setFormData({
@@ -1235,7 +1399,19 @@ const PeoplePage = () => {
                                 schooling: { ...formData.schooling, program: e.target.value },
                         })
                       }
-                    />
+                    >
+                      <option value="">Select Program</option>
+                      <option value="jk">JK (Junior Kindergarten)</option>
+                      <option value="sk">SK (Senior Kindergarten)</option>
+                      <option value="grade 1">Grade 1</option>
+                      <option value="grade 2">Grade 2</option>
+                      <option value="grade 3">Grade 3</option>
+                      <option value="grade 4">Grade 4</option>
+                      <option value="grade 5">Grade 5</option>
+                      <option value="grade 6">Grade 6</option>
+                      <option value="grade 7">Grade 7</option>
+                      <option value="grade 8">Grade 8</option>
+                    </CFormSelect>
                   </div>
                   {collectionName === 'students' && (
                     <>
@@ -1677,6 +1853,65 @@ const PeoplePage = () => {
     );
   };
 
+  const renderProgressConfirmationModal = () => {
+    return (
+      <CModal visible={showProgressModal} onClose={() => setShowProgressModal(false)}>
+        <CModalHeader>
+          <CModalTitle>Progress All Students to Next Grade</CModalTitle>
+        </CModalHeader>
+        <CModalBody>
+          <CAlert color="warning">
+            <strong>⚠️ Important:</strong> This action will progress ALL active students to the next grade level.
+          </CAlert>
+          
+          <div className="mb-3">
+            <h6>Grade Progression Rules:</h6>
+            <ul className="mb-0">
+              <li>JK → SK</li>
+              <li>SK → Grade 1</li>
+              <li>Grade 1 → Grade 2</li>
+              <li>Grade 2 → Grade 3</li>
+              <li>Grade 3 → Grade 4</li>
+              <li>Grade 4 → Grade 5</li>
+              <li>Grade 5 → Grade 6</li>
+              <li>Grade 6 → Grade 7</li>
+              <li>Grade 7 → Grade 8</li>
+              <li>Grade 8 → Graduated (inactive)</li>
+            </ul>
+          </div>
+          
+          <p className="text-muted">
+            Students in Grade 8 will be marked as graduated and set to inactive. 
+            This action cannot be undone and will affect all active students in the system.
+          </p>
+        </CModalBody>
+        <CModalFooter>
+          <CButton
+            color="secondary"
+            onClick={() => setShowProgressModal(false)}
+            disabled={progressing}
+          >
+            Cancel
+          </CButton>
+          <CButton 
+            color="warning" 
+            onClick={handleProgressAllStudents}
+            disabled={progressing}
+          >
+            {progressing ? (
+              <>
+                <CSpinner size="sm" className="me-2" />
+                Progressing...
+              </>
+            ) : (
+              'Progress All Students'
+            )}
+          </CButton>
+        </CModalFooter>
+      </CModal>
+    );
+  };
+
   return (
     <>
       <CToaster ref={toaster} push={toast} placement="top-end" />
@@ -1712,11 +1947,22 @@ const PeoplePage = () => {
                       type="text"
                       className="form-control pm-search"
                       placeholder={`Search by ID, name, email, phone${
-                        activeTab === 'students' ? ', or parent name' : activeTab === 'parents' ? ', or child name' : ''
+                        activeTab === 'students' ? ', program, or parent name' : activeTab === 'parents' ? ', or child name' : ''
                       }`}
                       value={searchQueries[activeTab]}
                       onChange={(e) => setSearchQueries({ ...searchQueries, [activeTab]: e.target.value })}
                     />
+                    
+                    {activeTab === 'students' && userRole === 'admin' && (
+                      <CButton 
+                        color="warning" 
+                        onClick={() => setShowProgressModal(true)}
+                        className="me-2"
+                      >
+                        <span className="me-2">→</span>
+                        Progress All Students
+                      </CButton>
+                    )}
                     <CButton color="primary" onClick={() => handleCreate(activeTab)}>
                       <CIcon icon={cilPlus} className="me-2" />
                       Add {getSingularName(activeTab)}
@@ -1737,6 +1983,7 @@ const PeoplePage = () => {
 
       {renderModal()}
       {renderDeleteConfirmationModal()}
+      {renderProgressConfirmationModal()}
     </>
   );
 };
