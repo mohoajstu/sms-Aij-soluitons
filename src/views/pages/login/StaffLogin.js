@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
-import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
+import { getFirestore, doc, setDoc, getDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore'
 import { auth } from '../../../Firebase/firebase'
 import { STAFF_AUTHORIZED_DOMAINS, isStaffEmailAuthorized } from '../../../config/authConfig'
 import {
@@ -45,16 +45,30 @@ const StaffLogin = () => {
       // Check if the email domain is authorized
       const isAuthorizedDomain = isStaffEmailAuthorized(user.email)
       
-      // Determine role from user profile via email-based lookup
+      // First, check if user exists in faculty collection by email
+      let existingFacultyDoc = null
       let normalizedRole = 'guest'
+      let tarbiyahId = null
+      
       try {
-        const profile = await loadCurrentUserProfile(db, user)
-        if (profile) {
-          const profileRole = profile.data?.personalInfo?.role || profile.data?.role || 'guest'
-          normalizedRole = String(profileRole).toLowerCase()
+        // Check faculty collection first
+        const facultyQuery = query(collection(db, 'faculty'), where('personalInfo.email', '==', user.email))
+        const facultySnapshot = await getDocs(facultyQuery)
+        
+        if (!facultySnapshot.empty) {
+          existingFacultyDoc = facultySnapshot.docs[0]
+          tarbiyahId = existingFacultyDoc.id
+          normalizedRole = 'faculty'
+        } else {
+          // Check users collection as fallback
+          const profile = await loadCurrentUserProfile(db, user)
+          if (profile) {
+            const profileRole = profile.data?.personalInfo?.role || profile.data?.role || 'guest'
+            normalizedRole = String(profileRole).toLowerCase()
+            tarbiyahId = profile.id
+          }
         }
       } catch (e) {
-        // fallback: keep as guest
         console.warn('Could not load profile during staff login role check:', e)
       }
 
@@ -81,36 +95,81 @@ const StaffLogin = () => {
         localStorage.setItem(SHARED_GOOGLE_AUTH_TOKEN_KEY, JSON.stringify(token))
       }
 
-      // Check/create user document in Firestore (by auth uid)
-      const userRef = doc(db, 'users', user.uid)
-      const userDoc = await getDoc(userRef)
-
-      if (!userDoc.exists()) {
-        const [firstName, lastName] = user.displayName?.split(' ') || ['', '']
-        // Set role based on domain authorization or existing profile role
-        const userRole = isAuthorizedDomain ? 'staff' : (isAdminOrFaculty ? normalizedRole : 'staff')
+      // If user exists in faculty collection, create/update user document with Tarbiyah ID
+      if (existingFacultyDoc && tarbiyahId) {
+        const userRef = doc(db, 'users', tarbiyahId)
+        const userDoc = await getDoc(userRef)
         
-        await setDoc(userRef, {
-          firstName,
-          lastName,
-          email: user.email,
-          role: userRole,
-          emailDomain: user.email.split('@')[1],
-          isVerified: true,
-          isAuthorizedDomain,
-          createdAt: serverTimestamp(),
-          lastLogin: serverTimestamp(),
-          loginCount: 1,
-        })
+        if (!userDoc.exists()) {
+          // Create new user document with Tarbiyah ID
+          await setDoc(userRef, {
+            tarbiyahId: tarbiyahId,
+            linkedCollection: 'faculty',
+            personalInfo: {
+              firstName: existingFacultyDoc.data()?.personalInfo?.firstName || user.displayName?.split(' ')[0] || '',
+              lastName: existingFacultyDoc.data()?.personalInfo?.lastName || user.displayName?.split(' ').slice(1).join(' ') || '',
+              email: user.email,
+              role: 'Faculty'
+            },
+            role: 'Faculty',
+            emailDomain: user.email.split('@')[1],
+            isVerified: true,
+            isAuthorizedDomain,
+            createdAt: serverTimestamp(),
+            lastLogin: serverTimestamp(),
+            loginCount: 1,
+            active: true,
+            dashboard: {
+              theme: 'default'
+            },
+            stats: {
+              lastLoginAt: serverTimestamp(),
+              loginCount: 1
+            }
+          })
+        } else {
+          // Update existing user document
+          await setDoc(userRef, {
+            lastLogin: serverTimestamp(),
+            loginCount: (userDoc.data().loginCount || 0) + 1,
+            emailDomain: user.email.split('@')[1],
+            isVerified: true,
+            isAuthorizedDomain,
+            'stats.lastLoginAt': serverTimestamp()
+          }, { merge: true })
+        }
       } else {
-        // Update last login and verify domain again
-        await setDoc(userRef, {
-          lastLogin: serverTimestamp(),
-          loginCount: (userDoc.data().loginCount || 0) + 1,
-          emailDomain: user.email.split('@')[1],
-          isVerified: true,
-          isAuthorizedDomain,
-        }, { merge: true })
+        // Fallback: create user document in users collection (by auth uid) for non-faculty staff
+        const userRef = doc(db, 'users', user.uid)
+        const userDoc = await getDoc(userRef)
+
+        if (!userDoc.exists()) {
+          const [firstName, lastName] = user.displayName?.split(' ') || ['', '']
+          // Set role based on domain authorization or existing profile role
+          const userRole = isAuthorizedDomain ? 'staff' : (isAdminOrFaculty ? normalizedRole : 'staff')
+          
+          await setDoc(userRef, {
+            firstName,
+            lastName,
+            email: user.email,
+            role: userRole,
+            emailDomain: user.email.split('@')[1],
+            isVerified: true,
+            isAuthorizedDomain,
+            createdAt: serverTimestamp(),
+            lastLogin: serverTimestamp(),
+            loginCount: 1,
+          })
+        } else {
+          // Update last login and verify domain again
+          await setDoc(userRef, {
+            lastLogin: serverTimestamp(),
+            loginCount: (userDoc.data().loginCount || 0) + 1,
+            emailDomain: user.email.split('@')[1],
+            isVerified: true,
+            isAuthorizedDomain,
+          }, { merge: true })
+        }
       }
 
       navigate('/')

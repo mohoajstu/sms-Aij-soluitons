@@ -13,17 +13,25 @@ export async function loadCurrentUserProfile(db, authUser) {
   
   const email = authUser.email.toLowerCase()
   
-  // Primary lookup: by contact.email
+  // Primary lookup: by contact.email in users collection
   let q = query(collection(db, 'users'), where('contact.email', '==', email))
   let s = await getDocs(q)
   if (!s.empty) return { id: s.docs[0].id, data: s.docs[0].data() }
 
-  // Fallback 1: by root email field
+  // Fallback 1: by root email field in users collection
   q = query(collection(db, 'users'), where('email', '==', email))
   s = await getDocs(q)
   if (!s.empty) return { id: s.docs[0].id, data: s.docs[0].data() }
 
-  // Fallback 2: if you ever stored firebaseAuthUID (legacy support)
+  // Fallback 2: by personalInfo.email in faculty collection
+  q = query(collection(db, 'faculty'), where('personalInfo.email', '==', email))
+  s = await getDocs(q)
+  if (!s.empty) {
+    const facultyDoc = s.docs[0]
+    return { id: facultyDoc.id, data: facultyDoc.data() }
+  }
+
+  // Fallback 3: if you ever stored firebaseAuthUID (legacy support)
   const byUidDoc = await getDoc(doc(db, 'users', authUser.uid))
   if (byUidDoc.exists()) return { id: byUidDoc.id, data: byUidDoc.data() }
 
