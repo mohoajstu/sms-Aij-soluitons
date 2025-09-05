@@ -453,10 +453,11 @@ async function writeSkippedStudentsToCSV(allSkippedStudents) {
 // Main function to create classes from CSV files
 async function createClassesFromCSV() {
   try {
-    console.log('🏫 Starting class creation from CSV files...')
+    console.log('🏫 Starting JK class creation from CSV files...')
     console.log(`📍 Project: ${serviceAccount.project_id}`)
     console.log(`📅 Academic Year: ${ACADEMIC_YEAR}`)
-    console.log(`🎯 Processing all courses`)
+    console.log(`🎯 Processing JK only`)
+    console.log(`👨‍🏫 JK Teacher: Amera Syed`)
     console.log(`🧪 Dry run mode: ${DRY_RUN}`)
     
     // Test connection
@@ -464,19 +465,25 @@ async function createClassesFromCSV() {
     const testQuery = await db.collection('courses').limit(1).get()
     console.log('✅ Firestore connection successful!')
     
-    // Get CSV files - process all courses
+    // Get CSV files - only process JK
     const csvDir = path.join(__dirname, 'ClassList')
-    const files = fs.readdirSync(csvDir).filter(file => file.endsWith('.csv'))
+    const allFiles = fs.readdirSync(csvDir).filter(file => file.endsWith('.csv'))
+    const files = allFiles.filter(file => file.toLowerCase().includes('jk'))
     
-    console.log(`\n📁 Found ${files.length} CSV files to process`)
+    console.log(`\n📁 Found ${allFiles.length} total CSV files`)
+    console.log(`🎯 Filtering for JK files: ${files.length} found`)
     
     if (files.length === 0) {
-      console.log('⚠️  No CSV files found in ClassList directory')
+      console.log('⚠️  No JK CSV files found in ClassList directory')
+      console.log('📋 Available files:')
+      allFiles.forEach((file, index) => {
+        console.log(`   ${index + 1}. ${file}`)
+      })
       return
     }
     
-    // List all files to be processed
-    console.log('\n📋 CSV files to process:')
+    // List JK files to be processed
+    console.log('\n📋 JK CSV files to process:')
     files.forEach((file, index) => {
       console.log(`   ${index + 1}. ${file}`)
     })
@@ -484,7 +491,7 @@ async function createClassesFromCSV() {
     // Track all skipped students across all files
     const allSkippedStudents = []
     
-    // Process all CSV files
+    // Process JK CSV files
     for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
       const filename = files[fileIndex]
       console.log(`\n${'='.repeat(60)}`)

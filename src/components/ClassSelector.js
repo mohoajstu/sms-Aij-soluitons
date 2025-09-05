@@ -11,10 +11,16 @@ const ClassSelector = ({ value, onChange, ...props }) => {
   // Define homeroom class patterns
   const homeroomPatterns = [
     /^jk$/i,                    // JK
+    /^sk$/i,                    // SK (general)
+    /^sk1$/i,                   // SK1
+    /^sk2$/i,                   // SK2
     /^sk.*rafia$/i,            // SK - Tr. Rafia
     /^sk.*huda$/i,             // SK - Tr. Huda
     /^homeroom\s+junior\s+kindergarten$/i,  // HomeRoom Junior Kindergarten
     /^homeroom\s+senior\s+kindergarten$/i,  // HomeRoom Senior Kindergarten
+    /^homeroom\s+sk$/i,        // Homeroom SK
+    /^homeroom\s+sk1$/i,       // Homeroom SK1
+    /^homeroom\s+sk2$/i,       // Homeroom SK2
     /^homeroom\s+grade\s*[1-8]$/i,  // HomeRoom Grade 1-8
   ]
 
@@ -68,12 +74,14 @@ const ClassSelector = ({ value, onChange, ...props }) => {
           }
         })
         
-        // Filter to only homeroom classes
-        const homeroomClasses = allClassOptions.filter(isHomeroomClass)
+        // Filter to only active (non-archived) homeroom classes
+        const activeClasses = allClassOptions.filter(course => !course.archived)
+        const homeroomClasses = activeClasses.filter(isHomeroomClass)
         
         console.log('ClassSelector: Found', allClassOptions.length, 'total classes')
-        console.log('ClassSelector: Filtered to', homeroomClasses.length, 'homeroom classes')
-        console.log('ClassSelector: Homeroom classes:', homeroomClasses.map(c => c.label))
+        console.log('ClassSelector: Found', activeClasses.length, 'active classes')
+        console.log('ClassSelector: Filtered to', homeroomClasses.length, 'active homeroom classes')
+        console.log('ClassSelector: Active homeroom classes:', homeroomClasses.map(c => c.label))
         
         setClasses(homeroomClasses)
       } catch (error) {

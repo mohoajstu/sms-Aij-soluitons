@@ -78,10 +78,16 @@ const AttendanceReportTable = () => {
   // Define homeroom class patterns
   const homeroomPatterns = [
     /^jk$/i,                    // JK
+    /^sk$/i,                    // SK (general)
+    /^sk1$/i,                   // SK1
+    /^sk2$/i,                   // SK2
     /^sk.*rafia$/i,            // SK - Tr. Rafia
     /^sk.*huda$/i,             // SK - Tr. Huda
     /^homeroom\s+junior\s+kindergarten$/i,  // HomeRoom Junior Kindergarten
     /^homeroom\s+senior\s+kindergarten$/i,  // HomeRoom Senior Kindergarten
+    /^homeroom\s+sk$/i,        // Homeroom SK
+    /^homeroom\s+sk1$/i,       // Homeroom SK1
+    /^homeroom\s+sk2$/i,       // Homeroom SK2
     /^homeroom\s+grade\s*[1-8]$/i,  // HomeRoom Grade 1-8
     /^homeroom.*junior.*kindergarten$/i,  // More flexible HomeRoom Junior Kindergarten
     /^homeroom.*senior.*kindergarten$/i,  // More flexible HomeRoom Senior Kindergarten
@@ -144,18 +150,31 @@ const AttendanceReportTable = () => {
             }
           })
         })
+
+        // Fetch course details to check archived status
+        const coursesCol = collection(firestore, 'courses')
+        const coursesSnapshot = await getDocs(coursesCol)
+        const courseDetailsMap = new Map()
+        
+        coursesSnapshot.docs.forEach((doc) => {
+          const data = doc.data()
+          courseDetailsMap.set(doc.id, data)
+        })
        
-       // Filter to only homeroom classes
+       // Filter to only active (non-archived) homeroom classes
        const allClasses = Array.from(coursesMap.values())
-       const homeroomClasses = allClasses.filter(isHomeroomClass)
+       const activeClasses = allClasses.filter(course => {
+         const courseDetails = courseDetailsMap.get(course.id)
+         return courseDetails && !courseDetails.archived
+       })
+       const homeroomClasses = activeClasses.filter(isHomeroomClass)
        
        console.log('AttendanceReportTable: Found', allClasses.length, 'total classes')
-       console.log('AttendanceReportTable: Filtered to', homeroomClasses.length, 'homeroom classes')
-       console.log('AttendanceReportTable: Homeroom classes:', homeroomClasses.map(c => c.label))
-       console.log('AttendanceReportTable: All classes for debugging:', allClasses.map(c => c.label))
+       console.log('AttendanceReportTable: Found', activeClasses.length, 'active classes')
+       console.log('AttendanceReportTable: Filtered to', homeroomClasses.length, 'active homeroom classes')
+       console.log('AttendanceReportTable: Active homeroom classes:', homeroomClasses.map(c => c.label))
        
-       // Temporarily show all classes for debugging
-       setClassOptions(allClasses)
+       setClassOptions(homeroomClasses)
 
         // Fetch students
         const studentsCol = collection(firestore, 'students')
