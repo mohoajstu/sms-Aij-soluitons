@@ -31,7 +31,15 @@ export async function loadCurrentUserProfile(db, authUser) {
     return { id: facultyDoc.id, data: facultyDoc.data() }
   }
 
-  // Fallback 3: if you ever stored firebaseAuthUID (legacy support)
+  // Fallback 3: by personalInfo.email in admins collection
+  q = query(collection(db, 'admins'), where('personalInfo.email', '==', email))
+  s = await getDocs(q)
+  if (!s.empty) {
+    const adminDoc = s.docs[0]
+    return { id: adminDoc.id, data: adminDoc.data() }
+  }
+
+  // Fallback 4: if you ever stored firebaseAuthUID (legacy support)
   const byUidDoc = await getDoc(doc(db, 'users', authUser.uid))
   if (byUidDoc.exists()) return { id: byUidDoc.id, data: byUidDoc.data() }
 

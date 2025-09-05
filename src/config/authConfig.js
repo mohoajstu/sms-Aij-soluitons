@@ -13,6 +13,28 @@ export const isStaffEmailAuthorized = (email) => {
   return STAFF_AUTHORIZED_DOMAINS.includes(domain)
 }
 
+// Helper function to check if user has admin privileges (handles all admin role variations)
+export const isAdminUser = (role) => {
+  if (!role) return false
+  const normalizedRole = String(role).toLowerCase().trim()
+  return normalizedRole === 'admin' || 
+         normalizedRole === 'schooladmin' || 
+         normalizedRole === 'school_admin' ||
+         normalizedRole === 'school-admin'
+}
+
+// Helper function to normalize any admin role to 'admin' for consistency
+export const normalizeAdminRole = (role) => {
+  if (!role) return role
+  const normalizedRole = String(role).toLowerCase().trim()
+  if (normalizedRole === 'schooladmin' || 
+      normalizedRole === 'school_admin' || 
+      normalizedRole === 'school-admin') {
+    return 'admin'
+  }
+  return normalizedRole
+}
+
 // Helper function to check if user can access staff portal (domain OR admin role)
 export const canAccessStaffPortal = async (user, db, doc, getDoc, loadCurrentUserProfile) => {
   if (!user || !user.email) return false
@@ -26,7 +48,7 @@ export const canAccessStaffPortal = async (user, db, doc, getDoc, loadCurrentUse
     const profile = await loadCurrentUserProfile(db, user)
     if (profile) {
       const role = (profile.data?.personalInfo?.role || profile.data?.role || 'guest').toLowerCase()
-      if (role === 'admin' || role === 'faculty') return true
+      if (isAdminUser(role) || role === 'faculty') return true
     }
   } catch (error) {
     console.error('Error checking user role via profile lookup:', error)
@@ -39,7 +61,7 @@ export const canAccessStaffPortal = async (user, db, doc, getDoc, loadCurrentUse
     if (userDoc.exists()) {
       const userData = userDoc.data()
       const role = String(userData.role || 'guest').toLowerCase()
-      return role === 'admin' || role === 'faculty'
+      return isAdminUser(role) || role === 'faculty'
     }
   } catch (error) {
     console.error('Error checking user role (uid fallback):', error)

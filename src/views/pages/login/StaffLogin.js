@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
 import { getFirestore, doc, setDoc, getDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore'
 import { auth } from '../../../Firebase/firebase'
-import { STAFF_AUTHORIZED_DOMAINS, isStaffEmailAuthorized } from '../../../config/authConfig'
+import { STAFF_AUTHORIZED_DOMAINS, isStaffEmailAuthorized, isAdminUser } from '../../../config/authConfig'
 import {
   CButton,
   CCard,
@@ -72,7 +72,7 @@ const StaffLogin = () => {
         console.warn('Could not load profile during staff login role check:', e)
       }
 
-      const isAdminOrFaculty = normalizedRole === 'admin' || normalizedRole === 'faculty'
+      const isAdminOrFaculty = isAdminUser(normalizedRole) || normalizedRole === 'faculty'
 
       // Allow access if either domain is authorized OR user is admin/faculty
       if (!isAuthorizedDomain && !isAdminOrFaculty) {
@@ -146,7 +146,7 @@ const StaffLogin = () => {
         if (!userDoc.exists()) {
           const [firstName, lastName] = user.displayName?.split(' ') || ['', '']
           // Set role based on domain authorization or existing profile role
-          const userRole = isAuthorizedDomain ? 'staff' : (isAdminOrFaculty ? normalizedRole : 'staff')
+          const userRole = isAuthorizedDomain ? 'staff' : (isAdminOrFaculty ? (isAdminUser(normalizedRole) ? 'admin' : normalizedRole) : 'staff')
           
           await setDoc(userRef, {
             firstName,

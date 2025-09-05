@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth'
 import { auth, firestore } from './firebase'
 import { loadCurrentUserProfile } from '../utils/userProfile'
+import { normalizeAdminRole } from '../config/authConfig'
 
 const useAuth = () => {
   const [user, setUser] = useState(null)
@@ -29,7 +30,7 @@ const useAuth = () => {
         if (profile) {
           // Extract role from profile data
           const userRole = profile.data?.personalInfo?.role || profile.data?.role || 'guest'
-          const normalizedRole = userRole.toLowerCase()
+          const normalizedRole = normalizeAdminRole(userRole)
           
           console.log('✅ Found user profile:', profile.id)
           console.log('📄 User data:', profile.data)
