@@ -21,7 +21,11 @@
     "eject": "react-scripts eject",
     "onboard": "node src/scripts/addOnboardingToParents.js",
     "fb:config:push": "node scripts/push-firebase-config.js",
-    "fb:config:get": "npx --yes firebase functions:config:get | cat"
+    "fb:config:get": "npx --yes firebase functions:config:get | cat",
+    "courses:create": "node src/scripts/createCoursesFromCSV.js",
+    "courses:test": "node src/scripts/test-csv-parsing.js",
+    "courses:test-single": "node src/scripts/test-single-course.js",
+    "courses:test-admin": "node src/scripts/test-single-course-admin.js"
   },
   "dependencies": {
     "@coreui/chartjs": "^4.1.0",
@@ -48,6 +52,7 @@
     "classnames": "^2.5.1",
     "core-js": "^3.40.0",
     "csv-parser": "^3.2.0",
+    "csv-writer": "^1.6.0",
     "date-fns": "^2.30.0",
     "dayjs": "^1.11.13",
     "dotenv": "^16.5.0",

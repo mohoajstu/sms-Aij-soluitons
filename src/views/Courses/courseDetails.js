@@ -1,7 +1,7 @@
 // CourseDetailPage.jsx
 import React, { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore'
 import { firestore } from '../../firebase'
 import './courseDetails.css'
 import { CButton, CCard, CCardBody, CRow, CCol } from '@coreui/react'
@@ -15,6 +15,7 @@ import {
 } from '../../services/calendarService'
 import { auth } from '../../firebase'
 import StudentSelectorModal from './StudentForm'
+import StaffSelectorModal from './StaffSelectorModal'
 
 function CourseDetailPage() {
   const { id } = useParams()
@@ -30,6 +31,8 @@ function CourseDetailPage() {
   const [newBudget, setNewBudget] = useState('')
   const [userRole, setUserRole] = useState('')
   const [showStudentModal, setShowStudentModal] = useState(false)
+  const [showStaffModal, setShowStaffModal] = useState(false)
+  const [updating, setUpdating] = useState(false)
 
   useEffect(() => {
     const initApis = async () => {
@@ -165,6 +168,74 @@ function CourseDetailPage() {
     return '#f8f9fa'
   }
 
+  // Remove staff member from course
+  const handleRemoveStaff = async (staffMember) => {
+    if (updating) return
+    
+    try {
+      setUpdating(true)
+      
+      const courseRef = doc(firestore, 'courses', id)
+      
+      // Update course document
+      await updateDoc(courseRef, {
+        teacher: arrayRemove(staffMember),
+        teacherIds: arrayRemove(staffMember.id)
+      })
+
+      // Update local state
+      setStaff(prev => prev.filter(staff => staff !== staffMember.name))
+      
+      // Refresh course data
+      const courseDocRef = doc(firestore, 'courses', id)
+      const courseDoc = await getDoc(courseDocRef)
+      if (courseDoc.exists()) {
+        const courseData = courseDoc.data()
+        setCourse({ id: courseDoc.id, ...courseData })
+      }
+      
+    } catch (error) {
+      console.error('Error removing staff member:', error)
+      alert('Failed to remove staff member. Please try again.')
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  // Remove student from course
+  const handleRemoveStudent = async (student) => {
+    if (updating) return
+    
+    try {
+      setUpdating(true)
+      
+      const courseRef = doc(firestore, 'courses', id)
+      
+      // Update course document
+      await updateDoc(courseRef, {
+        students: arrayRemove(student),
+        enrolledList: arrayRemove(student.id)
+      })
+
+      // Update local state
+      setStudents(prev => prev.filter(s => s !== student.name))
+      
+      // Refresh course data
+      const courseDocRef = doc(firestore, 'courses', id)
+      const courseDoc = await getDoc(courseDocRef)
+      if (courseDoc.exists()) {
+        const courseData = courseDoc.data()
+        setCourse({ id: courseDoc.id, ...courseData })
+      }
+      
+    } catch (error) {
+      console.error('Error removing student:', error)
+      alert('Failed to remove student. Please try again.')
+    } finally {
+      setUpdating(false)
+    }
+  }
+
   if (loading) {
     return <div className="loading-container">Loading course details...</div>
   }
@@ -245,27 +316,45 @@ function CourseDetailPage() {
         <CCardBody>
           <h3 style={{ borderBottom: `2px solid ${courseColor}` }}>Course Overview</h3>
           <div className="course-overview-section mt-4">
-            <h2 className="mb-3">Course Overview</h2>
+            
             <CRow>
               <CCol md={6}>
                 <h4>Staff</h4>
+                {userRole === 'admin' && (
+                  <CButton color="primary" size="sm" className="mb-2" onClick={() => setShowStaffModal(true)}>
+                    Manage Staff
+                  </CButton>
+                )}
                 <table className="members-table">
                   <thead>
                     <tr>
                       <th>ID</th>
                       <th>Name</th>
+                      {userRole === 'admin' && <th>Actions</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {staffList.length === 0 ? (
                       <tr>
-                        <td colSpan={2}>No staff listed</td>
+                        <td colSpan={userRole === 'admin' ? 3 : 2}>No staff listed</td>
                       </tr>
                     ) : (
                       staffList.map((t, idx) => (
                         <tr key={idx}>
                           <td>{t.schoolId || '-'}</td>
                           <td>{t.name || '-'}</td>
+                          {userRole === 'admin' && (
+                            <td>
+                              <CButton
+                                color="danger"
+                                size="sm"
+                                onClick={() => handleRemoveStaff(t)}
+                                disabled={updating}
+                              >
+                                Remove
+                              </CButton>
+                            </td>
+                          )}
                         </tr>
                       ))
                     )}
@@ -282,18 +371,31 @@ function CourseDetailPage() {
                     <tr>
                       <th>ID</th>
                       <th>Name</th>
+                      {userRole === 'admin' && <th>Actions</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {studentList.length === 0 ? (
                       <tr>
-                        <td colSpan={2}>No students listed</td>
+                        <td colSpan={userRole === 'admin' ? 3 : 2}>No students listed</td>
                       </tr>
                     ) : (
                       studentList.map((s, idx) => (
                         <tr key={idx}>
                           <td>{s.id || '-'}</td>
                           <td>{s.name || '-'}</td>
+                          {userRole === 'admin' && (
+                            <td>
+                              <CButton
+                                color="danger"
+                                size="sm"
+                                onClick={() => handleRemoveStudent(s)}
+                                disabled={updating}
+                              >
+                                Remove
+                              </CButton>
+                            </td>
+                          )}
                         </tr>
                       ))
                     )}
@@ -317,6 +419,31 @@ function CourseDetailPage() {
       </CCard>
       {/* Student selection & creation modal */}
       <StudentSelectorModal visible={showStudentModal} courseId={id} onClose={() => setShowStudentModal(false)} />
+      
+      {/* Staff management modal */}
+      <StaffSelectorModal 
+        visible={showStaffModal} 
+        courseId={id} 
+        courseData={course}
+        onClose={() => setShowStaffModal(false)}
+        onUpdate={() => {
+          // Refresh course data after staff update
+          const fetchCourseData = async () => {
+            if (!id) return
+            try {
+              const courseDocRef = doc(firestore, 'courses', id)
+              const courseDoc = await getDoc(courseDocRef)
+              if (courseDoc.exists()) {
+                const courseData = courseDoc.data()
+                setCourse({ id: courseDoc.id, ...courseData })
+              }
+            } catch (error) {
+              console.error('Error refreshing course data:', error)
+            }
+          }
+          fetchCourseData()
+        }}
+      />
     </div>
   )
 }

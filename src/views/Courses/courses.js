@@ -2,16 +2,20 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { auth, firestore } from '../../firebase'
-import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore'
+import { collection, getDocs, doc, getDoc, query, where, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
 import { loadCurrentUserProfile } from '../../utils/userProfile'
 import './courses.css'
-import { CButton, CButtonGroup, CCard, CCardBody, CCardHeader, CCol, CRow } from '@coreui/react'
+import { CButton, CButtonGroup, CCard, CCardBody, CCardHeader, CCol, CRow, CNav, CNavItem, CNavLink, CTabContent, CTabPane, CSpinner } from '@coreui/react'
 
 function CoursesPage() {
   console.log('CoursesPage rendered');
   const [courses, setCourses] = useState([])
+  const [archivedCourses, setArchivedCourses] = useState([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('active')
+  const [userRole, setUserRole] = useState(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   // Add diagnostic function to manually check course existence
   const diagnoseCourseIssue = async (facultyCourses) => {
@@ -48,6 +52,36 @@ function CoursesPage() {
     }
   }
 
+  // Function to archive/unarchive a course
+  const toggleCourseArchive = async (courseId, currentlyArchived) => {
+    try {
+      const courseRef = doc(firestore, 'courses', courseId)
+      await updateDoc(courseRef, {
+        archived: !currentlyArchived,
+        updatedAt: serverTimestamp()
+      })
+      
+      // Update local state
+      if (currentlyArchived) {
+        // Moving from archived to active
+        const courseToMove = archivedCourses.find(c => c.id === courseId)
+        if (courseToMove) {
+          setArchivedCourses(archivedCourses.filter(c => c.id !== courseId))
+          setCourses([...courses, { ...courseToMove, archived: false }])
+        }
+      } else {
+        // Moving from active to archived
+        const courseToMove = courses.find(c => c.id === courseId)
+        if (courseToMove) {
+          setCourses(courses.filter(c => c.id !== courseId))
+          setArchivedCourses([...archivedCourses, { ...courseToMove, archived: true }])
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling course archive status:', error)
+    }
+  }
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -56,18 +90,19 @@ function CoursesPage() {
           console.log('🔍 Looking up user profile for:', user.email)
           const profile = await loadCurrentUserProfile(firestore, user)
           
-          let userRole = null
           let userData = null
           let tarbiyahId = null
           
           if (profile) {
             userData = profile.data
             tarbiyahId = profile.id // This is the actual Tarbiyah ID (document ID)
-            userRole = userData.personalInfo?.role || userData.role || null
+            const role = userData.personalInfo?.role || userData.role || null
+            setUserRole(role)
+            setIsAdmin(role?.toLowerCase() === 'admin')
             
             console.log('✅ Found user profile with Tarbiyah ID:', tarbiyahId)
             console.log('📄 User data:', userData)
-            console.log('🔑 User role:', userRole)
+            console.log('🔑 User role:', role)
           } else {
             console.warn('⚠️ No user profile found for:', user.email)
             console.warn('⚠️ User may need to be added via People Page first')
@@ -75,11 +110,18 @@ function CoursesPage() {
 
           const coursesCollectionRef = collection(firestore, 'courses')
 
-          if (userRole?.toLowerCase() === 'admin') {
+          if (isAdmin) {
+            // Admin sees all courses (active and archived)
             const coursesSnapshot = await getDocs(coursesCollectionRef)
-            const userCourses = coursesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-            console.log('👑 ADMIN: Found', userCourses.length, 'courses')
-            setCourses(userCourses)
+            const allCourses = coursesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+            
+            // Separate active and archived courses
+            const active = allCourses.filter(course => !course.archived)
+            const archived = allCourses.filter(course => course.archived)
+            
+            console.log('👑 ADMIN: Found', active.length, 'active courses and', archived.length, 'archived courses')
+            setCourses(active)
+            setArchivedCourses(archived)
           } else if (userRole?.toLowerCase() === 'faculty') {
             console.log('👨‍🏫 Faculty user detected')
             console.log('🆔 Tarbiyah ID:', tarbiyahId)
@@ -100,8 +142,13 @@ function CoursesPage() {
                     
                     if (courseDoc.exists()) {
                       const courseData = courseDoc.data()
-                      userCourses.push({ id: courseDoc.id, ...courseData })
-                      console.log(`✅ Found course: ${courseData.title || courseData.name} (${courseId})`)
+                      // Only show non-archived courses to faculty
+                      if (!courseData.archived) {
+                        userCourses.push({ id: courseDoc.id, ...courseData })
+                        console.log(`✅ Found active course: ${courseData.title || courseData.name} (${courseId})`)
+                      } else {
+                        console.log(`📦 Skipping archived course: ${courseData.title || courseData.name} (${courseId})`)
+                      }
                     } else {
                       console.warn(`⚠️ Course document not found: ${courseId}`)
                     }
@@ -110,7 +157,7 @@ function CoursesPage() {
                   }
                 }
                 
-                console.log(`🎯 Successfully loaded ${userCourses.length} courses from user's courses array`)
+                console.log(`🎯 Successfully loaded ${userCourses.length} active courses from user's courses array`)
                 setCourses(userCourses)
                 
               } catch (error) {
@@ -130,6 +177,12 @@ function CoursesPage() {
                 allCoursesSnapshot.docs.forEach(doc => {
                   const courseData = doc.data()
                   const docId = doc.id
+                  
+                  // Skip archived courses for faculty
+                  if (courseData.archived) {
+                    console.log(`📦 Skipping archived course: ${courseData.title || courseData.name} (${docId})`)
+                    return
+                  }
                   
                   // Check multiple places where the teacher might be stored
                   const teacherIds = courseData.teacherIds || []
@@ -191,7 +244,7 @@ function CoursesPage() {
                   }
                 })
                 
-                console.log(`🎯 Found ${userCourses.length} courses for faculty member via course search`)
+                console.log(`🎯 Found ${userCourses.length} active courses for faculty member via course search`)
                 console.log('🎯 Faculty courses:', userCourses.map(c => ({ id: c.id, title: c.title || c.name })))
                 
                 setCourses(userCourses)
@@ -202,24 +255,21 @@ function CoursesPage() {
               }
             }
           } else {
-            console.log('🚫 User role not recognized or user not found:', userRole)
             setCourses([])
-            setLoading(false)
-            return
           }
         } catch (error) {
-          console.error('Error fetching courses:', error)
+          console.error('❌ Error in useEffect:', error)
           setCourses([])
         } finally {
           setLoading(false)
         }
       } else {
-        setCourses([])
         setLoading(false)
       }
     })
+
     return () => unsubscribe()
-  }, [])
+  }, [userRole, isAdmin])
 
   // Helper function to extract schedule information from new format
   const getScheduleInfo = (course) => {
@@ -416,148 +466,513 @@ function CoursesPage() {
         </CCol>
       </CRow>
 
-      {courses.length === 0 ? (
-        <div className="text-center py-5">
-          <h3>No Courses Found</h3>
-          <p className="text-muted">You don't have any courses assigned yet.</p>
-          <Link to="/courses/new" className="btn btn-primary">
-            Create Your First Course
-          </Link>
-        </div>
-      ) : (
-      <div className="courses-grid">
-        {courses.map((course, index) => {
-          const iconStyle = index % iconTypes.length
-          const iconClasses = `course-tile-icon ${iconTypes[iconStyle].shape}`
-          const baseColor = course.color || getRandomColorFromId(course.id)
-          const gradientColors = getGradientColors(baseColor)
-          const textColor = getTextColor(baseColor)
-          const linkUrl = `/courses/${course.id}`
+      {/* Course display logic */}
+      {isAdmin ? (
+        <>
+          {/* Admin-only tab navigation */}
+          <div className="mb-4">
+            <CNav variant="tabs" role="tablist">
+              <CNavItem>
+                <CNavLink
+                  active={activeTab === 'active'}
+                  onClick={() => setActiveTab('active')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  Active Courses ({courses.length})
+                </CNavLink>
+              </CNavItem>
+              <CNavItem>
+                <CNavLink
+                  active={activeTab === 'archived'}
+                  onClick={() => setActiveTab('archived')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  Archived Courses ({archivedCourses.length})
+                </CNavLink>
+              </CNavItem>
+            </CNav>
+          </div>
 
-          // Enhanced field extraction with new schedule structure
-          const courseTitle = course.title || course.name || 'Untitled Course'
-          const courseDesc = course.description || ''
-          const courseGrade = course.gradeLevel || (course.grade ? `Grade ${course.grade}` : '')
-          const courseSubject = course.subject || ''
-          const teacherNames = getTeacherInfo(course)
-          const scheduleInfo = getScheduleInfo(course)
-          const studentCount = Array.isArray(course.students)
-            ? course.students.length
-            : Array.isArray(course.enrolledList)
-              ? course.enrolledList.length
-              : 0
+          {/* Admin tabs content */}
+          <CTabContent>
+            <CTabPane visible={activeTab === 'active'}>
+              {courses.length === 0 ? (
+                <div className="text-center py-5">
+                  <h3>No Active Courses Found</h3>
+                  <p className="text-muted">You don't have any active courses assigned yet.</p>
+                  <Link to="/courses/new" className="btn btn-primary">
+                    Create Your First Course
+                  </Link>
+                </div>
+              ) : (
+                <div className="courses-grid">
+                  {courses.map((course, index) => {
+                    const iconStyle = index % iconTypes.length
+                    const iconClasses = `course-tile-icon ${iconTypes[iconStyle].shape}`
+                    const baseColor = course.color || getRandomColorFromId(course.id)
+                    const gradientColors = getGradientColors(baseColor)
+                    const textColor = getTextColor(baseColor)
+                    const linkUrl = `/courses/${course.id}`
 
-          return (
-            <Link key={course.id} to={linkUrl} style={{ textDecoration: 'none' }}>
-              <div
-                className="course-tile"
-                style={{
-                  background: `linear-gradient(135deg, ${gradientColors.primary} 0%, ${gradientColors.secondary} 100%)`,
-                  color: textColor,
-                  position: 'relative',
-                  overflow: 'hidden',
-                }}
-              >
-                {/* Liquid glass overlay */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.1) 100%)',
-                    backdropFilter: 'blur(10px)',
-                    WebkitBackdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: 'inherit',
-                    pointerEvents: 'none',
-                  }}
-                />
-                
-                {/* Subtle pattern overlay */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: `radial-gradient(circle at 20% 80%, rgba(255,255,255,0.1) 0%, transparent 50%),
-                                radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%)`,
-                    pointerEvents: 'none',
-                  }}
-                />
-                
-                <div className="course-tile-body" style={{ position: 'relative', zIndex: 1 }}>
-                  <h2 className="course-tile-title">{courseTitle}</h2>
-                  
-                  {/* Enhanced course information */}
-                  <div className="course-info" style={{ fontSize: '0.85em', opacity: 0.9, marginTop: '8px' }}>
-                    {courseSubject && courseGrade && (
-                      <div style={{ marginBottom: '4px' }}>
-                        <strong>{courseSubject}</strong> • {courseGrade}
-                      </div>
-                    )}
-                    
-                    {teacherNames && (
-                      <div style={{ marginBottom: '4px' }}>
-                        👨‍🏫 {teacherNames}
-                      </div>
-                    )}
-                    
-                    {scheduleInfo.days !== 'TBA' && (
-                      <div style={{ marginBottom: '4px' }}>
-                        📅 {scheduleInfo.days}
-                        {scheduleInfo.hasMultipleTimes ? (
-                          <div style={{ fontSize: '0.8em', opacity: 0.8 }}>
-                            🕐 Multiple times
+                    // Enhanced field extraction with new schedule structure
+                    const courseTitle = course.title || course.name || 'Untitled Course'
+                    const courseDesc = course.description || ''
+                    const courseGrade = course.gradeLevel || (course.grade ? `Grade ${course.grade}` : '')
+                    const courseSubject = course.subject || ''
+                    const teacherNames = getTeacherInfo(course)
+                    const scheduleInfo = getScheduleInfo(course)
+                    const studentCount = Array.isArray(course.students)
+                      ? course.students.length
+                      : Array.isArray(course.enrolledList)
+                        ? course.enrolledList.length
+                        : 0
+
+                    return (
+                      <Link key={course.id} to={linkUrl} style={{ textDecoration: 'none' }}>
+                        <div
+                          className="course-tile"
+                          style={{
+                            background: `linear-gradient(135deg, ${gradientColors.primary} 0%, ${gradientColors.secondary} 100%)`,
+                            color: textColor,
+                            position: 'relative',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {/* Liquid glass overlay */}
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.1) 100%)',
+                              backdropFilter: 'blur(10px)',
+                              WebkitBackdropFilter: 'blur(10px)',
+                              border: '1px solid rgba(255,255,255,0.2)',
+                              borderRadius: 'inherit',
+                              pointerEvents: 'none',
+                            }}
+                          />
+                          
+                          {/* Subtle pattern overlay */}
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              background: `radial-gradient(circle at 20% 80%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                                          radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%)`,
+                              pointerEvents: 'none',
+                            }}
+                          />
+                          
+                          <div className="course-tile-body" style={{ position: 'relative', zIndex: 1 }}>
+                            <h2 className="course-tile-title">{courseTitle}</h2>
+                            
+                            {/* Enhanced course information */}
+                            <div className="course-info" style={{ fontSize: '0.85em', opacity: 0.9, marginTop: '8px' }}>
+                              {courseSubject && courseGrade && (
+                                <div style={{ marginBottom: '4px' }}>
+                                  <strong>{courseSubject}</strong> • {courseGrade}
+                                </div>
+                              )}
+                              
+                              {teacherNames && (
+                                <div style={{ marginBottom: '4px' }}>
+                                  👨‍🏫 {teacherNames}
+                                </div>
+                              )}
+                              
+                              {scheduleInfo.days !== 'TBA' && (
+                                <div style={{ marginBottom: '4px' }}>
+                                  📅 {scheduleInfo.days}
+                                  {scheduleInfo.hasMultipleTimes ? (
+                                    <div style={{ fontSize: '0.8em', opacity: 0.8 }}>
+                                      🕐 Multiple times
+                                    </div>
+                                  ) : scheduleInfo.times !== 'TBA' && (
+                                    <span> • 🕐 {scheduleInfo.times}</span>
+                                  )}
+                                </div>
+                              )}
+                              
+                              {scheduleInfo.rooms && scheduleInfo.rooms !== 'TBA' && (
+                                <div style={{ marginBottom: '4px' }}>
+                                  🏫 {scheduleInfo.rooms}
+                                </div>
+                              )}
+                              
+                              {course.courseID && (
+                                <div style={{ fontSize: '0.75em', opacity: 0.7 }}>
+                                  ID: {course.courseID}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        ) : scheduleInfo.times !== 'TBA' && (
-                          <span> • 🕐 {scheduleInfo.times}</span>
-                        )}
-                      </div>
-                    )}
-                    
-                    {scheduleInfo.rooms && scheduleInfo.rooms !== 'TBA' && (
-                      <div style={{ marginBottom: '4px' }}>
-                        🏫 {scheduleInfo.rooms}
-                      </div>
-                    )}
-                    
-                    {course.courseID && (
-                      <div style={{ fontSize: '0.75em', opacity: 0.7 }}>
-                        ID: {course.courseID}
-                      </div>
-                    )}
-                  </div>
+                          
+                          <div className="course-tile-footer" style={{ position: 'relative', zIndex: 1 }}>
+                            {/* Admin-only archive button */}
+                            <CButton
+                              color="warning"
+                              size="sm"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                toggleCourseArchive(course.id, false)
+                              }}
+                              style={{ 
+                                backgroundColor: 'rgba(255,255,255,0.2)', 
+                                border: '1px solid rgba(255,255,255,0.3)',
+                                color: textColor,
+                                marginRight: '8px'
+                              }}
+                            >
+                              📦 Archive
+                            </CButton>
+                            
+                            {[...Array(3)].map((_, i) => (
+                              <span
+                                key={i}
+                                className={iconClasses}
+                                style={{
+                                  backgroundColor: `rgba(${
+                                    textColor === '#fff' ? '255,255,255' : '0,0,0'
+                                  }, ${0.3 + i * 0.2})`,
+                                  backdropFilter: 'blur(5px)',
+                                  WebkitBackdropFilter: 'blur(5px)',
+                                  border: `1px solid rgba(${
+                                    textColor === '#fff' ? '255,255,255' : '0,0,0'
+                                  }, 0.2)`,
+                                  width: iconTypes[iconStyle].size,
+                                  height: iconTypes[iconStyle].size,
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </Link>
+                    )
+                  })}
                 </div>
-                
-                <div className="course-tile-footer" style={{ position: 'relative', zIndex: 1 }}>
-                  {[...Array(3)].map((_, i) => (
-                    <span
-                      key={i}
-                      className={iconClasses}
+              )}
+            </CTabPane>
+
+            {/* Archived Courses Tab */}
+            <CTabPane visible={activeTab === 'archived'}>
+              {archivedCourses.length === 0 ? (
+                <div className="text-center py-5">
+                  <h3>No Archived Courses Found</h3>
+                  <p className="text-muted">There are no archived courses in the system.</p>
+                </div>
+              ) : (
+                <div className="courses-grid">
+                  {archivedCourses.map((course, index) => {
+                    const iconStyle = index % iconTypes.length
+                    const iconClasses = `course-tile-icon ${iconTypes[iconStyle].shape}`
+                    const baseColor = course.color || getRandomColorFromId(course.id)
+                    const gradientColors = getGradientColors(baseColor)
+                    const textColor = getTextColor(baseColor)
+
+                    // Enhanced field extraction with new schedule structure
+                    const courseTitle = course.title || course.name || 'Untitled Course'
+                    const courseDesc = course.description || ''
+                    const courseGrade = course.gradeLevel || (course.grade ? `Grade ${course.grade}` : '')
+                    const courseSubject = course.subject || ''
+                    const teacherNames = getTeacherInfo(course)
+                    const scheduleInfo = getScheduleInfo(course)
+
+                    return (
+                      <div key={course.id} className="course-tile archived-course" style={{
+                        background: `linear-gradient(135deg, ${gradientColors.primary} 0%, ${gradientColors.secondary} 100%)`,
+                        color: textColor,
+                        position: 'relative',
+                        overflow: 'hidden',
+                        opacity: 0.7,
+                      }}>
+                        {/* Archived overlay */}
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'rgba(0,0,0,0.3)',
+                            backdropFilter: 'blur(2px)',
+                            WebkitBackdropFilter: 'blur(2px)',
+                            border: '2px solid rgba(255,255,255,0.3)',
+                            borderRadius: 'inherit',
+                            pointerEvents: 'none',
+                          }}
+                        />
+                        
+                        {/* Liquid glass overlay */}
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.1) 100%)',
+                            backdropFilter: 'blur(10px)',
+                            WebkitBackdropFilter: 'blur(10px)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            borderRadius: 'inherit',
+                            pointerEvents: 'none',
+                          }}
+                        />
+                        
+                        <div className="course-tile-body" style={{ position: 'relative', zIndex: 1 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <h2 className="course-tile-title">{courseTitle}</h2>
+                            <span style={{ 
+                              fontSize: '0.75em', 
+                              backgroundColor: 'rgba(255,255,255,0.2)', 
+                              padding: '2px 8px', 
+                              borderRadius: '12px',
+                              border: '1px solid rgba(255,255,255,0.3)'
+                            }}>
+                              📦 Archived
+                            </span>
+                          </div>
+                          
+                          {/* Enhanced course information */}
+                          <div className="course-info" style={{ fontSize: '0.85em', opacity: 0.9, marginTop: '8px' }}>
+                            {courseSubject && courseGrade && (
+                              <div style={{ marginBottom: '4px' }}>
+                                <strong>{courseSubject}</strong> • {courseGrade}
+                              </div>
+                            )}
+                            
+                            {teacherNames && (
+                              <div style={{ marginBottom: '4px' }}>
+                                👨‍🏫 {teacherNames}
+                              </div>
+                            )}
+                            
+                            {scheduleInfo.days !== 'TBA' && (
+                              <div style={{ marginBottom: '4px' }}>
+                                📅 {scheduleInfo.days}
+                                {scheduleInfo.hasMultipleTimes ? (
+                                  <div style={{ fontSize: '0.8em', opacity: 0.8 }}>
+                                    🕐 Multiple times
+                                  </div>
+                                ) : scheduleInfo.times !== 'TBA' && (
+                                  <span> • 🕐 {scheduleInfo.times}</span>
+                                )}
+                              </div>
+                            )}
+                            
+                            {scheduleInfo.rooms && scheduleInfo.rooms !== 'TBA' && (
+                              <div style={{ marginBottom: '4px' }}>
+                                🏫 {scheduleInfo.rooms}
+                              </div>
+                            )}
+                            
+                            {course.courseID && (
+                              <div style={{ fontSize: '0.75em', opacity: 0.7 }}>
+                                ID: {course.courseID}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="course-tile-footer" style={{ position: 'relative', zIndex: 1 }}>
+                          <CButton
+                            color="success"
+                            size="sm"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              toggleCourseArchive(course.id, true)
+                            }}
+                            style={{ 
+                              backgroundColor: 'rgba(255,255,255,0.2)', 
+                              border: '1px solid rgba(255,255,255,0.3)',
+                              color: textColor
+                            }}
+                          >
+                            🔓 Unarchive
+                          </CButton>
+                          
+                          {[...Array(3)].map((_, i) => (
+                            <span
+                              key={i}
+                              className={iconClasses}
+                              style={{
+                                backgroundColor: `rgba(${
+                                  textColor === '#fff' ? '255,255,255' : '0,0,0'
+                                }, ${0.3 + i * 0.2})`,
+                                backdropFilter: 'blur(5px)',
+                                WebkitBackdropFilter: 'blur(5px)',
+                                border: `1px solid rgba(${
+                                  textColor === '#fff' ? '255,255,255' : '0,0,0'
+                                }, 0.2)`,
+                                width: iconTypes[iconStyle].size,
+                                height: iconTypes[iconStyle].size,
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </CTabPane>
+          </CTabContent>
+        </>
+      ) : (
+        /* Non-admin users see only active courses */
+        <>
+          {courses.length === 0 ? (
+            <div className="text-center py-5">
+              <h3>No Courses Found</h3>
+              <p className="text-muted">You don't have any courses assigned yet.</p>
+              <Link to="/courses/new" className="btn btn-primary">
+                Create Your First Course
+              </Link>
+            </div>
+          ) : (
+            <div className="courses-grid">
+              {courses.map((course, index) => {
+                const iconStyle = index % iconTypes.length
+                const iconClasses = `course-tile-icon ${iconTypes[iconStyle].shape}`
+                const baseColor = course.color || getRandomColorFromId(course.id)
+                const gradientColors = getGradientColors(baseColor)
+                const textColor = getTextColor(baseColor)
+                const linkUrl = `/courses/${course.id}`
+
+                // Enhanced field extraction with new schedule structure
+                const courseTitle = course.title || course.name || 'Untitled Course'
+                const courseDesc = course.description || ''
+                const courseGrade = course.gradeLevel || (course.grade ? `Grade ${course.grade}` : '')
+                const courseSubject = course.subject || ''
+                const teacherNames = getTeacherInfo(course)
+                const scheduleInfo = getScheduleInfo(course)
+                const studentCount = Array.isArray(course.students)
+                  ? course.students.length
+                  : Array.isArray(course.enrolledList)
+                    ? course.enrolledList.length
+                    : 0
+
+                return (
+                  <Link key={course.id} to={linkUrl} style={{ textDecoration: 'none' }}>
+                    <div
+                      className="course-tile"
                       style={{
-                        backgroundColor: `rgba(${
-                          textColor === '#fff' ? '255,255,255' : '0,0,0'
-                        }, ${0.3 + i * 0.2})`,
-                        backdropFilter: 'blur(5px)',
-                        WebkitBackdropFilter: 'blur(5px)',
-                        border: `1px solid rgba(${
-                          textColor === '#fff' ? '255,255,255' : '0,0,0'
-                        }, 0.2)`,
-                        width: iconTypes[iconStyle].size,
-                        height: iconTypes[iconStyle].size,
+                        background: `linear-gradient(135deg, ${gradientColors.primary} 0%, ${gradientColors.secondary} 100%)`,
+                        color: textColor,
+                        position: 'relative',
+                        overflow: 'hidden',
                       }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </Link>
-          )
-        })}
-      </div>
+                    >
+                      {/* Liquid glass overlay */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.1) 100%)',
+                          backdropFilter: 'blur(10px)',
+                          WebkitBackdropFilter: 'blur(10px)',
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          borderRadius: 'inherit',
+                          pointerEvents: 'none',
+                        }}
+                      />
+                      
+                      {/* Subtle pattern overlay */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          background: `radial-gradient(circle at 20% 80%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                                      radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%)`,
+                          pointerEvents: 'none',
+                        }}
+                      />
+                      
+                      <div className="course-tile-body" style={{ position: 'relative', zIndex: 1 }}>
+                        <h2 className="course-tile-title">{courseTitle}</h2>
+                        
+                        {/* Enhanced course information */}
+                        <div className="course-info" style={{ fontSize: '0.85em', opacity: 0.9, marginTop: '8px' }}>
+                          {courseSubject && courseGrade && (
+                            <div style={{ marginBottom: '4px' }}>
+                              <strong>{courseSubject}</strong> • {courseGrade}
+                            </div>
+                          )}
+                          
+                          {teacherNames && (
+                            <div style={{ marginBottom: '4px' }}>
+                              👨‍🏫 {teacherNames}
+                            </div>
+                          )}
+                          
+                          {scheduleInfo.days !== 'TBA' && (
+                            <div style={{ marginBottom: '4px' }}>
+                              📅 {scheduleInfo.days}
+                              {scheduleInfo.hasMultipleTimes ? (
+                                <div style={{ fontSize: '0.8em', opacity: 0.8 }}>
+                                  🕐 Multiple times
+                                </div>
+                              ) : scheduleInfo.times !== 'TBA' && (
+                                <span> • 🕐 {scheduleInfo.times}</span>
+                              )}
+                            </div>
+                          )}
+                          
+                          {scheduleInfo.rooms && scheduleInfo.rooms !== 'TBA' && (
+                            <div style={{ marginBottom: '4px' }}>
+                              🏫 {scheduleInfo.rooms}
+                            </div>
+                          )}
+                          
+                          {course.courseID && (
+                            <div style={{ fontSize: '0.75em', opacity: 0.7 }}>
+                              ID: {course.courseID}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="course-tile-footer" style={{ position: 'relative', zIndex: 1 }}>
+                        {[...Array(3)].map((_, i) => (
+                          <span
+                            key={i}
+                            className={iconClasses}
+                            style={{
+                              backgroundColor: `rgba(${
+                                textColor === '#fff' ? '255,255,255' : '0,0,0'
+                              }, ${0.3 + i * 0.2})`,
+                              backdropFilter: 'blur(5px)',
+                              WebkitBackdropFilter: 'blur(5px)',
+                              border: `1px solid rgba(${
+                                textColor === '#fff' ? '255,255,255' : '0,0,0'
+                              }, 0.2)`,
+                              width: iconTypes[iconStyle].size,
+                              height: iconTypes[iconStyle].size,
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+        </>
       )}
     </div>
   )
