@@ -99,3 +99,4 @@ async function checkExistingCourses() {
 
 // Run the check
 checkExistingCourses()
+

@@ -1,175 +1,231 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
-import { getFirestore, doc, setDoc, getDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore'
-import { auth } from '../../../Firebase/firebase'
-import { STAFF_AUTHORIZED_DOMAINS, isStaffEmailAuthorized, isAdminUser } from '../../../config/authConfig'
 import {
-  CButton,
-  CCard,
-  CCardBody,
-  CCardGroup,
-  CCol,
-  CContainer,
-  CRow,
-  CAlert,
+  getFirestore, doc, setDoc, getDoc, serverTimestamp,
+  collection, query, where, getDocs
+} from 'firebase/firestore'
+import { auth } from '../../../Firebase/firebase'
+import { STAFF_AUTHORIZED_DOMAINS, isStaffEmailAuthorized } from '../../../config/authConfig'
+import {
+  CButton, CCard, CCardBody, CCardGroup, CCol, CContainer, CRow, CAlert,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilUser, cilHome } from '@coreui/icons'
-import { loadCurrentUserProfile } from '../../../utils/userProfile'
 import { toast } from 'react-hot-toast'
 
-// Configure Google Provider for staff with additional scopes
-const googleProvider = new GoogleAuthProvider()
-googleProvider.addScope('https://www.googleapis.com/auth/drive.file')
-googleProvider.addScope('https://www.googleapis.com/auth/calendar.readonly')
-googleProvider.addScope('https://www.googleapis.com/auth/calendar.events')
-
-
 const db = getFirestore()
-const SHARED_GOOGLE_AUTH_TOKEN_KEY = 'firebase_google_auth_token'
+// Keep Google provider minimal at login; add scopes later when features are used.
+const googleProvider = new GoogleAuthProvider()
+
+const ROLES = { ADMIN: 'admin', FACULTY: 'faculty' }
+// If you *must* keep a token client-side, prefer sessionStorage.
+const GOOGLE_TOKEN_KEY = 'firebase_google_auth_token_session'
 
 const StaffLogin = () => {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
+  const lookupAdminByEmail = async (email) => {
+    // Try root email, then personalInfo.email (covers legacy shapes)
+    const adminsCol = collection(db, 'admins')
+    const q1 = query(adminsCol, where('email', '==', email))
+    const s1 = await getDocs(q1)
+    if (!s1.empty) return s1.docs[0]
+
+    const q2 = query(adminsCol, where('personalInfo.email', '==', email))
+    const s2 = await getDocs(q2)
+    if (!s2.empty) return s2.docs[0]
+
+    return null
+  }
+
+  const lookupFacultyByEmail = async (email) => {
+    const facCol = collection(db, 'faculty')
+    const q = query(facCol, where('personalInfo.email', '==', email))
+    const snap = await getDocs(q)
+    return snap.empty ? null : snap.docs[0]
+  }
+
+  const ensureUsersDoc = async ({ tarbiyahId, role, linkedCollection, user, isAuthorizedDomain }) => {
+    const userRef = doc(db, 'users', tarbiyahId)
+    const userDoc = await getDoc(userRef)
+    const [firstName, ...rest] = (user.displayName || '').split(' ')
+    const lastName = rest.join(' ') || ''
+
+    if (!userDoc.exists()) {
+      await setDoc(userRef, {
+        tarbiyahId,
+        linkedCollection,
+        role, // 'admin' | 'faculty'
+        emailDomain: user.email.split('@')[1],
+        isVerified: !!user.emailVerified,
+        isAuthorizedDomain: !!isAuthorizedDomain,
+        createdAt: serverTimestamp(),
+        lastLogin: serverTimestamp(),
+        loginCount: 1,
+        personalInfo: {
+          firstName: firstName || '',
+          lastName: lastName || '',
+          email: user.email,
+        },
+        stats: {
+          lastLoginAt: serverTimestamp(),
+          loginCount: 1,
+        },
+        active: true,
+        dashboard: { theme: 'default' },
+      })
+    } else {
+      const current = userDoc.data() || {}
+      const nextCount = (current.loginCount || 0) + 1
+      await setDoc(
+        userRef,
+        {
+          role,
+          linkedCollection,
+          emailDomain: user.email.split('@')[1],
+          isVerified: !!user.emailVerified,
+          isAuthorizedDomain: !!isAuthorizedDomain,
+          lastLogin: serverTimestamp(),
+          loginCount: nextCount,
+          stats: {
+            lastLoginAt: serverTimestamp(),
+            loginCount: nextCount,
+          },
+          personalInfo: {
+            // keep existing names if present
+            firstName: current?.personalInfo?.firstName || firstName || '',
+            lastName: current?.personalInfo?.lastName || lastName || '',
+            email: user.email,
+          },
+        },
+        { merge: true }
+      )
+    }
+  }
+
+  const ensureAdminDoc = async ({ tarbiyahId, user }) => {
+    // If admin doc is missing, create a minimal one.
+    const adminRef = doc(db, 'admins', tarbiyahId)
+    const adminDoc = await getDoc(adminRef)
+    if (!adminDoc.exists()) {
+      const [firstName, ...rest] = (user.displayName || '').split(' ')
+      const lastName = rest.join(' ') || ''
+      await setDoc(
+        adminRef,
+        {
+          tarbiyahId,
+          personalInfo: {
+            firstName: firstName || '',
+            lastName: lastName || '',
+            email: user.email,
+          },
+          createdAt: serverTimestamp(),
+          lastLogin: serverTimestamp(),
+          role: ROLES.ADMIN,
+          active: true,
+        },
+        { merge: true }
+      )
+    } else {
+      await setDoc(
+        adminRef,
+        { lastLogin: serverTimestamp(), active: true },
+        { merge: true }
+      )
+    }
+  }
+
+  const ensureFacultyDoc = async ({ tarbiyahId, user }) => {
+    // If faculty doc is missing, create a minimal one.
+    const facRef = doc(db, 'faculty', tarbiyahId)
+    const facDoc = await getDoc(facRef)
+    if (!facDoc.exists()) {
+      const [firstName, ...rest] = (user.displayName || '').split(' ')
+      const lastName = rest.join(' ') || ''
+      await setDoc(
+        facRef,
+        {
+          personalInfo: {
+            firstName: firstName || '',
+            lastName: lastName || '',
+            email: user.email,
+            role: 'faculty',
+          },
+          createdAt: serverTimestamp(),
+          lastLogin: serverTimestamp(),
+          active: true,
+        },
+        { merge: true }
+      )
+    } else {
+      await setDoc(
+        facRef,
+        { lastLogin: serverTimestamp(), active: true },
+        { merge: true }
+      )
+    }
+  }
+
   const handleGoogleLogin = async () => {
     setError('')
     setLoading(true)
-
     try {
       const result = await signInWithPopup(auth, googleProvider)
       const user = result.user
-
-      // Check if the email domain is authorized
       const isAuthorizedDomain = isStaffEmailAuthorized(user.email)
-      
-      // First, check if user exists in faculty collection by email
-      let existingFacultyDoc = null
-      let normalizedRole = 'guest'
+
+      // Discover role strictly from collections (admins > faculty). No 'staff'.
+      let role = null
       let tarbiyahId = null
-      
-      try {
-        // Check faculty collection first
-        const facultyQuery = query(collection(db, 'faculty'), where('personalInfo.email', '==', user.email))
-        const facultySnapshot = await getDocs(facultyQuery)
-        
-        if (!facultySnapshot.empty) {
-          existingFacultyDoc = facultySnapshot.docs[0]
-          tarbiyahId = existingFacultyDoc.id
-          normalizedRole = 'faculty'
-        } else {
-          // Check users collection as fallback
-          const profile = await loadCurrentUserProfile(db, user)
-          if (profile) {
-            const profileRole = profile.data?.personalInfo?.role || profile.data?.role || 'guest'
-            normalizedRole = String(profileRole).toLowerCase()
-            tarbiyahId = profile.id
-          }
+      let linkedCollection = null
+
+      const adminDoc = await lookupAdminByEmail(user.email)
+      if (adminDoc) {
+        role = ROLES.ADMIN
+        tarbiyahId = adminDoc.id
+        linkedCollection = 'admins'
+      } else {
+        const facultyDoc = await lookupFacultyByEmail(user.email)
+        if (facultyDoc) {
+          role = ROLES.FACULTY
+          tarbiyahId = facultyDoc.id
+          linkedCollection = 'faculty'
         }
-      } catch (e) {
-        console.warn('Could not load profile during staff login role check:', e)
       }
 
-      const isAdminOrFaculty = isAdminUser(normalizedRole) || normalizedRole === 'faculty'
-
-      // Allow access if either domain is authorized OR user is admin/faculty
-      if (!isAuthorizedDomain && !isAdminOrFaculty) {
-        // Sign out the user immediately
+      // Gate: only admins or faculty can access.
+      if (!role || !tarbiyahId) {
         await auth.signOut()
-        const reason = `Access denied. Only staff with authorized email domains or admin/faculty users are allowed. Your email domain: ${user.email.split('@')[1]}`
+        const reason = 'Access denied. Your email is not registered as Admin or Faculty. Please contact the school office.'
         setError(reason)
         toast.error(reason)
         setLoading(false)
         return
       }
 
-      // Store Google credentials for Calendar and other services access
+      // (Optional) keep short-lived token in sessionStorage if you truly need it now.
       const credential = GoogleAuthProvider.credentialFromResult(result)
-      if (credential) {
+      if (credential?.accessToken) {
         const token = {
           accessToken: credential.accessToken,
-          expiresAt: Date.now() + 3600000, // 1 hour expiration
+          // This is a rough client-side TTL; prefer requesting on demand instead.
+          expiresAt: Date.now() + 55 * 60 * 1000,
         }
-        localStorage.setItem(SHARED_GOOGLE_AUTH_TOKEN_KEY, JSON.stringify(token))
+        sessionStorage.setItem(GOOGLE_TOKEN_KEY, JSON.stringify(token))
       }
 
-      // If user exists in faculty collection, create/update user document with Tarbiyah ID
-      if (existingFacultyDoc && tarbiyahId) {
-        const userRef = doc(db, 'users', tarbiyahId)
-        const userDoc = await getDoc(userRef)
-        
-        if (!userDoc.exists()) {
-          // Create new user document with Tarbiyah ID
-          await setDoc(userRef, {
-            tarbiyahId: tarbiyahId,
-            linkedCollection: 'faculty',
-            personalInfo: {
-              firstName: existingFacultyDoc.data()?.personalInfo?.firstName || user.displayName?.split(' ')[0] || '',
-              lastName: existingFacultyDoc.data()?.personalInfo?.lastName || user.displayName?.split(' ').slice(1).join(' ') || '',
-              email: user.email,
-              role: 'Faculty'
-            },
-            role: 'Faculty',
-            emailDomain: user.email.split('@')[1],
-            isVerified: true,
-            isAuthorizedDomain,
-            createdAt: serverTimestamp(),
-            lastLogin: serverTimestamp(),
-            loginCount: 1,
-            active: true,
-            dashboard: {
-              theme: 'default'
-            },
-            stats: {
-              lastLoginAt: serverTimestamp(),
-              loginCount: 1
-            }
-          })
-        } else {
-          // Update existing user document
-          await setDoc(userRef, {
-            lastLogin: serverTimestamp(),
-            loginCount: (userDoc.data().loginCount || 0) + 1,
-            emailDomain: user.email.split('@')[1],
-            isVerified: true,
-            isAuthorizedDomain,
-            'stats.lastLoginAt': serverTimestamp()
-          }, { merge: true })
-        }
-      } else {
-        // Fallback: create user document in users collection (by auth uid) for non-faculty staff
-        const userRef = doc(db, 'users', user.uid)
-        const userDoc = await getDoc(userRef)
+      // Ensure domain flag is still recorded (for auditing/UX), but it does NOT gate access alone.
+      // Ensure mirrored users/{tarbiyahId} exists & is updated.
+      await ensureUsersDoc({ tarbiyahId, role, linkedCollection, user, isAuthorizedDomain })
 
-        if (!userDoc.exists()) {
-          const [firstName, lastName] = user.displayName?.split(' ') || ['', '']
-          // Set role based on domain authorization or existing profile role
-          const userRole = isAuthorizedDomain ? 'staff' : (isAdminOrFaculty ? (isAdminUser(normalizedRole) ? 'admin' : normalizedRole) : 'staff')
-          
-          await setDoc(userRef, {
-            firstName,
-            lastName,
-            email: user.email,
-            role: userRole,
-            emailDomain: user.email.split('@')[1],
-            isVerified: true,
-            isAuthorizedDomain,
-            createdAt: serverTimestamp(),
-            lastLogin: serverTimestamp(),
-            loginCount: 1,
-          })
-        } else {
-          // Update last login and verify domain again
-          await setDoc(userRef, {
-            lastLogin: serverTimestamp(),
-            loginCount: (userDoc.data().loginCount || 0) + 1,
-            emailDomain: user.email.split('@')[1],
-            isVerified: true,
-            isAuthorizedDomain,
-          }, { merge: true })
-        }
+      // Optionally ensure source collection docs exist/updated (keeps lastLogin, active flags fresh)
+      if (role === ROLES.ADMIN) {
+        await ensureAdminDoc({ tarbiyahId, user })
+      } else if (role === ROLES.FACULTY) {
+        await ensureFacultyDoc({ tarbiyahId, user })
       }
 
       navigate('/')
@@ -181,7 +237,7 @@ const StaffLogin = () => {
   }
 
   const handleAuthError = (error) => {
-    switch (error.code) {
+    switch (error?.code) {
       case 'auth/popup-closed-by-user':
         setError('Sign-in window was closed. Please try again.')
         break
@@ -217,14 +273,12 @@ const StaffLogin = () => {
             </Link>
           </div>
           <div className="d-flex align-items-center justify-content-center">
-            <img 
-              src="/assets/brand/TLA_logo_simple.svg" 
-              alt="Tarbiyah Learning Academy" 
+            <img
+              src="/assets/brand/TLA_logo_simple.svg"
+              alt="Tarbiyah Learning Academy"
               style={{ height: '60px', width: 'auto' }}
               className="me-3"
-              onError={(e) => {
-                e.target.style.display = 'none'
-              }}
+              onError={(e) => { e.target.style.display = 'none' }}
             />
             <div>
               <h1 className="h3 mb-1">Staff Portal</h1>
@@ -242,10 +296,10 @@ const StaffLogin = () => {
               <CCard className="p-4">
                 <CCardBody className="text-center">
                   <div className="mb-4">
-                    <h2 className="h4">Staff Login</h2>
+                    <h2 className="h4">Faculty/Admin Login</h2>
                     <p className="text-body-secondary">Sign in with your Google account</p>
                   </div>
-                  
+
                   {error && <CAlert color="danger">{error}</CAlert>}
 
                   <div className="mb-4">
@@ -254,21 +308,11 @@ const StaffLogin = () => {
                       disabled={loading}
                       className="google-signin-btn w-100"
                       style={{
-                        backgroundColor: '#4285f4',
-                        border: 'none',
-                        borderRadius: '8px',
-                        padding: '12px 16px',
-                        color: 'white',
-                        fontSize: '16px',
-                        fontWeight: '500',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '12px',
-                        cursor: loading ? 'not-allowed' : 'pointer',
-                        opacity: loading ? 0.7 : 1,
-                        transition: 'all 0.2s ease',
-                        boxShadow: '0 2px 4px rgba(66, 133, 244, 0.3)',
+                        backgroundColor: '#4285f4', border: 'none', borderRadius: '8px',
+                        padding: '12px 16px', color: 'white', fontSize: '16px', fontWeight: '500',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
+                        cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
+                        transition: 'all 0.2s ease', boxShadow: '0 2px 4px rgba(66, 133, 244, 0.3)',
                       }}
                       onMouseEnter={(e) => {
                         if (!loading) {
@@ -295,11 +339,9 @@ const StaffLogin = () => {
 
                   <div className="text-center">
                     <small className="text-muted">
-                      Only staff members with authorized email domains or admin users can access this portal.
+                      Access is limited to registered <strong>Admins</strong> and <strong>Faculty</strong> accounts.
                       <br />
-                      <strong>Authorized domains:</strong> {STAFF_AUTHORIZED_DOMAINS.join(', ')}
-                      <br />
-                      <strong>Admin users:</strong> Users with admin role can access from any domain
+                      Your email domain is recorded for auditing. <strong>Authorized domains:</strong> {STAFF_AUTHORIZED_DOMAINS.join(', ')}
                     </small>
                   </div>
                 </CCardBody>
@@ -314,7 +356,7 @@ const StaffLogin = () => {
                     </p>
                     <div className="mb-3">
                       <small className="opacity-75">
-                        <strong>Features included:</strong><br />
+                        <strong>Features include:</strong><br />
                         • Class Management<br />
                         • Student Records<br />
                         • Google Workspace Integration<br />
@@ -326,7 +368,7 @@ const StaffLogin = () => {
                 </CCardBody>
               </CCard>
             </CCardGroup>
-            
+
             <div className="text-center mt-3">
               <Link to="/login/parent" className="text-white text-decoration-none">
                 <CButton color="light" variant="outline" size="sm">
@@ -342,4 +384,4 @@ const StaffLogin = () => {
   )
 }
 
-export default StaffLogin 
+export default StaffLogin
