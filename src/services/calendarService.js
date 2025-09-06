@@ -11,31 +11,52 @@ const SHARED_GOOGLE_AUTH_TOKEN_KEY = 'firebase_google_auth_token' // Token share
 const functionsBase = `https://northamerica-northeast1-tarbiyah-sms.cloudfunctions.net`
 
 async function hydratePublicConfigIfMissing() {
-  if (API_KEY && CLIENT_ID) return
+  if (API_KEY && CLIENT_ID) {
+    console.log('✅ Google API config already loaded from environment variables')
+    return
+  }
+  
+  console.log('🔄 Attempting to load Google API config from Firebase Functions...')
   try {
     const resp = await fetch(`${functionsBase}/getPublicConfig`)
     if (resp.ok) {
       const data = await resp.json()
+      const hadApiKey = !!API_KEY
+      const hadClientId = !!CLIENT_ID
+      
       API_KEY = API_KEY || data.googleApiKey || null
       CLIENT_ID = CLIENT_ID || data.googleClientId || null
+      
+      console.log('📡 Google API config loaded from Firebase Functions:', {
+        apiKey: API_KEY ? 'Set' : 'Missing',
+        clientId: CLIENT_ID ? 'Set' : 'Missing',
+        fromEnv: { apiKey: hadApiKey, clientId: hadClientId },
+        fromFirebase: { apiKey: !!data.googleApiKey, clientId: !!data.googleClientId }
+      })
+      
+      // Now validate and log any missing values
+      if (!API_KEY) {
+        console.error('❌ VITE_GOOGLE_API_KEY is not set in environment variables and not available from Firebase Functions')
+      }
+      if (!CLIENT_ID) {
+        console.error('❌ VITE_GOOGLE_CLIENT_ID is not set in environment variables and not available from Firebase Functions')
+      }
+    } else {
+      console.error('❌ Failed to fetch public config from Firebase Functions:', resp.status, resp.statusText)
     }
-  } catch {}
+  } catch (error) {
+    console.error('❌ Error fetching public config from Firebase Functions:', error)
+  }
 }
 
-// Debug environment variables
+// Debug environment variables - but don't log errors yet, wait for hydration
 console.log('Google API Configuration:', {
   API_KEY: API_KEY ? 'Set' : 'Missing',
   CLIENT_ID: CLIENT_ID ? 'Set' : 'Missing',
   env: import.meta.env.MODE
 })
 
-// Validate required environment variables
-if (!API_KEY) {
-  console.error('VITE_GOOGLE_API_KEY is not set in environment variables')
-}
-if (!CLIENT_ID) {
-  console.error('VITE_GOOGLE_CLIENT_ID is not set in environment variables')
-}
+// Don't log errors immediately - wait for hydration attempt
 
 let tokenClient
 let gapiInited = false

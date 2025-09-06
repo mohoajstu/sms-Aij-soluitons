@@ -1,10 +1,5 @@
-import OpenAI from 'openai';
-
-// Initialize OpenAI client - make sure to set VITE_OPENAI_API_KEY in your environment
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true // Required for frontend usage
-});
+// OpenAI API calls are now handled via Firebase Functions proxy
+// This keeps the API key secure on the server side
 
 export function buildReportType({ grade, term, explicitReportType }) {
   // If UI passes an explicit report type, prefer it
@@ -53,11 +48,10 @@ export function buildReportPayload(formData, { explicitReportType, subjectField 
   }
 }
 
-// Generate report card comments using OpenAI directly
+// Generate report card comments using OpenAI via Firebase Functions proxy
 export async function generateReportCardJSON(payload, { retry = 1 } = {}) {
-  if (!import.meta.env.VITE_OPENAI_API_KEY) {
-    throw new Error("Missing VITE_OPENAI_API_KEY environment variable");
-  }
+  // Use Firebase Functions proxy instead of direct OpenAI API
+  const functionsBase = `https://northamerica-northeast1-tarbiyah-sms.cloudfunctions.net`
 
   const isKindergarten = payload.reportType?.includes("Kindergarten");
   
@@ -71,18 +65,36 @@ export async function generateReportCardJSON(payload, { retry = 1 } = {}) {
 
   const callAI = async () => {
     try {
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini", // Fast and cost-effective
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 1500,
-        response_format: { type: "json_object" }
+      console.log('🔄 Calling OpenAI via Firebase Functions proxy...');
+      
+      const response = await fetch(`${functionsBase}/generateReportCard`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 1500,
+          response_format: { type: "json_object" }
+        })
       });
 
-      const content = completion.choices[0]?.message?.content;
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Firebase Functions proxy error: ${response.status} ${errorText}`);
+      }
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(`Firebase Functions proxy error: ${result.message}`);
+      }
+
+      const content = result.data.choices[0]?.message?.content;
       if (!content) {
         throw new Error("No content returned from OpenAI");
       }
@@ -92,6 +104,7 @@ export async function generateReportCardJSON(payload, { retry = 1 } = {}) {
         throw new Error("Invalid JSON structure returned from AI");
       }
 
+      console.log('✅ OpenAI API call successful via Firebase Functions proxy');
       return json;
     } catch (error) {
       console.error('OpenAI API error:', error);
