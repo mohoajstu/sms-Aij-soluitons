@@ -21,6 +21,19 @@ import NotificationService from '../../services/notificationService'
 import { toast } from 'react-hot-toast'
 import Select from 'react-select'
 
+function formatPhoneE164First(input) {
+  if (!input || typeof input !== 'string') return null
+  const first = input.split(',')[0].trim()
+  if (!first) return null
+  let cleaned = first.replace(/\D/g, '')
+  if (!cleaned) return null
+  if (cleaned.length === 10 && cleaned.charAt(0) !== '1') {
+    cleaned = '1' + cleaned
+  }
+  if (!cleaned.startsWith('+')) cleaned = '+' + cleaned
+  return cleaned
+}
+
 const ManualSmsNotification = () => {
   const [formData, setFormData] = useState({
     phoneNumber: '',
@@ -181,9 +194,10 @@ const ManualSmsNotification = () => {
     setErrorMessage('')
 
     try {
-      // Validate the phone number
+      // Format and validate the first phone number only
+      const formattedPhone = formatPhoneE164First(formData.phoneNumber)
       const phoneRegex = /^\+?[1-9]\d{1,14}$/
-      if (!phoneRegex.test(formData.phoneNumber)) {
+      if (!formattedPhone || !phoneRegex.test(formattedPhone)) {
         throw new Error('Please enter a valid phone number in E.164 format (e.g., +1XXXXXXXXXX)')
       }
 
@@ -207,7 +221,7 @@ const ManualSmsNotification = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          phoneNumber: formData.phoneNumber,
+          phoneNumber: formattedPhone,
           message: formData.message,
         }),
       })

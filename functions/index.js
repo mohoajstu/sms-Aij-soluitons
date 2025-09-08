@@ -20,8 +20,13 @@ function formatPhoneNumber(phoneNumber) {
   if (!phoneNumber || typeof phoneNumber !== 'string') {
     return null
   }
+  // If multiple numbers are provided (comma-separated), take the first one only
+  const firstPhone = phoneNumber.split(',')[0].trim()
+  if (!firstPhone) return null
+
   // Remove any non-digit characters
-  let cleaned = phoneNumber.replace(/\D/g, '')
+  let cleaned = firstPhone.replace(/\D/g, '')
+  if (!cleaned) return null
 
   // If the number is 10 digits and doesn't start with 1, assume it's a US/Canada number and add +1
   if (cleaned.length === 10 && cleaned.charAt(0) !== '1') {

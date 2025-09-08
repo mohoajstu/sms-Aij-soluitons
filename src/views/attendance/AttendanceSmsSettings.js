@@ -31,6 +31,19 @@ import CIcon from '@coreui/icons-react'
 import { cilSave, cilSettings, cilBell, cilCalendar } from '@coreui/icons'
 import CalendarPicker from './CalendarPicker'
 
+function formatPhoneE164First(input) {
+  if (!input || typeof input !== 'string') return null
+  const first = input.split(',')[0].trim()
+  if (!first) return null
+  let cleaned = first.replace(/\D/g, '')
+  if (!cleaned) return null
+  if (cleaned.length === 10 && cleaned.charAt(0) !== '1') {
+    cleaned = '1' + cleaned
+  }
+  if (!cleaned.startsWith('+')) cleaned = '+' + cleaned
+  return cleaned
+}
+
 const AttendanceSmsSettings = () => {
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
@@ -197,16 +210,12 @@ const AttendanceSmsSettings = () => {
       setSaving(true)
       setAlert({ show: false, message: '', color: 'success' })
 
-      // Validate phone number format
+      // Validate phone number format (take only first if comma-separated)
+      const formattedPhone = formatPhoneE164First(testPhoneNumber)
       const phoneRegex = /^\+?[1-9]\d{1,14}$/
-      if (!phoneRegex.test(testPhoneNumber.replace(/\s/g, ''))) {
+      if (!formattedPhone || !phoneRegex.test(formattedPhone)) {
         throw new Error('Please enter a valid phone number in E.164 format (e.g., +1XXXXXXXXXX)')
       }
-
-      // Format phone number
-      const formattedPhone = testPhoneNumber.replace(/\s/g, '').startsWith('+') 
-        ? testPhoneNumber.replace(/\s/g, '') 
-        : `+${testPhoneNumber.replace(/\s/g, '')}`
 
       const response = await fetch('https://northamerica-northeast1-tarbiyah-sms.cloudfunctions.net/sendSmsHttp', {
         method: 'POST',
