@@ -30,6 +30,7 @@ import {
   isSheetsAuthenticated,
 } from '../../services/googleSheetsService'
 import './attendanceReportTable.css'
+import ClassSelector from '../../components/ClassSelector'
 
 const getStatusClass = (status) => {
   switch (status) {
@@ -423,18 +424,10 @@ const AttendanceReportTable = () => {
               format="YYYY-MM-DD"
             />
           </LocalizationProvider>
-          <Autocomplete
-            options={classOptions}
-            getOptionLabel={(option) => option.label || ''}
-            isOptionEqualToValue={(option, value) => option.id === value.id}
+          <ClassSelector
             value={pendingFilters.class}
             onChange={(_, value) => setPendingFilters((f) => ({ ...f, class: value }))}
-            renderInput={(params) => (
-              <TextField {...params} label="Class" variant="outlined" fullWidth />
-            )}
-            clearOnEscape
-            autoHighlight
-            freeSolo={false}
+            fullWidth
           />
         </Box>
         {/* Student and Status Column */}
