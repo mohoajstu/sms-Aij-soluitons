@@ -18,6 +18,7 @@ import {
   CAccordionBody
 } from '@coreui/react';
 import Checkbox from '@mui/material/Checkbox';
+import AIReportCommentInput from '../../../components/AIReportCommentInput';
 import { FormControlLabel } from '@mui/material';
 import { pink, green, blue, orange, purple } from '@mui/material/colors';
 import { PDFDocument } from 'pdf-lib';
@@ -681,17 +682,25 @@ const DynamicReportCardForm = ({ reportCardType, onFormDataChange }) => {
                 maxLength={maxLength}
                 placeholder={`Enter ${label.toLowerCase()} (max ${maxLength} characters)`}
               />
-              {/* Placeholder button for future AI generation */}
-              <CButton
-                color="light"
-                size="sm"
-                title="AI generate (coming soon)"
-                className="position-absolute"
-                style={{ top: '5px', right: '5px' }}
-                disabled
-              >
-                🤖
-              </CButton>
+              {/* AI Generation Button */}
+              <div className="position-absolute" style={{ top: '5px', right: '5px' }}>
+                <AIReportCommentInput
+                  label=""
+                  formData={{
+                    student_name: formData.student || '',
+                    grade: formData.grade || '',
+                    subject: label,
+                  }}
+                  handleChange={(field, aiValue) => {
+                    if (field === 'teacher_comments' || field === 'strengths_next_steps') {
+                      handleFieldChange(name, aiValue)
+                    }
+                  }}
+                  buttonText=""
+                  explicitReportType="Dynamic Report Card"
+                  className="ai-button-minimal"
+                />
+              </div>
             </div>
             <small className="text-muted">
               {value.length || 0}/{maxLength} characters | {name}

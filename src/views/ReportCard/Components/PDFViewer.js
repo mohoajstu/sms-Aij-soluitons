@@ -33,6 +33,7 @@ const PDFViewer = React.memo(
     const retryTimeoutRef = useRef(null)
     const fillPdfTimeoutRef = useRef(null)
     const latestFormData = useRef(formData)
+    const externalBlobUrlRef = useRef(null) // Track blob URLs created for external PDFs
 
     // Auto-retry configuration
     const MAX_RETRIES = 3
@@ -46,6 +47,11 @@ const PDFViewer = React.memo(
     // Auto-retry configuration
     useEffect(() => {
       console.log('PDFViewer: PDF URL changed to:', pdfUrl)
+      // Clean up previous blob URL when URL changes
+      if (externalBlobUrlRef.current) {
+        URL.revokeObjectURL(externalBlobUrlRef.current)
+        externalBlobUrlRef.current = null
+      }
       if (pdfUrl) {
         setRetryCount(0) // Reset retry count on new PDF
         loadPDF()
@@ -94,11 +100,15 @@ const PDFViewer = React.memo(
       }
     }, [formData, showPreview, pdfUrl])
 
-    // Cleanup retry timeout on unmount
+    // Cleanup retry timeout and blob URLs on unmount
     useEffect(() => {
       return () => {
         if (retryTimeoutRef.current) {
           clearTimeout(retryTimeoutRef.current)
+        }
+        if (externalBlobUrlRef.current) {
+          URL.revokeObjectURL(externalBlobUrlRef.current)
+          externalBlobUrlRef.current = null
         }
       }
     }, [])
@@ -126,8 +136,11 @@ const PDFViewer = React.memo(
         }
 
         // Validate PDF path before attempting to load
-        if (!urlOverride && !filledPdfUrl) {
-          // This is the initial load of the original PDF - validate the path first
+        // Skip HEAD validation for external URLs (Firebase Storage, etc.) as they may not support HEAD requests
+        // Only validate local paths (starting with '/')
+        const isLocalPath = urlToLoad.startsWith('/')
+        if (!urlOverride && !filledPdfUrl && isLocalPath) {
+          // This is the initial load of a local PDF template - validate the path first
           try {
             const pathCheckResponse = await fetch(urlToLoad, { method: 'HEAD' })
             if (!pathCheckResponse.ok) {
@@ -142,11 +155,51 @@ const PDFViewer = React.memo(
             setError(`Unable to access PDF template. Please verify the file path: ${urlToLoad}`)
             return
           }
+        } else if (!urlOverride && !filledPdfUrl && !isLocalPath) {
+          // For external URLs (like Firebase Storage), skip HEAD validation and go straight to loading
+          console.log('PDFViewer: Skipping HEAD validation for external URL:', urlToLoad)
         }
 
         console.log('PDFViewer: Loading PDF from:', urlToLoad)
 
-        const loadingTask = pdfjsLib.getDocument(urlToLoad)
+        // For external URLs (Firebase Storage), fetch as blob first to avoid CORS issues
+        // Clean up any previous blob URL
+        if (externalBlobUrlRef.current) {
+          URL.revokeObjectURL(externalBlobUrlRef.current)
+          externalBlobUrlRef.current = null
+        }
+
+        let pdfUrlToLoad = urlToLoad
+        if (!isLocalPath && !urlToLoad.startsWith('blob:')) {
+          try {
+            console.log('PDFViewer: Fetching external PDF as blob to avoid CORS issues...')
+            const response = await fetch(urlToLoad, {
+              method: 'GET',
+              mode: 'cors',
+              credentials: 'omit',
+            })
+            
+            if (!response.ok) {
+              throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`)
+            }
+            
+            const blob = await response.blob()
+            pdfUrlToLoad = URL.createObjectURL(blob)
+            externalBlobUrlRef.current = pdfUrlToLoad // Store for cleanup
+            console.log('PDFViewer: Successfully fetched PDF as blob, created blob URL')
+          } catch (fetchError) {
+            console.error('PDFViewer: Error fetching PDF as blob:', fetchError)
+            // Fall back to direct loading if blob fetch fails
+            console.log('PDFViewer: Falling back to direct URL loading')
+            pdfUrlToLoad = urlToLoad
+          }
+        }
+
+        const loadingTask = pdfjsLib.getDocument({
+          url: pdfUrlToLoad,
+          httpHeaders: {},
+          withCredentials: false,
+        })
         const pdf = await loadingTask.promise
 
         console.log('PDFViewer: PDF loaded successfully with', pdf.numPages, 'pages')

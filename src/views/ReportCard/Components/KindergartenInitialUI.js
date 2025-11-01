@@ -896,6 +896,7 @@ const KindergartenInitialUI = ({
                   saveMessage={saveMessage}
                   disabled={!selectedStudent || !selectedReportCard}
                   className="ms-auto"
+                  asLink={true}
                 />
               </div>
             </CAccordionHeader>
@@ -914,6 +915,7 @@ const KindergartenInitialUI = ({
                   saveMessage={saveMessage}
                   disabled={!selectedStudent || !selectedReportCard}
                   className="ms-auto"
+                  asLink={true}
                 />
               </div>
             </CAccordionHeader>
@@ -937,6 +939,7 @@ const KindergartenInitialUI = ({
                   saveMessage={saveMessage}
                   disabled={!selectedStudent || !selectedReportCard}
                   className="ms-auto"
+                  asLink={true}
                 />
               </div>
             </CAccordionHeader>

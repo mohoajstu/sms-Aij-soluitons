@@ -318,7 +318,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
         schoolAddress: '3990 Old Richmond Rd, Nepean, ON K2H 8W3',
         board: 'Tarbiyah Learning Academy',
         principal: 'Ghazala Choudhary',
-        telephone: selectedStudent.phone1 || selectedStudent.emergencyPhone || '',
+        telephone: '613 421 1700',
       }
 
       // Merge with existing form data, preserving any user-entered data
@@ -1299,6 +1299,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
                   onStudentSelect={handleStudentSelect}
                   placeholder="Search and select a student..."
                   required={true}
+                  showClassList={true}
                 />
               </CCardBody>
             </CCard>

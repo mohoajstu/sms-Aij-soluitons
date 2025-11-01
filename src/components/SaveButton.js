@@ -1,5 +1,5 @@
 import React from 'react'
-import { CButton, CSpinner } from '@coreui/react'
+import { CButton, CSpinner, CLink } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilSave } from '@coreui/icons'
 import PropTypes from 'prop-types'
@@ -16,29 +16,43 @@ const SaveButton = ({
   size = 'sm',
   variant = 'outline',
   color = 'success',
+  asLink = false, // New prop to render as link instead of button
 }) => {
+  const buttonContent = isSaving ? (
+    <>
+      <CSpinner size="sm" />
+      Saving...
+    </>
+  ) : (
+    <>
+      <CIcon icon={cilSave} size="sm" />
+      Save Draft
+    </>
+  )
+
   return (
     <div className={`d-flex align-items-center gap-2 ${className}`}>
-      <CButton
-        color={color}
-        variant={variant}
-        size={size}
-        onClick={onSave}
-        disabled={disabled || isSaving}
-        className="d-flex align-items-center gap-1"
-      >
-        {isSaving ? (
-          <>
-            <CSpinner size="sm" />
-            Saving...
-          </>
-        ) : (
-          <>
-            <CIcon icon={cilSave} size="sm" />
-            Save Draft
-          </>
-        )}
-      </CButton>
+      {asLink ? (
+        <CLink
+          as="span"
+          className={`btn btn-${color} btn-${variant} btn-${size} d-flex align-items-center gap-1`}
+          onClick={onSave}
+          style={{ cursor: disabled || isSaving ? 'not-allowed' : 'pointer', opacity: disabled || isSaving ? 0.6 : 1 }}
+        >
+          {buttonContent}
+        </CLink>
+      ) : (
+        <CButton
+          color={color}
+          variant={variant}
+          size={size}
+          onClick={onSave}
+          disabled={disabled || isSaving}
+          className="d-flex align-items-center gap-1"
+        >
+          {buttonContent}
+        </CButton>
+      )}
 
       {saveMessage && (
         <small
@@ -62,6 +76,7 @@ SaveButton.propTypes = {
   size: PropTypes.string,
   variant: PropTypes.string,
   color: PropTypes.string,
+  asLink: PropTypes.bool,
 }
 
 export default SaveButton

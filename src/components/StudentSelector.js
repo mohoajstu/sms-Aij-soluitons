@@ -7,11 +7,20 @@ import {
   CInputGroupText,
   CSpinner,
   CAlert,
+  CCard,
+  CCardBody,
+  CCardHeader,
+  CButton,
+  CButtonGroup,
+  CRow,
+  CCol,
+  CBadge,
 } from '@coreui/react'
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore'
 import { firestore } from '../firebase'
 import CIcon from '@coreui/icons-react'
-import { cilSearch, cilUser } from '@coreui/icons'
+import { cilSearch, cilUser, cilList, cilFilter, cilEducation } from '@coreui/icons'
+import useAuth from '../Firebase/useAuth'
 
 const StudentSelector = ({
   selectedStudent,
@@ -19,11 +28,65 @@ const StudentSelector = ({
   placeholder = 'Search and select a student...',
   showLabel = true,
   required = false,
+  showClassList = true,
 }) => {
   const [students, setStudents] = useState([])
+  const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [selectedClass, setSelectedClass] = useState('')
+  const [viewMode, setViewMode] = useState('search') // 'search' or 'class'
   const [error, setError] = useState(null)
+  const { user, role } = useAuth()
+
+  // Load classes from Firestore
+  useEffect(() => {
+    const loadClasses = async () => {
+      try {
+        const classesRef = collection(firestore, 'courses')
+        const classesQuery = query(classesRef, where('archived', '==', false))
+        const snapshot = await getDocs(classesQuery)
+
+        const classesList = snapshot.docs
+          .map((doc) => {
+            const data = doc.data()
+            const grade = data.grade || data.gradeLevel || ''
+            const name = data.name || data.title || doc.id
+            
+            // Clean up the name to avoid "Unknown" labels
+            let cleanName = name
+            if (name.includes('Unknown') || name.includes('unknown')) {
+              // Try to extract grade from the name or use the grade field
+              const gradeFromName = name.match(/Grade\s*(\w+)/i) || name.match(/(\w+)\s*Grade/i)
+              if (gradeFromName) {
+                cleanName = `Homeroom ${gradeFromName[1]}`
+              } else if (grade) {
+                cleanName = `Homeroom ${grade}`
+              } else {
+                cleanName = `Homeroom ${doc.id}`
+              }
+            }
+            
+            return {
+              id: doc.id,
+              name: cleanName,
+              grade: grade,
+              teachers: data.teachers || data.teacher || [],
+              students: data.students || data.enrolledList || [],
+            }
+          })
+          .filter((cls) => cls.students && cls.students.length > 0) // Only classes with students
+
+        setClasses(classesList)
+      } catch (err) {
+        console.error('Error loading classes:', err)
+      }
+    }
+
+    if (showClassList) {
+      loadClasses()
+    }
+  }, [showClassList])
 
   // Load students from Firestore
   useEffect(() => {
@@ -91,7 +154,6 @@ const StudentSelector = ({
               custodyDetails: data.schooling?.custodyDetails || '',
               primaryRole: data.personalInfo?.primaryRole || '',
               // Include only necessary original data (avoid nested objects)
-              id: doc.id,
               active: data.active,
               createdAt: data.createdAt,
               uploadedAt: data.uploadedAt,
@@ -111,8 +173,22 @@ const StudentSelector = ({
     loadStudents()
   }, [])
 
-  // Filter students based on search term
+  // Filter students based on search term and class selection
   const filteredStudents = students.filter((student) => {
+    // If class is selected, filter by class first
+    if (selectedClass && viewMode === 'class') {
+      const selectedClassData = classes.find(cls => cls.id === selectedClass)
+      if (selectedClassData) {
+        const isInClass = selectedClassData.students.some(classStudent => 
+          classStudent.id === student.id || 
+          classStudent.schoolId === student.schoolId ||
+          classStudent.tarbiyahId === student.schoolId
+        )
+        if (!isInClass) return false
+      }
+    }
+
+    // Then apply search term filter
     if (!searchTerm) return true
 
     const searchLower = searchTerm.toLowerCase()
@@ -143,6 +219,17 @@ const StudentSelector = ({
     setSearchTerm(e.target.value)
   }
 
+  const handleClassChange = (e) => {
+    setSelectedClass(e.target.value)
+    setSearchTerm('') // Clear search when switching classes
+  }
+
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode)
+    setSelectedClass('')
+    setSearchTerm('')
+  }
+
   if (error) {
     return (
       <div className="mb-3">
@@ -163,18 +250,70 @@ const StudentSelector = ({
         </CFormLabel>
       )}
 
+      {/* View Mode Toggle */}
+      {showClassList && role !== 'parent' && (
+        <div className="mb-3">
+          <CButtonGroup role="group" aria-label="View mode">
+            <CButton
+              color={viewMode === 'search' ? 'primary' : 'outline-primary'}
+              size="sm"
+              onClick={() => handleViewModeChange('search')}
+            >
+              <CIcon icon={cilSearch} className="me-1" />
+              Search All
+            </CButton>
+            <CButton
+              color={viewMode === 'class' ? 'primary' : 'outline-primary'}
+              size="sm"
+              onClick={() => handleViewModeChange('class')}
+            >
+              <CIcon icon={cilEducation} className="me-1" />
+              By Class
+            </CButton>
+          </CButtonGroup>
+        </div>
+      )}
+
+      {/* Class Selection */}
+      {showClassList && viewMode === 'class' && (
+        <div className="mb-3">
+          <CFormLabel htmlFor="class-selector">Select Class</CFormLabel>
+          <CFormSelect
+            id="class-selector"
+            value={selectedClass}
+            onChange={handleClassChange}
+            disabled={loading}
+          >
+            <option value="">Choose a class...</option>
+            {classes.map((cls) => (
+              <option key={cls.id} value={cls.id}>
+                {cls.name} ({cls.grade}) - {cls.students.length} students
+              </option>
+            ))}
+          </CFormSelect>
+        </div>
+      )}
+
+      {/* Search Input */}
       <CInputGroup>
         <CInputGroupText>
           {loading ? <CSpinner size="sm" /> : <CIcon icon={cilSearch} />}
         </CInputGroupText>
         <CFormInput
-          placeholder={loading ? 'Loading students...' : 'Search students by name or ID...'}
+          placeholder={
+            loading 
+              ? 'Loading students...' 
+              : viewMode === 'class' && selectedClass
+                ? 'Search within selected class...'
+                : 'Search students by name or ID...'
+          }
           value={searchTerm}
           onChange={handleSearchChange}
           disabled={loading}
         />
       </CInputGroup>
 
+      {/* Student Selection */}
       <CFormSelect
         id="student-selector"
         value={selectedStudent?.id || ''}
@@ -183,7 +322,14 @@ const StudentSelector = ({
         required={required}
         className="mt-2"
       >
-        <option value="">{loading ? 'Loading...' : placeholder}</option>
+        <option value="">
+          {loading 
+            ? 'Loading...' 
+            : viewMode === 'class' && !selectedClass
+              ? 'Select a class first...'
+              : placeholder
+          }
+        </option>
         {filteredStudents.map((student) => (
           <option key={student.id} value={student.id}>
             {student.fullName} - {student.grade || student.program} (ID: {student.schoolId})
@@ -192,8 +338,26 @@ const StudentSelector = ({
         ))}
       </CFormSelect>
 
+      {/* Status Messages */}
       {filteredStudents.length === 0 && searchTerm && !loading && (
         <small className="text-muted">No students found matching "{searchTerm}"</small>
+      )}
+      
+      {viewMode === 'class' && selectedClass && filteredStudents.length === 0 && !searchTerm && !loading && (
+        <small className="text-muted">No students found in this class</small>
+      )}
+
+      {/* Class Info */}
+      {viewMode === 'class' && selectedClass && (
+        <div className="mt-2">
+          <CBadge color="info" className="me-2">
+            <CIcon icon={cilEducation} className="me-1" />
+            {classes.find(cls => cls.id === selectedClass)?.name}
+          </CBadge>
+          <CBadge color="secondary">
+            {filteredStudents.length} student{filteredStudents.length !== 1 ? 's' : ''}
+          </CBadge>
+        </div>
       )}
     </div>
   )

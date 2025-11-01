@@ -384,9 +384,9 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               id="telephone"
               name="telephone"
-              value={formData.telephone || ''}
+              value={formData.telephone || '613 421 1700'}
               onChange={handleInputChange}
-              placeholder="(555) 123-4567"
+              placeholder="613 421 1700"
               type="tel"
             />
           </div>
@@ -1417,6 +1417,7 @@ const Elementary1to6ReportUI = ({
                   saveMessage={saveMessage}
                   disabled={!selectedStudent || !selectedReportCard}
                   className="ms-auto"
+                  asLink={true}
                 />
               </div>
             </CAccordionHeader>
@@ -1435,6 +1436,7 @@ const Elementary1to6ReportUI = ({
                   saveMessage={saveMessage}
                   disabled={!selectedStudent || !selectedReportCard}
                   className="ms-auto"
+                  asLink={true}
                 />
               </div>
             </CAccordionHeader>
@@ -1458,6 +1460,7 @@ const Elementary1to6ReportUI = ({
                   saveMessage={saveMessage}
                   disabled={!selectedStudent || !selectedReportCard}
                   className="ms-auto"
+                  asLink={true}
                 />
               </div>
             </CAccordionHeader>
@@ -1481,6 +1484,7 @@ const Elementary1to6ReportUI = ({
                   saveMessage={saveMessage}
                   disabled={!selectedStudent || !selectedReportCard}
                   className="ms-auto"
+                  asLink={true}
                 />
               </div>
             </CAccordionHeader>

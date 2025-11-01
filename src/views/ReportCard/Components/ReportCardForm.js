@@ -241,9 +241,9 @@ export function ReportCardForm({ formData, handleChange, handleSubmit }) {
                     <CFormLabel htmlFor="telephone">School Telephone</CFormLabel>
                     <CFormInput
                       id="telephone"
-                      value={formData.telephone}
+                      value={formData.telephone || '613 421 1700'}
                       onChange={(e) => handleChange('telephone', e.target.value)}
-                      placeholder="Phone Number"
+                      placeholder="613 421 1700"
                     />
                   </CCol>
                 </CRow>

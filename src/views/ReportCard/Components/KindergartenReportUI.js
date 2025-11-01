@@ -434,8 +434,9 @@ const KindergartenReportUI = ({
                 type="tel"
                 id="telephone"
                 name="telephone"
-                value={formData.telephone || ''}
+                value={formData.telephone || '613 421 1700'}
                 onChange={handleInputChange}
+                placeholder="613 421 1700"
               />
             </CCol>
           </CRow>

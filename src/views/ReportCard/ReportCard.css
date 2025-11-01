@@ -1,5 +1,75 @@
 /* ReportCard Component Styles */
 
+/* Font Consistency - Standardized font sizes */
+:root {
+  --font-size-xs: 0.75rem;    /* 12px */
+  --font-size-sm: 0.875rem;   /* 14px */
+  --font-size-base: 1rem;     /* 16px */
+  --font-size-lg: 1.125rem;    /* 18px */
+  --font-size-xl: 1.25rem;     /* 20px */
+  --font-size-2xl: 1.5rem;     /* 24px */
+  --font-size-3xl: 1.875rem;   /* 30px */
+  --font-size-4xl: 2.25rem;    /* 36px */
+}
+
+/* Apply consistent font sizes throughout */
+.report-card-container * {
+  font-size: var(--font-size-base);
+}
+
+.report-card-container h1 {
+  font-size: var(--font-size-3xl);
+}
+
+.report-card-container h2 {
+  font-size: var(--font-size-2xl);
+}
+
+.report-card-container h3 {
+  font-size: var(--font-size-xl);
+}
+
+.report-card-container h4 {
+  font-size: var(--font-size-lg);
+}
+
+.report-card-container h5 {
+  font-size: var(--font-size-base);
+}
+
+.report-card-container h6 {
+  font-size: var(--font-size-sm);
+}
+
+.report-card-container p {
+  font-size: var(--font-size-base);
+}
+
+.report-card-container small {
+  font-size: var(--font-size-sm);
+}
+
+.report-card-container .form-label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.report-card-container .form-control {
+  font-size: var(--font-size-base);
+}
+
+.report-card-container .btn {
+  font-size: var(--font-size-sm);
+}
+
+.report-card-container .card-title {
+  font-size: var(--font-size-lg);
+}
+
+.report-card-container .card-text {
+  font-size: var(--font-size-base);
+}
+
 /* Step Indicator Styles */
 .step-indicator {
   display: flex;
@@ -36,7 +106,7 @@
   justify-content: center;
   font-weight: bold;
   margin-bottom: 0.5rem;
-  font-size: 14px;
+  font-size: var(--font-size-sm);
 }
 
 .step-indicator.active .step-number {
@@ -55,7 +125,7 @@
 }
 
 .step-text {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: 500;
   text-align: center;
 }
@@ -100,14 +170,14 @@
 .report-card-header h1 {
   color: white;
   margin: 0;
-  font-size: 1.75rem;
+  font-size: var(--font-size-2xl);
   font-weight: 600;
 }
 
 .report-card-header p {
   color: rgba(255, 255, 255, 0.9);
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--font-size-base);
 }
 
 .report-card-body {
@@ -127,7 +197,7 @@
   background: none;
   border: none;
   padding: 1rem 1.5rem;
-  font-size: 1rem;
+  font-size: var(--font-size-base);
   color: #6c757d;
   cursor: pointer;
   border-bottom: 3px solid transparent;
@@ -273,7 +343,7 @@
 
 .ai-generating-text {
   color: #17a2b8;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   margin-top: 0.25rem;
   animation: pulse 1.5s ease-in-out infinite;
 }
@@ -316,16 +386,16 @@
 
 .ontario-title {
   font-weight: bold;
-  font-size: 1.25rem;
+  font-size: var(--font-size-xl);
 }
 
 .ministry-subtitle {
   margin-left: 1rem;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 .report-card-title {
-  font-size: 1.25rem;
+  font-size: var(--font-size-xl);
   font-weight: bold;
 }
 
@@ -339,7 +409,7 @@
   border-right: 1px solid #333;
   border-bottom: 1px solid #333;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 .student-info-cell:last-child {
@@ -356,7 +426,7 @@
 }
 
 .learning-skills-title {
-  font-size: 1.125rem;
+  font-size: var(--font-size-lg);
   font-weight: bold;
   margin-bottom: 1rem;
 }
@@ -370,7 +440,7 @@
 .skills-header {
   background-color: #f8f9fa;
   border-bottom: 1px solid #333;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 .skills-header-cell {
@@ -388,7 +458,7 @@
 }
 
 .skills-row {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   border-bottom: 1px solid #333;
 }
 
@@ -450,7 +520,7 @@
 }
 
 .strengths-title {
-  font-size: 1.125rem;
+  font-size: var(--font-size-lg);
   font-weight: bold;
   margin-bottom: 1rem;
 }
@@ -461,7 +531,7 @@
   background-color: #f8f9fa;
   min-height: 200px;
   white-space: pre-wrap;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   width: 100%;
 }
 
@@ -473,7 +543,7 @@
 }
 
 .signatures-title {
-  font-size: 1.125rem;
+  font-size: var(--font-size-lg);
   font-weight: bold;
   margin-bottom: 1rem;
 }
@@ -489,7 +559,7 @@
 }
 
 .signature-label {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   margin-top: 0.25rem;
 }
 
@@ -498,7 +568,7 @@
   border-top: 2px solid #333;
   padding: 0.75rem 1.5rem;
   color: #6c757d;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -573,12 +643,12 @@
   .skills-header-cell,
   .skills-cell {
     padding: 0.5rem;
-    font-size: 0.8rem;
+    font-size: var(--font-size-xs);
   }
   
   .student-info-cell {
     padding: 0.5rem;
-    font-size: 0.8rem;
+    font-size: var(--font-size-xs);
   }
 }
 
@@ -641,7 +711,7 @@
 }
 
 .pdf-page-info {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: #6c757d;
   margin: 0 0.5rem;
   min-width: 100px;
@@ -655,7 +725,7 @@
 }
 
 .pdf-zoom-info {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: #6c757d;
   margin: 0 0.5rem;
   min-width: 50px;

@@ -49,6 +49,11 @@ export default defineConfig(() => {
     },
     server: {
       port: 3000,
+      host: true, // Allow external connections
+      hmr: {
+        port: 3000, // Use the same port for HMR
+        host: 'localhost'
+      },
       proxy: {
         // https://vitejs.dev/config/server-options.html
       },
