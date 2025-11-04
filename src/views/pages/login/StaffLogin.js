@@ -139,7 +139,43 @@ const StaffLogin = () => {
           }, { merge: true })
         }
       } else {
-        // Fallback: create user document in users collection (by auth uid) for non-faculty staff
+        // Fallback: Check if user document exists by Tarbiyah ID first (via email lookup)
+        // to avoid creating duplicate documents
+        // Search all users documents and check multiple email field locations
+        const usersSnapshot = await getDocs(collection(db, 'users'))
+        let existingTarbiyahUserRef = null
+        let existingTarbiyahDoc = null
+        
+        usersSnapshot.docs.forEach(doc => {
+          const data = doc.data()
+          // Check email in multiple possible locations
+          const docEmail = data.email || data.contact?.email || data.personalInfo?.email
+          if (docEmail === user.email && !existingTarbiyahDoc) {
+            // Found a Tarbiyah ID-based document by email - use that instead
+            existingTarbiyahDoc = { id: doc.id, data }
+            existingTarbiyahUserRef = doc(db, 'users', doc.id)
+          }
+        })
+        
+        if (existingTarbiyahUserRef && existingTarbiyahDoc) {
+          // Update existing Tarbiyah ID-based document
+          await setDoc(existingTarbiyahUserRef, {
+            firebaseAuthUID: user.uid, // Link auth UID to Tarbiyah ID document
+            lastLogin: serverTimestamp(),
+            loginCount: (existingTarbiyahDoc.data.loginCount || existingTarbiyahDoc.data.stats?.loginCount || 0) + 1,
+            emailDomain: user.email.split('@')[1],
+            isVerified: true,
+            isAuthorizedDomain,
+            'stats.lastLoginAt': serverTimestamp()
+          }, { merge: true })
+          console.log(`✅ Updated existing Tarbiyah ID document ${existingTarbiyahDoc.id} for ${user.email}`)
+          navigate('/')
+          setLoading(false)
+          return
+        }
+        
+        // No Tarbiyah ID document found - fallback to UID-based document (for backward compatibility)
+        // But store firebaseAuthUID reference in case we need to migrate later
         const userRef = doc(db, 'users', user.uid)
         const userDoc = await getDoc(userRef)
 
@@ -156,10 +192,12 @@ const StaffLogin = () => {
             emailDomain: user.email.split('@')[1],
             isVerified: true,
             isAuthorizedDomain,
+            firebaseAuthUID: user.uid, // Mark this as UID-based for potential migration
             createdAt: serverTimestamp(),
             lastLogin: serverTimestamp(),
             loginCount: 1,
           })
+          console.log(`⚠️ Created UID-based user document ${user.uid} for ${user.email} - consider creating via People Page with Tarbiyah ID`)
         } else {
           // Update last login and verify domain again
           await setDoc(userRef, {

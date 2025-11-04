@@ -39,12 +39,24 @@ const ParentLogin = () => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, loginEmail, password)
       const user = userCredential.user
-
-      // Check onboarding status only (mustChangePassword handled inside onboarding)
-      const userDocRef = doc(firestore, 'users', user.uid)
-      const userDoc = await getDoc(userDocRef)
-      const userData = userDoc.exists() ? userDoc.data() : {}
-      const parentId = userData?.tarbiyahId || userData?.schoolId || user.uid
+      
+      // Try Tarbiyah ID first (preferred), then fallback to UID for backward compatibility
+      let parentId = tarbiyahId
+      let userDocRef = doc(firestore, 'users', parentId)
+      let userDoc = await getDoc(userDocRef)
+      
+      // If Tarbiyah ID document doesn't exist, check UID-based document (backward compatibility)
+      if (!userDoc.exists()) {
+        userDocRef = doc(firestore, 'users', user.uid)
+        userDoc = await getDoc(userDocRef)
+        if (userDoc.exists()) {
+          const userData = userDoc.data()
+          // Try to get Tarbiyah ID from the UID-based document
+          parentId = userData?.tarbiyahId || userData?.schoolId || tarbiyahId
+          console.log(`⚠️ Found UID-based document, using Tarbiyah ID: ${parentId}`)
+        }
+      }
+      
       const parentDocRef = doc(firestore, 'parents', parentId)
       const parentDoc = await getDoc(parentDocRef)
 

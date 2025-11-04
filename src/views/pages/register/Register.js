@@ -19,7 +19,7 @@ import CIcon from '@coreui/icons-react'
 import { cilLockLocked, cilUser, cilPhone, cilContact, cilShieldAlt } from '@coreui/icons'
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
 import { auth, firestore } from '../../../Firebase/firebase'
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, setDoc, getDocs, collection, serverTimestamp } from 'firebase/firestore'
 
 // Google Auth Provider Configuration
 const googleProvider = new GoogleAuthProvider()
@@ -65,26 +65,36 @@ const Register = () => {
     try {
       const result = await signInWithPopup(auth, googleProvider)
       const user = result.user
-      const [firstName, lastName] = user.displayName?.split(' ') || ['', '']
 
-      const userData = {
-        firstName,
-        lastName,
-        email: user.email,
-        phone: user.phoneNumber || '',
-        role: 'parent',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        lastLogin: serverTimestamp(),
-        loginCount: 0,
-        parentProfile: {
-          emergencyNumber: '',
-          children: [],
-          communicationPreferences: { email: true, sms: true },
-        },
+      // Check if user document already exists by Tarbiyah ID (via email lookup)
+      // to avoid creating duplicate documents
+      const usersSnapshot = await getDocs(collection(firestore, 'users'))
+      let existingUserDoc = null
+      let existingUserId = null
+      
+      usersSnapshot.docs.forEach(doc => {
+        const data = doc.data()
+        // Check email in multiple possible locations
+        const docEmail = data.email || data.contact?.email || data.personalInfo?.email
+        if (docEmail === user.email && !existingUserDoc) {
+          existingUserDoc = data
+          existingUserId = doc.id
+        }
+      })
+
+      if (existingUserDoc && existingUserId) {
+        // Link the auth UID to existing Tarbiyah ID document
+        const userRef = doc(firestore, 'users', existingUserId)
+        await setDoc(userRef, {
+          firebaseAuthUID: user.uid,
+          lastLogin: serverTimestamp(),
+        }, { merge: true })
+        console.log(`✅ Linked Google account to existing Tarbiyah ID document ${existingUserId}`)
+      } else {
+        // No existing document found - user should be created via People Page with Tarbiyah ID
+        console.log('⚠️ No existing user document found - user should be added via People Page with Tarbiyah ID')
       }
 
-      await setDoc(doc(firestore, 'users', user.uid), userData)
       navigate('/dashboard')
     } catch (error) {
       handleFirebaseError(error)
@@ -119,21 +129,37 @@ const Register = () => {
         formData.email,
         formData.password,
       )
+      const user = userCredential.user
 
-      const userData = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
-        role: formData.role,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        lastLogin: serverTimestamp(),
-        loginCount: 0,
-        ...getRoleSpecificData(),
+      // Check if user document already exists by Tarbiyah ID (via email lookup)
+      // to avoid creating duplicate documents
+      const usersSnapshot = await getDocs(collection(firestore, 'users'))
+      let existingUserDoc = null
+      let existingUserId = null
+      
+      usersSnapshot.docs.forEach(doc => {
+        const data = doc.data()
+        // Check email in multiple possible locations
+        const docEmail = data.email || data.contact?.email || data.personalInfo?.email
+        if (docEmail === user.email && !existingUserDoc) {
+          existingUserDoc = data
+          existingUserId = doc.id
+        }
+      })
+
+      if (existingUserDoc && existingUserId) {
+        // Link the auth UID to existing Tarbiyah ID document
+        const userRef = doc(firestore, 'users', existingUserId)
+        await setDoc(userRef, {
+          firebaseAuthUID: user.uid,
+          lastLogin: serverTimestamp(),
+        }, { merge: true })
+        console.log(`✅ Linked email account to existing Tarbiyah ID document ${existingUserId}`)
+      } else {
+        // No existing document found - user should be created via People Page with Tarbiyah ID
+        console.log('⚠️ No existing user document found - user should be added via People Page with Tarbiyah ID')
       }
 
-      await setDoc(doc(firestore, 'users', userCredential.user.uid), userData)
       navigate('/dashboard')
     } catch (err) {
       handleFirebaseError(err)
