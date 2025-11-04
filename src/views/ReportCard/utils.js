@@ -204,9 +204,17 @@ const ReportCard = ({ presetReportCardId = null }) => {
         student: student.fullName,
         student_name: student.fullName,
         studentId: student.id, // Track which student this data belongs to
-        OEN: student.oen || '',
-        oen: student.oen || '',
-        grade: student.grade || student.program || '',
+        // OEN is stored in schooling information in people management
+        OEN: student.schooling?.oen || student.oen || student.OEN || '',
+        oen: student.schooling?.oen || student.oen || student.OEN || '',
+        // Extract just the number from grade (e.g., "grade 8" -> "8", "Grade 7" -> "7")
+        grade: (() => {
+          const gradeValue = student.grade || student.program || ''
+          if (!gradeValue) return ''
+          // Extract number from grade string (handles "grade 8", "Grade 7", "8", etc.)
+          const match = gradeValue.toString().match(/\d+/)
+          return match ? match[0] : gradeValue
+        })(),
 
         // Attendance data
         daysAbsent: student.currentTermAbsenceCount || 0,
@@ -277,9 +285,17 @@ const ReportCard = ({ presetReportCardId = null }) => {
         student: selectedStudent.fullName,
         student_name: selectedStudent.fullName,
         studentId: selectedStudent.id, // Track which student this data belongs to
-        OEN: selectedStudent.oen || '',
-        oen: selectedStudent.oen || '',
-        grade: selectedStudent.grade || selectedStudent.program || '',
+        // OEN is stored in schooling information in people management
+        OEN: selectedStudent.schooling?.oen || selectedStudent.oen || selectedStudent.OEN || '',
+        oen: selectedStudent.schooling?.oen || selectedStudent.oen || selectedStudent.OEN || '',
+        // Extract just the number from grade (e.g., "grade 8" -> "8", "Grade 7" -> "7")
+        grade: (() => {
+          const gradeValue = selectedStudent.grade || selectedStudent.program || ''
+          if (!gradeValue) return ''
+          // Extract number from grade string (handles "grade 8", "Grade 7", "8", etc.)
+          const match = gradeValue.toString().match(/\d+/)
+          return match ? match[0] : gradeValue
+        })(),
         daysAbsent: selectedStudent.currentTermAbsenceCount || 0,
         totalDaysAbsent: selectedStudent.yearAbsenceCount || 0,
         timesLate: selectedStudent.currentTermLateCount || 0,
@@ -620,7 +636,18 @@ const ReportCard = ({ presetReportCardId = null }) => {
       school: ['school'],
       schoolAddress: ['schoolAddress'],
       boardAddress: ['boardAddress'],
-      principal: ['principal'],
+      principal: [
+        'principal',
+        'Principal',
+        'PRINCIPAL',
+        'Principal:',
+        'principal:',
+        'PrincipalName',
+        'principalName',
+        // Handle common misspelling found in some templates
+        'Principle',
+        'principle',
+      ],
       telephone: ['telephone'],
       boardSpace: ['boardSpace'],
 
@@ -893,6 +920,15 @@ const ReportCard = ({ presetReportCardId = null }) => {
         // Skip empty values but allow false for checkboxes
         if (value === null || value === undefined || value === '') continue
 
+        // Process grade field to extract just the number (e.g., "grade 8" -> "8")
+        let processedValue = value
+        if (formKey === 'grade' && value) {
+          const gradeValue = value.toString()
+          const match = gradeValue.match(/\d+/)
+          processedValue = match ? match[0] : gradeValue
+          console.log(`📝 Processing grade: "${gradeValue}" -> "${processedValue}"`)
+        }
+
         // Handle signature fields specially
         if (
           formKey === 'teacherSignature' ||
@@ -1002,7 +1038,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           try {
             const field = form.getFieldMaybe(fieldName)
             if (field) {
-              const success = fillPDFField(field, value)
+              const success = fillPDFField(field, processedValue)
               if (success) {
                 filledCount++
                 break

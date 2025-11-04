@@ -112,7 +112,7 @@ const StudentSelector = ({
               firstName,
               lastName,
               grade: data.schooling?.program || data.personalInfo?.grade || data.grade || '',
-              oen: data.personalInfo?.oen || data.oen || '', // Only use actual OEN, no fallback to schoolId
+              oen: data.schooling?.oen || data.personalInfo?.oen || data.oen || '', // OEN is stored in schooling information
               schoolId: data.personalInfo?.schoolId || data.schoolId || data.tarbiyahId || doc.id,
               // Attendance data
               currentTermAbsenceCount: data.attendanceStats?.currentTermAbsenceCount || 0,
@@ -146,12 +146,16 @@ const StudentSelector = ({
               salutation: data.personalInfo?.salutation || '',
               nickName: data.personalInfo?.nickName || '',
               middleName: data.personalInfo?.middleName || '',
-              // Schooling
+              // Schooling (OEN is stored here in people management)
               program: data.schooling?.program || '',
               daySchoolEmployer: data.schooling?.daySchoolEmployer || '',
               notes: data.schooling?.notes || '',
               returningStudentYear: data.schooling?.returningStudentYear || '',
               custodyDetails: data.schooling?.custodyDetails || '',
+              schooling: {
+                ...data.schooling,
+                oen: data.schooling?.oen || '',
+              },
               primaryRole: data.personalInfo?.primaryRole || '',
               // Include only necessary original data (avoid nested objects)
               active: data.active,

@@ -356,6 +356,15 @@ const PDFViewer = React.memo(
             // Skip empty values but allow false for checkboxes
             if (value === null || value === undefined || value === '') continue
 
+            // Process grade field to extract just the number (e.g., "grade 8" -> "8")
+            let processedValue = value
+            if (formKey === 'grade' && value) {
+              const gradeValue = value.toString()
+              const match = gradeValue.match(/\d+/)
+              processedValue = match ? match[0] : gradeValue
+              console.log(`PDFViewer: Processing grade: "${gradeValue}" -> "${processedValue}"`)
+            }
+
             // --- SPECIAL SIGNATURE HANDLING ---
             if (
               formKey === 'teacherSignature' ||
@@ -504,7 +513,7 @@ const PDFViewer = React.memo(
               try {
                 const field = form.getFieldMaybe(fieldName)
                 if (field) {
-                  const success = fillPDFField(field, value)
+                  const success = fillPDFField(field, processedValue)
                   if (success) {
                     filledCount++
 
@@ -733,7 +742,18 @@ const PDFViewer = React.memo(
         school: ['school'],
         schoolAddress: ['schoolAddress'],
         boardAddress: ['boardAddress'],
-        principal: ['principal'],
+        principal: [
+          'principal',
+          'Principal',
+          'PRINCIPAL',
+          'Principal:',
+          'principal:',
+          'PrincipalName',
+          'principalName',
+          // Handle common misspelling found in some templates
+          'Principle',
+          'principle',
+        ],
         telephone: ['telephone'],
         boardSpace: ['boardSpace'],
 
