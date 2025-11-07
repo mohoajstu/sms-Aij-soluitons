@@ -809,6 +809,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
         case 'PDFCheckBox':
         case 'PDFCheckBox2':
+        case 'e': // Add support for type 'e' which is another checkbox type in some PDFs
           // Handle boolean values correctly
           let shouldCheck = false
 

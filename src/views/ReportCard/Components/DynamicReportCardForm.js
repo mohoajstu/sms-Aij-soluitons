@@ -202,7 +202,8 @@ const DynamicReportCardForm = ({ reportCardType, onFormDataChange }) => {
     }
     
     // Fall back to PDF field type detection
-    if (fieldType === 'PDFCheckBox') return 'checkbox';
+    // Type 'e' is another checkbox type in some PDFs
+    if (fieldType === 'PDFCheckBox' || fieldType === 'e') return 'checkbox';
     if (fieldType === 'PDFDropdown' || fieldType === 'PDFRadioGroup') return 'select';
     
     // Number fields

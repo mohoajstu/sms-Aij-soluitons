@@ -71,8 +71,10 @@ const PDFFieldInspector = ({ pdfUrl, onFieldsInspected }) => {
             additionalInfo.options = field.getOptions();
           } else if (fieldType === 'PDFRadioGroup') {
             additionalInfo.options = field.getOptions();
-          } else if (fieldType === 'PDFCheckBox') {
+          } else if (fieldType === 'PDFCheckBox' || fieldType === 'e') {
+            // Type 'e' is another checkbox type in some PDFs
             additionalInfo.isChecked = field.isChecked();
+            additionalInfo.note = fieldType === 'e' ? 'Checkbox type "e"' : '';
           } else if (fieldType === 'PDFTextField') {
             additionalInfo.maxLength = field.getMaxLength();
             additionalInfo.alignment = field.getAlignment();

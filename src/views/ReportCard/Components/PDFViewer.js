@@ -461,11 +461,13 @@ const PDFViewer = React.memo(
               continue
             }
             
-            // Log important fields being processed
+            // Log important fields being processed (including checkboxes)
             if (formKey.includes('responsibiity') || formKey.includes('organization') || 
                 formKey.includes('independentWork') || formKey.includes('collaboration') ||
                 formKey.includes('initiative') || formKey.includes('selfRegulation') ||
-                formKey.startsWith('sans') || formKey.startsWith('sans2')) {
+                formKey.startsWith('sans') || formKey.startsWith('sans2') ||
+                formKey.includes('ESL') || formKey.includes('IEP') || formKey.includes('NA') ||
+                formKey.includes('VeryWell') || formKey.includes('Well') || formKey.includes('WithDifficulty')) {
               console.log(`PDFViewer: 🔵 Processing important field "${formKey}" with value:`, value, `(type: ${typeof value})`)
             }
 
@@ -629,7 +631,13 @@ const PDFViewer = React.memo(
 
             // Enhanced debug logging for ALL fields
             console.log(`PDFViewer: 🔍 Processing formKey "${formKey}" with value:`, processedValue, `(type: ${typeof processedValue})`)
-            console.log(`PDFViewer: Trying ${possibleFieldNames.length} variations:`, possibleFieldNames.slice(0, 5), '...')
+            console.log(`PDFViewer: Trying ${possibleFieldNames.length} variations:`, possibleFieldNames)
+            
+            // Special logging for checkbox fields
+            if (formKey.includes('ESL') || formKey.includes('IEP') || formKey.includes('NA') || 
+                formKey.includes('VeryWell') || formKey.includes('Well') || formKey.includes('WithDifficulty')) {
+              console.log(`PDFViewer: 🔘 Checkbox field "${formKey}" - will try variations:`, possibleFieldNames)
+            }
 
             for (const fieldName of possibleFieldNames) {
               try {
@@ -861,13 +869,34 @@ const PDFViewer = React.memo(
                       
                       // For checkboxes, ensure the state is visible
                       if (fieldType === 'PDFCheckBox' || fieldType === 'PDFCheckBox2') {
-                        const currentValue = field.acroField.getValue()
-                        if (currentValue === 'Yes' || currentValue === true) {
-                          field.acroField.setValue('Yes')
-                          field.acroField.setExportValue('Yes')
-                        } else {
-                          field.acroField.setValue('Off')
-                          field.acroField.setExportValue('Off')
+                        try {
+                          const currentValue = field.acroField.getValue()
+                          const exportValues = field.acroField.getExportValues()
+                          const checkedValue = exportValues && exportValues.length > 0 ? exportValues[0] : 'Yes'
+                          
+                          if (currentValue === checkedValue || currentValue === 'Yes' || currentValue === true) {
+                            // Checkbox is checked - ensure it's set and appearance is updated
+                            field.check()
+                            field.acroField.setValue(checkedValue)
+                            field.acroField.setExportValue(checkedValue)
+                            
+                            // Force appearance update for checked state
+                            if (field.updateAppearances) {
+                              field.updateAppearances()
+                            }
+                          } else {
+                            // Checkbox is unchecked - ensure it's unset
+                            field.uncheck()
+                            field.acroField.setValue('Off')
+                            field.acroField.setExportValue('Off')
+                            
+                            // Force appearance update for unchecked state
+                            if (field.updateAppearances) {
+                              field.updateAppearances()
+                            }
+                          }
+                        } catch (checkboxError) {
+                          console.warn(`PDFViewer: Error updating checkbox appearance for "${field.getName()}":`, checkboxError)
                         }
                       }
                     } catch (widgetError) {
@@ -942,7 +971,7 @@ const PDFViewer = React.memo(
     const generateFieldNameVariations = (formKey) => {
       if (!formKey) return []
 
-      // For progress reports (1-6, 7-8) and initial observation, ONLY match exact field names (no spelling checks or variations)
+      // For progress reports (1-6, 7-8) and initial observation, use exact field names with limited variations
       // Use original PDF URL instead of current pdfUrl (which might be a blob URL)
       const originalUrl = originalPdfUrlRef.current || pdfUrl
       const isProgressReport = originalUrl && (
@@ -950,11 +979,6 @@ const PDFViewer = React.memo(
         originalUrl.includes('7-8-edu-elementary-progress') ||
         originalUrl.includes('kg-cl-initial-Observations')
       )
-      
-      if (isProgressReport) {
-        // Only return the exact field name - no variations, no spelling checks
-        return [formKey]
-      }
 
       const variations = [formKey]
 
@@ -1096,6 +1120,22 @@ const PDFViewer = React.memo(
           'sans2 science',
           'Sans2_Science',
           'sans2_science',
+        ],
+        sans2History: [
+          'sans2History', 
+          'sans2history',
+          'Sans2 History',
+          'sans2 history',
+          'Sans2_History',
+          'sans2_history',
+        ],
+        sans2Geography: [
+          'sans2Geography', 
+          'sans2geography',
+          'Sans2 Geography',
+          'sans2 geography',
+          'Sans2_Geography',
+          'sans2_geography',
         ],
         sans2SocialStudies: [
           'sans2SocialStudies', 
@@ -1250,14 +1290,16 @@ const PDFViewer = React.memo(
         ERSDay: ['ERSDay'],
 
         // Keep existing checkbox mappings - these are already correct
-        languageNA: ['Language Na', 'languageNA', 'Language NA', 'Language_NA'],
-        languageESL: ['Language Esl', 'languageESL', 'Language ESL', 'Language_ESL'],
-        languageIEP: ['Language Iep', 'languageIEP', 'Language IEP', 'Language_IEP'],
+        // PDF field names are camelCase, so prioritize exact match first
+        languageNA: ['languageNA', 'Language Na', 'Language NA', 'Language_NA'],
+        languageESL: ['languageESL', 'Language Esl', 'Language ESL', 'Language_ESL'],
+        languageIEP: ['languageIEP', 'Language Iep', 'Language IEP', 'Language_IEP'],
 
         // Add mappings for lowercase field names used in the form
-        languageesl: ['Language Esl', 'languageESL', 'Language ESL', 'Language_ESL'],
-        languageiep: ['Language Iep', 'languageIEP', 'Language IEP', 'Language_IEP'],
-        languagena: ['Language Na', 'languageNA', 'Language NA', 'Language_NA'],
+        // PDF field names are camelCase, so prioritize exact match first
+        languageesl: ['languageESL', 'Language Esl', 'Language ESL', 'Language_ESL'],
+        languageiep: ['languageIEP', 'Language Iep', 'Language IEP', 'Language_IEP'],
+        languagena: ['languageNA', 'Language Na', 'Language NA', 'Language_NA'],
         frenchesl: ['French Esl', 'frenchESL', 'French ESL', 'French_ESL'],
         frenchiep: ['French Iep', 'frenchIEP', 'French IEP', 'French_IEP'],
         frenchna: ['French Na', 'frenchNA', 'French NA', 'French_NA'],
@@ -1521,26 +1563,6 @@ const PDFViewer = React.memo(
         boardspace: ['boardSpace', 'strengthsAndNextStepsForImprovements2'], // lowercase version
         BoardSpace: ['boardSpace', 'strengthsAndNextStepsForImprovements2'],
         BOARDSPACE: ['boardSpace', 'strengthsAndNextStepsForImprovements2'],
-        
-        // Subject Area Sans2 fields (comments)
-        sans2Language: ['sans2Language'],
-        sans2French: ['sans2French'],
-        sans2NativeLanguage: ['sans2NativeLanguage'],
-        sans2Math: ['sans2Math'],
-        sans2Science: ['sans2Science'],
-        sans2SocialStudies: ['sans2SocialStudies'],
-        sans2HealthEd: ['sans2HealthEd'],
-        sans2PE: ['sans2PE'],
-        sans2Dance: ['sans2Dance'],
-        sans2Drama: ['sans2Drama'],
-        sans2Music: ['sans2Music'],
-        sans2VisualArts: ['sans2VisualArts'],
-        sans2Other: ['sans2Other'],
-
-        // Checkbox field mappings (camelCase)
-        languageESL: ['languageESL', 'Language ESL', 'Language_ESL'],
-        languageIEP: ['languageIEP', 'Language IEP', 'Language_IEP'],
-        languageNA: ['languageNA', 'Language NA', 'Language_NA'],
         languageWithDifficulty: [
           'languageWithDifficulty',
           'Language With Difficulty',
@@ -1719,6 +1741,12 @@ const PDFViewer = React.memo(
         variations.push(...exactFieldMappings[formKey])
       }
 
+      // For progress reports, only return exact field name and exactFieldMappings (no other variations)
+      if (isProgressReport) {
+        return [...new Set(variations)] // Remove duplicates
+      }
+
+      // For other report types, add additional variations
       // Convert underscores to spaces and title case
       const titleCase = formKey
         .replace(/[_-]/g, ' ')
@@ -1816,6 +1844,7 @@ const PDFViewer = React.memo(
 
           case 'PDFCheckBox':
           case 'PDFCheckBox2': // Add support for PDFCheckBox2 type
+          case 'e': // Add support for type 'e' which is another checkbox type in some PDFs
             // Handle boolean values correctly
             let shouldCheck = false
 
@@ -1831,31 +1860,56 @@ const PDFViewer = React.memo(
             if (shouldCheck) {
               // Try multiple approaches to set checkbox value
               try {
+                // Get export values to find the correct "checked" value
+                const exportValues = field.acroField.getExportValues()
+                const checkedValue = exportValues && exportValues.length > 0 ? exportValues[0] : 'Yes'
+                
                 // Approach 1: Use the standard check method
                 field.check()
 
-                // Approach 2: Set the value directly
-                field.acroField.setValue('Yes')
+                // Approach 2: Set the value directly using the export value
+                field.acroField.setValue(checkedValue)
+                field.acroField.setExportValue(checkedValue)
 
-                // Approach 3: Set export value
-                field.acroField.setExportValue('Yes')
-
-                // Approach 4: Try setting the field value to the first option
-                const options = field.acroField.getExportValues()
-                if (options && options.length > 0) {
-                  field.acroField.setValue(options[0])
+                // Approach 3: Force update the appearance after setting value
+                // Use pdf-lib's updateAppearances method if available
+                try {
+                  if (field.updateAppearances) {
+                    field.updateAppearances()
+                  } else {
+                    // Fallback: manually update widget appearances
+                    const widgets = field.acroField.getWidgets()
+                    for (const widget of widgets) {
+                      try {
+                        // Force the appearance to update by getting and setting it
+                        const ap = widget.getAP()
+                        if (ap) {
+                          widget.setAP(ap)
+                        }
+                      } catch (widgetError) {
+                        // Continue if widget update fails
+                      }
+                    }
+                  }
+                } catch (appearanceError) {
+                  console.warn(`PDFViewer: Could not update checkbox appearance for "${fieldName}":`, appearanceError)
                 }
 
                 console.log(
-                  `PDFViewer: ✅ Successfully checked checkbox "${fieldName}" (${fieldType}) with multiple approaches`,
+                  `PDFViewer: ✅ Successfully checked checkbox "${fieldName}" (${fieldType}) with value "${checkedValue}"`,
                 )
               } catch (error) {
                 console.warn(`PDFViewer: Error setting checkbox "${fieldName}":`, error)
                 // Fallback to basic method
-                field.check()
-                console.log(
-                  `PDFViewer: ✅ Successfully checked checkbox "${fieldName}" (${fieldType}) - fallback method`,
-                )
+                try {
+                  field.check()
+                  console.log(
+                    `PDFViewer: ✅ Successfully checked checkbox "${fieldName}" (${fieldType}) - fallback method`,
+                  )
+                } catch (fallbackError) {
+                  console.error(`PDFViewer: ❌ Failed to check checkbox "${fieldName}":`, fallbackError)
+                  return false
+                }
               }
             } else {
               // Try multiple approaches to unset checkbox value
@@ -1865,20 +1919,46 @@ const PDFViewer = React.memo(
 
                 // Approach 2: Set the value directly
                 field.acroField.setValue('Off')
-
-                // Approach 3: Set export value
                 field.acroField.setExportValue('Off')
 
+                // Approach 3: Force update the appearance after unsetting value
+                try {
+                  if (field.updateAppearances) {
+                    field.updateAppearances()
+                  } else {
+                    // Fallback: manually update widget appearances
+                    const widgets = field.acroField.getWidgets()
+                    for (const widget of widgets) {
+                      try {
+                        // Force the appearance to update
+                        const ap = widget.getAP()
+                        if (ap) {
+                          widget.setAP(ap)
+                        }
+                      } catch (widgetError) {
+                        // Continue if widget update fails
+                      }
+                    }
+                  }
+                } catch (appearanceError) {
+                  console.warn(`PDFViewer: Could not update checkbox appearance for "${fieldName}":`, appearanceError)
+                }
+
                 console.log(
-                  `PDFViewer: ✅ Successfully unchecked checkbox "${fieldName}" (${fieldType}) with multiple approaches`,
+                  `PDFViewer: ✅ Successfully unchecked checkbox "${fieldName}" (${fieldType})`,
                 )
               } catch (error) {
                 console.warn(`PDFViewer: Error unsetting checkbox "${fieldName}":`, error)
                 // Fallback to basic method
-                field.uncheck()
-                console.log(
-                  `PDFViewer: ✅ Successfully unchecked checkbox "${fieldName}" (${fieldType}) - fallback method`,
-                )
+                try {
+                  field.uncheck()
+                  console.log(
+                    `PDFViewer: ✅ Successfully unchecked checkbox "${fieldName}" (${fieldType}) - fallback method`,
+                  )
+                } catch (fallbackError) {
+                  console.error(`PDFViewer: ❌ Failed to uncheck checkbox "${fieldName}":`, fallbackError)
+                  return false
+                }
               }
             }
             return true
