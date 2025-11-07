@@ -389,8 +389,7 @@ const PDFViewer = React.memo(
             }
           }
 
-          // Embed the "Dancing Script" font for any potential text operations, though we prefer stamping images
-          // This is a fallback and good practice.
+          // Embed the "Dancing Script" font for signatures (48px)
           let dancingScriptFont
           try {
             const fontBytes = await fetch('/fonts/DancingScript-Bold.ttf').then((res) =>
@@ -402,6 +401,23 @@ const PDFViewer = React.memo(
               "Could not load custom cursive font, falling back to default. Place 'DancingScript-Bold.ttf' in the public/fonts folder.",
             )
             dancingScriptFont = await pdfDoc.embedFont(StandardFonts.Helvetica)
+          }
+
+          // Embed Times Roman font for regular text fields (10pt)
+          let timesRomanFont
+          try {
+            // Try to load Times New Roman from fonts folder, fallback to standard TimesRoman
+            const timesFontBytes = await fetch('/fonts/TimesNewRoman.ttf').then((res) =>
+              res.arrayBuffer(),
+            ).catch(() => null)
+            if (timesFontBytes) {
+              timesRomanFont = await pdfDoc.embedFont(timesFontBytes)
+            } else {
+              timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman)
+            }
+          } catch (e) {
+            // Fallback to standard TimesRoman font
+            timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman)
           }
 
           // Track filling statistics
@@ -615,7 +631,7 @@ const PDFViewer = React.memo(
                 const field = form.getFieldMaybe(fieldName)
                 if (field) {
                   console.log(`PDFViewer: ✅ Found PDF field "${fieldName}" for formKey "${formKey}"`)
-                  const success = fillPDFField(field, processedValue)
+                  const success = fillPDFField(field, processedValue, timesRomanFont, 10)
                   if (success) {
                     filledCount++
 
@@ -668,7 +684,7 @@ const PDFViewer = React.memo(
                   // Check if the field name contains the form key (without special chars)
                   if (pdfFieldNameLower.includes(formKeyLower) || formKeyLower.includes(pdfFieldNameLower)) {
                     console.log(`PDFViewer: 🔍 Found fuzzy match: "${formKey}" -> "${pdfFieldName}"`)
-                    const success = fillPDFField(pdfField, processedValue)
+                    const success = fillPDFField(pdfField, processedValue, timesRomanFont, 10)
                     if (success) {
                       filledCount++
                       matchedFields.push({
@@ -1736,7 +1752,7 @@ const PDFViewer = React.memo(
     }
 
     // Fill a specific PDF field with a value
-    const fillPDFField = (field, value) => {
+    const fillPDFField = (field, value, font = null, fontSize = 10) => {
       try {
         const fieldType = field.constructor.name
         const fieldName = field.getName()
@@ -1752,6 +1768,36 @@ const PDFViewer = React.memo(
           case 'PDFTextField2': // Add explicit support for PDFTextField2
             const stringValue = value.toString()
             field.setText(stringValue)
+            
+            // Update field appearance with specified font and font size (10pt Times Roman)
+            if (font) {
+              try {
+                // Set default appearance with font size before updating appearances
+                const acroField = field.acroField
+                // Use a simple font reference - pdf-lib will handle the actual reference
+                // The font name will be set when we call updateAppearances
+                acroField.setDefaultAppearance(`/F1 ${fontSize} Tf`)
+                
+                // Update appearances with the font (this will properly reference the font)
+                field.updateAppearances(font)
+                
+                console.log(
+                  `PDFViewer: ✅ Updated text field "${fieldName}" appearance with font size ${fontSize}pt`,
+                )
+              } catch (appearanceError) {
+                console.warn(
+                  `PDFViewer: Could not update appearance for "${fieldName}":`,
+                  appearanceError,
+                )
+                // Try to update appearances without setting default appearance
+                try {
+                  field.updateAppearances(font)
+                } catch (fallbackError) {
+                  console.warn(`PDFViewer: Fallback appearance update also failed for "${fieldName}"`)
+                }
+              }
+            }
+            
             console.log(
               `PDFViewer: ✅ Successfully filled text field "${fieldName}" (${fieldType}) with: "${stringValue}"`,
             )

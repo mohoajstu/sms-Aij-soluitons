@@ -29,7 +29,7 @@ import Elementary7to8ProgressUI from './Components/Elementary7to8ProgressUI'
 import Elementary7to8ReportUI from './Components/Elementary7to8ReportUI'
 import './ReportCard.css'
 import './ModernReportCard.css'
-import { PDFDocument } from 'pdf-lib'
+import { PDFDocument, StandardFonts } from 'pdf-lib'
 import { useNavigate } from 'react-router-dom'
 // Firebase Storage & Firestore
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
@@ -769,7 +769,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
   }
 
   // Fill a specific PDF field with a value
-  const fillPDFField = (field, value) => {
+  const fillPDFField = (field, value, font = null, fontSize =8) => {
     try {
       const fieldType = field.constructor.name
       const fieldName = field.getName()
@@ -778,8 +778,32 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
       switch (fieldType) {
         case 'PDFTextField':
+        case 'PDFTextField2':
           const stringValue = value.toString()
           field.setText(stringValue)
+          
+          // Update field appearance with specified font and font size (10pt Times Roman)
+          if (font) {
+            try {
+              // Set default appearance with font size before updating appearances
+              const acroField = field.acroField
+              acroField.setDefaultAppearance(`/F1 ${fontSize} Tf`)
+              
+              // Update appearances with the font
+              field.updateAppearances(font)
+              
+              console.log(`✅ Updated text field "${fieldName}" appearance with font size ${fontSize}pt`)
+            } catch (appearanceError) {
+              console.warn(`Could not update appearance for "${fieldName}":`, appearanceError)
+              // Try to update appearances without setting default appearance
+              try {
+                field.updateAppearances(font)
+              } catch (fallbackError) {
+                console.warn(`Fallback appearance update also failed for "${fieldName}"`)
+              }
+            }
+          }
+          
           console.log(`✅ Successfully filled text field "${fieldName}" with: "${stringValue}"`)
           return true
 
@@ -932,6 +956,23 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
       console.log(`📋 Found ${fields.length} form fields in original PDF`)
 
+      // Embed Times Roman font for regular text fields (10pt)
+      let timesRomanFont
+      try {
+        // Try to load Times New Roman from fonts folder, fallback to standard TimesRoman
+        const timesFontBytes = await fetch('/fonts/TimesNewRoman.ttf').then((res) =>
+          res.arrayBuffer(),
+        ).catch(() => null)
+        if (timesFontBytes) {
+          timesRomanFont = await pdfDoc.embedFont(timesFontBytes)
+        } else {
+          timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman)
+        }
+      } catch (e) {
+        // Fallback to standard TimesRoman font
+        timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman)
+      }
+
       // Fill the form with current form data (reuse the logic from PDFViewer)
       let filledCount = 0
       for (const [formKey, value] of Object.entries(formData)) {
@@ -1062,7 +1103,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           try {
             const field = form.getFieldMaybe(fieldName)
             if (field) {
-              const success = fillPDFField(field, processedValue)
+              const success = fillPDFField(field, processedValue, timesRomanFont, 10)
               if (success) {
                 filledCount++
                 break
