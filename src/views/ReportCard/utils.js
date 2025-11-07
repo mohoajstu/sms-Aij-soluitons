@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import {
   CContainer,
   CRow,
@@ -42,6 +42,9 @@ import {
   updateDoc,
   getDoc,
   deleteDoc,
+  query,
+  where,
+  getDocs,
 } from 'firebase/firestore'
 import { storage, firestore } from '../../Firebase/firebase'
 import useAuth from '../../Firebase/useAuth'
@@ -150,6 +153,11 @@ const ReportCard = ({ presetReportCardId = null }) => {
   const { user } = useAuth()
 
   const navigate = useNavigate()
+
+  // Draft loading state
+  const [isLoadingDraft, setIsLoadingDraft] = useState(false)
+  const isLoadingDraftRef = useRef(false) // Synchronous guard
+  const [currentDraftId, setCurrentDraftId] = useState(null) // Track which draft is loaded
 
   // Get current report card configuration
   const getCurrentReportType = () => {
@@ -281,86 +289,216 @@ const ReportCard = ({ presetReportCardId = null }) => {
     }
   }
 
-  // Ensure student data is preserved when switching report card types
-  useEffect(() => {
-    if (selectedStudent && selectedReportCard) {
-      // Re-apply student data to ensure it's available in all report card types
-      const studentData = {
-        student: selectedStudent.fullName,
-        student_name: selectedStudent.fullName,
-        studentId: selectedStudent.id, // Track which student this data belongs to
-        // OEN is stored in schooling information in people management
-        OEN: selectedStudent.schooling?.oen || selectedStudent.oen || selectedStudent.OEN || '',
-        oen: selectedStudent.schooling?.oen || selectedStudent.oen || selectedStudent.OEN || '',
-        // Extract just the number from grade (e.g., "grade 8" -> "8", "Grade 7" -> "7")
-        grade: (() => {
-          const gradeValue = selectedStudent.grade || selectedStudent.program || ''
-          if (!gradeValue) return ''
-          // Extract number from grade string (handles "grade 8", "Grade 7", "8", etc.)
-          const match = gradeValue.toString().match(/\d+/)
-          return match ? match[0] : gradeValue
-        })(),
-        daysAbsent: selectedStudent.currentTermAbsenceCount || 0,
-        totalDaysAbsent: selectedStudent.yearAbsenceCount || 0,
-        timesLate: selectedStudent.currentTermLateCount || 0,
-        totalTimesLate: selectedStudent.yearLateCount || 0,
-        email: selectedStudent.email || '',
-        phone1: selectedStudent.phone1 || '',
-        phone2: selectedStudent.phone2 || '',
-        emergencyPhone: selectedStudent.emergencyPhone || '',
-        address: selectedStudent.streetAddress || '',
-        address_1: selectedStudent.streetAddress || '',
-        address_2: selectedStudent.residentialArea || '',
-        residentialArea: selectedStudent.residentialArea || '',
-        poBox: selectedStudent.poBox || '',
-        nationality: selectedStudent.nationality || '',
-        nationalId: selectedStudent.nationalId || '',
-        nationalIdExpiry: selectedStudent.nationalIdExpiry || '',
-        primaryLanguage: selectedStudent.primaryLanguage || '',
-        secondaryLanguage: selectedStudent.secondaryLanguage || '',
-        fatherName: selectedStudent.fatherName || '',
-        motherName: selectedStudent.motherName || '',
-        fatherId: selectedStudent.fatherId || '',
-        motherId: selectedStudent.motherId || '',
-        parent_name: selectedStudent.fatherName || selectedStudent.motherName || '',
-        dob: selectedStudent.dob || '',
-        gender: selectedStudent.gender || '',
-        salutation: selectedStudent.salutation || '',
-        nickName: selectedStudent.nickName || '',
-        middleName: selectedStudent.middleName || '',
-        program: selectedStudent.program || '',
-        daySchoolEmployer: selectedStudent.daySchoolEmployer || '',
-        notes: selectedStudent.notes || '',
-        returningStudentYear: selectedStudent.returningStudentYear || '',
-        custodyDetails: selectedStudent.custodyDetails || '',
-        primaryRole: selectedStudent.primaryRole || '',
-        school: 'Tarbiyah Learning Academy',
-        schoolAddress: '3990 Old Richmond Rd, Nepean, ON K2H 8W3',
-        board: 'Tarbiyah Learning Academy',
-        principal: 'Ghazala Choudhary',
-        telephone: '613 421 1700',
-        // Ensure boardSpace is always blank for 1-6 progress report
-        boardSpace: '',
-        boardspace: '',
+  /**
+   * Load existing draft from Firebase for the given student + report type
+   * @param {Object} student - Selected student object
+   * @param {string} reportType - Report card type ID
+   */
+  const loadExistingDraft = async (student, reportType) => {
+    if (!student || !reportType || !user) {
+      console.log('⏭️ Skipping draft load - missing required data')
+      return null
+    }
+
+    try {
+      // Set loading flags IMMEDIATELY (synchronously)
+      isLoadingDraftRef.current = true
+      setIsLoadingDraft(true)
+
+      console.log('🔍 Checking for existing draft:', {
+        studentId: student.id,
+        reportType: reportType,
+      })
+
+      // Step 1: Try deterministic ID first (userUid_studentId_reportType)
+      const draftId = `${user.uid}_${student.id}_${reportType}`
+      const draftRef = doc(firestore, 'reportCardDrafts', draftId)
+      const draftSnap = await getDoc(draftRef)
+
+      if (draftSnap.exists()) {
+        const draftData = draftSnap.data()
+        console.log('✅ Found existing draft:', {
+          draftId: draftId,
+          lastModified: draftData.lastModified?.toDate?.(),
+          fieldCount: Object.keys(draftData.formData || {}).length,
+        })
+
+        // Hydrate form with draft data
+        setFormData(draftData.formData || {})
+        setCurrentDraftId(draftId)
+
+        return draftData
       }
 
-      // Merge with existing form data, preserving any user-entered data
-      setFormData((prevData) => ({
-        ...prevData,
-        ...studentData,
-        // Preserve teacher name if already set
-        teacher: prevData.teacher || '',
-        // Ensure boardSpace stays blank for 1-6 progress report
-        boardSpace: selectedReportCard === '1-6-progress' ? '' : prevData.boardSpace,
-        boardspace: selectedReportCard === '1-6-progress' ? '' : prevData.boardspace,
-        teacher_name: prevData.teacher_name || '',
-      }))
+      // Step 2: Query for ANY draft with this student + report type (cross-teacher support)
+      console.log('🔍 Step 2: Searching for drafts from ANY teacher...')
+      const draftsQuery = query(
+        collection(firestore, 'reportCardDrafts'),
+        where('studentId', '==', student.id),
+        where('reportCardType', '==', reportType)
+      )
+      const querySnapshot = await getDocs(draftsQuery)
+
+      if (!querySnapshot.empty) {
+        const existingDraft = querySnapshot.docs[0]
+        const draftData = existingDraft.data()
+        
+        console.log('✅ Found draft from another teacher:', {
+          draftId: existingDraft.id,
+          originalTeacher: draftData.teacherName,
+          lastModified: draftData.lastModified?.toDate?.(),
+          fieldCount: Object.keys(draftData.formData || {}).length,
+        })
+
+        // Hydrate form with draft data
+        setFormData(draftData.formData || {})
+        setCurrentDraftId(existingDraft.id)
+
+        return draftData
+      }
+
+      // Step 3: No draft found - return null (form will use auto-populated student data)
+      console.log('📝 No existing draft found')
+      setCurrentDraftId(null)
+      return null
+
+    } catch (error) {
+      console.error('❌ Error loading draft:', error)
+      return null
+    } finally {
+      // Clear loading flags after a short delay
+      setTimeout(() => {
+        setIsLoadingDraft(false)
+        isLoadingDraftRef.current = false
+      }, 300)
     }
-  }, [selectedStudent, selectedReportCard])
+  }
+
+  // Load existing draft when student + report type changes
+  useEffect(() => {
+    // Skip if either is not selected
+    if (!selectedStudent || !selectedReportCard) {
+      return
+    }
+
+    // Skip if we're currently loading from localStorage (Edit button flow)
+    const isEditingDraft = localStorage.getItem('editingDraftId')
+    if (isEditingDraft) {
+      console.log('⏭️ Skipping Firebase draft load - loading from localStorage')
+      return
+    }
+
+    // Skip if already loading a draft
+    if (isLoadingDraftRef.current) {
+      console.log('⏭️ Skipping draft load - already loading')
+      return
+    }
+
+    // Load draft from Firebase
+    const loadDraft = async () => {
+      const existingDraft = await loadExistingDraft(selectedStudent, selectedReportCard)
+
+      // If no draft found, populate with student basics
+      if (!existingDraft) {
+        console.log('📝 No draft found - populating with student data')
+        const studentData = {
+          // Basic student info
+          student: selectedStudent.fullName,
+          student_name: selectedStudent.fullName,
+          studentId: selectedStudent.id,
+          OEN: selectedStudent.schooling?.oen || selectedStudent.oen || selectedStudent.OEN || '',
+          oen: selectedStudent.schooling?.oen || selectedStudent.oen || selectedStudent.OEN || '',
+          grade: (() => {
+            const gradeValue = selectedStudent.grade || selectedStudent.program || ''
+            if (!gradeValue) return ''
+            const match = gradeValue.toString().match(/\d+/)
+            return match ? match[0] : gradeValue
+          })(),
+
+          // Attendance
+          daysAbsent: selectedStudent.currentTermAbsenceCount || 0,
+          totalDaysAbsent: selectedStudent.yearAbsenceCount || 0,
+          timesLate: selectedStudent.currentTermLateCount || 0,
+          totalTimesLate: selectedStudent.yearLateCount || 0,
+
+          // Contact
+          email: selectedStudent.email || '',
+          phone1: selectedStudent.phone1 || '',
+          phone2: selectedStudent.phone2 || '',
+          emergencyPhone: selectedStudent.emergencyPhone || '',
+
+          // Address
+          address: selectedStudent.streetAddress || '',
+          address_1: selectedStudent.streetAddress || '',
+          address_2: selectedStudent.residentialArea || '',
+          residentialArea: selectedStudent.residentialArea || '',
+          poBox: selectedStudent.poBox || '',
+
+          // Citizenship
+          nationality: selectedStudent.nationality || '',
+          nationalId: selectedStudent.nationalId || '',
+          nationalIdExpiry: selectedStudent.nationalIdExpiry || '',
+
+          // Language
+          primaryLanguage: selectedStudent.primaryLanguage || '',
+          secondaryLanguage: selectedStudent.secondaryLanguage || '',
+
+          // Parents
+          fatherName: selectedStudent.fatherName || '',
+          motherName: selectedStudent.motherName || '',
+          fatherId: selectedStudent.fatherId || '',
+          motherId: selectedStudent.motherId || '',
+          parent_name: selectedStudent.fatherName || selectedStudent.motherName || '',
+
+          // Personal
+          dob: selectedStudent.dob || '',
+          gender: selectedStudent.gender || '',
+          salutation: selectedStudent.salutation || '',
+          nickName: selectedStudent.nickName || '',
+          middleName: selectedStudent.middleName || '',
+
+          // Schooling
+          program: selectedStudent.program || '',
+          daySchoolEmployer: selectedStudent.daySchoolEmployer || '',
+          notes: selectedStudent.notes || '',
+          returningStudentYear: selectedStudent.returningStudentYear || '',
+          custodyDetails: selectedStudent.custodyDetails || '',
+          primaryRole: selectedStudent.primaryRole || '',
+
+          // School
+          school: 'Tarbiyah Learning Academy',
+          schoolAddress: '3990 Old Richmond Rd, Nepean, ON K2H 8W3',
+          board: 'Tarbiyah Learning Academy',
+          principal: 'Ghazala Choudhary',
+          telephone: '613 421 1700',
+          boardSpace: '',
+          boardspace: '',
+
+          // Preserve teacher if already set
+          teacher: formData.teacher || '',
+          teacher_name: formData.teacher_name || '',
+        }
+
+        setFormData(studentData)
+      }
+    }
+
+    loadDraft()
+  }, [selectedStudent, selectedReportCard, user])
 
   // Handle form data changes with improved structure
   const handleFormDataChange = (newFormData) => {
+    // Don't trigger changes while loading draft
+    if (isLoadingDraftRef.current) {
+      console.log('⏸️ Ignoring form change - still loading draft')
+      setFormData(newFormData) // Update state but don't trigger auto-save
+      return
+    }
+
     setFormData(newFormData)
+    
+    // Auto-save logic can go here if needed
+    // (For now, manual save via saveDraft button)
   }
 
   // Save draft report card to Firestore
@@ -436,11 +574,12 @@ const ReportCard = ({ presetReportCardId = null }) => {
         formDataSize: JSON.stringify(draftData.formData).length,
       })
 
-      // Create a unique document ID based on teacher, student, and report type
-      const draftId = `${user.uid}_${selectedStudent.id}_${selectedReportCard}`
+      // Use existing draft ID if we loaded one, otherwise create new
+      const draftId = currentDraftId || `${user.uid}_${selectedStudent.id}_${selectedReportCard}`
       const draftRef = doc(firestore, 'reportCardDrafts', draftId)
 
       console.log('💾 Attempting to save to Firestore with ID:', draftId)
+      console.log('📋 Using draft ID:', currentDraftId ? 'Existing draft' : 'New draft')
 
       // Check if draft already exists
       console.log('🔍 Checking if draft exists...')
@@ -448,21 +587,32 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
       if (existingDoc.exists()) {
         console.log('📝 Updating existing draft...')
-        // Update existing draft
+        const existingData = existingDoc.data()
+        
+        // Update existing draft - preserve original creator info
         await updateDoc(draftRef, {
           ...draftData,
-          createdAt: existingDoc.data().createdAt, // Preserve original creation date
+          createdAt: existingData.createdAt, // Preserve original creation date
+          originalTeacherId: existingData.originalTeacherId || existingData.uid,
+          originalTeacherName: existingData.originalTeacherName || existingData.teacherName,
           lastModified: serverTimestamp(), // Update modification time
         })
         setSaveMessage('Draft updated successfully!')
         console.log('✅ Draft updated successfully')
       } else {
         console.log('📄 Creating new draft...')
-        // Create new draft
-        await setDoc(draftRef, draftData)
+        // Create new draft with original creator info
+        await setDoc(draftRef, {
+          ...draftData,
+          originalTeacherId: user.uid,
+          originalTeacherName: user.displayName || user.email || 'Unknown Teacher',
+        })
         setSaveMessage('Draft saved successfully!')
         console.log('✅ New draft created successfully')
       }
+
+      // Update currentDraftId after save
+      setCurrentDraftId(draftId)
 
       console.log('✅ Report card draft saved to Firestore')
 
@@ -512,6 +662,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
         setSelectedReportCard(draftReportType)
         setSelectedStudent(parsedStudent)
         setFormData(parsedFormData)
+        setCurrentDraftId(editingDraftId) // Track which draft we're editing
 
         // Clear the draft editing flags
         localStorage.removeItem('editingDraftId')
@@ -520,6 +671,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
         localStorage.removeItem('draftReportType')
 
         console.log('✅ Loaded draft for editing:', {
+          draftId: editingDraftId,
           reportType: draftReportType,
           student: parsedStudent.fullName,
           formDataKeys: Object.keys(parsedFormData),

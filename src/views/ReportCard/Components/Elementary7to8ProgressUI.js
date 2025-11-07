@@ -382,11 +382,11 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
           </div>
 
           <div className="mb-3">
-            <CFormLabel htmlFor="principle">Principal Name</CFormLabel>
+            <CFormLabel htmlFor="principal">Principal Name</CFormLabel>
             <CFormInput
-              id="principle"
-              name="principle"
-              value={formData.principle || ''}
+              id="principal"
+              name="principal"
+              value={formData.principal || ''}
               onChange={handleInputChange}
               placeholder="Enter principal's name"
             />
