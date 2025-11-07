@@ -63,18 +63,29 @@ const PDFFieldInspector = ({ pdfUrl, onFieldsInspected }) => {
       
       // Extract detailed field information
       const fieldInfo = pdfFields.map((field, index) => {
-        const fieldType = field.constructor.name;
+        let fieldType = field.constructor.name;
         let additionalInfo = {};
+        
+        // For ambiguous field types like 'e', detect the actual field type by checking available methods
+        if (fieldType === 'e') {
+          if (typeof field.check === 'function' && typeof field.isChecked === 'function') {
+            fieldType = 'PDFCheckBox';
+            additionalInfo.note = 'Detected from type "e"';
+          } else if (typeof field.setText === 'function' && typeof field.getText === 'function') {
+            fieldType = 'PDFTextField';
+            additionalInfo.note = 'Detected from type "e"';
+          } else {
+            additionalInfo.note = 'Unknown type "e" - could not detect';
+          }
+        }
         
         try {
           if (fieldType === 'PDFDropdown') {
             additionalInfo.options = field.getOptions();
           } else if (fieldType === 'PDFRadioGroup') {
             additionalInfo.options = field.getOptions();
-          } else if (fieldType === 'PDFCheckBox' || fieldType === 'e') {
-            // Type 'e' is another checkbox type in some PDFs
+          } else if (fieldType === 'PDFCheckBox') {
             additionalInfo.isChecked = field.isChecked();
-            additionalInfo.note = fieldType === 'e' ? 'Checkbox type "e"' : '';
           } else if (fieldType === 'PDFTextField') {
             additionalInfo.maxLength = field.getMaxLength();
             additionalInfo.alignment = field.getAlignment();

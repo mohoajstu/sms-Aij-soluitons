@@ -1802,7 +1802,25 @@ const PDFViewer = React.memo(
           typeof value,
         )
 
-        switch (fieldType) {
+        // For ambiguous field types like 'e', detect the actual field type by checking available methods
+        let actualFieldType = fieldType
+        if (fieldType === 'e') {
+          // Check if it has checkbox methods
+          if (typeof field.check === 'function' && typeof field.isChecked === 'function') {
+            actualFieldType = 'PDFCheckBox'
+            console.log(`PDFViewer: Detected type 'e' as checkbox for field "${fieldName}"`)
+          }
+          // Check if it has text field methods
+          else if (typeof field.setText === 'function' && typeof field.getText === 'function') {
+            actualFieldType = 'PDFTextField'
+            console.log(`PDFViewer: Detected type 'e' as text field for field "${fieldName}"`)
+          }
+          else {
+            console.warn(`PDFViewer: Could not determine actual type for field "${fieldName}" with type 'e'`)
+          }
+        }
+
+        switch (actualFieldType) {
           case 'PDFTextField':
           case 'PDFTextField2': // Add explicit support for PDFTextField2
             const stringValue = value.toString()
@@ -1844,7 +1862,6 @@ const PDFViewer = React.memo(
 
           case 'PDFCheckBox':
           case 'PDFCheckBox2': // Add support for PDFCheckBox2 type
-          case 'e': // Add support for type 'e' which is another checkbox type in some PDFs
             // Handle boolean values correctly
             let shouldCheck = false
 

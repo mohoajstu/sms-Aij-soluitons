@@ -89,7 +89,20 @@ const DynamicReportCardForm = ({ reportCardType, onFormDataChange }) => {
       // Process fields for form generation
       const processedFields = pdfFields.map((field, index) => {
         const fieldName = field.getName();
-        const fieldType = field.constructor.name;
+        let fieldType = field.constructor.name;
+        
+        // For ambiguous field types like 'e', detect the actual field type by checking available methods
+        if (fieldType === 'e') {
+          if (typeof field.check === 'function' && typeof field.isChecked === 'function') {
+            fieldType = 'PDFCheckBox';
+            console.log(`DynamicReportCardForm: Detected type 'e' as checkbox for field "${fieldName}"`);
+          } else if (typeof field.setText === 'function' && typeof field.getText === 'function') {
+            fieldType = 'PDFTextField';
+            console.log(`DynamicReportCardForm: Detected type 'e' as text field for field "${fieldName}"`);
+          } else {
+            console.warn(`DynamicReportCardForm: Could not determine actual type for field "${fieldName}" with type 'e'`);
+          }
+        }
         
         console.log(`DynamicReportCardForm: Processing field ${index + 1}/${pdfFields.length}: "${fieldName}" (${fieldType})`);
         
@@ -202,8 +215,7 @@ const DynamicReportCardForm = ({ reportCardType, onFormDataChange }) => {
     }
     
     // Fall back to PDF field type detection
-    // Type 'e' is another checkbox type in some PDFs
-    if (fieldType === 'PDFCheckBox' || fieldType === 'e') return 'checkbox';
+    if (fieldType === 'PDFCheckBox') return 'checkbox';
     if (fieldType === 'PDFDropdown' || fieldType === 'PDFRadioGroup') return 'select';
     
     // Number fields
