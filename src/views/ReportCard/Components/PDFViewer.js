@@ -35,6 +35,7 @@ const PDFViewer = React.memo(
     const latestFormData = useRef(formData)
     const latestPageNumber = useRef(pageNumber) // Track current page number for fill operations
     const externalBlobUrlRef = useRef(null) // Track blob URLs created for external PDFs
+    const originalPdfUrlRef = useRef(null) // Store original PDF URL (not blob URLs)
 
     // Auto-retry configuration
     const MAX_RETRIES = 3
@@ -53,6 +54,10 @@ const PDFViewer = React.memo(
     // Auto-retry configuration
     useEffect(() => {
       console.log('PDFViewer: PDF URL changed to:', pdfUrl)
+      // Store original PDF URL (not blob URLs)
+      if (pdfUrl && !pdfUrl.startsWith('blob:')) {
+        originalPdfUrlRef.current = pdfUrl
+      }
       // Clean up previous blob URL when URL changes
       if (externalBlobUrlRef.current) {
         URL.revokeObjectURL(externalBlobUrlRef.current)
@@ -937,10 +942,16 @@ const PDFViewer = React.memo(
     const generateFieldNameVariations = (formKey) => {
       if (!formKey) return []
 
-      // For 1-6 progress report, ONLY match exact field names (no spelling checks or variations)
-      const is16ProgressReport = pdfUrl && pdfUrl.includes('1-6-edu-elementary-progress')
+      // For progress reports (1-6, 7-8) and initial observation, ONLY match exact field names (no spelling checks or variations)
+      // Use original PDF URL instead of current pdfUrl (which might be a blob URL)
+      const originalUrl = originalPdfUrlRef.current || pdfUrl
+      const isProgressReport = originalUrl && (
+        originalUrl.includes('1-6-edu-elementary-progress') ||
+        originalUrl.includes('7-8-edu-elementary-progress') ||
+        originalUrl.includes('kg-cl-initial-Observations')
+      )
       
-      if (is16ProgressReport) {
+      if (isProgressReport) {
         // Only return the exact field name - no variations, no spelling checks
         return [formKey]
       }

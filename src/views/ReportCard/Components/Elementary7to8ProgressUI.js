@@ -29,12 +29,134 @@ import {
   cilSchool,
   cilLocationPin,
   cilCalendar,
-  cilStar,
 } from '@coreui/icons'
 import CIcon from '@coreui/icons-react'
 import SignatureCanvas from 'react-signature-canvas'
 import PropTypes from 'prop-types'
 import AIReportCommentInput from '../../../components/AIReportCommentInput'
+
+/**
+ * AI-Enhanced Text Area
+ * A reusable component for text areas with an AI generation button.
+ */
+const AICommentField = ({
+  name,
+  value,
+  onChange,
+  placeholder,
+  rows = 10,
+  isGenerating = false,
+  onGenerate,
+  maxLength,
+  formData,
+  onFormDataChange,
+}) => {
+  const currentLength = value?.length || 0
+
+  return (
+    <div className="ai-input-field position-relative mb-3">
+      <CFormTextarea
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        rows={rows}
+        maxLength={maxLength}
+        style={{
+          resize: 'vertical',
+          paddingRight: '50px',
+          paddingBottom: '25px', // Make space for character counter
+          borderRadius: '8px',
+          border: '2px solid #e9ecef',
+          fontSize: '1rem',
+        }}
+      />
+
+      {/* AI Generation Button */}
+      <div className="position-absolute" style={{ top: '10px', right: '10px' }}>
+        <AIReportCommentInput
+          label=""
+          formData={{
+            student_name: formData.student,
+            grade: formData.grade,
+            subject: getSubjectForField(name),
+          }}
+          handleChange={(field, aiValue) => {
+            // Map AI output directly to the specific field
+            if (field === 'teacher_comments' || field === 'strengths_next_steps') {
+              onFormDataChange({ ...formData, [name]: aiValue })
+            }
+          }}
+          buttonText=""
+          explicitReportType="Elementary 7-8 Progress Report"
+          className="ai-button-minimal"
+        />
+      </div>
+
+      {maxLength && (
+        <div
+          className="position-absolute"
+          style={{
+            bottom: '8px',
+            right: '15px',
+            fontSize: '0.8rem',
+            color: currentLength > maxLength ? '#dc3545' : '#6c757d',
+          }}
+        >
+          {currentLength}/{maxLength}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Helper function to determine subject based on field name
+const getSubjectForField = (fieldName) => {
+  // Learning Skills fields
+  if (fieldName === 'sansResponsibility') return 'Responsibility'
+  if (fieldName === 'sansOrganization') return 'Organization'
+  if (fieldName === 'sansIndependentWork') return 'Independent Work'
+  if (fieldName === 'sansCollaboration') return 'Collaboration'
+  if (fieldName === 'sansInitiative') return 'Initiative'
+  if (fieldName === 'sansSelfRegulation') return 'Self-Regulation'
+  
+  // Subject Area fields
+  if (fieldName === 'sans2Language') return 'Language'
+  if (fieldName === 'sans2French') return 'French'
+  if (fieldName === 'sans2NativeLanguage') return 'Native Language'
+  if (fieldName === 'sans2Math') return 'Mathematics'
+  if (fieldName === 'sans2Science') return 'Science'
+  if (fieldName === 'sans2History') return 'History'
+  if (fieldName === 'sans2Geography') return 'Geography'
+  if (fieldName === 'sans2HealthEd') return 'Health Education'
+  if (fieldName === 'sans2PE') return 'Physical Education'
+  if (fieldName === 'sans2Dance') return 'Dance'
+  if (fieldName === 'sans2Drama') return 'Drama'
+  if (fieldName === 'sans2Music') return 'Music'
+  if (fieldName === 'sans2VisualArts') return 'Visual Arts'
+  if (fieldName === 'sans2Other') return 'Other'
+  
+  // Main comment fields
+  if (fieldName === 'strengthAndNextStepsForImprovement') return 'Learning Skills and Work Habits'
+  if (fieldName === 'strengthsAndNextStepsForImprovement2') return 'Subject Areas Summary'
+  if (fieldName === 'boardSpace') return 'Additional Comments'
+  if (fieldName === 'boardInfo') return 'Board Information'
+  
+  return 'Elementary Learning'
+}
+
+AICommentField.propTypes = {
+  name: PropTypes.string.isRequired,
+  value: PropTypes.string,
+  onChange: PropTypes.func.isRequired,
+  placeholder: PropTypes.string,
+  rows: PropTypes.number,
+  isGenerating: PropTypes.bool,
+  onGenerate: PropTypes.func.isRequired,
+  maxLength: PropTypes.number,
+  formData: PropTypes.object.isRequired,
+  onFormDataChange: PropTypes.func.isRequired,
+}
 
 /**
  * Signature Pad Component
@@ -260,11 +382,11 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
           </div>
 
           <div className="mb-3">
-            <CFormLabel htmlFor="principal">Principal Name</CFormLabel>
+            <CFormLabel htmlFor="principle">Principal Name</CFormLabel>
             <CFormInput
-              id="principal"
-              name="principal"
-              value={formData.principal || ''}
+              id="principle"
+              name="principle"
+              value={formData.principle || ''}
               onChange={handleInputChange}
               placeholder="Enter principal's name"
             />
@@ -399,36 +521,19 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               <CIcon icon={cilSchool} className="me-2" />
               Board Information
             </CFormLabel>
-            <CFormTextarea
-              id="boardInfo"
+            <AICommentField
               name="boardInfo"
               value={formData.boardInfo || ''}
               onChange={handleInputChange}
               placeholder="Enter board information..."
               rows={3}
+              isGenerating={false}
+              onGenerate={() => {}}
+              maxLength={500}
+              formData={formData}
+              onFormDataChange={onFormDataChange}
             />
-            <small className="text-muted">
-              {(formData.boardInfo || '').length} / 500 characters
-            </small>
           </div>
-
-          {/* AI Generation for Board Info */}
-          <AIReportCommentInput
-            label="Generate Board Information"
-            formData={{
-              student_name: formData.student,
-              grade: formData.grade,
-              subject: 'Board Information',
-            }}
-            handleChange={(field, value) => {
-              // Map AI output to the actual form field
-              if (field === 'teacher_comments' || field === 'strengths_next_steps') {
-                onFormDataChange({ ...formData, boardInfo: value })
-              }
-            }}
-            buttonText="Generate Board Info"
-            explicitReportType="Elementary 7-8 Progress Report"
-          />
         </CCol>
       </CRow>
     </div>
@@ -444,7 +549,7 @@ StudentSchoolInfoSection.propTypes = {
  * Learning Skills & Work Habits Section
  * Modern form section for learning skills assessment
  */
-const LearningSkillsSection = ({ formData, onFormDataChange, onGenerate, isGenerating }) => {
+const LearningSkillsSection = ({ formData, onFormDataChange }) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target
     onFormDataChange({
@@ -455,64 +560,40 @@ const LearningSkillsSection = ({ formData, onFormDataChange, onGenerate, isGener
 
   const learningSkills = [
     {
-      key: 'reponsibility1',
+      key: 'responsibility',
       label: 'Responsibility',
       description: 'Fulfills responsibilities and commitments within the learning environment',
+      sansField: 'sansResponsibility',
     },
     {
-      key: 'responsibility2',
-      label: 'Responsibility',
-      description: 'Fulfills responsibilities and commitments within the learning environment',
-    },
-    {
-      key: 'organization1',
+      key: 'organization',
       label: 'Organization',
       description: 'Devises and applies a plan of work to complete projects and tasks',
+      sansField: 'sansOrganization',
     },
     {
-      key: 'organization2',
-      label: 'Organization',
-      description: 'Devises and applies a plan of work to complete projects and tasks',
-    },
-    {
-      key: 'independentWork1',
+      key: 'independentWork',
       label: 'Independent Work',
       description: 'Accepts various roles and an equitable share of work in a group',
+      sansField: 'sansIndependentWork',
     },
     {
-      key: 'independentWork2',
-      label: 'Independent Work',
-      description: 'Accepts various roles and an equitable share of work in a group',
-    },
-    {
-      key: 'collaboration1',
+      key: 'collaboration',
       label: 'Collaboration',
       description: 'Responds positively to the ideas, opinions, values, and traditions of others',
-    },
-    {
-      key: 'collaboration2',
-      label: 'Collaboration',
-      description: 'Responds positively to the ideas, opinions, values, and traditions of others',
+      sansField: 'sansCollaboration',
     },
     {
       key: 'initiative',
       label: 'Initiative',
       description: 'Looks for and acts on new ideas and opportunities for learning',
+      sansField: 'sansInitiative',
     },
     {
-      key: 'initiative2',
-      label: 'Initiative',
-      description: 'Looks for and acts on new ideas and opportunities for learning',
-    },
-    {
-      key: 'selfRegulation1',
+      key: 'selfRegulation',
       label: 'Self-Regulation',
       description: 'Sets own individual goals and monitors progress towards achieving them',
-    },
-    {
-      key: 'selfRegulation2',
-      label: 'Self-Regulation',
-      description: 'Sets own individual goals and monitors progress towards achieving them',
+      sansField: 'sansSelfRegulation',
     },
   ]
 
@@ -563,53 +644,44 @@ const LearningSkillsSection = ({ formData, onFormDataChange, onGenerate, isGener
                     ))}
                   </CFormSelect>
                 </div>
+
+                {/* Sans field for comments */}
+                {skill.sansField && (
+                  <div className="mb-3">
+                    <CFormLabel htmlFor={skill.sansField}>
+                      <CIcon icon={cilLightbulb} className="me-2" />
+                      {skill.label} Comments
+                    </CFormLabel>
+                    <AICommentField
+                      name={skill.sansField}
+                      value={formData[skill.sansField] || ''}
+                      onChange={handleInputChange}
+                      placeholder={`Add comments for ${skill.label.toLowerCase()}...`}
+                      rows={3}
+                      isGenerating={false}
+                      onGenerate={() => {}}
+                      maxLength={500}
+                      formData={formData}
+                      onFormDataChange={onFormDataChange}
+                    />
+                  </div>
+                )}
               </CCardBody>
             </CCard>
           </CCol>
         ))}
       </CRow>
 
-      {/* Strengths and Next Steps */}
-      <CRow className="mt-4">
-        <CCol md={12}>
-          <div className="mb-3">
-            <CFormLabel htmlFor="strengthsAndNextStepsForImprovment">
-              <CIcon icon={cilLightbulb} className="me-2" />
-              Strengths and Next Steps for Improvement
-            </CFormLabel>
-            <AIReportCommentInput
-              label="Generate Strengths and Next Steps"
-              formData={{
-                student_name: formData.student,
-                grade: formData.grade,
-                subject: 'Strengths and Next Steps',
-              }}
-              handleChange={(field, value) => {
-                // Map AI output to the actual form field
-                if (field === 'teacher_comments' || field === 'strengths_next_steps') {
-                  onFormDataChange({ ...formData, strengthsAndNextStepsForImprovment: value })
-                }
-              }}
-              buttonText="Generate Strengths & Next Steps"
-              explicitReportType="Elementary 7-8 Progress Report"
-            />
-            <div className="form-text">
-              Provide specific, constructive feedback on the student's learning skills and work
-              habits.
-            </div>
-          </div>
-        </CCol>
-      </CRow>
 
       {/* Date */}
       <CRow className="mt-3">
         <CCol md={6}>
           <div className="mb-3">
-            <CFormLabel htmlFor="date">Report Date</CFormLabel>
+            <CFormLabel htmlFor="data">Report Date</CFormLabel>
             <CFormInput
-              id="date"
-              name="date"
-              value={formData.date || ''}
+              id="data"
+              name="data"
+              value={formData.data || ''}
               onChange={handleInputChange}
               type="date"
               required
@@ -624,15 +696,34 @@ const LearningSkillsSection = ({ formData, onFormDataChange, onGenerate, isGener
 LearningSkillsSection.propTypes = {
   formData: PropTypes.object.isRequired,
   onFormDataChange: PropTypes.func.isRequired,
-  onGenerate: PropTypes.func.isRequired,
-  isGenerating: PropTypes.bool,
 }
 
 /**
  * Subject Areas Section
  * Modern form section for subject area assessments
  */
-const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerating }) => {
+const SubjectAreasSection = ({ formData, onFormDataChange }) => {
+  // Auto-fill default values for nativeLanguage and other
+  useEffect(() => {
+    const updates = {}
+    
+    // Auto-fill nativeLanguage if empty or undefined
+    if (formData.nativeLanguage === undefined || formData.nativeLanguage === '') {
+      updates.nativeLanguage = 'Quran and Arabic Studies'
+    }
+    
+    // Auto-fill other if empty or undefined
+    if (formData.other === undefined || formData.other === '') {
+      updates.other = 'Islamic Studies'
+    }
+    
+    // Only update if there are changes to make
+    if (Object.keys(updates).length > 0) {
+      onFormDataChange({ ...formData, ...updates })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Only run once on mount to set initial defaults
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
     const newValue = type === 'checkbox' ? checked : value
@@ -642,199 +733,122 @@ const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerat
     })
   }
 
-  const getMarkOptions = () => [
-    { value: 'A', label: 'A (80-100%)' },
-    { value: 'B', label: 'B (70-79%)' },
-    { value: 'C', label: 'C (60-69%)' },
-    { value: 'D', label: 'D (50-59%)' },
-    { value: 'R', label: 'R (Below 50%)' },
-    { value: 'I', label: 'I (Insufficient Evidence)' },
-  ]
-
   const subjects = [
     {
       name: 'Language',
       key: 'language',
       fields: ['languageESL', 'languageIEP', 'languageNA'],
-      markFields: [
-        'languageMarkReport1',
-        'languageMedianReport1',
-        'languageMarkReport2',
-        'languageMedianReport2',
-      ],
-      commentField: 'languageStrengthsAndStepsForImprovement',
+      performanceFields: ['languageWithDifficulty', 'languageWell', 'languageVeryWell'],
+      sans2Field: 'sans2Language',
     },
     {
       name: 'French',
       key: 'french',
       fields: [
+        'frenchESL',
+        'frenchIEP',
         'frenchNA',
-        'frenchListeningESL',
-        'frenchListeningIEP',
-        'frenchSpeakingESL',
-        'frenchSpeakingIEP',
-        'frenchReadingESL',
-        'frenchReadingIEP',
-        'frenchWritingESL',
-        'frenchWritingIEP',
         'frenchCore',
         'frenchImmersion',
         'frenchExtended',
       ],
-      markFields: [
-        'frenchListeningMarkReport1',
-        'frenchListeningMedianReport1',
-        'frenchListeningMarkReport2',
-        'frenchListeningMedianReport2',
-        'frenchSpeakingMarkReport1',
-        'frenchSpeakingMedianReport1',
-        'frenchSpeakingMarkReport2',
-        'frenchSpeakingMedianReport2',
-        'frenchReadingMarkReport1',
-        'frenchReadingMedianReport1',
-        'frenchReadingMarkReport2',
-        'frenchReadingMedianReport2',
-        'frenchWritingMarkReport1',
-        'frenchWritingMedianReport1',
-        'frenchWritingMarkReport2',
-        'frenchWritingMedianReport2',
-      ],
-      commentField: 'frenchStrengthsAndNextStepsForImprovement',
+      performanceFields: ['frenchWithDifficulty', 'frenchWell', 'frenchVeryWell'],
+      sans2Field: 'sans2French',
     },
     {
       name: 'Native Language',
       key: 'nativeLanguage',
       fields: ['nativeLanguageESL', 'nativeLanguageIEP', 'nativeLanguageNA'],
-      markFields: [
-        'nativeLanguageMarkReport1',
-        'nativeLanguageMedianReport1',
-        'nativeLanguageMarkReport2',
-        'nativeLanguageMedianReport2',
+      performanceFields: [
+        'nativeLanguageWithDifficulty',
+        'nativeLanguageWell',
+        'nativeLanguageVeryWell',
       ],
-      commentField: 'nativeLanguageStrengthsAndNextStepsForImprovement',
+      sans2Field: 'sans2NativeLanguage',
     },
     {
       name: 'Mathematics',
       key: 'math',
       fields: ['mathESL', 'mathIEP', 'mathFrench'],
-      markFields: ['mathMarkReport1', 'mathMedianReport1', 'mathMarkReport2', 'mathMedianReport2'],
-      commentField: 'mathStrengthAndNextStepsForImprovement',
+      performanceFields: ['mathWithDifficulty', 'mathWell', 'mathVeryWell'],
+      sans2Field: 'sans2Math',
     },
     {
       name: 'Science',
       key: 'science',
       fields: ['scienceESL', 'scienceIEP', 'scienceFrench'],
-      markFields: [
-        'scienceMarkReport1',
-        'scienceMedianReport1',
-        'scienceMarkReport2',
-        'scienceMedianReport2',
-      ],
-      commentField: 'scienceStrengthsAndNextStepsForImprovement',
+      performanceFields: ['scienceWithDifficulty', 'scienceWell', 'scienceVeryWell'],
+      sans2Field: 'sans2Science',
     },
     {
       name: 'History',
       key: 'history',
       fields: ['historyESL', 'historyIEP', 'historyFrench', 'historyNA'],
-      markFields: [
-        'historyMarkReport1',
-        'historyMedianReport1',
-        'historyMarkReport2',
-        'historyMedianReport2',
-      ],
-      commentField: 'historyStrengthsAndNextStepsForImprovement',
+      performanceFields: ['historyWithDifficulty', 'historyWell', 'historyVeryWell'],
+      sans2Field: 'sans2History',
     },
     {
       name: 'Geography',
       key: 'geography',
       fields: ['geographyESL', 'geographyIEP', 'geographyFrench', 'geographyNA'],
-      markFields: [
-        'geographyMarkReport1',
-        'geographyMedianReport1',
-        'geographyMarkReport2',
-        'geographyMedianReport2',
-      ],
-      commentField: 'geographyStrengthsAndNextStepsForImprovement',
+      performanceFields: ['geographyWithDifficulty', 'geographyWell', 'geographyVeryWell'],
+      sans2Field: 'sans2Geography',
     },
     {
       name: 'Health Education',
       key: 'healthEd',
       fields: ['healthEdESL', 'healthEdIEP', 'healthEdFrench'],
-      markFields: [
-        'healthEdMarkReport1',
-        'healthEdMedianReport1',
-        'healthEdMarkReport2',
-        'healthEdMedianReport2',
-      ],
-      commentField: 'healthAndPEStrengthsAndNextStepsForImprovement',
+      performanceFields: ['healthEdWithDifficulty', 'healthEdWell', 'healthEdVeryWell'],
+      sans2Field: 'sans2HealthEd',
     },
     {
       name: 'Physical Education',
       key: 'pe',
-      fields: ['peESL', 'peIEP', 'peFrench'],
-      markFields: ['peMarkReport1', 'peMedianReport1', 'peMarkReport2', 'peMedianReport2'],
-      commentField: 'healthAndPEStrengthsAndNextStepsForImprovement',
+      fields: ['peESL', 'peIEL', 'peFrench'],
+      performanceFields: ['peWithDifficulty', 'peWell', 'peVeryWell'],
+      sans2Field: 'sans2PE',
     },
     {
       name: 'Dance',
       key: 'dance',
-      fields: ['danceESL', 'danceFrench', 'danceIEP', 'danceNA'],
-      markFields: [
-        'danceMarkReport1',
-        'danceMedianReport1',
-        'danceMarkReport2',
-        'danceMedianReport2',
-      ],
-      commentField: 'artsStrengthsAndNextStepsForImprovement',
+      fields: ['danceESL', 'danceIEP', 'danceFrench', 'danceNA'],
+      performanceFields: ['danceWithDifficulty', 'danceWell', 'danceVeryWell'],
+      sans2Field: 'sans2Dance',
     },
     {
       name: 'Drama',
       key: 'drama',
-      fields: ['dramaESL', 'dramaFrench', 'drama', 'dramaNA'],
-      markFields: [
-        'dramaMarkReport1',
-        'dramaMedianReport1',
-        'dramaMarkReport2',
-        'dramaMedianReport2',
-      ],
-      commentField: 'artsStrengthsAndNextStepsForImprovement',
+      fields: ['dramaESL', 'dramaIEP', 'dramaFrench', 'dramaNA'],
+      performanceFields: ['dramaWithDifficulty', 'dramaWell', 'dramaVeryWell'],
+      sans2Field: 'sans2Drama',
     },
     {
       name: 'Music',
       key: 'music',
-      fields: ['musicESL', 'musicFrench', 'musicIEP', 'musicNA'],
-      markFields: [
-        'musicMarkReport1',
-        'musicMedianReport1',
-        'musicMarkReport2',
-        'musicMedianReport2',
-      ],
-      commentField: 'artsStrengthsAndNextStepsForImprovement',
+      fields: ['musicESL', 'musicIEP', 'musicFrench', 'musicNA'],
+      performanceFields: ['musicWithDifficulty', 'musicWell', 'musicVeryWell'],
+      sans2Field: 'sans2Music',
     },
     {
       name: 'Visual Arts',
       key: 'visualArts',
       fields: ['visualArtsESL', 'visualArtsIEP', 'visualArtsFrench', 'visualArtsNA'],
-      markFields: [
-        'visualArtsMarkReport1',
-        'visualArtsMedianReport1',
-        'visualArtsMarkReport2',
-        'visualArtsMedianReport2',
-      ],
-      commentField: 'artsStrengthsAndNextStepsForImprovement',
+      performanceFields: ['visualArtsWithDifficulty', 'visualArtsWell', 'visualArtsVeryWell'],
+      sans2Field: 'sans2VisualArts',
     },
     {
       name: 'Other',
       key: 'other',
-      fields: ['otherESL', 'otherFrench', 'otherIEP', 'otherNA'],
-      markFields: ['otherMarkReport1', 'otherMedianReport2'],
-      commentField: 'otherStrengthAndNextStepsForImprovement',
+      fields: ['otherESL', 'otherIEP', 'otherFrench', 'otherNA'],
+      performanceFields: ['otherWithDifficulty', 'otherWell', 'otherVeryWell'],
+      sans2Field: 'sans2Other',
     },
   ]
 
   const accommodationLabels = {
     esl: 'ESL/ELD',
     iep: 'IEP',
+    iel: 'IEP',  // Handle the typo in JSON
     na: 'NA',
     french: 'French',
     core: 'Core',
@@ -879,9 +893,30 @@ const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerat
                     <CFormInput
                       id="nativeLanguage"
                       name="nativeLanguage"
-                      value={formData.nativeLanguage || ''}
+                      value={formData.nativeLanguage || 'Quran and Arabic Studies'}
                       onChange={handleInputChange}
                       placeholder="e.g., Spanish, Mandarin, Arabic"
+                    />
+                  </div>
+                </CCol>
+              </CRow>
+            )}
+
+            {/* Other Subject Input - only for Other subject */}
+            {subject.key === 'other' && (
+              <CRow className="mb-3">
+                <CCol md={12}>
+                  <div className="mb-3">
+                    <CFormLabel htmlFor="other">
+                      <CIcon icon={cilBook} className="me-2" />
+                      Specify Subject Name
+                    </CFormLabel>
+                    <CFormInput
+                      id="other"
+                      name="other"
+                      value={formData.other || 'Islamic Studies'}
+                      onChange={handleInputChange}
+                      placeholder="Enter subject name"
                     />
                   </div>
                 </CCol>
@@ -893,338 +928,91 @@ const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerat
               {subject.fields.length > 0 && (
                 <CCol md={6}>
                   <h6 className="text-success mb-3">Accommodations</h6>
-                  {subject.key === 'french' ? (
-                    <div>
-                      {/* NA Checkbox */}
-                      <div className="mb-3">
-                        <div className="d-flex flex-wrap gap-2">
-                          {subject.fields
-                            .filter((field) => field === 'frenchNA')
-                            .map((field) => {
-                              const label = accommodationLabels['na'] || field
-                              return (
-                                <div key={field} className="me-2">
-                                  <input
-                                    type="checkbox"
-                                    id={field}
-                                    name={field}
-                                    checked={formData[field] || false}
-                                    onChange={handleInputChange}
-                                    style={{
-                                      width: '16px',
-                                      height: '16px',
-                                      marginRight: '8px',
-                                      cursor: 'pointer',
-                                    }}
-                                  />
-                                  <label
-                                    htmlFor={field}
-                                    style={{ cursor: 'pointer', marginBottom: '0' }}
-                                  >
-                                    {label}
-                                  </label>
-                                </div>
-                              )
-                            })}
+                  <div className="d-flex flex-wrap gap-3">
+                    {subject.fields.map((field) => {
+                      // Extract accommodation type from field name
+                      let accommodationType = ''
+                      const fieldLower = field.toLowerCase()
+
+                      if (fieldLower.includes('esl')) accommodationType = 'esl'
+                      else if (fieldLower.includes('iep')) accommodationType = 'iep'
+                      else if (fieldLower.includes('iel')) accommodationType = 'iel'
+                      else if (fieldLower.includes('na')) accommodationType = 'na'
+                      else if (
+                        fieldLower.includes('french') &&
+                        !fieldLower.includes('extended') &&
+                        !fieldLower.includes('immersion') &&
+                        !fieldLower.includes('core')
+                      )
+                        accommodationType = 'french'
+                      else if (fieldLower.includes('core')) accommodationType = 'core'
+                      else if (fieldLower.includes('immersion')) accommodationType = 'immersion'
+                      else if (fieldLower.includes('extended')) accommodationType = 'extended'
+
+                      const label = accommodationLabels[accommodationType] || field
+
+                      return (
+                        <div key={field} className="me-3" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                          <input
+                            type="checkbox"
+                            id={field}
+                            name={field}
+                            checked={formData[field] || false}
+                            onChange={handleInputChange}
+                            style={{
+                              width: '16px',
+                              height: '16px',
+                              marginRight: '8px',
+                              cursor: 'pointer',
+                              flexShrink: 0,
+                            }}
+                          />
+                          <label htmlFor={field} style={{ cursor: 'pointer', marginBottom: '0' }}>
+                            {label}
+                          </label>
                         </div>
-                      </div>
-
-                      {/* Listening Accommodations */}
-                      <div className="mb-3">
-                        <h6 className="text-muted small mb-2">Listening</h6>
-                        <div className="d-flex flex-wrap gap-2">
-                          {subject.fields
-                            .filter(
-                              (field) =>
-                                field === 'frenchListeningESL' || field === 'frenchListeningIEP',
-                            )
-                            .map((field) => {
-                              let accommodationType = ''
-                              const fieldLower = field.toLowerCase()
-                              if (fieldLower.includes('esl')) accommodationType = 'esl'
-                              else if (fieldLower.includes('iep')) accommodationType = 'iep'
-                              const label = accommodationLabels[accommodationType] || field
-                              return (
-                                <div key={field} className="me-2">
-                                  <input
-                                    type="checkbox"
-                                    id={field}
-                                    name={field}
-                                    checked={formData[field] || false}
-                                    onChange={handleInputChange}
-                                    style={{
-                                      width: '16px',
-                                      height: '16px',
-                                      marginRight: '8px',
-                                      cursor: 'pointer',
-                                    }}
-                                  />
-                                  <label
-                                    htmlFor={field}
-                                    style={{ cursor: 'pointer', marginBottom: '0' }}
-                                  >
-                                    {label}
-                                  </label>
-                                </div>
-                              )
-                            })}
-                        </div>
-                      </div>
-
-                      {/* Speaking Accommodations */}
-                      <div className="mb-3">
-                        <h6 className="text-muted small mb-2">Speaking</h6>
-                        <div className="d-flex flex-wrap gap-2">
-                          {subject.fields
-                            .filter(
-                              (field) =>
-                                field === 'frenchSpeakingESL' || field === 'frenchSpeakingIEP',
-                            )
-                            .map((field) => {
-                              let accommodationType = ''
-                              const fieldLower = field.toLowerCase()
-                              if (fieldLower.includes('esl')) accommodationType = 'esl'
-                              else if (fieldLower.includes('iep')) accommodationType = 'iep'
-                              const label = accommodationLabels[accommodationType] || field
-                              return (
-                                <div key={field} className="me-2">
-                                  <input
-                                    type="checkbox"
-                                    id={field}
-                                    name={field}
-                                    checked={formData[field] || false}
-                                    onChange={handleInputChange}
-                                    style={{
-                                      width: '16px',
-                                      height: '16px',
-                                      marginRight: '8px',
-                                      cursor: 'pointer',
-                                    }}
-                                  />
-                                  <label
-                                    htmlFor={field}
-                                    style={{ cursor: 'pointer', marginBottom: '0' }}
-                                  >
-                                    {label}
-                                  </label>
-                                </div>
-                              )
-                            })}
-                        </div>
-                      </div>
-
-                      {/* Reading Accommodations */}
-                      <div className="mb-3">
-                        <h6 className="text-muted small mb-2">Reading</h6>
-                        <div className="d-flex flex-wrap gap-2">
-                          {subject.fields
-                            .filter(
-                              (field) =>
-                                field === 'frenchReadingESL' || field === 'frenchReadingIEP',
-                            )
-                            .map((field) => {
-                              let accommodationType = ''
-                              const fieldLower = field.toLowerCase()
-                              if (fieldLower.includes('esl')) accommodationType = 'esl'
-                              else if (fieldLower.includes('iep')) accommodationType = 'iep'
-                              const label = accommodationLabels[accommodationType] || field
-                              return (
-                                <div key={field} className="me-2">
-                                  <input
-                                    type="checkbox"
-                                    id={field}
-                                    name={field}
-                                    checked={formData[field] || false}
-                                    onChange={handleInputChange}
-                                    style={{
-                                      width: '16px',
-                                      height: '16px',
-                                      marginRight: '8px',
-                                      cursor: 'pointer',
-                                    }}
-                                  />
-                                  <label
-                                    htmlFor={field}
-                                    style={{ cursor: 'pointer', marginBottom: '0' }}
-                                  >
-                                    {label}
-                                  </label>
-                                </div>
-                              )
-                            })}
-                        </div>
-                      </div>
-
-                      {/* Writing Accommodations */}
-                      <div className="mb-3">
-                        <h6 className="text-muted small mb-2">Writing</h6>
-                        <div className="d-flex flex-wrap gap-2">
-                          {subject.fields
-                            .filter(
-                              (field) =>
-                                field === 'frenchWritingESL' || field === 'frenchWritingIEP',
-                            )
-                            .map((field) => {
-                              let accommodationType = ''
-                              const fieldLower = field.toLowerCase()
-                              if (fieldLower.includes('esl')) accommodationType = 'esl'
-                              else if (fieldLower.includes('iep')) accommodationType = 'iep'
-                              const label = accommodationLabels[accommodationType] || field
-                              return (
-                                <div key={field} className="me-2">
-                                  <input
-                                    type="checkbox"
-                                    id={field}
-                                    name={field}
-                                    checked={formData[field] || false}
-                                    onChange={handleInputChange}
-                                    style={{
-                                      width: '16px',
-                                      height: '16px',
-                                      marginRight: '8px',
-                                      cursor: 'pointer',
-                                    }}
-                                  />
-                                  <label
-                                    htmlFor={field}
-                                    style={{ cursor: 'pointer', marginBottom: '0' }}
-                                  >
-                                    {label}
-                                  </label>
-                                </div>
-                              )
-                            })}
-                        </div>
-                      </div>
-
-                      {/* Program Type Accommodations */}
-                      <div className="mb-3">
-                        <div className="d-flex flex-wrap gap-2">
-                          {subject.fields
-                            .filter(
-                              (field) =>
-                                field === 'frenchCore' ||
-                                field === 'frenchImmersion' ||
-                                field === 'frenchExtended',
-                            )
-                            .map((field) => {
-                              let accommodationType = ''
-                              const fieldLower = field.toLowerCase()
-                              if (fieldLower.includes('core')) accommodationType = 'core'
-                              else if (fieldLower.includes('immersion'))
-                                accommodationType = 'immersion'
-                              else if (fieldLower.includes('extended'))
-                                accommodationType = 'extended'
-                              const label = accommodationLabels[accommodationType] || field
-                              return (
-                                <div key={field} className="me-2">
-                                  <input
-                                    type="checkbox"
-                                    id={field}
-                                    name={field}
-                                    checked={formData[field] || false}
-                                    onChange={handleInputChange}
-                                    style={{
-                                      width: '16px',
-                                      height: '16px',
-                                      marginRight: '8px',
-                                      cursor: 'pointer',
-                                    }}
-                                  />
-                                  <label
-                                    htmlFor={field}
-                                    style={{ cursor: 'pointer', marginBottom: '0' }}
-                                  >
-                                    {label}
-                                  </label>
-                                </div>
-                              )
-                            })}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="d-flex flex-wrap gap-3">
-                      {subject.fields.map((field) => {
-                        // Extract accommodation type from field name
-                        let accommodationType = ''
-                        const fieldLower = field.toLowerCase()
-
-                        if (fieldLower.includes('esl')) accommodationType = 'esl'
-                        else if (fieldLower.includes('iep')) accommodationType = 'iep'
-                        else if (fieldLower.includes('na')) accommodationType = 'na'
-                        else if (
-                          fieldLower.includes('french') &&
-                          !fieldLower.includes('extended') &&
-                          !fieldLower.includes('immersion') &&
-                          !fieldLower.includes('core')
-                        )
-                          accommodationType = 'french'
-                        else if (fieldLower.includes('core')) accommodationType = 'core'
-                        else if (fieldLower.includes('immersion')) accommodationType = 'immersion'
-                        else if (fieldLower.includes('extended')) accommodationType = 'extended'
-
-                        const label = accommodationLabels[accommodationType] || field
-
-                        return (
-                          <div key={field} className="me-3">
-                            <input
-                              type="checkbox"
-                              id={field}
-                              name={field}
-                              checked={formData[field] || false}
-                              onChange={handleInputChange}
-                              style={{
-                                width: '16px',
-                                height: '16px',
-                                marginRight: '8px',
-                                cursor: 'pointer',
-                              }}
-                            />
-                            <label htmlFor={field} style={{ cursor: 'pointer', marginBottom: '0' }}>
-                              {label}
-                            </label>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
+                      )
+                    })}
+                  </div>
                 </CCol>
               )}
 
-              {/* Marks */}
-              {subject.markFields.length > 0 && (
+              {/* Performance Levels */}
+              {subject.performanceFields.length > 0 && (
                 <CCol md={6}>
-                  <h6 className="text-success mb-3">
-                    <CIcon icon={cilStar} className="me-2" />
-                    Marks
-                  </h6>
+                  <h6 className="text-success mb-3">Performance Level</h6>
                   <div className="d-flex flex-wrap gap-3">
-                    {subject.markFields.map((field) => {
-                      const fieldLabel = field
-                        .replace('MarkReport', ' Mark ')
-                        .replace('MedianReport', ' Median ')
-                        .replace(/([A-Z])/g, ' $1')
-                        .trim()
+                    {subject.performanceFields.map((field) => {
+                      // Extract performance type from field name
+                      // IMPORTANT: Check 'verywell' before 'well' because 'verywell' contains 'well'
+                      let performanceType = ''
+                      const fieldLower = field.toLowerCase()
+
+                      if (fieldLower.includes('verywell')) performanceType = 'verywell'
+                      else if (fieldLower.includes('withdifficulty')) performanceType = 'withdifficulty'
+                      else if (fieldLower.includes('well')) performanceType = 'well'
+
+                      const label = performanceLabels[performanceType] || field
+
                       return (
-                        <div key={field} className="mb-2">
-                          <CFormLabel htmlFor={field} className="small mb-1">
-                            {fieldLabel}
-                          </CFormLabel>
-                          <CFormSelect
+                        <div key={field} className="me-3" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                          <input
+                            type="checkbox"
                             id={field}
                             name={field}
-                            value={formData[field] || ''}
+                            checked={formData[field] || false}
                             onChange={handleInputChange}
-                            size="sm"
-                          >
-                            <option value="">Select</option>
-                            {getMarkOptions().map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.value} - {option.label}
-                              </option>
-                            ))}
-                          </CFormSelect>
+                            style={{
+                              width: '16px',
+                              height: '16px',
+                              marginRight: '8px',
+                              cursor: 'pointer',
+                              flexShrink: 0,
+                            }}
+                          />
+                          <label htmlFor={field} style={{ cursor: 'pointer', marginBottom: '0' }}>
+                            {label}
+                          </label>
                         </div>
                       )
                     })}
@@ -1233,30 +1021,26 @@ const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerat
               )}
             </CRow>
 
-            {/* Subject Comments */}
-            {subject.commentField && (
+            {/* Sans2 field for subject comments */}
+            {subject.sans2Field && (
               <CRow className="mt-3">
                 <CCol md={12}>
                   <div className="mb-3">
-                    <CFormLabel htmlFor={subject.commentField}>
+                    <CFormLabel htmlFor={subject.sans2Field}>
                       <CIcon icon={cilLightbulb} className="me-2" />
-                      {subject.name} - Strengths and Next Steps
+                      Comments for {subject.name}
                     </CFormLabel>
-                    <AIReportCommentInput
-                      label="Generate Subject Comments"
-                      formData={{
-                        student_name: formData.student,
-                        grade: formData.grade,
-                        subject: subject.name,
-                      }}
-                      handleChange={(field, value) => {
-                        // Map AI output to the actual subject comment field
-                        if (field === 'teacher_comments' || field === 'strengths_next_steps') {
-                          onFormDataChange({ ...formData, [subject.commentField]: value })
-                        }
-                      }}
-                      buttonText="Generate Comments"
-                      explicitReportType="Elementary 7-8 Progress Report"
+                    <AICommentField
+                      name={subject.sans2Field}
+                      value={formData[subject.sans2Field] || ''}
+                      onChange={handleInputChange}
+                      placeholder={`Add comments for ${subject.name.toLowerCase()}...`}
+                      rows={3}
+                      isGenerating={false}
+                      onGenerate={() => {}}
+                      maxLength={500}
+                      formData={formData}
+                      onFormDataChange={onFormDataChange}
                     />
                   </div>
                 </CCol>
@@ -1265,38 +1049,6 @@ const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerat
           </CCardBody>
         </CCard>
       ))}
-
-      {/* Additional Comments for Subject Areas */}
-      <CRow className="mt-4">
-        <CCol md={12}>
-          <div className="mb-3">
-            <CFormLabel htmlFor="strengthsAndNextStepsForImprovement2">
-              <CIcon icon={cilLightbulb} className="me-2" />
-              Additional Comments for Subject Areas
-            </CFormLabel>
-            <AIReportCommentInput
-              label="Generate Additional Subject Comments"
-              formData={{
-                student_name: formData.student,
-                grade: formData.grade,
-                subject: 'Additional Comments',
-              }}
-              handleChange={(field, value) => {
-                // Map AI output to the actual form field
-                if (field === 'teacher_comments' || field === 'strengths_next_steps') {
-                  onFormDataChange({ ...formData, strengthsAndNextStepsForImprovement2: value })
-                }
-              }}
-              buttonText="Generate Additional Comments"
-              explicitReportType="Elementary 7-8 Progress Report"
-            />
-            <div className="form-text">
-              Optional comments about the student's overall academic performance and areas for
-              improvement.
-            </div>
-          </div>
-        </CCol>
-      </CRow>
     </div>
   )
 }
@@ -1304,21 +1056,27 @@ const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerat
 SubjectAreasSection.propTypes = {
   formData: PropTypes.object.isRequired,
   onFormDataChange: PropTypes.func.isRequired,
-  onGenerate: PropTypes.func.isRequired,
-  isGenerating: PropTypes.bool,
 }
 
 /**
  * Comments & Signatures Section
- * Matches the Kindergarten report card structure exactly
+ * Matches the exact structure from Elementary 1-6
  */
-const CommentsSignaturesSection = ({ formData, onFormDataChange, onGenerate, isGenerating }) => {
+const CommentsSignaturesSection = ({ formData, onFormDataChange }) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target
     onFormDataChange({
       ...formData,
       [name]: value,
     })
+  }
+
+  const handleTeacherSignatureChange = (signatureData) => {
+    onFormDataChange({ ...formData, teacherSignature: signatureData })
+  }
+
+  const handlePrincipalSignatureChange = (signatureData) => {
+    onFormDataChange({ ...formData, principalSignature: signatureData })
   }
 
   return (
@@ -1329,38 +1087,7 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange, onGenerate, isG
         </p>
       </div>
 
-      {/* Additional Comments */}
-      <CRow className="mb-4">
-        <CCol md={12}>
-          <div className="mb-3">
-            <CFormLabel htmlFor="boardSpace">
-              <CIcon icon={cilLightbulb} className="me-2" />
-              Additional Comments
-            </CFormLabel>
-            <AIReportCommentInput
-              label="Generate Additional Comments"
-              formData={{
-                student_name: formData.student,
-                grade: formData.grade,
-                subject: 'Additional Comments',
-              }}
-              handleChange={(field, value) => {
-                // Map AI output to the actual form field
-                if (field === 'teacher_comments' || field === 'strengths_next_steps') {
-                  onFormDataChange({ ...formData, boardSpace: value })
-                }
-              }}
-              buttonText="Generate Additional Comments"
-              explicitReportType="Elementary 7-8 Progress Report"
-            />
-            <div className="form-text">
-              Optional additional comments about the student's overall progress and achievements.
-            </div>
-          </div>
-        </CCol>
-      </CRow>
-
-      {/* Signatures - Exact same as Kindergarten */}
+      {/* Signatures */}
       <CCard className="mb-4 shadow-sm">
         <CCardHeader style={{ backgroundColor: '#6f42c1', color: 'white' }}>
           <div className="d-flex align-items-center">
@@ -1377,19 +1104,13 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange, onGenerate, isG
             <CCol md={6}>
               <SignaturePad
                 title="Teacher's Signature"
-                onSignatureChange={(value) => {
-                  console.log('Teacher signature changed:', value)
-                  onFormDataChange({ ...formData, teacherSignature: value })
-                }}
+                onSignatureChange={handleTeacherSignatureChange}
               />
             </CCol>
             <CCol md={6}>
               <SignaturePad
                 title="Principal's Signature"
-                onSignatureChange={(value) => {
-                  console.log('Principal signature changed:', value)
-                  onFormDataChange({ ...formData, principalSignature: value })
-                }}
+                onSignatureChange={handlePrincipalSignatureChange}
               />
             </CCol>
           </CRow>
@@ -1407,8 +1128,6 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange, onGenerate, isG
 CommentsSignaturesSection.propTypes = {
   formData: PropTypes.object.isRequired,
   onFormDataChange: PropTypes.func.isRequired,
-  onGenerate: PropTypes.func.isRequired,
-  isGenerating: PropTypes.bool,
 }
 
 /**
@@ -1456,6 +1175,35 @@ const Elementary7to8ProgressUI = ({
 
   return (
     <div className="modern-report-card-form">
+      <style>
+        {`
+          .ai-button-minimal .ai-input-container {
+            margin-bottom: 0 !important;
+          }
+          .ai-button-minimal .ai-input-container button {
+            background: none !important;
+            border: none !important;
+            color: #6c757d !important;
+            padding: 4px !important;
+            min-width: auto !important;
+            width: auto !important;
+            height: auto !important;
+          }
+          .ai-button-minimal .ai-input-container button:hover {
+            color: #0d6efd !important;
+            background: none !important;
+          }
+          .ai-button-minimal .ai-input-container button:disabled {
+            color: #adb5bd !important;
+          }
+          .ai-button-minimal label {
+            display: none !important;
+          }
+          .ai-button-minimal small {
+            display: none !important;
+          }
+        `}
+      </style>
       <CForm>
         {error && (
           <CAlert color="danger" className="mb-4">
@@ -1478,6 +1226,7 @@ const Elementary7to8ProgressUI = ({
                   saveMessage={saveMessage}
                   disabled={!selectedStudent || !selectedReportCard}
                   className="ms-auto"
+                  asLink={true}
                 />
               </div>
             </CAccordionHeader>
@@ -1496,6 +1245,7 @@ const Elementary7to8ProgressUI = ({
                   saveMessage={saveMessage}
                   disabled={!selectedStudent || !selectedReportCard}
                   className="ms-auto"
+                  asLink={true}
                 />
               </div>
             </CAccordionHeader>
@@ -1514,6 +1264,7 @@ const Elementary7to8ProgressUI = ({
                   saveMessage={saveMessage}
                   disabled={!selectedStudent || !selectedReportCard}
                   className="ms-auto"
+                  asLink={true}
                 />
               </div>
             </CAccordionHeader>
@@ -1532,6 +1283,7 @@ const Elementary7to8ProgressUI = ({
                   saveMessage={saveMessage}
                   disabled={!selectedStudent || !selectedReportCard}
                   className="ms-auto"
+                  asLink={true}
                 />
               </div>
             </CAccordionHeader>
@@ -1550,6 +1302,11 @@ Elementary7to8ProgressUI.propTypes = {
   onFormDataChange: PropTypes.func.isRequired,
   loading: PropTypes.bool,
   error: PropTypes.string,
+  onSaveDraft: PropTypes.func,
+  isSaving: PropTypes.bool,
+  saveMessage: PropTypes.string,
+  selectedStudent: PropTypes.object,
+  selectedReportCard: PropTypes.object,
 }
 
 export default Elementary7to8ProgressUI
