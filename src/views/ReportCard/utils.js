@@ -272,6 +272,10 @@ const ReportCard = ({ presetReportCardId = null }) => {
         board: 'Tarbiyah Learning Academy',
         principal: 'Ghazala Choudhary',
         telephone: student.phone1 || student.emergencyPhone || '',
+        
+        // Ensure boardSpace is always blank for 1-6 progress report
+        boardSpace: '',
+        boardspace: '',
       }
       setFormData(newFormData)
     }
@@ -335,6 +339,9 @@ const ReportCard = ({ presetReportCardId = null }) => {
         board: 'Tarbiyah Learning Academy',
         principal: 'Ghazala Choudhary',
         telephone: '613 421 1700',
+        // Ensure boardSpace is always blank for 1-6 progress report
+        boardSpace: '',
+        boardspace: '',
       }
 
       // Merge with existing form data, preserving any user-entered data
@@ -343,6 +350,9 @@ const ReportCard = ({ presetReportCardId = null }) => {
         ...studentData,
         // Preserve teacher name if already set
         teacher: prevData.teacher || '',
+        // Ensure boardSpace stays blank for 1-6 progress report
+        boardSpace: selectedReportCard === '1-6-progress' ? '' : prevData.boardSpace,
+        boardspace: selectedReportCard === '1-6-progress' ? '' : prevData.boardspace,
         teacher_name: prevData.teacher_name || '',
       }))
     }
@@ -598,6 +608,11 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
         // Merge saved data with current student data, prioritizing student data
         const mergedData = { ...savedData, ...currentStudentData }
+        // Ensure boardSpace is always blank for 1-6 progress report
+        if (selectedReportCard === '1-6-progress') {
+          mergedData.boardSpace = ''
+          mergedData.boardspace = ''
+        }
         setFormData(mergedData)
       } else {
         setFormData({})
@@ -684,6 +699,9 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
       // Native Language Input
       nativeLanguage: ['nativeLanguage'],
+      
+      // Other Subject Name Input
+      otherSubjectName: ['other'],
 
       // Signature field mappings
       teachersignature: [
@@ -919,6 +937,12 @@ const ReportCard = ({ presetReportCardId = null }) => {
       for (const [formKey, value] of Object.entries(formData)) {
         // Skip empty values but allow false for checkboxes
         if (value === null || value === undefined || value === '') continue
+
+        // Skip fields that should not be filled (board designated space)
+        if (formKey === 'boardInfo' || formKey === 'boardinfo') {
+          console.log(`⏭️ Skipping boardInfo field - designated for board use only`)
+          continue
+        }
 
         // Process grade field to extract just the number (e.g., "grade 8" -> "8")
         let processedValue = value
@@ -1300,20 +1324,20 @@ const ReportCard = ({ presetReportCardId = null }) => {
             <CCard className="mb-4">
               <CCardBody>
                 <div className="d-flex align-items-center">
-                  <div className={`step-indicator ${selectedStudent ? 'completed' : 'active'}`}>
+                  <div className={`step-indicator ${selectedReportCard ? 'completed' : 'active'}`}>
                     <span className="step-number">1</span>
-                    <span className="step-text">Select Student</span>
-                  </div>
-                  <div className="step-connector"></div>
-                  <div
-                    className={`step-indicator ${selectedStudent && selectedReportCard ? 'completed' : selectedStudent ? 'active' : ''}`}
-                  >
-                    <span className="step-number">2</span>
                     <span className="step-text">Select Report Card</span>
                   </div>
                   <div className="step-connector"></div>
                   <div
-                    className={`step-indicator ${selectedStudent && selectedReportCard ? 'active' : ''}`}
+                    className={`step-indicator ${selectedReportCard && selectedStudent ? 'completed' : selectedReportCard ? 'active' : ''}`}
+                  >
+                    <span className="step-number">2</span>
+                    <span className="step-text">Select Student</span>
+                  </div>
+                  <div className="step-connector"></div>
+                  <div
+                    className={`step-indicator ${selectedReportCard && selectedStudent ? 'active' : ''}`}
                   >
                     <span className="step-number">3</span>
                     <span className="step-text">Fill Report Card</span>
@@ -1323,12 +1347,39 @@ const ReportCard = ({ presetReportCardId = null }) => {
             </CCard>
           )}
 
+          {/* Report Card Type Selector – hide if a preset report card was supplied */}
+          {!presetReportCardId && (
+            <CCard className="mb-4">
+              <CCardBody>
+                <h5 className="mb-3">Step 1: Select Report Card Type</h5>
+                <div className="report-card-type-selector">
+                  <label htmlFor="reportCardType" className="form-label">
+                    Report Card Type:
+                  </label>
+                  <CFormSelect
+                    id="reportCardType"
+                    value={selectedReportCard}
+                    onChange={handleReportTypeChange}
+                    className="mb-3"
+                  >
+                    <option value="">Choose a report card type...</option>
+                    {REPORT_CARD_TYPES.map((type) => (
+                      <option key={type.id} value={type.id}>
+                        {type.name}
+                      </option>
+                    ))}
+                  </CFormSelect>
+                </div>
+              </CCardBody>
+            </CCard>
+          )}
+
           {/* Student Selection */}
-          {!selectedStudent && (
+          {!selectedStudent && selectedReportCard && (
             <CCard className="mb-4">
               <CCardBody>
                 <h5 className="mb-3">
-                  {presetReportCardId ? 'Select Student' : 'Step 1: Select Student'}
+                  {presetReportCardId ? 'Select Student' : 'Step 2: Select Student'}
                 </h5>
                 <StudentSelector
                   selectedStudent={selectedStudent}
@@ -1383,33 +1434,6 @@ const ReportCard = ({ presetReportCardId = null }) => {
                       Change Student
                     </CButton>
                   </div>
-                </div>
-              </CCardBody>
-            </CCard>
-          )}
-
-          {/* Report Card Type Selector – hide if a preset report card was supplied */}
-          {!presetReportCardId && (
-            <CCard className="mb-4">
-              <CCardBody>
-                <h5 className="mb-3">Step 2: Select Report Card Type</h5>
-                <div className="report-card-type-selector">
-                  <label htmlFor="reportCardType" className="form-label">
-                    Report Card Type:
-                  </label>
-                  <CFormSelect
-                    id="reportCardType"
-                    value={selectedReportCard}
-                    onChange={handleReportTypeChange}
-                    className="mb-3"
-                  >
-                    <option value="">Choose a report card type...</option>
-                    {REPORT_CARD_TYPES.map((type) => (
-                      <option key={type.id} value={type.id}>
-                        {type.name}
-                      </option>
-                    ))}
-                  </CFormSelect>
                 </div>
               </CCardBody>
             </CCard>
