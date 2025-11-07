@@ -29,7 +29,7 @@ import Elementary7to8ProgressUI from './Components/Elementary7to8ProgressUI'
 import Elementary7to8ReportUI from './Components/Elementary7to8ReportUI'
 import './ReportCard.css'
 import './ModernReportCard.css'
-import { PDFDocument } from 'pdf-lib'
+import { PDFDocument, StandardFonts } from 'pdf-lib'
 import { useNavigate } from 'react-router-dom'
 // Firebase Storage & Firestore
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
@@ -272,6 +272,10 @@ const ReportCard = ({ presetReportCardId = null }) => {
         board: 'Tarbiyah Learning Academy',
         principal: 'Ghazala Choudhary',
         telephone: student.phone1 || student.emergencyPhone || '',
+        
+        // Ensure boardSpace is always blank for 1-6 progress report
+        boardSpace: '',
+        boardspace: '',
       }
       setFormData(newFormData)
     }
@@ -335,6 +339,9 @@ const ReportCard = ({ presetReportCardId = null }) => {
         board: 'Tarbiyah Learning Academy',
         principal: 'Ghazala Choudhary',
         telephone: '613 421 1700',
+        // Ensure boardSpace is always blank for 1-6 progress report
+        boardSpace: '',
+        boardspace: '',
       }
 
       // Merge with existing form data, preserving any user-entered data
@@ -343,6 +350,9 @@ const ReportCard = ({ presetReportCardId = null }) => {
         ...studentData,
         // Preserve teacher name if already set
         teacher: prevData.teacher || '',
+        // Ensure boardSpace stays blank for 1-6 progress report
+        boardSpace: selectedReportCard === '1-6-progress' ? '' : prevData.boardSpace,
+        boardspace: selectedReportCard === '1-6-progress' ? '' : prevData.boardspace,
         teacher_name: prevData.teacher_name || '',
       }))
     }
@@ -598,6 +608,11 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
         // Merge saved data with current student data, prioritizing student data
         const mergedData = { ...savedData, ...currentStudentData }
+        // Ensure boardSpace is always blank for 1-6 progress report
+        if (selectedReportCard === '1-6-progress') {
+          mergedData.boardSpace = ''
+          mergedData.boardspace = ''
+        }
         setFormData(mergedData)
       } else {
         setFormData({})
@@ -684,6 +699,9 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
       // Native Language Input
       nativeLanguage: ['nativeLanguage'],
+      
+      // Other Subject Name Input
+      otherSubjectName: ['other'],
 
       // Signature field mappings
       teachersignature: [
@@ -751,7 +769,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
   }
 
   // Fill a specific PDF field with a value
-  const fillPDFField = (field, value) => {
+  const fillPDFField = (field, value, font = null, fontSize =8) => {
     try {
       const fieldType = field.constructor.name
       const fieldName = field.getName()
@@ -760,8 +778,32 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
       switch (fieldType) {
         case 'PDFTextField':
+        case 'PDFTextField2':
           const stringValue = value.toString()
           field.setText(stringValue)
+          
+          // Update field appearance with specified font and font size (10pt Times Roman)
+          if (font) {
+            try {
+              // Set default appearance with font size before updating appearances
+              const acroField = field.acroField
+              acroField.setDefaultAppearance(`/F1 ${fontSize} Tf`)
+              
+              // Update appearances with the font
+              field.updateAppearances(font)
+              
+              console.log(`✅ Updated text field "${fieldName}" appearance with font size ${fontSize}pt`)
+            } catch (appearanceError) {
+              console.warn(`Could not update appearance for "${fieldName}":`, appearanceError)
+              // Try to update appearances without setting default appearance
+              try {
+                field.updateAppearances(font)
+              } catch (fallbackError) {
+                console.warn(`Fallback appearance update also failed for "${fieldName}"`)
+              }
+            }
+          }
+          
           console.log(`✅ Successfully filled text field "${fieldName}" with: "${stringValue}"`)
           return true
 
@@ -914,11 +956,34 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
       console.log(`📋 Found ${fields.length} form fields in original PDF`)
 
+      // Embed Times Roman font for regular text fields (10pt)
+      let timesRomanFont
+      try {
+        // Try to load Times New Roman from fonts folder, fallback to standard TimesRoman
+        const timesFontBytes = await fetch('/fonts/TimesNewRoman.ttf').then((res) =>
+          res.arrayBuffer(),
+        ).catch(() => null)
+        if (timesFontBytes) {
+          timesRomanFont = await pdfDoc.embedFont(timesFontBytes)
+        } else {
+          timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman)
+        }
+      } catch (e) {
+        // Fallback to standard TimesRoman font
+        timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman)
+      }
+
       // Fill the form with current form data (reuse the logic from PDFViewer)
       let filledCount = 0
       for (const [formKey, value] of Object.entries(formData)) {
         // Skip empty values but allow false for checkboxes
         if (value === null || value === undefined || value === '') continue
+
+        // Skip fields that should not be filled (board designated space)
+        if (formKey === 'boardInfo' || formKey === 'boardinfo') {
+          console.log(`⏭️ Skipping boardInfo field - designated for board use only`)
+          continue
+        }
 
         // Process grade field to extract just the number (e.g., "grade 8" -> "8")
         let processedValue = value
@@ -1038,7 +1103,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           try {
             const field = form.getFieldMaybe(fieldName)
             if (field) {
-              const success = fillPDFField(field, processedValue)
+              const success = fillPDFField(field, processedValue, timesRomanFont, 10)
               if (success) {
                 filledCount++
                 break
@@ -1300,20 +1365,20 @@ const ReportCard = ({ presetReportCardId = null }) => {
             <CCard className="mb-4">
               <CCardBody>
                 <div className="d-flex align-items-center">
-                  <div className={`step-indicator ${selectedStudent ? 'completed' : 'active'}`}>
+                  <div className={`step-indicator ${selectedReportCard ? 'completed' : 'active'}`}>
                     <span className="step-number">1</span>
-                    <span className="step-text">Select Student</span>
-                  </div>
-                  <div className="step-connector"></div>
-                  <div
-                    className={`step-indicator ${selectedStudent && selectedReportCard ? 'completed' : selectedStudent ? 'active' : ''}`}
-                  >
-                    <span className="step-number">2</span>
                     <span className="step-text">Select Report Card</span>
                   </div>
                   <div className="step-connector"></div>
                   <div
-                    className={`step-indicator ${selectedStudent && selectedReportCard ? 'active' : ''}`}
+                    className={`step-indicator ${selectedReportCard && selectedStudent ? 'completed' : selectedReportCard ? 'active' : ''}`}
+                  >
+                    <span className="step-number">2</span>
+                    <span className="step-text">Select Student</span>
+                  </div>
+                  <div className="step-connector"></div>
+                  <div
+                    className={`step-indicator ${selectedReportCard && selectedStudent ? 'active' : ''}`}
                   >
                     <span className="step-number">3</span>
                     <span className="step-text">Fill Report Card</span>
@@ -1323,12 +1388,39 @@ const ReportCard = ({ presetReportCardId = null }) => {
             </CCard>
           )}
 
+          {/* Report Card Type Selector – hide if a preset report card was supplied */}
+          {!presetReportCardId && (
+            <CCard className="mb-4">
+              <CCardBody>
+                <h5 className="mb-3">Step 1: Select Report Card Type</h5>
+                <div className="report-card-type-selector">
+                  <label htmlFor="reportCardType" className="form-label">
+                    Report Card Type:
+                  </label>
+                  <CFormSelect
+                    id="reportCardType"
+                    value={selectedReportCard}
+                    onChange={handleReportTypeChange}
+                    className="mb-3"
+                  >
+                    <option value="">Choose a report card type...</option>
+                    {REPORT_CARD_TYPES.map((type) => (
+                      <option key={type.id} value={type.id}>
+                        {type.name}
+                      </option>
+                    ))}
+                  </CFormSelect>
+                </div>
+              </CCardBody>
+            </CCard>
+          )}
+
           {/* Student Selection */}
-          {!selectedStudent && (
+          {!selectedStudent && selectedReportCard && (
             <CCard className="mb-4">
               <CCardBody>
                 <h5 className="mb-3">
-                  {presetReportCardId ? 'Select Student' : 'Step 1: Select Student'}
+                  {presetReportCardId ? 'Select Student' : 'Step 2: Select Student'}
                 </h5>
                 <StudentSelector
                   selectedStudent={selectedStudent}
@@ -1383,33 +1475,6 @@ const ReportCard = ({ presetReportCardId = null }) => {
                       Change Student
                     </CButton>
                   </div>
-                </div>
-              </CCardBody>
-            </CCard>
-          )}
-
-          {/* Report Card Type Selector – hide if a preset report card was supplied */}
-          {!presetReportCardId && (
-            <CCard className="mb-4">
-              <CCardBody>
-                <h5 className="mb-3">Step 2: Select Report Card Type</h5>
-                <div className="report-card-type-selector">
-                  <label htmlFor="reportCardType" className="form-label">
-                    Report Card Type:
-                  </label>
-                  <CFormSelect
-                    id="reportCardType"
-                    value={selectedReportCard}
-                    onChange={handleReportTypeChange}
-                    className="mb-3"
-                  >
-                    <option value="">Choose a report card type...</option>
-                    {REPORT_CARD_TYPES.map((type) => (
-                      <option key={type.id} value={type.id}>
-                        {type.name}
-                      </option>
-                    ))}
-                  </CFormSelect>
                 </div>
               </CCardBody>
             </CCard>

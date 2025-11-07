@@ -79,9 +79,10 @@
     },
     "boardInfo": {
       "type": "PDFTextField2",
-      "formDataKey": "boardinfo",
+      "formDataKey": "",
       "id": 13,
-      "name": "boardInfo"
+      "name": "boardInfo",
+      "skipFill": true
     },
     "telephone": {
       "type": "PDFTextField2",
@@ -640,6 +641,120 @@
       "formDataKey": "strengthsandnextstepsforimprovements2",
       "id": 106,
       "name": "strengthsAndNextStepsForImprovements2"
+    },
+    "sansResponsibility": {
+      "type": "PDFTextField2",
+      "formDataKey": "sansresponsibility",
+      "id": 113,
+      "name": "sansResponsibility"
+    },
+    "sansOrganization": {
+      "type": "PDFTextField2",
+      "formDataKey": "sansorganization",
+      "id": 114,
+      "name": "sansOrganization"
+    },
+    "sansIndependentWork": {
+      "type": "PDFTextField2",
+      "formDataKey": "sansindependentwork",
+      "id": 115,
+      "name": "sansIndependentWork"
+    },
+    "sansCollaboration": {
+      "type": "PDFTextField2",
+      "formDataKey": "sanscollaboration",
+      "id": 116,
+      "name": "sansCollaboration"
+    },
+    "sansInitiative": {
+      "type": "PDFTextField2",
+      "formDataKey": "sansinitiative",
+      "id": 117,
+      "name": "sansInitiative"
+    },
+    "sansSelfRegulation": {
+      "type": "PDFTextField2",
+      "formDataKey": "sansselfregulation",
+      "id": 118,
+      "name": "sansSelfRegulation"
+    },
+    "sans2Language": {
+      "type": "PDFTextField2",
+      "formDataKey": "sans2language",
+      "id": 119,
+      "name": "sans2Language"
+    },
+    "sans2French": {
+      "type": "PDFTextField2",
+      "formDataKey": "sans2french",
+      "id": 120,
+      "name": "sans2French"
+    },
+    "sans2NativeLanguage": {
+      "type": "PDFTextField2",
+      "formDataKey": "sans2nativelanguage",
+      "id": 121,
+      "name": "sans2NativeLanguage"
+    },
+    "sans2Math": {
+      "type": "PDFTextField2",
+      "formDataKey": "sans2math",
+      "id": 122,
+      "name": "sans2Math"
+    },
+    "sans2Science": {
+      "type": "PDFTextField2",
+      "formDataKey": "sans2science",
+      "id": 123,
+      "name": "sans2Science"
+    },
+    "sans2SocialStudies": {
+      "type": "PDFTextField2",
+      "formDataKey": "sans2socialstudies",
+      "id": 124,
+      "name": "sans2SocialStudies"
+    },
+    "sans2HealthEd": {
+      "type": "PDFTextField2",
+      "formDataKey": "sans2healthed",
+      "id": 125,
+      "name": "sans2HealthEd"
+    },
+    "sans2PE": {
+      "type": "PDFTextField2",
+      "formDataKey": "sans2pe",
+      "id": 126,
+      "name": "sans2PE"
+    },
+    "sans2Dance": {
+      "type": "PDFTextField2",
+      "formDataKey": "sans2dance",
+      "id": 127,
+      "name": "sans2Dance"
+    },
+    "sans2Drama": {
+      "type": "PDFTextField2",
+      "formDataKey": "sans2drama",
+      "id": 128,
+      "name": "sans2Drama"
+    },
+    "sans2Music": {
+      "type": "PDFTextField2",
+      "formDataKey": "sans2music",
+      "id": 129,
+      "name": "sans2Music"
+    },
+    "sans2VisualArts": {
+      "type": "PDFTextField2",
+      "formDataKey": "sans2visualarts",
+      "id": 130,
+      "name": "sans2VisualArts"
+    },
+    "sans2Other": {
+      "type": "PDFTextField2",
+      "formDataKey": "sans2other",
+      "id": 131,
+      "name": "sans2Other"
     },
     "Text_1": {
       "type": "PDFTextField2",

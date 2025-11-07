@@ -36,6 +36,125 @@ import PropTypes from 'prop-types'
 import AIReportCommentInput from '../../../components/AIReportCommentInput'
 
 /**
+ * AI-Enhanced Text Area
+ * A reusable component for text areas with an AI generation button.
+ */
+const AICommentField = ({
+  name,
+  value,
+  onChange,
+  placeholder,
+  rows = 10,
+  isGenerating = false,
+  onGenerate,
+  maxLength,
+  formData,
+  onFormDataChange,
+}) => {
+  const currentLength = value?.length || 0
+
+  return (
+    <div className="ai-input-field position-relative mb-3">
+      <CFormTextarea
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        rows={rows}
+        maxLength={maxLength}
+        style={{
+          resize: 'vertical',
+          paddingRight: '50px',
+          paddingBottom: '25px', // Make space for character counter
+          borderRadius: '8px',
+          border: '2px solid #e9ecef',
+          fontSize: '1rem',
+        }}
+      />
+
+      {/* AI Generation Button */}
+      <div className="position-absolute" style={{ top: '10px', right: '10px' }}>
+        <AIReportCommentInput
+          label=""
+          formData={{
+            student_name: formData.student,
+            grade: formData.grade,
+            subject: getSubjectForField(name),
+          }}
+          handleChange={(field, aiValue) => {
+            // Map AI output directly to the specific field
+            if (field === 'teacher_comments' || field === 'strengths_next_steps') {
+              onFormDataChange({ ...formData, [name]: aiValue })
+            }
+          }}
+          buttonText=""
+          explicitReportType="Elementary 1-6 Progress Report"
+          className="ai-button-minimal"
+        />
+      </div>
+
+      {maxLength && (
+        <div
+          className="position-absolute"
+          style={{
+            bottom: '8px',
+            right: '15px',
+            fontSize: '0.8rem',
+            color: currentLength > maxLength ? '#dc3545' : '#6c757d',
+          }}
+        >
+          {currentLength}/{maxLength}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Helper function to determine subject based on field name
+const getSubjectForField = (fieldName) => {
+  // Learning Skills fields
+  if (fieldName === 'sansResponsibility') return 'Responsibility'
+  if (fieldName === 'sansOrganization') return 'Organization'
+  if (fieldName === 'sansIndependentWork') return 'Independent Work'
+  if (fieldName === 'sansCollaboration') return 'Collaboration'
+  if (fieldName === 'sansInitiative') return 'Initiative'
+  if (fieldName === 'sansSelfRegulation') return 'Self-Regulation'
+  
+  // Subject Area fields
+  if (fieldName === 'sans2Language') return 'Language'
+  if (fieldName === 'sans2French') return 'French'
+  if (fieldName === 'sans2NativeLanguage') return 'Native Language'
+  if (fieldName === 'sans2Math') return 'Mathematics'
+  if (fieldName === 'sans2Science') return 'Science'
+  if (fieldName === 'sans2SocialStudies') return 'Social Studies'
+  if (fieldName === 'sans2HealthEd') return 'Health Education'
+  if (fieldName === 'sans2PE') return 'Physical Education'
+  if (fieldName === 'sans2Dance') return 'Dance'
+  if (fieldName === 'sans2Drama') return 'Drama'
+  if (fieldName === 'sans2Music') return 'Music'
+  if (fieldName === 'sans2VisualArts') return 'Visual Arts'
+  if (fieldName === 'sans2Other') return 'Other'
+  
+  // Board Info
+  if (fieldName === 'boardInfo') return 'Board Information'
+  
+  return 'Elementary Learning'
+}
+
+AICommentField.propTypes = {
+  name: PropTypes.string.isRequired,
+  value: PropTypes.string,
+  onChange: PropTypes.func.isRequired,
+  placeholder: PropTypes.string,
+  rows: PropTypes.number,
+  isGenerating: PropTypes.bool,
+  onGenerate: PropTypes.func.isRequired,
+  maxLength: PropTypes.number,
+  formData: PropTypes.object.isRequired,
+  onFormDataChange: PropTypes.func.isRequired,
+}
+
+/**
  * Signature Pad Component
  * Matches the exact implementation from Kindergarten report card
  */
@@ -178,7 +297,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               id="student"
               name="student"
-              value={formData.student || ''}
+              value={formData['student'] || ''}
               onChange={handleInputChange}
               placeholder="Enter student name"
               required
@@ -287,9 +406,9 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
         </CCol>
       </CRow>
 
-      {/* Addresses */}
+      {/* School Address */}
       <CRow className="mt-3">
-        <CCol md={6}>
+        <CCol md={12}>
           <div className="mb-3">
             <CFormLabel htmlFor="schoolAddress">
               <CIcon icon={cilLocationPin} className="me-2" />
@@ -298,26 +417,9 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormTextarea
               id="schoolAddress"
               name="schoolAddress"
-              value={formData.schoolAddress || ''}
+              value={formData['schoolAddress'] || ''}
               onChange={handleInputChange}
               placeholder="Enter school address"
-              rows={3}
-            />
-          </div>
-        </CCol>
-
-        <CCol md={6}>
-          <div className="mb-3">
-            <CFormLabel htmlFor="boardAddress">
-              <CIcon icon={cilLocationPin} className="me-2" />
-              Board Address
-            </CFormLabel>
-            <CFormTextarea
-              id="boardAddress"
-              name="boardAddress"
-              value={formData.boardAddress || ''}
-              onChange={handleInputChange}
-              placeholder="Enter board address"
               rows={3}
             />
           </div>
@@ -339,7 +441,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               id="daysAbsent"
               name="daysAbsent"
-              value={formData.daysAbsent || ''}
+              value={formData['daysAbsent'] || ''}
               onChange={handleInputChange}
               placeholder="Will be auto-filled"
               type="number"
@@ -356,7 +458,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               id="totalDaysAbsent"
               name="totalDaysAbsent"
-              value={formData.totalDaysAbsent || ''}
+              value={formData['totalDaysAbsent'] || ''}
               onChange={handleInputChange}
               placeholder="Will be auto-filled"
               type="number"
@@ -373,7 +475,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               id="timesLate"
               name="timesLate"
-              value={formData.timesLate || ''}
+              value={formData['timesLate'] || ''}
               onChange={handleInputChange}
               placeholder="Will be auto-filled"
               type="number"
@@ -390,7 +492,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               id="totalTimesLate"
               name="totalTimesLate"
-              value={formData.totalTimesLate || ''}
+              value={formData['totalTimesLate'] || ''}
               onChange={handleInputChange}
               placeholder="Will be auto-filled"
               type="number"
@@ -428,31 +530,37 @@ const LearningSkillsSection = ({ formData, onFormDataChange }) => {
       key: 'responsibiity1',
       label: 'Responsibility',
       description: 'Fulfills responsibilities and commitments within the learning environment',
+      sansField: 'sansResponsibility',
     },
     {
       key: 'organization1',
       label: 'Organization',
       description: 'Devises and applies a plan of work to complete projects and tasks',
+      sansField: 'sansOrganization',
     },
     {
       key: 'independentWork1',
       label: 'Independent Work',
       description: 'Accepts various roles and an equitable share of work in a group',
+      sansField: 'sansIndependentWork',
     },
     {
       key: 'collaboration1',
       label: 'Collaboration',
       description: 'Responds positively to the ideas, opinions, values, and traditions of others',
+      sansField: 'sansCollaboration',
     },
     {
       key: 'initiative1',
       label: 'Initiative',
       description: 'Looks for and acts on new ideas and opportunities for learning',
+      sansField: 'sansInitiative',
     },
     {
       key: 'selfRegulation1',
       label: 'Self-Regulation',
       description: 'Sets own individual goals and monitors progress towards achieving them',
+      sansField: 'sansSelfRegulation',
     },
   ]
 
@@ -503,56 +611,34 @@ const LearningSkillsSection = ({ formData, onFormDataChange }) => {
                     ))}
                   </CFormSelect>
                 </div>
+
+                {/* Sans field for comments */}
+                {skill.sansField && (
+                  <div className="mb-3">
+                    <CFormLabel htmlFor={skill.sansField}>
+                      <CIcon icon={cilLightbulb} className="me-2" />
+                      {skill.label} Comments
+                    </CFormLabel>
+                    <AICommentField
+                      name={skill.sansField}
+                      value={formData[skill.sansField] || ''}
+                      onChange={handleInputChange}
+                      placeholder={`Add comments for ${skill.label.toLowerCase()}...`}
+                      rows={3}
+                      isGenerating={false}
+                      onGenerate={() => {}}
+                      maxLength={500}
+                      formData={formData}
+                      onFormDataChange={onFormDataChange}
+                    />
+                  </div>
+                )}
               </CCardBody>
             </CCard>
           </CCol>
         ))}
       </CRow>
 
-      {/* Strengths and Next Steps with AI */}
-      <CRow className="mt-4">
-        <CCol md={12}>
-          <div className="mb-3">
-            <CFormLabel htmlFor="strengthsAndNextStepsForImprovements">
-              <CIcon icon={cilLightbulb} className="me-2" />
-              Strengths and Next Steps for Improvement
-            </CFormLabel>
-            <CFormTextarea
-              id="strengthsAndNextStepsForImprovements"
-              name="strengthsAndNextStepsForImprovements"
-              value={formData.strengthsAndNextStepsForImprovements || ''}
-              onChange={handleInputChange}
-              placeholder="Describe the student's strengths in learning skills and work habits, and identify specific next steps for improvement..."
-              rows={6}
-            />
-            <div className="form-text">
-              Provide specific, constructive feedback on the student's learning skills and work
-              habits. Maximum 1000 characters.
-            </div>
-            <small className="text-muted">
-              {(formData.strengthsAndNextStepsForImprovements || '').length} / 1000 characters
-            </small>
-          </div>
-
-          {/* AI Generation for Learning Skills */}
-          <AIReportCommentInput
-            label="Generate Learning Skills Comments"
-            formData={{
-              student_name: formData.student,
-              grade: formData.grade,
-              subject: 'Learning Skills & Work Habits',
-            }}
-            handleChange={(field, value) => {
-              // Map AI output to the actual form field
-              if (field === 'teacher_comments' || field === 'strengths_next_steps') {
-                onFormDataChange({ ...formData, strengthsAndNextStepsForImprovements: value })
-              }
-            }}
-            buttonText="Generate Learning Skills Comments"
-            explicitReportType="Elementary 1-6 Progress Report"
-          />
-        </CCol>
-      </CRow>
 
       {/* Date */}
       <CRow className="mt-3">
@@ -562,7 +648,7 @@ const LearningSkillsSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               id="date"
               name="date"
-              value={formData.date || ''}
+              value={formData['date'] || ''}
               onChange={handleInputChange}
               type="date"
               required
@@ -584,6 +670,27 @@ LearningSkillsSection.propTypes = {
  * Modern form section for subject area assessments
  */
 const SubjectAreasSection = ({ formData, onFormDataChange }) => {
+  // Auto-fill default values for nativeLanguage and otherSubjectName
+  useEffect(() => {
+    const updates = {}
+    
+    // Auto-fill nativeLanguage if empty or undefined
+    if (formData.nativeLanguage === undefined || formData.nativeLanguage === '') {
+      updates.nativeLanguage = 'Quran and Arabic Studies'
+    }
+    
+    // Auto-fill otherSubjectName if empty or undefined
+    if (formData.other === undefined || formData.other === '') {
+      updates.other = 'Islamic Studies'
+    }
+    
+    // Only update if there are changes to make
+    if (Object.keys(updates).length > 0) {
+      onFormDataChange({ ...formData, ...updates })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Only run once on mount to set initial defaults
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
     const newValue = type === 'checkbox' ? checked : value
@@ -599,6 +706,7 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
       key: 'language',
       fields: ['languageESL', 'languageIEP', 'languageNA'],
       performanceFields: ['languageWithDifficulty', 'languageWell', 'languageVeryWell'],
+      sans2Field: 'sans2Language',
     },
     {
       name: 'French',
@@ -612,6 +720,7 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
         'frenchExtended',
       ],
       performanceFields: ['frenchWithDifficulty', 'frenchWell', 'frenchVeryWell'],
+      sans2Field: 'sans2French',
     },
     {
       name: 'Native Language',
@@ -622,66 +731,77 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
         'nativeLanguageWell',
         'nativeLanguageVeryWell',
       ],
+      sans2Field: 'sans2NativeLanguage',
     },
     {
       name: 'Mathematics',
       key: 'math',
       fields: ['mathESL', 'mathIEP', 'mathFrench'],
       performanceFields: ['mathWithDifficulty', 'mathWell', 'mathVeryWell'],
+      sans2Field: 'sans2Math',
     },
     {
       name: 'Science',
       key: 'science',
       fields: ['scienceESL', 'scienceIEP', 'scienceFrench'],
       performanceFields: ['scienceWithDifficulty', 'scienceWell', 'scienceVeryWell'],
+      sans2Field: 'sans2Science',
     },
     {
       name: 'Social Studies',
       key: 'socialStudies',
       fields: ['socialStudiesESL', 'socialStudiesIEP', 'socialStudiesFrench'],
       performanceFields: ['socialWithDifficulty', 'socialStudiesWell', 'socialStudiesVeryWell'],
+      sans2Field: 'sans2SocialStudies',
     },
     {
       name: 'Health Education',
       key: 'healthEd',
       fields: ['healthEdESL', 'healthEdIEP', 'healthEdFrench'],
       performanceFields: ['healthEdWithDifficulty', 'healthEdWell', 'healthEdVeryWell'],
+      sans2Field: 'sans2HealthEd',
     },
     {
       name: 'Physical Education',
       key: 'pe',
       fields: ['peESL', 'peIEP', 'peFrench'],
       performanceFields: ['peWithDifficulty', 'peWell', 'peVeryWell'],
+      sans2Field: 'sans2PE',
     },
     {
       name: 'Dance',
       key: 'dance',
       fields: ['danceESL', 'danceIEP', 'danceFrench', 'danceNA'],
       performanceFields: ['danceWithDifficulty', 'danceWell', 'danceVeryWell'],
+      sans2Field: 'sans2Dance',
     },
     {
       name: 'Drama',
       key: 'drama',
       fields: ['dramaESL', 'dramaIEP', 'dramaFrench', 'dramaNA'],
       performanceFields: ['dramaWithDifficulty', 'dramaWell', 'dramaVeryWell'],
+      sans2Field: 'sans2Drama',
     },
     {
       name: 'Music',
       key: 'music',
       fields: ['musicESL', 'musicIEP', 'musicFrench', 'musicNA'],
       performanceFields: ['musicWithDifficulty', 'musicWell', 'musicVeryWell'],
+      sans2Field: 'sans2Music',
     },
     {
       name: 'Visual Arts',
       key: 'visualArts',
       fields: ['visualArtsESL', 'visualArtsIEP', 'visualArtsFrench', 'visualArtsNA'],
       performanceFields: ['visualArtsWithDifficulty', 'visualArtsWell', 'visualArtsVeryWell'],
+      sans2Field: 'sans2VisualArts',
     },
     {
       name: 'Other',
       key: 'other',
       fields: ['otherESL', 'otherIEP', 'otherFrench', 'otherNA'],
       performanceFields: ['otherWithDifficulty', 'otherWell', 'otherVeryWell'],
+      sans2Field: 'sans2Other',
     },
   ]
 
@@ -732,9 +852,30 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                     <CFormInput
                       id="nativeLanguage"
                       name="nativeLanguage"
-                      value={formData.nativeLanguage || ''}
+                      value={formData['nativeLanguage'] || 'Quran and Arabic Studies'}
                       onChange={handleInputChange}
                       placeholder="e.g., Spanish, Mandarin, Arabic"
+                    />
+                  </div>
+                </CCol>
+              </CRow>
+            )}
+
+            {/* Other Subject Input - only for Other subject */}
+            {subject.key === 'other' && (
+              <CRow className="mb-3">
+                <CCol md={12}>
+                  <div className="mb-3">
+                    <CFormLabel htmlFor="otherSubjectName">
+                      <CIcon icon={cilBook} className="me-2" />
+                      Specify Subject Name
+                    </CFormLabel>
+                    <CFormInput
+                      id="otherSubjectName"
+                      name="otherSubjectName"
+                      value={formData['otherSubjectName'] || 'Islamic Studies'}
+                      onChange={handleInputChange}
+                      placeholder="Enter subject name"
                     />
                   </div>
                 </CCol>
@@ -769,7 +910,7 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                       const label = accommodationLabels[accommodationType] || field
 
                       return (
-                        <div key={field} className="me-3">
+                        <div key={field} className="me-3" style={{ display: 'inline-flex', alignItems: 'center' }}>
                           <input
                             type="checkbox"
                             id={field}
@@ -781,6 +922,7 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                               height: '16px',
                               marginRight: '8px',
                               cursor: 'pointer',
+                              flexShrink: 0,
                             }}
                           />
                           <label htmlFor={field} style={{ cursor: 'pointer', marginBottom: '0' }}>
@@ -800,17 +942,18 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                   <div className="d-flex flex-wrap gap-3">
                     {subject.performanceFields.map((field) => {
                       // Extract performance type from field name
+                      // IMPORTANT: Check 'verywell' before 'well' because 'verywell' contains 'well'
                       let performanceType = ''
                       const fieldLower = field.toLowerCase()
 
-                      if (fieldLower.includes('withdifficulty')) performanceType = 'withdifficulty'
+                      if (fieldLower.includes('verywell')) performanceType = 'verywell'
+                      else if (fieldLower.includes('withdifficulty')) performanceType = 'withdifficulty'
                       else if (fieldLower.includes('well')) performanceType = 'well'
-                      else if (fieldLower.includes('verywell')) performanceType = 'verywell'
 
                       const label = performanceLabels[performanceType] || field
 
                       return (
-                        <div key={field} className="me-3">
+                        <div key={field} className="me-3" style={{ display: 'inline-flex', alignItems: 'center' }}>
                           <input
                             type="checkbox"
                             id={field}
@@ -822,6 +965,7 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                               height: '16px',
                               marginRight: '8px',
                               cursor: 'pointer',
+                              flexShrink: 0,
                             }}
                           />
                           <label htmlFor={field} style={{ cursor: 'pointer', marginBottom: '0' }}>
@@ -834,54 +978,36 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                 </CCol>
               )}
             </CRow>
+
+            {/* Sans2 field for subject comments */}
+            {subject.sans2Field && (
+              <CRow className="mt-3">
+                <CCol md={12}>
+                  <div className="mb-3">
+                    <CFormLabel htmlFor={subject.sans2Field}>
+                      <CIcon icon={cilLightbulb} className="me-2" />
+                      Comments for {subject.name}
+                    </CFormLabel>
+                    <AICommentField
+                      name={subject.sans2Field}
+                      value={formData[subject.sans2Field] || ''}
+                      onChange={handleInputChange}
+                      placeholder={`Add comments for ${subject.name.toLowerCase()}...`}
+                      rows={3}
+                      isGenerating={false}
+                      onGenerate={() => {}}
+                      maxLength={500}
+                      formData={formData}
+                      onFormDataChange={onFormDataChange}
+                    />
+                  </div>
+                </CCol>
+              </CRow>
+            )}
           </CCardBody>
         </CCard>
       ))}
 
-      {/* Additional Comments for Subject Areas */}
-      <CRow className="mt-4">
-        <CCol md={12}>
-          <div className="mb-3">
-            <CFormLabel htmlFor="strengthsAndNextStepsForImprovements2">
-              <CIcon icon={cilLightbulb} className="me-2" />
-              Additional Comments for Subject Areas
-            </CFormLabel>
-            <CFormTextarea
-              id="strengthsAndNextStepsForImprovements2"
-              name="strengthsAndNextStepsForImprovements2"
-              value={formData.strengthsAndNextStepsForImprovements2 || ''}
-              onChange={handleInputChange}
-              placeholder="Provide additional comments about the student's performance across subject areas..."
-              rows={4}
-            />
-            <div className="form-text">
-              Optional comments about the student's overall academic performance and areas for
-              improvement. Maximum 500 characters.
-            </div>
-            <small className="text-muted">
-              {(formData.strengthsAndNextStepsForImprovements2 || '').length} / 500 characters
-            </small>
-          </div>
-
-          {/* AI Generation for Subject Areas */}
-          <AIReportCommentInput
-            label="Generate Subject Area Comments"
-            formData={{
-              student_name: formData.student,
-              grade: formData.grade,
-              subject: 'All Subjects',
-            }}
-            handleChange={(field, value) => {
-              // Map AI output to the actual form field
-              if (field === 'teacher_comments' || field === 'strengths_next_steps') {
-                onFormDataChange({ ...formData, strengthsAndNextStepsForImprovements2: value })
-              }
-            }}
-            buttonText="Generate Subject Comments"
-            explicitReportType="Elementary 1-6 Progress Report"
-          />
-        </CCol>
-      </CRow>
     </div>
   )
 }
@@ -892,112 +1018,56 @@ SubjectAreasSection.propTypes = {
 }
 
 /**
- * Comments & Signatures Section
- * Matches the Kindergarten report card structure exactly
+ * Signatures Section
+ * Contains signature pads for the teacher and principal.
  */
-const CommentsSignaturesSection = ({ formData, onFormDataChange }) => {
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    onFormDataChange({
-      ...formData,
-      [name]: value,
-    })
+const SignatureSection = ({ formData, onFormDataChange }) => {
+  const handleTeacherSignatureChange = (signatureData) => {
+    onFormDataChange({ ...formData, teacherSignature: signatureData })
+  }
+
+  const handlePrincipalSignatureChange = (signatureData) => {
+    onFormDataChange({ ...formData, principalSignature: signatureData })
   }
 
   return (
-    <div>
-      <div className="mb-4">
-        <p className="text-muted">
-          This section contains final comments and signatures for the report card.
+    <CCard className="mb-4 shadow-sm">
+      <CCardHeader style={{ backgroundColor: '#6f42c1', color: 'white' }}>
+        <div className="d-flex align-items-center">
+          <CIcon icon={cilPencil} className="me-2" />
+          <h5 className="mb-0">Signatures</h5>
+        </div>
+      </CCardHeader>
+      <CCardBody className="p-4">
+        <p>
+          To Parents/Guardians: This copy of the Grades 1-6 Progress Report should be retained for
+          reference...
         </p>
-      </div>
-
-      {/* Additional Comments */}
-      <CRow className="mb-4">
-        <CCol md={12}>
-          <div className="mb-3">
-            <CFormLabel htmlFor="strengthsAndNextStepsForImprovements2">
-              <CIcon icon={cilLightbulb} className="me-2" />
-              Additional Comments
-            </CFormLabel>
-            <CFormTextarea
-              id="strengthsAndNextStepsForImprovements2"
-              name="strengthsAndNextStepsForImprovements2"
-              value={formData.strengthsAndNextStepsForImprovements2 || ''}
-              onChange={handleInputChange}
-              placeholder="Provide any additional comments about the student's progress, achievements, or areas for improvement..."
-              rows={4}
+        <CRow>
+          <CCol md={6}>
+            <SignaturePad
+              title="Teacher's Signature"
+              onSignatureChange={handleTeacherSignatureChange}
             />
-            <div className="form-text">
-              Optional additional comments about the student's overall progress and achievements.
-            </div>
-
-            {/* AI Generation for Additional Comments */}
-            <AIReportCommentInput
-              label="Generate Additional Comments"
-              formData={{
-                student_name: formData.student,
-                grade: formData.grade,
-                subject: 'Overall Progress',
-              }}
-              handleChange={(field, value) => {
-                // Map AI output to the actual form field
-                if (field === 'teacher_comments' || field === 'strengths_next_steps') {
-                  onFormDataChange({ ...formData, strengthsAndNextStepsForImprovements2: value })
-                }
-              }}
-              buttonText="Generate Additional Comments"
-              explicitReportType="Elementary 1-6 Progress Report"
+          </CCol>
+          <CCol md={6}>
+            <SignaturePad
+              title="Principal's Signature"
+              onSignatureChange={handlePrincipalSignatureChange}
             />
-          </div>
-        </CCol>
-      </CRow>
-
-      {/* Signatures - Exact same as Kindergarten */}
-      <CCard className="mb-4 shadow-sm">
-        <CCardHeader style={{ backgroundColor: '#6f42c1', color: 'white' }}>
-          <div className="d-flex align-items-center">
-            <CIcon icon={cilPencil} className="me-2" />
-            <h5 className="mb-0">Signatures</h5>
-          </div>
-        </CCardHeader>
-        <CCardBody className="p-4">
-          <p>
-            To Parents/Guardians: This copy of the Grades 1-6 Progress Report should be retained for
-            reference...
-          </p>
-          <CRow>
-            <CCol md={6}>
-              <SignaturePad
-                title="Teacher's Signature"
-                onSignatureChange={(value) => {
-                  console.log('Teacher signature changed:', value)
-                  onFormDataChange({ ...formData, teachersignature: value })
-                }}
-              />
-            </CCol>
-            <CCol md={6}>
-              <SignaturePad
-                title="Principal's Signature"
-                onSignatureChange={(value) => {
-                  console.log('Principal signature changed:', value)
-                  onFormDataChange({ ...formData, principalsignature: value })
-                }}
-              />
-            </CCol>
-          </CRow>
-          <hr className="my-4" />
-          <p>
-            This report card reflects the student's progress and achievements during this reporting
-            period.
-          </p>
-        </CCardBody>
-      </CCard>
-    </div>
+          </CCol>
+        </CRow>
+        <hr className="my-4" />
+        <p>
+          This report card reflects the student's progress and achievements during this reporting
+          period.
+        </p>
+      </CCardBody>
+    </CCard>
   )
 }
 
-CommentsSignaturesSection.propTypes = {
+SignatureSection.propTypes = {
   formData: PropTypes.object.isRequired,
   onFormDataChange: PropTypes.func.isRequired,
 }
@@ -1047,6 +1117,35 @@ const Elementary1to6ProgressUI = ({
 
   return (
     <div className="modern-report-card-form">
+      <style>
+        {`
+          .ai-button-minimal .ai-input-container {
+            margin-bottom: 0 !important;
+          }
+          .ai-button-minimal .ai-input-container button {
+            background: none !important;
+            border: none !important;
+            color: #6c757d !important;
+            padding: 4px !important;
+            min-width: auto !important;
+            width: auto !important;
+            height: auto !important;
+          }
+          .ai-button-minimal .ai-input-container button:hover {
+            color: #0d6efd !important;
+            background: none !important;
+          }
+          .ai-button-minimal .ai-input-container button:disabled {
+            color: #adb5bd !important;
+          }
+          .ai-button-minimal label {
+            display: none !important;
+          }
+          .ai-button-minimal small {
+            display: none !important;
+          }
+        `}
+      </style>
       <CForm>
         {error && (
           <CAlert color="danger" className="mb-4">
@@ -1069,6 +1168,7 @@ const Elementary1to6ProgressUI = ({
                   saveMessage={saveMessage}
                   disabled={!selectedStudent || !selectedReportCard}
                   className="ms-auto"
+                  asLink={true}
                 />
               </div>
             </CAccordionHeader>
@@ -1087,6 +1187,7 @@ const Elementary1to6ProgressUI = ({
                   saveMessage={saveMessage}
                   disabled={!selectedStudent || !selectedReportCard}
                   className="ms-auto"
+                  asLink={true}
                 />
               </div>
             </CAccordionHeader>
@@ -1105,6 +1206,7 @@ const Elementary1to6ProgressUI = ({
                   saveMessage={saveMessage}
                   disabled={!selectedStudent || !selectedReportCard}
                   className="ms-auto"
+                  asLink={true}
                 />
               </div>
             </CAccordionHeader>
@@ -1123,11 +1225,12 @@ const Elementary1to6ProgressUI = ({
                   saveMessage={saveMessage}
                   disabled={!selectedStudent || !selectedReportCard}
                   className="ms-auto"
+                  asLink={true}
                 />
               </div>
             </CAccordionHeader>
             <CAccordionBody>
-              <CommentsSignaturesSection formData={formData} onFormDataChange={onFormDataChange} />
+              <SignatureSection formData={formData} onFormDataChange={onFormDataChange} />
             </CAccordionBody>
           </CAccordionItem>
         </CAccordion>

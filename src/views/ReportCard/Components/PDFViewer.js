@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+                                                                                                                                                                                                                                                                                                                                      import React, { useState, useEffect, useRef, useCallback } from 'react'
 import * as pdfjsLib from 'pdfjs-dist'
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min?url'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
@@ -33,6 +33,7 @@ const PDFViewer = React.memo(
     const retryTimeoutRef = useRef(null)
     const fillPdfTimeoutRef = useRef(null)
     const latestFormData = useRef(formData)
+    const latestPageNumber = useRef(pageNumber) // Track current page number for fill operations
     const externalBlobUrlRef = useRef(null) // Track blob URLs created for external PDFs
 
     // Auto-retry configuration
@@ -43,6 +44,11 @@ const PDFViewer = React.memo(
     useEffect(() => {
       latestFormData.current = formData
     }, [formData])
+
+    // Keep the latest page number in a ref for fill operations
+    useEffect(() => {
+      latestPageNumber.current = pageNumber
+    }, [pageNumber])
 
     // Auto-retry configuration
     useEffect(() => {
@@ -63,7 +69,7 @@ const PDFViewer = React.memo(
       if (pdfDocument && canvasRef.current) {
         renderPage()
       }
-    }, [pageNumber, scale, pdfDocument])
+    }, [pageNumber, scale, pdfDocument, filledPdfUrl])
 
     // Debounced effect to update PDF with form data
     useEffect(() => {
@@ -117,7 +123,7 @@ const PDFViewer = React.memo(
       return url && (url.startsWith('blob:') || url.startsWith('http') || url.startsWith('/'))
     }
 
-    const loadPDF = async (urlOverride = null, isAutoRetry = false) => {
+    const loadPDF = async (urlOverride = null, isAutoRetry = false, preservePageNumber = false, explicitPageNumber = null) => {
       try {
         setLoading(true)
         if (!isAutoRetry) {
@@ -126,6 +132,10 @@ const PDFViewer = React.memo(
         } else {
           setIsRetrying(true)
         }
+
+        // Preserve current page number if requested (for PDF updates after filling)
+        // Use explicit page number if provided, otherwise use current state or default to 1
+        const currentPage = explicitPageNumber !== null ? explicitPageNumber : (preservePageNumber ? latestPageNumber.current : 1)
 
         const urlToLoad = urlOverride || filledPdfUrl || pdfUrl
         if (!isValidUrl(urlToLoad)) {
@@ -139,12 +149,24 @@ const PDFViewer = React.memo(
         // Skip HEAD validation for external URLs (Firebase Storage, etc.) as they may not support HEAD requests
         // Only validate local paths (starting with '/')
         const isLocalPath = urlToLoad.startsWith('/')
+        
+        // Add cache-busting for local PDFs to ensure we get the latest version
+        let finalUrlToLoad = urlToLoad
+        if (isLocalPath && !urlToLoad.includes('blob:') && !urlToLoad.includes('?v=')) {
+          const cacheBuster = `?v=${Date.now()}`
+          finalUrlToLoad = `${urlToLoad}${cacheBuster}`
+          console.log('PDFViewer: Added cache-busting to PDF URL:', finalUrlToLoad)
+        }
+        
         if (!urlOverride && !filledPdfUrl && isLocalPath) {
           // This is the initial load of a local PDF template - validate the path first
           try {
-            const pathCheckResponse = await fetch(urlToLoad, { method: 'HEAD' })
+            const pathCheckResponse = await fetch(finalUrlToLoad, { 
+              method: 'HEAD',
+              cache: 'no-store' // Force fresh check
+            })
             if (!pathCheckResponse.ok) {
-              console.error('PDFViewer: PDF not found at path:', urlToLoad)
+              console.error('PDFViewer: PDF not found at path:', finalUrlToLoad)
               setLoading(false)
               setError(`PDF template not found. Please check if the file exists at: ${urlToLoad}`)
               return
@@ -157,10 +179,10 @@ const PDFViewer = React.memo(
           }
         } else if (!urlOverride && !filledPdfUrl && !isLocalPath) {
           // For external URLs (like Firebase Storage), skip HEAD validation and go straight to loading
-          console.log('PDFViewer: Skipping HEAD validation for external URL:', urlToLoad)
+          console.log('PDFViewer: Skipping HEAD validation for external URL:', finalUrlToLoad)
         }
 
-        console.log('PDFViewer: Loading PDF from:', urlToLoad)
+        console.log('PDFViewer: Loading PDF from:', finalUrlToLoad)
 
         // For external URLs (Firebase Storage), fetch as blob first to avoid CORS issues
         // Clean up any previous blob URL
@@ -169,14 +191,15 @@ const PDFViewer = React.memo(
           externalBlobUrlRef.current = null
         }
 
-        let pdfUrlToLoad = urlToLoad
-        if (!isLocalPath && !urlToLoad.startsWith('blob:')) {
+        let pdfUrlToLoad = finalUrlToLoad
+        if (!isLocalPath && !finalUrlToLoad.startsWith('blob:')) {
           try {
             console.log('PDFViewer: Fetching external PDF as blob to avoid CORS issues...')
-            const response = await fetch(urlToLoad, {
+            const response = await fetch(finalUrlToLoad, {
               method: 'GET',
               mode: 'cors',
               credentials: 'omit',
+              cache: 'no-store', // Force fresh fetch
             })
             
             if (!response.ok) {
@@ -191,7 +214,7 @@ const PDFViewer = React.memo(
             console.error('PDFViewer: Error fetching PDF as blob:', fetchError)
             // Fall back to direct loading if blob fetch fails
             console.log('PDFViewer: Falling back to direct URL loading')
-            pdfUrlToLoad = urlToLoad
+            pdfUrlToLoad = finalUrlToLoad
           }
         }
 
@@ -199,6 +222,8 @@ const PDFViewer = React.memo(
           url: pdfUrlToLoad,
           httpHeaders: {},
           withCredentials: false,
+          disableAutoFetch: false,
+          disableStream: false,
         })
         const pdf = await loadingTask.promise
 
@@ -206,7 +231,10 @@ const PDFViewer = React.memo(
 
         setPdfDocument(pdf)
         setNumPages(pdf.numPages)
-        setPageNumber(1)
+        // Preserve page number if requested, otherwise reset to 1
+        // Also ensure the page number doesn't exceed the number of pages
+        const targetPage = preservePageNumber ? Math.min(currentPage, pdf.numPages) : 1
+        setPageNumber(targetPage)
         setLoading(false)
         setError(null)
         setRetryCount(0) // Reset retry count on success
@@ -292,8 +320,11 @@ const PDFViewer = React.memo(
       debounce(async () => {
         // Use the most up-to-date form data from the ref
         const currentFormData = latestFormData.current
+        // Capture current page number at the start of fill operation to preserve user's position
+        const currentPageWhenFilling = latestPageNumber.current
 
         console.log('PDFViewer: Starting to fill PDF with form data:', currentFormData)
+        console.log('PDFViewer: Current page when filling:', currentPageWhenFilling)
         console.log('PDFViewer: Signature fields in form data:', {
           teachersignature: currentFormData.teachersignature,
           principalsignature: currentFormData.principalsignature,
@@ -317,8 +348,15 @@ const PDFViewer = React.memo(
 
           console.log(`PDFViewer: Filling PDF with ${formDataKeys.length} form fields`)
 
-          // Fetch the original PDF
-          const response = await fetch(pdfUrl)
+          // Fetch the original PDF with cache-busting to ensure we get the latest version
+          const cacheBuster = `?v=${Date.now()}`
+          const pdfUrlWithCacheBust = pdfUrl.includes('?') 
+            ? `${pdfUrl}&${cacheBuster.replace('?', '&')}` 
+            : `${pdfUrl}${cacheBuster}`
+          console.log('PDFViewer: Fetching PDF with cache-busting:', pdfUrlWithCacheBust)
+          const response = await fetch(pdfUrlWithCacheBust, {
+            cache: 'no-store', // Force fresh fetch
+          })
           if (!response.ok) {
             throw new Error('Failed to fetch PDF file')
           }
@@ -330,8 +368,28 @@ const PDFViewer = React.memo(
           const form = pdfDoc.getForm()
           const fields = form.getFields()
 
-          // Embed the "Dancing Script" font for any potential text operations, though we prefer stamping images
-          // This is a fallback and good practice.
+          // Debug: Log all PDF field names to help identify sans2 fields
+          const allPdfFieldNames = fields.map(f => f.getName())
+          const sansFields = allPdfFieldNames.filter(name => name.toLowerCase().includes('sans'))
+          if (sansFields.length > 0) {
+            console.log('PDFViewer: Found PDF fields with "sans" in name:', sansFields)
+          } else {
+            console.warn('PDFViewer: ⚠️ No PDF fields found with "sans" in name. All field names:', allPdfFieldNames)
+            // Also check for fields that might be related to comments/learning skills
+            const commentFields = allPdfFieldNames.filter(name => 
+              name.toLowerCase().includes('responsibility') || 
+              name.toLowerCase().includes('organization') ||
+              name.toLowerCase().includes('collaboration') ||
+              name.toLowerCase().includes('initiative') ||
+              name.toLowerCase().includes('independent') ||
+              name.toLowerCase().includes('regulation')
+            )
+            if (commentFields.length > 0) {
+              console.log('PDFViewer: Found potential comment fields:', commentFields)
+            }
+          }
+
+          // Embed the "Dancing Script" font for signatures (48px)
           let dancingScriptFont
           try {
             const fontBytes = await fetch('/fonts/DancingScript-Bold.ttf').then((res) =>
@@ -345,16 +403,71 @@ const PDFViewer = React.memo(
             dancingScriptFont = await pdfDoc.embedFont(StandardFonts.Helvetica)
           }
 
+          // Embed Times Roman font for regular text fields (10pt)
+          let timesRomanFont
+          try {
+            // Try to load Times New Roman from fonts folder, fallback to standard TimesRoman
+            const timesFontBytes = await fetch('/fonts/TimesNewRoman.ttf').then((res) =>
+              res.arrayBuffer(),
+            ).catch(() => null)
+            if (timesFontBytes) {
+              timesRomanFont = await pdfDoc.embedFont(timesFontBytes)
+            } else {
+              timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman)
+            }
+          } catch (e) {
+            // Fallback to standard TimesRoman font
+            timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman)
+          }
+
           // Track filling statistics
           let filledCount = 0
           let matchedFields = []
           let unmatchedFormData = []
           let lastFilledFieldPage = null
 
+          // Log all form data keys for debugging
+          console.log('PDFViewer: 📋 All form data keys:', Object.keys(currentFormData))
+          console.log('PDFViewer: 📋 Form data keys with values:', Object.entries(currentFormData)
+            .filter(([k, v]) => v !== null && v !== undefined && v !== '')
+            .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v).substring(0, 50) : String(v).substring(0, 50)}`)
+          )
+
           // Fill fields based on form data
           for (const [formKey, value] of Object.entries(currentFormData)) {
             // Skip empty values but allow false for checkboxes
-            if (value === null || value === undefined || value === '') continue
+            // Also allow 0 for numeric fields
+            if (value === null || value === undefined || value === '') {
+              // Log what we're skipping for important fields
+              if (formKey.includes('responsibiity') || formKey.includes('organization') || 
+                  formKey.includes('independentWork') || formKey.includes('collaboration') ||
+                  formKey.includes('initiative') || formKey.includes('selfRegulation') ||
+                  formKey.startsWith('sans') || formKey.startsWith('sans2') ||
+                  formKey.includes('ESL') || formKey.includes('IEP') || formKey.includes('VeryWell') ||
+                  formKey.includes('Well') || formKey.includes('WithDifficulty')) {
+                console.log(`PDFViewer: ⏭️ Skipping empty field "${formKey}" (value: ${value})`)
+              }
+              continue
+            }
+            
+            // Skip fields that should not be filled (board designated space)
+            if (formKey === 'boardInfo' || formKey === 'boardinfo') {
+              console.log(`PDFViewer: ⏭️ Skipping boardInfo field - designated for board use only`)
+              continue
+            }
+            
+            // Log important fields being processed
+            if (formKey.includes('responsibiity') || formKey.includes('organization') || 
+                formKey.includes('independentWork') || formKey.includes('collaboration') ||
+                formKey.includes('initiative') || formKey.includes('selfRegulation') ||
+                formKey.startsWith('sans') || formKey.startsWith('sans2')) {
+              console.log(`PDFViewer: 🔵 Processing important field "${formKey}" with value:`, value, `(type: ${typeof value})`)
+            }
+
+            // Debug logging for sans2 fields
+            if (formKey.startsWith('sans2') || formKey.startsWith('sans')) {
+              console.log(`PDFViewer: Processing ${formKey} field with value:`, value)
+            }
 
             // Process grade field to extract just the number (e.g., "grade 8" -> "8")
             let processedValue = value
@@ -509,11 +622,16 @@ const PDFViewer = React.memo(
             // Try to find matching PDF field by various name patterns
             const possibleFieldNames = generateFieldNameVariations(formKey)
 
+            // Enhanced debug logging for ALL fields
+            console.log(`PDFViewer: 🔍 Processing formKey "${formKey}" with value:`, processedValue, `(type: ${typeof processedValue})`)
+            console.log(`PDFViewer: Trying ${possibleFieldNames.length} variations:`, possibleFieldNames.slice(0, 5), '...')
+
             for (const fieldName of possibleFieldNames) {
               try {
                 const field = form.getFieldMaybe(fieldName)
                 if (field) {
-                  const success = fillPDFField(field, processedValue)
+                  console.log(`PDFViewer: ✅ Found PDF field "${fieldName}" for formKey "${formKey}"`)
+                  const success = fillPDFField(field, processedValue, timesRomanFont, 10)
                   if (success) {
                     filledCount++
 
@@ -529,6 +647,7 @@ const PDFViewer = React.memo(
 
                       if (fieldPages.length > 0) {
                         lastFilledFieldPage = fieldPages[0]
+                        console.log(`PDFViewer: Field "${formKey}" is on page ${lastFilledFieldPage}`)
                       }
                     } catch (pageError) {
                       // Silently handle page detection errors
@@ -542,21 +661,83 @@ const PDFViewer = React.memo(
                       page: lastFilledFieldPage,
                     })
                     fieldFilled = true
+                    console.log(`PDFViewer: ✅ Successfully filled "${formKey}" -> "${fieldName}"`)
                     break
+                  } else {
+                    console.warn(`PDFViewer: ⚠️ Field "${fieldName}" found but fillPDFField returned false for "${formKey}"`)
                   }
                 }
               } catch (error) {
-                console.warn(`PDFViewer: Error trying field ${fieldName}:`, error.message)
+                console.warn(`PDFViewer: Error trying field ${fieldName} for ${formKey}:`, error.message)
+              }
+            }
+
+            // If exact match failed, try fuzzy matching for sans fields
+            if (!fieldFilled && (formKey.startsWith('sans2') || formKey.startsWith('sans'))) {
+              const formKeyLower = formKey.toLowerCase().replace(/[^a-z0-9]/g, '')
+              // Search through all fields for a partial match
+              for (const pdfField of fields) {
+                try {
+                  const pdfFieldName = pdfField.getName()
+                  const pdfFieldNameLower = pdfFieldName.toLowerCase().replace(/[^a-z0-9]/g, '')
+                  
+                  // Check if the field name contains the form key (without special chars)
+                  if (pdfFieldNameLower.includes(formKeyLower) || formKeyLower.includes(pdfFieldNameLower)) {
+                    console.log(`PDFViewer: 🔍 Found fuzzy match: "${formKey}" -> "${pdfFieldName}"`)
+                    const success = fillPDFField(pdfField, processedValue, timesRomanFont, 10)
+                    if (success) {
+                      filledCount++
+                      matchedFields.push({
+                        formKey,
+                        pdfField: pdfFieldName,
+                        value: value.toString(),
+                        type: pdfField.constructor.name,
+                        page: lastFilledFieldPage,
+                        matchType: 'fuzzy'
+                      })
+                      fieldFilled = true
+                      break
+                    }
+                  }
+                } catch (error) {
+                  // Continue searching
+                }
               }
             }
 
             if (!fieldFilled) {
               unmatchedFormData.push(formKey)
+              console.warn(`PDFViewer: ❌ Could not find PDF field for formKey "${formKey}" (value: ${processedValue})`)
+              // Log what fields DO exist that might be similar
+              const similarFields = allPdfFieldNames.filter(name => 
+                name.toLowerCase().includes(formKey.toLowerCase().substring(0, 4)) ||
+                formKey.toLowerCase().includes(name.toLowerCase().substring(0, 4))
+              )
+              if (similarFields.length > 0 && similarFields.length < 10) {
+                console.warn(`PDFViewer: Similar fields found:`, similarFields)
+              }
             }
           }
 
           console.log(`PDFViewer: Successfully filled ${filledCount}/${formDataKeys.length} fields`)
-
+          
+          // Log summary of matched and unmatched fields for debugging
+          if (matchedFields.length > 0) {
+            console.log(`PDFViewer: ✅ Matched ${matchedFields.length} fields:`, matchedFields.map(f => `${f.formKey} -> ${f.pdfField}`).slice(0, 20))
+          }
+          if (unmatchedFormData.length > 0) {
+            console.error(`PDFViewer: ❌ Unmatched form data keys (${unmatchedFormData.length}/${formDataKeys.length}):`, unmatchedFormData.slice(0, 30))
+            // Specifically log sans2 fields that weren't matched
+            const unmatchedSans = unmatchedFormData.filter(key => key.startsWith('sans2') || key.startsWith('sans'))
+            if (unmatchedSans.length > 0) {
+              console.error('PDFViewer: ❌ Unmatched sans/sans2 fields:', unmatchedSans)
+            }
+            // Log all available PDF field names for comparison
+            console.log('PDFViewer: 📋 All available PDF field names:', allPdfFieldNames)
+          } else {
+            console.log('PDFViewer: ✅ All fields matched successfully!')
+          }
+{/*}
           // Add TLA logo to the "Board Logo" area in the top right
           try {
             const logoResponse = await fetch('/assets/brand/TLA_logo_simple.svg')
@@ -630,14 +811,15 @@ const PDFViewer = React.memo(
           } catch (logoError) {
             console.warn('Could not add TLA logo:', logoError)
           }
-
+        */}
           // Only log unmatched fields if there are many unmatched
           if (unmatchedFormData.length > 5) {
             console.warn(`PDFViewer: Unmatched form data keys:`, unmatchedFormData)
           }
 
-          // Update field appearances to ensure checkboxes are visible
+          // Update field appearances to ensure all fields are visible
           try {
+            // First, update all field appearances using the form method
             if (form.updateFieldAppearances) {
               form.updateFieldAppearances()
               console.log('PDFViewer: ✅ Successfully updated field appearances')
@@ -645,42 +827,57 @@ const PDFViewer = React.memo(
               console.warn('PDFViewer: updateFieldAppearances method not available')
             }
 
-            // Force checkbox appearances more aggressively
+            // Force appearances for all fields (text fields and checkboxes)
             const allFields = form.getFields()
             for (const field of allFields) {
-              if (
-                field.constructor.name === 'PDFCheckBox' ||
-                field.constructor.name === 'PDFCheckBox2'
-              ) {
-                try {
-                  const widgets = field.acroField.getWidgets()
-                  if (widgets.length > 0) {
-                    const widget = widgets[0]
-                    const ap = widget.getAP()
-                    if (ap) {
-                      // Force the appearance to update
-                      widget.setAP(ap)
-
-                      // Also try to set the field value to trigger appearance
-                      const currentValue = field.acroField.getValue()
-                      if (currentValue === 'Yes' || currentValue === true) {
-                        field.acroField.setValue('Yes')
-                        field.acroField.setExportValue('Yes')
-                      } else {
-                        field.acroField.setValue('Off')
-                        field.acroField.setExportValue('Off')
+              try {
+                const fieldType = field.constructor.name
+                const widgets = field.acroField.getWidgets()
+                
+                if (widgets.length > 0) {
+                  for (const widget of widgets) {
+                    // Force appearance update for all field types
+                    try {
+                      // Get the current appearance
+                      const ap = widget.getAP()
+                      if (ap) {
+                        // Force the appearance to update
+                        widget.setAP(ap)
                       }
+                      
+                      // For text fields, ensure the text is visible
+                      if (fieldType === 'PDFTextField') {
+                        const fieldValue = field.getText()
+                        if (fieldValue) {
+                          // Force update by setting the text again
+                          field.setText(fieldValue)
+                        }
+                      }
+                      
+                      // For checkboxes, ensure the state is visible
+                      if (fieldType === 'PDFCheckBox' || fieldType === 'PDFCheckBox2') {
+                        const currentValue = field.acroField.getValue()
+                        if (currentValue === 'Yes' || currentValue === true) {
+                          field.acroField.setValue('Yes')
+                          field.acroField.setExportValue('Yes')
+                        } else {
+                          field.acroField.setValue('Off')
+                          field.acroField.setExportValue('Off')
+                        }
+                      }
+                    } catch (widgetError) {
+                      // Silently continue if widget update fails
                     }
                   }
-                } catch (widgetError) {
-                  console.warn(
-                    `PDFViewer: Could not update widget appearance for "${field.getName()}":`,
-                    widgetError,
-                  )
                 }
+              } catch (fieldError) {
+                console.warn(
+                  `PDFViewer: Could not update appearance for "${field.getName()}":`,
+                  fieldError,
+                )
               }
             }
-            console.log('PDFViewer: ✅ Aggressively forced checkbox appearances update')
+            console.log('PDFViewer: ✅ Aggressively forced all field appearances update')
           } catch (appearanceError) {
             console.warn('PDFViewer: Could not update field appearances:', appearanceError)
           }
@@ -705,16 +902,28 @@ const PDFViewer = React.memo(
           const newFilledPdfUrl = URL.createObjectURL(blob)
           setFilledPdfUrl(newFilledPdfUrl)
 
+          // Determine which page to show after reload
+          // Priority: last filled field page > current page when filling started > page 1
+          const targetPage = lastFilledFieldPage || currentPageWhenFilling || 1
+          
+          console.log(`PDFViewer: Reloading PDF. Target page: ${targetPage} (lastFilledFieldPage: ${lastFilledFieldPage}, currentPageWhenFilling: ${currentPageWhenFilling})`)
+          
           // Trigger a re-load of the PDF viewer with the new blob URL
-          await loadPDF(newFilledPdfUrl)
+          // Pass the target page number explicitly to ensure correct page is shown
+          await loadPDF(newFilledPdfUrl, false, true, targetPage)
+          
+          // Force a re-render after a short delay to ensure the PDF document is fully loaded
+          setTimeout(() => {
+            setPageNumber(targetPage)
+            console.log(`PDFViewer: Set page number to ${targetPage} after reload`)
+            // Force re-render by triggering renderPage if pdfDocument is available
+            if (pdfDocument && canvasRef.current) {
+              renderPage()
+            }
+          }, 200)
 
           if (onFilledPdfGenerated) {
             onFilledPdfGenerated(newFilledPdfUrl, filledPdfBytes)
-          }
-
-          // Navigate to the page of the last filled field if available
-          if (lastFilledFieldPage && lastFilledFieldPage !== pageNumber) {
-            setPageNumber(lastFilledFieldPage)
           }
         } catch (error) {
           console.error('PDFViewer: Failed to fill PDF:', error)
@@ -727,6 +936,14 @@ const PDFViewer = React.memo(
     // Generate possible field name variations for a form key
     const generateFieldNameVariations = (formKey) => {
       if (!formKey) return []
+
+      // For 1-6 progress report, ONLY match exact field names (no spelling checks or variations)
+      const is16ProgressReport = pdfUrl && pdfUrl.includes('1-6-edu-elementary-progress')
+      
+      if (is16ProgressReport) {
+        // Only return the exact field name - no variations, no spelling checks
+        return [formKey]
+      }
 
       const variations = [formKey]
 
@@ -755,6 +972,7 @@ const PDFViewer = React.memo(
           'principle',
         ],
         telephone: ['telephone'],
+        boardInfo: ['boardInfo'],
         boardSpace: ['boardSpace'],
 
         // Attendance - Using actual PDF field names
@@ -764,7 +982,7 @@ const PDFViewer = React.memo(
         totalTimesLate: ['totalTimesLate'],
 
         // Learning Skills - Using actual PDF field names
-        responsibility1: ['responsibility1'],
+        responsibility1: ['responsibility1', 'responsibiity1'], // Handle typo in PDF
         responsibility2: ['responsibility2'],
         organization1: ['organization1'],
         organization2: ['organization2'],
@@ -776,6 +994,165 @@ const PDFViewer = React.memo(
         initiative2: ['initiative2'],
         selfRegulation1: ['selfRegulation1'],
         selfRegulation2: ['selfRegulation2'],
+        
+        // Learning Skills Sans fields (comments)
+        sansResponsibility: [
+          'sansResponsibility', 
+          'sansresponsibility',
+          'Sans Responsibility',
+          'sans responsibility',
+          'Sans_Responsibility',
+          'sans_responsibility',
+        ],
+        sansOrganization: [
+          'sansOrganization', 
+          'sansorganization',
+          'Sans Organization',
+          'sans organization',
+          'Sans_Organization',
+          'sans_organization',
+        ],
+        sansIndependentWork: [
+          'sansIndependentWork', 
+          'sansindependentwork',
+          'Sans Independent Work',
+          'sans independent work',
+          'Sans_Independent_Work',
+          'sans_independent_work',
+        ],
+        sansCollaboration: [
+          'sansCollaboration', 
+          'sanscollaboration',
+          'Sans Collaboration',
+          'sans collaboration',
+          'Sans_Collaboration',
+          'sans_collaboration',
+        ],
+        sansInitiative: [
+          'sansInitiative', 
+          'sansinitiative',
+          'Sans Initiative',
+          'sans initiative',
+          'Sans_Initiative',
+          'sans_initiative',
+        ],
+        sansSelfRegulation: [
+          'sansSelfRegulation', 
+          'sansselfregulation',
+          'Sans Self Regulation',
+          'sans self regulation',
+          'Sans_Self_Regulation',
+          'sans_self_regulation',
+        ],
+        
+        // Subject Area Sans2 fields (comments)
+        sans2Language: [
+          'sans2Language', 
+          'sans2language',
+          'Sans2 Language',
+          'sans2 language',
+          'Sans2_Language',
+          'sans2_language',
+        ],
+        sans2French: [
+          'sans2French', 
+          'sans2french',
+          'Sans2 French',
+          'sans2 french',
+          'Sans2_French',
+          'sans2_french',
+        ],
+        sans2NativeLanguage: [
+          'sans2NativeLanguage', 
+          'sans2nativelanguage',
+          'Sans2 Native Language',
+          'sans2 native language',
+          'Sans2_Native_Language',
+          'sans2_native_language',
+        ],
+        sans2Math: [
+          'sans2Math', 
+          'sans2math',
+          'Sans2 Math',
+          'sans2 math',
+          'Sans2_Math',
+          'sans2_math',
+        ],
+        sans2Science: [
+          'sans2Science', 
+          'sans2science',
+          'Sans2 Science',
+          'sans2 science',
+          'Sans2_Science',
+          'sans2_science',
+        ],
+        sans2SocialStudies: [
+          'sans2SocialStudies', 
+          'sans2socialstudies',
+          'Sans2 Social Studies',
+          'sans2 social studies',
+          'Sans2_Social_Studies',
+          'sans2_social_studies',
+        ],
+        sans2HealthEd: [
+          'sans2HealthEd', 
+          'sans2healthed',
+          'Sans2 Health Ed',
+          'sans2 health ed',
+          'Sans2_Health_Ed',
+          'sans2_health_ed',
+        ],
+        sans2PE: [
+          'sans2PE', 
+          'sans2pe',
+          'Sans2 PE',
+          'sans2 pe',
+          'Sans2_PE',
+          'sans2_pe',
+        ],
+        sans2Dance: [
+          'sans2Dance', 
+          'sans2dance',
+          'Sans2 Dance',
+          'sans2 dance',
+          'Sans2_Dance',
+          'sans2_dance',
+        ],
+        sans2Drama: [
+          'sans2Drama', 
+          'sans2drama',
+          'Sans2 Drama',
+          'sans2 drama',
+          'Sans2_Drama',
+          'sans2_drama',
+        ],
+        sans2Music: [
+          'sans2Music', 
+          'sans2music',
+          'Sans2 Music',
+          'sans2 music',
+          'Sans2_Music',
+          'sans2_music',
+        ],
+        sans2VisualArts: [
+          'sans2VisualArts', 
+          'sans2visualarts',
+          'Sans2 Visual Arts',
+          'sans2 visual arts',
+          'Sans2_Visual_Arts',
+          'sans2_visual_arts',
+        ],
+        sans2Other: [
+          'sans2Other', 
+          'sans2other',
+          'Sans2 Other',
+          'sans2 other',
+          'Sans2_Other',
+          'sans2_other',
+        ],
+        
+        // Handle typo variations
+        responsibiity1: ['responsibiity1', 'responsibility1'],
 
         // Comments and Next Steps
         strengthsAndNextStepsForImprovement: ['strengthsAndNextStepsForImprovement'],
@@ -851,6 +1228,7 @@ const PDFViewer = React.memo(
 
         // Other - Using actual PDF field names
         other: ['other'],
+        otherSubjectName: ['other'], // Map otherSubjectName to the PDF field 'other'
         otherStrengthAndNextStepsForImprovement: ['otherStrengthAndNextStepsForImprovement'],
         otherMarkReport1: ['otherMarkReport1'],
         otherMarkReport2: ['otherMarkReport2'],
@@ -1132,6 +1510,21 @@ const PDFViewer = React.memo(
         boardspace: ['boardSpace', 'strengthsAndNextStepsForImprovements2'], // lowercase version
         BoardSpace: ['boardSpace', 'strengthsAndNextStepsForImprovements2'],
         BOARDSPACE: ['boardSpace', 'strengthsAndNextStepsForImprovements2'],
+        
+        // Subject Area Sans2 fields (comments)
+        sans2Language: ['sans2Language'],
+        sans2French: ['sans2French'],
+        sans2NativeLanguage: ['sans2NativeLanguage'],
+        sans2Math: ['sans2Math'],
+        sans2Science: ['sans2Science'],
+        sans2SocialStudies: ['sans2SocialStudies'],
+        sans2HealthEd: ['sans2HealthEd'],
+        sans2PE: ['sans2PE'],
+        sans2Dance: ['sans2Dance'],
+        sans2Drama: ['sans2Drama'],
+        sans2Music: ['sans2Music'],
+        sans2VisualArts: ['sans2VisualArts'],
+        sans2Other: ['sans2Other'],
 
         // Checkbox field mappings (camelCase)
         languageESL: ['languageESL', 'Language ESL', 'Language_ESL'],
@@ -1359,7 +1752,7 @@ const PDFViewer = React.memo(
     }
 
     // Fill a specific PDF field with a value
-    const fillPDFField = (field, value) => {
+    const fillPDFField = (field, value, font = null, fontSize = 10) => {
       try {
         const fieldType = field.constructor.name
         const fieldName = field.getName()
@@ -1372,10 +1765,41 @@ const PDFViewer = React.memo(
 
         switch (fieldType) {
           case 'PDFTextField':
+          case 'PDFTextField2': // Add explicit support for PDFTextField2
             const stringValue = value.toString()
             field.setText(stringValue)
+            
+            // Update field appearance with specified font and font size (10pt Times Roman)
+            if (font) {
+              try {
+                // Set default appearance with font size before updating appearances
+                const acroField = field.acroField
+                // Use a simple font reference - pdf-lib will handle the actual reference
+                // The font name will be set when we call updateAppearances
+                acroField.setDefaultAppearance(`/F1 ${fontSize} Tf`)
+                
+                // Update appearances with the font (this will properly reference the font)
+                field.updateAppearances(font)
+                
+                console.log(
+                  `PDFViewer: ✅ Updated text field "${fieldName}" appearance with font size ${fontSize}pt`,
+                )
+              } catch (appearanceError) {
+                console.warn(
+                  `PDFViewer: Could not update appearance for "${fieldName}":`,
+                  appearanceError,
+                )
+                // Try to update appearances without setting default appearance
+                try {
+                  field.updateAppearances(font)
+                } catch (fallbackError) {
+                  console.warn(`PDFViewer: Fallback appearance update also failed for "${fieldName}"`)
+                }
+              }
+            }
+            
             console.log(
-              `PDFViewer: ✅ Successfully filled text field "${fieldName}" with: "${stringValue}"`,
+              `PDFViewer: ✅ Successfully filled text field "${fieldName}" (${fieldType}) with: "${stringValue}"`,
             )
             return true
 
