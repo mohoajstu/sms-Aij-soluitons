@@ -101,8 +101,8 @@ const ParentDashboard = () => {
                 const t = totals.get(sid)
                 t.total += 1
                 if (s.status === 'Present') t.present += 1
-                else if (s.status === 'Late') t.late += 1
-                else if (s.status === 'Absent') t.absent += 1
+                else if (s.status === 'Late' || s.status === 'Excused Late') t.late += 1
+                else if (s.status === 'Absent' || s.status === 'Excused Absent') t.absent += 1
               })
             })
           })

@@ -250,13 +250,15 @@ const AttendanceTable = () => {
         let lateDelta = 0
         let absenceDelta = 0
 
-        const wasLate = prevStatus === 'Late'
-        const isLate = newStatus === 'Late'
+        // Late includes both 'Late' and 'Excused Late'
+        const wasLate = prevStatus === 'Late' || prevStatus === 'Excused Late'
+        const isLate = newStatus === 'Late' || newStatus === 'Excused Late'
         if (!wasLate && isLate) lateDelta += 1
         if (wasLate && !isLate) lateDelta -= 1
 
-        const wasAbsent = prevStatus === 'Absent'
-        const isAbsent = newStatus === 'Absent'
+        // Absent includes both 'Absent' and 'Excused Absent'
+        const wasAbsent = prevStatus === 'Absent' || prevStatus === 'Excused Absent'
+        const isAbsent = newStatus === 'Absent' || newStatus === 'Excused Absent'
         if (!wasAbsent && isAbsent) absenceDelta += 1
         if (wasAbsent && !isAbsent) absenceDelta -= 1
 
@@ -417,18 +419,35 @@ const AttendanceTable = () => {
                       <CButton
                         color="info"
                         variant="outline"
-                        onClick={() => handleAttendanceChange(student, 'Excused')}
+                        onClick={() => handleAttendanceChange(student, 'Excused Late')}
                         style={{
                           width: 110,
                           backgroundColor:
-                            attendanceData[student.id]?.status === 'Excused' ? '#2196f3' : 'white',
+                            attendanceData[student.id]?.status === 'Excused Late' ? '#17a2b8' : 'white',
                           color:
-                            attendanceData[student.id]?.status === 'Excused' ? 'white' : 'black',
-                          border: '1px solid #2196f3',
+                            attendanceData[student.id]?.status === 'Excused Late' ? 'white' : 'black',
+                          border: '1px solid #17a2b8',
                           borderRadius: '6px',
                         }}
                       >
-                        📝 Excused
+                        📝⏳ Exc. Late
+                      </CButton>
+
+                      <CButton
+                        color="secondary"
+                        variant="outline"
+                        onClick={() => handleAttendanceChange(student, 'Excused Absent')}
+                        style={{
+                          width: 110,
+                          backgroundColor:
+                            attendanceData[student.id]?.status === 'Excused Absent' ? '#6c757d' : 'white',
+                          color:
+                            attendanceData[student.id]?.status === 'Excused Absent' ? 'white' : 'black',
+                          border: '1px solid #6c757d',
+                          borderRadius: '6px',
+                        }}
+                      >
+                        📝❌ Exc. Abs.
                       </CButton>
                     </div>
                   </CTableDataCell>
@@ -442,6 +461,10 @@ const AttendanceTable = () => {
                             ? 'warning'
                             : attendanceData[student.id]?.status === 'Absent'
                             ? 'danger'
+                            : attendanceData[student.id]?.status === 'Excused Late'
+                            ? 'info'
+                            : attendanceData[student.id]?.status === 'Excused Absent'
+                            ? 'secondary'
                             : 'primary'
                         }
                       >

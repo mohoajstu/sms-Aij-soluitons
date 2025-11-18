@@ -274,16 +274,23 @@ const ReportCard = ({ presetReportCardId = null }) => {
         custodyDetails: student.custodyDetails || '',
         primaryRole: student.primaryRole || '',
 
-        // School information
-        school: 'Tarbiyah Learning Academy',
-        schoolAddress: '3990 Old Richmond Rd, Nepean, ON K2H 8W3',
-        board: 'Tarbiyah Learning Academy',
-        principal: 'Ghazala Choudhary',
-        telephone: student.phone1 || student.emergencyPhone || '',
-        
-        // Ensure boardSpace is always blank for 1-6 progress report
-        boardSpace: '',
-        boardspace: '',
+          // School information
+          school: 'Tarbiyah Learning Academy',
+          schoolAddress: '3990 Old Richmond Rd, Nepean, ON K2H 8W3',
+          board: 'Private',
+          principal: 'Ghazala Choudhary',
+          telephone: '613 421 1700',
+          
+          // Board Info - Mission Statement
+          boardInfo: 'Tarbiyah Learning recognizes that each child is unique – that all children are creative and need to succeed. Thus, Tarbiyah Learning respects the individual needs of children and fosters a caring and creative environment. Tarbiyah Learning also emphasizes the Islamic, social, and intellectual development of each child.',
+          
+          // Grade 7-8 Subject Names (for Native Language and Other)
+          nativeLanguage: 'Quran and Arabic Studies',
+          other: 'Islamic Studies',
+          
+          // Ensure boardSpace is always blank for 1-6 progress report
+          boardSpace: '',
+          boardspace: '',
       }
       setFormData(newFormData)
     }
@@ -468,9 +475,17 @@ const ReportCard = ({ presetReportCardId = null }) => {
           // School
           school: 'Tarbiyah Learning Academy',
           schoolAddress: '3990 Old Richmond Rd, Nepean, ON K2H 8W3',
-          board: 'Tarbiyah Learning Academy',
+          board: 'Private',
           principal: 'Ghazala Choudhary',
           telephone: '613 421 1700',
+          
+          // Board Info - Mission Statement
+          boardInfo: 'Tarbiyah Learning recognizes that each child is unique – that all children are creative and need to succeed. Thus, Tarbiyah Learning respects the individual needs of children and fosters a caring and creative environment. Tarbiyah Learning also emphasizes the Islamic, social, and intellectual development of each child.',
+          
+          // Grade 7-8 Subject Names (for Native Language and Other)
+          nativeLanguage: 'Quran and Arabic Studies',
+          other: 'Islamic Studies',
+          
           boardSpace: '',
           boardspace: '',
 
@@ -854,6 +869,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
       
       // Other Subject Name Input
       otherSubjectName: ['other'],
+      other: ['other'], // Also map 'other' field directly to 'other' PDF field
 
       // Signature field mappings
       teachersignature: [
@@ -1148,12 +1164,6 @@ const ReportCard = ({ presetReportCardId = null }) => {
       for (const [formKey, value] of Object.entries(formData)) {
         // Skip empty values but allow false for checkboxes
         if (value === null || value === undefined || value === '') continue
-
-        // Skip fields that should not be filled (board designated space)
-        if (formKey === 'boardInfo' || formKey === 'boardinfo') {
-          console.log(`⏭️ Skipping boardInfo field - designated for board use only`)
-          continue
-        }
 
         // Process grade field to extract just the number (e.g., "grade 8" -> "8")
         let processedValue = value

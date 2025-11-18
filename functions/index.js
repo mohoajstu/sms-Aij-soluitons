@@ -207,6 +207,7 @@ exports.sendScheduledSms = functions
       const notifications = {} // Key: studentId, Value: { studentName, issues: [] }
 
       // Step 1: Consolidate all attendance issues for each student
+      // Only notify for unexcused absences and lates
       for (const course of courses) {
         const students = course.students || []
         for (const student of students) {
@@ -571,6 +572,7 @@ exports.triggerAttendanceSms = functions
         const notifications = {}
 
         // Consolidate attendance issues
+        // Only notify for unexcused absences and lates
         for (const course of courses) {
           const students = course.students || []
           for (const student of students) {

@@ -455,12 +455,6 @@ const PDFViewer = React.memo(
               continue
             }
             
-            // Skip fields that should not be filled (board designated space)
-            if (formKey === 'boardInfo' || formKey === 'boardinfo') {
-              console.log(`PDFViewer: ⏭️ Skipping boardInfo field - designated for board use only`)
-              continue
-            }
-            
             // Log important fields being processed (including checkboxes)
             if (formKey.includes('responsibiity') || formKey.includes('organization') || 
                 formKey.includes('independentWork') || formKey.includes('collaboration') ||

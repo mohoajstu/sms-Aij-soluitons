@@ -586,6 +586,27 @@ LearningSkillsSection.propTypes = {
  * Modern form section for subject area assessments with marks
  */
 const SubjectAreasSection = ({ formData, onFormDataChange }) => {
+  // Auto-fill default values for nativeLanguage and other
+  useEffect(() => {
+    const updates = {}
+    
+    // Auto-fill nativeLanguage if empty or undefined
+    if (formData.nativeLanguage === undefined || formData.nativeLanguage === '') {
+      updates.nativeLanguage = 'Quran and Arabic Studies'
+    }
+    
+    // Auto-fill other if empty or undefined
+    if (formData.other === undefined || formData.other === '') {
+      updates.other = 'Islamic Studies'
+    }
+    
+    // Only update if there are changes to make
+    if (Object.keys(updates).length > 0) {
+      onFormDataChange({ ...formData, ...updates })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Only run once on mount to set initial defaults
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
     const newValue = type === 'checkbox' ? checked : value
@@ -826,9 +847,30 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                     <CFormInput
                       id="nativeLanguage"
                       name="nativeLanguage"
-                      value={formData.nativeLanguage || ''}
+                      value={formData.nativeLanguage || 'Quran and Arabic Studies'}
                       onChange={handleInputChange}
                       placeholder="e.g., Spanish, Mandarin, Arabic"
+                    />
+                  </div>
+                </CCol>
+              </CRow>
+            )}
+
+            {/* Other Subject Input - only for Other subject */}
+            {subject.key === 'other' && (
+              <CRow className="mb-3">
+                <CCol md={12}>
+                  <div className="mb-3">
+                    <CFormLabel htmlFor="other">
+                      <CIcon icon={cilBook} className="me-2" />
+                      Specify Subject Name
+                    </CFormLabel>
+                    <CFormInput
+                      id="other"
+                      name="other"
+                      value={formData.other || 'Islamic Studies'}
+                      onChange={handleInputChange}
+                      placeholder="Enter subject name"
                     />
                   </div>
                 </CCol>
