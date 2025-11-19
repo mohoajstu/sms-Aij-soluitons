@@ -34,6 +34,7 @@ import CIcon from '@coreui/icons-react'
 import SignatureCanvas from 'react-signature-canvas'
 import PropTypes from 'prop-types'
 import AIReportCommentInput from '../../../components/AIReportCommentInput'
+import { BOARD_MISSION_STATEMENT } from '../utils'
 
 /**
  * AI-Enhanced Text Area
@@ -286,6 +287,16 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
     }
   }, [teacherName, formData.teacher, onFormDataChange])
 
+  // Auto-populate boardInfo with mission statement if empty
+  useEffect(() => {
+    if (!formData.boardInfo || formData.boardInfo.trim() === '') {
+      onFormDataChange({
+        ...formData,
+        boardInfo: BOARD_MISSION_STATEMENT,
+      })
+    }
+  }, [formData.boardInfo, onFormDataChange])
+
   return (
     <div>
       <CRow>
@@ -403,6 +414,25 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               type="tel"
             />
           </div>
+
+          <div className="mb-3">
+            <CFormLabel htmlFor="boardInfo">
+              <CIcon icon={cilSchool} className="me-2" />
+              Board Information
+            </CFormLabel>
+            <AICommentField
+              name="boardInfo"
+              value={formData.boardInfo || ''}
+              onChange={handleInputChange}
+              placeholder="Enter board information..."
+              rows={3}
+              isGenerating={false}
+              onGenerate={() => {}}
+              maxLength={500}
+              formData={formData}
+              onFormDataChange={onFormDataChange}
+            />
+          </div>
         </CCol>
       </CRow>
 
@@ -508,30 +538,6 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               placeholder="Enter total times late"
               type="number"
               min="0"
-            />
-          </div>
-        </CCol>
-      </CRow>
-
-      {/* Board Information with AI */}
-      <CRow className="mt-3">
-        <CCol md={12}>
-          <div className="mb-3">
-            <CFormLabel htmlFor="boardInfo">
-              <CIcon icon={cilSchool} className="me-2" />
-              Board Information
-            </CFormLabel>
-            <AICommentField
-              name="boardInfo"
-              value={formData.boardInfo || ''}
-              onChange={handleInputChange}
-              placeholder="Enter board information..."
-              rows={3}
-              isGenerating={false}
-              onGenerate={() => {}}
-              maxLength={500}
-              formData={formData}
-              onFormDataChange={onFormDataChange}
             />
           </div>
         </CCol>

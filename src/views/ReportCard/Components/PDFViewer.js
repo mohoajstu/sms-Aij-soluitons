@@ -13,6 +13,8 @@ import {
 } from '@coreui/icons'
 import PropTypes from 'prop-types'
 import { debounce } from 'lodash'
+import { generateFieldNameVariations } from '../fieldMappings'
+import { updateAllFieldAppearances } from '../pdfFillingUtils'
 
 // Set up the worker for PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
@@ -825,90 +827,8 @@ const PDFViewer = React.memo(
           }
 
           // Update field appearances to ensure all fields are visible
-          try {
-            // First, update all field appearances using the form method
-            if (form.updateFieldAppearances) {
-              form.updateFieldAppearances()
-              console.log('PDFViewer: ✅ Successfully updated field appearances')
-            } else {
-              console.warn('PDFViewer: updateFieldAppearances method not available')
-            }
-
-            // Force appearances for all fields (text fields and checkboxes)
-            const allFields = form.getFields()
-            for (const field of allFields) {
-              try {
-                const fieldType = field.constructor.name
-                const widgets = field.acroField.getWidgets()
-                
-                if (widgets.length > 0) {
-                  for (const widget of widgets) {
-                    // Force appearance update for all field types
-                    try {
-                      // Get the current appearance
-                      const ap = widget.getAP()
-                      if (ap) {
-                        // Force the appearance to update
-                        widget.setAP(ap)
-                      }
-                      
-                      // For text fields, ensure the text is visible
-                      if (fieldType === 'PDFTextField') {
-                        const fieldValue = field.getText()
-                        if (fieldValue) {
-                          // Force update by setting the text again
-                          field.setText(fieldValue)
-                        }
-                      }
-                      
-                      // For checkboxes, ensure the state is visible
-                      if (fieldType === 'PDFCheckBox' || fieldType === 'PDFCheckBox2') {
-                        try {
-                          const currentValue = field.acroField.getValue()
-                          const exportValues = field.acroField.getExportValues()
-                          const checkedValue = exportValues && exportValues.length > 0 ? exportValues[0] : 'Yes'
-                          
-                          if (currentValue === checkedValue || currentValue === 'Yes' || currentValue === true) {
-                            // Checkbox is checked - ensure it's set and appearance is updated
-                            field.check()
-                            field.acroField.setValue(checkedValue)
-                            field.acroField.setExportValue(checkedValue)
-                            
-                            // Force appearance update for checked state
-                            if (field.updateAppearances) {
-                              field.updateAppearances()
-                            }
-                          } else {
-                            // Checkbox is unchecked - ensure it's unset
-                            field.uncheck()
-                            field.acroField.setValue('Off')
-                            field.acroField.setExportValue('Off')
-                            
-                            // Force appearance update for unchecked state
-                            if (field.updateAppearances) {
-                              field.updateAppearances()
-                            }
-                          }
-                        } catch (checkboxError) {
-                          console.warn(`PDFViewer: Error updating checkbox appearance for "${field.getName()}":`, checkboxError)
-                        }
-                      }
-                    } catch (widgetError) {
-                      // Silently continue if widget update fails
-                    }
-                  }
-                }
-              } catch (fieldError) {
-                console.warn(
-                  `PDFViewer: Could not update appearance for "${field.getName()}":`,
-                  fieldError,
-                )
-              }
-            }
-            console.log('PDFViewer: ✅ Aggressively forced all field appearances update')
-          } catch (appearanceError) {
-            console.warn('PDFViewer: Could not update field appearances:', appearanceError)
-          }
+          // Using shared utility to ensure identical logic to download
+          await updateAllFieldAppearances(form, pdfDoc, 'PDFViewer')
 
           // Don't flatten the form to preserve checkbox functionality
           console.log(
@@ -961,8 +881,10 @@ const PDFViewer = React.memo(
       [pdfUrl],
     ) // useCallback with debounce and dependencies
 
-    // Generate possible field name variations for a form key
-    const generateFieldNameVariations = (formKey) => {
+    // NOTE: generateFieldNameVariations is now imported from ../fieldMappings.js
+
+    // Fill a specific PDF field with a value - REMOVE OLD FUNCTION
+    const REMOVE_generateFieldNameVariations = (formKey) => {
       if (!formKey) return []
 
       // For progress reports (1-6, 7-8) and initial observation, use exact field names with limited variations
