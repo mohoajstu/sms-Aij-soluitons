@@ -163,10 +163,27 @@ AICommentField.propTypes = {
  * Signature Pad Component
  * Matches the exact implementation from Kindergarten report card
  */
-const SignaturePad = ({ title, onSignatureChange }) => {
+const SignaturePad = ({ title, onSignatureChange, initialValue }) => {
   const [mode, setMode] = useState('typed') // 'typed', 'drawn'
   const [typedName, setTypedName] = useState('')
   const signatureCanvasRef = useRef(null)
+
+  // Initialize from initialValue if provided
+  useEffect(() => {
+    if (initialValue && initialValue.type === 'typed' && initialValue.value) {
+      // Only update if the value is different to avoid unnecessary re-renders
+      if (typedName !== initialValue.value) {
+        setTypedName(initialValue.value)
+        setMode('typed')
+      }
+    } else if (initialValue && initialValue.type === 'drawn' && initialValue.value) {
+      if (mode !== 'drawn') {
+        setMode('drawn')
+      }
+      // For drawn signatures, the value is a data URL that would need to be loaded into canvas
+      // This is handled by the export function, so we just set the mode here
+    }
+  }, [initialValue]) // Only run when initialValue changes
 
   const handleModeChange = (newMode) => {
     setMode(newMode)
@@ -260,6 +277,7 @@ const SignaturePad = ({ title, onSignatureChange }) => {
 SignaturePad.propTypes = {
   title: PropTypes.string.isRequired,
   onSignatureChange: PropTypes.func.isRequired,
+  initialValue: PropTypes.object,
 }
 
 /**
@@ -1069,6 +1087,18 @@ SubjectAreasSection.propTypes = {
  * Matches the exact structure from Elementary 1-6
  */
 const CommentsSignaturesSection = ({ formData, onFormDataChange }) => {
+  // Auto-fill principal signature with "Ghazala Choudhary"
+  useEffect(() => {
+    if (!formData.principalSignature || 
+        !formData.principalSignature.value || 
+        formData.principalSignature.value.trim() === '') {
+      onFormDataChange({
+        ...formData,
+        principalSignature: { type: 'typed', value: 'Ghazala Choudhary' },
+      })
+    }
+  }, [formData.principalSignature, onFormDataChange])
+
   const handleInputChange = (e) => {
     const { name, value } = e.target
     onFormDataChange({
@@ -1117,6 +1147,7 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange }) => {
               <SignaturePad
                 title="Principal's Signature"
                 onSignatureChange={handlePrincipalSignatureChange}
+                initialValue={formData.principalSignature}
               />
             </CCol>
           </CRow>

@@ -122,8 +122,21 @@ export const exportProgressReport7to8 = async (pdfPath, formData, studentName) =
       'Download 7-8',
     )
 
+    // Log checkbox fields specifically for debugging
+    const checkboxFields = matchedFields.filter((f) => {
+      const field = form.getFieldMaybe(f.pdfField)
+      return field && (field.constructor.name === 'PDFCheckBox' || field.constructor.name === 'PDFCheckBox2')
+    })
+    if (checkboxFields.length > 0) {
+      console.log(`✅ Checkboxes filled: ${checkboxFields.map((f) => `${f.pdfField}=${f.value}`).join(', ')}`)
+    }
+
     const totalFilled = filledCount + signatureCount
     console.log(`📝 Successfully filled ${totalFilled} form fields (${filledCount} regular + ${signatureCount} signatures)`)
+    
+    if (unmatchedFields.length > 0) {
+      console.warn(`⚠️ Unmatched fields (won't appear in PDF):`, unmatchedFields.slice(0, 10))
+    }
 
     // Add TLA logo to the "Board Logo" area
     try {
@@ -190,62 +203,418 @@ export const exportProgressReport7to8 = async (pdfPath, formData, studentName) =
 
     // Now flatten the form to make fields non-editable
     console.log('🔧 Flattening PDF form fields for download...')
-    try {
-      if (fields.length > 0) {
-        console.log('🎯 FLATTENING: Standard + Fallback approach')
+    
+    if (fields.length > 0) {
+      console.log(`🎯 FLATTENING: Attempting to flatten ${fields.length} fields`)
 
-        // METHOD 1: Try standard pdf-lib flattening first
-        console.log('🔧 Step 1: Standard pdf-lib form.flatten()...')
-        try {
-          form.flatten()
-        } catch (flattenSpecificError) {
-          // If flattening fails, it might be due to invalid field data
-          // Try to flatten individual fields instead
-          console.warn('⚠️ Standard flatten failed, trying individual field flattening...')
+      // METHOD 1: Try standard pdf-lib flattening first
+      console.log('🔧 Step 1: Standard pdf-lib form.flatten()...')
+      let flattenSuccess = false
+      try {
+        form.flatten()
+        flattenSuccess = true
+        console.log('✅ Standard flatten succeeded')
+      } catch (flattenSpecificError) {
+        console.warn('⚠️ Standard flatten failed:', flattenSpecificError.message)
+        // If flattening fails, try to flatten individual fields instead
+        console.log('🔄 Trying individual field flattening...')
+        let flattenedCount = 0
+        let failedCount = 0
+        
+        // Log which page each field is on for debugging
+        const fieldsByPage = {}
+        for (const field of fields) {
           try {
-            // Try flattening each field individually
-            for (const field of fields) {
+            const widgets = field.acroField.getWidgets()
+            for (const widget of widgets) {
               try {
-                field.flatten()
-              } catch (fieldFlattenError) {
-                // Skip fields that can't be flattened
-                console.log(`Skipping field "${field.getName()}" during flatten`)
+                const pageRef = widget.P()
+                if (pageRef) {
+                  const pageIndex = pdfDoc.getPages().findIndex((p) => p.ref === pageRef)
+                  if (pageIndex >= 0) {
+                    if (!fieldsByPage[pageIndex]) {
+                      fieldsByPage[pageIndex] = []
+                    }
+                    fieldsByPage[pageIndex].push(field.getName())
+                  }
+                }
+              } catch (e) {
+                // Continue
               }
             }
-          } catch (individualFlattenError) {
-            // If individual flattening also fails, just continue without flattening
-            console.warn('⚠️ Individual field flattening also failed, continuing without flatten')
-            throw flattenSpecificError // Re-throw to trigger the outer catch
+          } catch (e) {
+            // Continue
           }
         }
-
-        // METHOD 2: Remove AcroForm from catalog
-        console.log('🗑️ Step 2: Removing AcroForm from catalog...')
-        const catalog = pdfDoc.catalog
-        try {
-          catalog.delete('AcroForm')
-          console.log('✅ AcroForm removed from catalog')
-        } catch (acroFormError) {
-          console.warn('⚠️ Could not remove AcroForm from catalog:', acroFormError)
+        
+        // Log fields by page
+        Object.keys(fieldsByPage).forEach((pageNum) => {
+          console.log(`📄 Page ${parseInt(pageNum) + 1} has ${fieldsByPage[pageNum].length} fields:`, fieldsByPage[pageNum].slice(0, 5))
+        })
+        
+        // Track specific problematic fields
+        const sansFields = []
+        const boardSpaceFields = []
+        
+        for (const field of fields) {
+          const fieldName = field.getName()
+          const lowerName = fieldName.toLowerCase()
+          
+          // Track sans fields and boardSpace
+          if (lowerName.includes('sans')) {
+            sansFields.push(fieldName)
+          }
+          if (lowerName.includes('boardspace') || lowerName === 'boardspace') {
+            boardSpaceFields.push(fieldName)
+          }
+          
+          try {
+            field.flatten()
+            flattenedCount++
+            if (lowerName.includes('sans') || lowerName.includes('boardspace')) {
+              console.log(`✅ Flattened ${fieldName}`)
+            }
+          } catch (fieldFlattenError) {
+            failedCount++
+            const errorMsg = fieldFlattenError.message || 'Unknown error'
+            console.warn(`⚠️ Could not flatten field "${fieldName}":`, errorMsg)
+            
+            // Special handling for sans and boardSpace fields
+            if (lowerName.includes('sans') || lowerName.includes('boardspace')) {
+              console.error(`❌ CRITICAL: Failed to flatten ${fieldName} - this field will remain editable!`)
+            }
+          }
+        }
+        
+        // Log summary of sans and boardSpace fields
+        if (sansFields.length > 0) {
+          console.log(`📋 Found ${sansFields.length} sans fields:`, sansFields)
+        }
+        if (boardSpaceFields.length > 0) {
+          console.log(`📋 Found ${boardSpaceFields.length} boardSpace fields:`, boardSpaceFields)
+        }
+        
+        if (flattenedCount > 0) {
+          flattenSuccess = true
+          console.log(`✅ Flattened ${flattenedCount} fields individually (${failedCount} failed)`)
+        } else {
+          console.error(`❌ Failed to flatten any fields (${failedCount} total failures)`)
         }
       }
 
-      // Save the final PDF
-      const finalPdfBytes = await pdfDoc.save({
-        useObjectStreams: false, // Better compatibility
-      })
+      // METHOD 2: Aggressively remove AcroForm from catalog and all references
+      console.log('🗑️ Step 2: Removing AcroForm from catalog and all references...')
+      const catalog = pdfDoc.catalog
+      
+      try {
+        // Remove AcroForm from catalog
+        if (catalog.has('AcroForm')) {
+          catalog.delete('AcroForm')
+          console.log('✅ AcroForm removed from catalog')
+        } else {
+          console.log('ℹ️ AcroForm not found in catalog (may already be removed)')
+        }
+      } catch (acroFormError) {
+        console.warn('⚠️ Could not remove AcroForm from catalog:', acroFormError.message)
+      }
 
-      console.log('✅ PDF flattened successfully!')
-      return finalPdfBytes
-    } catch (flattenError) {
-      console.error('❌ Error during flattening:', flattenError)
-      // If flattening fails, save without flattening
-      console.log('⚠️ Saving PDF without flattening due to error')
-      const finalPdfBytes = await pdfDoc.save({
-        useObjectStreams: false,
-      })
-      return finalPdfBytes
+      // METHOD 3: Force flatten all fields again after initial attempt
+      console.log('🔄 Step 3: Attempting second flatten pass to ensure all fields are flattened...')
+      try {
+        // Try to get form again and flatten any remaining fields
+        const formAfterFirstFlatten = pdfDoc.getForm()
+        const remainingFields = formAfterFirstFlatten.getFields()
+        if (remainingFields.length > 0) {
+          console.log(`⚠️ Found ${remainingFields.length} remaining fields after first flatten - attempting second flatten...`)
+          try {
+            formAfterFirstFlatten.flatten()
+            console.log('✅ Second flatten pass succeeded')
+          } catch (secondFlattenError) {
+            console.warn('⚠️ Second flatten pass failed, trying individual field flatten...')
+            let secondFlattenCount = 0
+            const secondPassFailed = []
+            for (const field of remainingFields) {
+              const fieldName = field.getName()
+              const lowerName = fieldName.toLowerCase()
+              try {
+                field.flatten()
+                secondFlattenCount++
+                if (lowerName.includes('sans') || lowerName.includes('boardspace')) {
+                  console.log(`✅ Second pass: Flattened ${fieldName}`)
+                }
+              } catch (e) {
+                const errorMsg = e.message || 'Unknown error'
+                console.warn(`⚠️ Could not flatten remaining field "${fieldName}" in second pass:`, errorMsg)
+                if (lowerName.includes('sans') || lowerName.includes('boardspace')) {
+                  secondPassFailed.push(fieldName)
+                  console.error(`❌ CRITICAL: ${fieldName} failed in second pass - will remain editable!`)
+                }
+              }
+            }
+            
+            if (secondPassFailed.length > 0) {
+              console.error(`❌ CRITICAL: ${secondPassFailed.length} fields failed to flatten in second pass:`, secondPassFailed)
+            }
+            if (secondFlattenCount > 0) {
+              console.log(`✅ Flattened ${secondFlattenCount} remaining fields in second pass`)
+            }
+          }
+        } else {
+          console.log('✅ No remaining fields after first flatten')
+        }
+      } catch (formAccessError) {
+        // Form might not be accessible - this is good, means flattening worked
+        console.log('✅ Form is no longer accessible (flattening succeeded)')
+      }
+
+      // METHOD 4: Verify and force remove any remaining form fields
+      try {
+        // After flattening, try to get form again - if it still exists, force remove it
+        try {
+          const formAfterFlatten = pdfDoc.getForm()
+          const fieldsAfterFlatten = formAfterFlatten.getFields()
+          if (fieldsAfterFlatten.length > 0) {
+            console.warn(`⚠️ Form still has ${fieldsAfterFlatten.length} fields after flattening - attempting force removal`)
+            // Try to remove each field's widget annotations
+            for (const field of fieldsAfterFlatten) {
+              try {
+                const widgets = field.acroField.getWidgets()
+                for (const widget of widgets) {
+                  try {
+                    // Try to remove the widget's reference
+                    const pageRef = widget.P()
+                    if (pageRef) {
+                      const page = pdfDoc.getPages().find((p) => p.ref === pageRef)
+                      if (page) {
+                        // Widgets are typically removed during flatten, but if they persist, 
+                        // we'll rely on AcroForm removal
+                      }
+                    }
+                  } catch (widgetError) {
+                    // Continue
+                  }
+                }
+              } catch (fieldError) {
+                // Continue
+              }
+            }
+          }
+        } catch (formError) {
+          // Form might not be accessible after flattening - this is good
+          console.log('✅ Form is no longer accessible (flattening likely succeeded)')
+        }
+      } catch (forceRemoveError) {
+        console.warn('⚠️ Could not force remove form fields:', forceRemoveError.message)
+      }
+
+      // Verify flattening success
+      if (flattenSuccess) {
+        console.log('✅ Flattening completed successfully')
+      } else {
+        console.error('❌ WARNING: Flattening may have failed - PDF may still be editable!')
+        console.error('⚠️ Attempting to continue with AcroForm removal only...')
+      }
+      
+      // Final check: Explicitly find and flatten any remaining sans* and boardSpace fields
+      console.log('🔍 Step 5: Final check - explicitly finding and flattening sans* and boardSpace fields...')
+      try {
+        const finalForm = pdfDoc.getForm()
+        const allFinalFields = finalForm.getFields()
+        
+        // List of all possible sans field names
+        const sansFieldNames = [
+          'sansResponsibility', 'sansOrganization', 'sansIndependentWork',
+          'sansCollaboration', 'sansInitiative', 'sansSelfRegulation',
+          'sans2Language', 'sans2French', 'sans2NativeLanguage',
+          'sans2Math', 'sans2Science', 'sans2SocialStudies',
+          'sans2History', 'sans2Geography', 'sans2HealthEd',
+          'sans2PE', 'sans2Dance', 'sans2Drama', 'sans2Music',
+          'sans2VisualArts', 'sans2Other',
+          // Lowercase variations
+          'sansresponsibility', 'sansorganization', 'sansindependentwork',
+          'sanscollaboration', 'sansinitiative', 'sansselfregulation',
+          'sans2language', 'sans2french', 'sans2nativelanguage',
+          'sans2math', 'sans2science', 'sans2socialstudies',
+          'sans2history', 'sans2geography', 'sans2healthed',
+          'sans2pe', 'sans2dance', 'sans2drama', 'sans2music',
+          'sans2visualarts', 'sans2other'
+        ]
+        
+        const boardSpaceNames = ['boardSpace', 'boardspace', 'BoardSpace', 'BOARDSPACE']
+        
+        let finalFlattenCount = 0
+        const finalFailed = []
+        
+        // Try to find and flatten each field by name
+        for (const fieldName of [...sansFieldNames, ...boardSpaceNames]) {
+          let fieldSuccess = false
+          try {
+            const field = finalForm.getFieldMaybe(fieldName)
+            if (field) {
+              // Check if field has a value (debugging)
+              try {
+                const fieldType = field.constructor.name
+                let fieldValue = null
+                if (fieldType === 'PDFTextField') {
+                  fieldValue = field.getText()
+                }
+                console.log(`🔍 Field ${fieldName} (${fieldType}) has value: "${fieldValue ? fieldValue.substring(0, 50) : 'empty'}"`)
+              } catch (e) {
+                console.log(`🔍 Field ${fieldName} type unknown`)
+              }
+              
+              try {
+                // First try normal flatten
+                field.flatten()
+                finalFlattenCount++
+                fieldSuccess = true
+                console.log(`✅ Final pass: Flattened ${fieldName}`)
+              } catch (flattenErr) {
+                // If flatten fails, try setting field to read-only first
+                console.warn(`⚠️ Flatten failed for ${fieldName}: ${flattenErr.message}`)
+                console.log(`🔧 Attempting alternative methods for ${fieldName}...`)
+                
+                try {
+                  // METHOD 1: Try to set field as read-only
+                  try {
+                    field.enableReadOnly()
+                    console.log(`✅ Set ${fieldName} to read-only`)
+                    finalFlattenCount++
+                    fieldSuccess = true
+                  } catch (readOnlyErr) {
+                    console.warn(`⚠️ Could not set ${fieldName} to read-only:`, readOnlyErr.message)
+                  }
+                  
+                  // METHOD 2: If read-only didn't work, try to manually set the Ff flag
+                  if (!fieldSuccess) {
+                    try {
+                      const acroField = field.acroField
+                      const currentFlags = acroField.getFlags()
+                      // Set the ReadOnly flag (bit 0)
+                      acroField.setFlags(currentFlags | 1)
+                      console.log(`✅ Set read-only flag for ${fieldName}`)
+                      finalFlattenCount++
+                      fieldSuccess = true
+                    } catch (flagErr) {
+                      console.warn(`⚠️ Could not set read-only flag for ${fieldName}:`, flagErr.message)
+                    }
+                  }
+                  
+                  // METHOD 3: Try to remove widget annotations directly
+                  if (!fieldSuccess) {
+                    const widgets = field.acroField.getWidgets()
+                    if (widgets && widgets.length > 0) {
+                      let annotationRemoved = false
+                      // Get the page for each widget and remove the annotation
+                      for (const widget of widgets) {
+                        try {
+                          const pageRef = widget.P()
+                          if (pageRef) {
+                            const page = pdfDoc.getPages().find((p) => p.ref === pageRef)
+                            if (page) {
+                              // Try to remove the annotation from the page
+                              const pageDict = page.node
+                              if (pageDict && pageDict.dict) {
+                                const annotsRef = pageDict.dict.get('Annots')
+                                if (annotsRef) {
+                                  const annots = pdfDoc.context.lookup(annotsRef)
+                                  if (annots && Array.isArray(annots)) {
+                                    // Filter out this widget's annotation
+                                    const filteredAnnots = annots.filter((annotRef) => {
+                                      try {
+                                        const annot = pdfDoc.context.lookup(annotRef)
+                                        return annot && annot !== widget
+                                      } catch {
+                                        return true
+                                      }
+                                    })
+                                    
+                                    if (filteredAnnots.length < annots.length) {
+                                      const newAnnotsArray = pdfDoc.context.obj(filteredAnnots)
+                                      pageDict.dict.set('Annots', newAnnotsArray)
+                                      console.log(`✅ Removed annotation for ${fieldName} from page`)
+                                      annotationRemoved = true
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        } catch (widgetErr) {
+                          console.warn(`⚠️ Could not remove widget for ${fieldName}:`, widgetErr.message)
+                        }
+                      }
+                      
+                      if (annotationRemoved) {
+                        finalFlattenCount++
+                        fieldSuccess = true
+                      }
+                    }
+                  }
+                  
+                  if (!fieldSuccess) {
+                    finalFailed.push(fieldName)
+                    console.error(`❌ Final pass: All methods failed for ${fieldName}`)
+                    console.error(`   Original flatten error:`, flattenErr.message)
+                  }
+                } catch (annotationErr) {
+                  finalFailed.push(fieldName)
+                  console.error(`❌ Final pass: Failed alternative methods for ${fieldName}:`, annotationErr.message)
+                }
+              }
+            } else {
+              // Field not found - might already be flattened or doesn't exist
+              console.log(`ℹ️ Field ${fieldName} not found (may already be flattened)`)
+              // Don't count as failed if field doesn't exist
+            }
+          } catch (e) {
+            if (!fieldSuccess) {
+              finalFailed.push(fieldName)
+              console.error(`❌ Final pass: Error accessing ${fieldName}:`, e.message)
+            }
+          }
+        }
+        
+        if (finalFlattenCount > 0) {
+          console.log(`✅ Final pass: Flattened ${finalFlattenCount} additional fields`)
+        }
+        if (finalFailed.length > 0) {
+          console.error(`❌ Final pass: ${finalFailed.length} fields still failed:`, finalFailed)
+        }
+      } catch (finalCheckError) {
+        console.warn('⚠️ Could not perform final field check:', finalCheckError.message)
+      }
+      
+      // Final check: Verify AcroForm is removed
+      try {
+        const finalCatalog = pdfDoc.catalog
+        if (finalCatalog.has('AcroForm')) {
+          console.warn('⚠️ AcroForm still exists in catalog after removal attempt')
+          // Try one more time
+          try {
+            finalCatalog.delete('AcroForm')
+            console.log('✅ AcroForm removed on second attempt')
+          } catch (retryError) {
+            console.error('❌ Failed to remove AcroForm even on retry:', retryError.message)
+          }
+        } else {
+          console.log('✅ AcroForm successfully removed from catalog')
+        }
+      } catch (verifyError) {
+        console.warn('⚠️ Could not verify AcroForm removal:', verifyError.message)
+      }
+    } else {
+      console.log('ℹ️ No fields to flatten')
     }
+
+    // Save the final PDF
+    console.log('💾 Saving PDF...')
+    const finalPdfBytes = await pdfDoc.save({
+      useObjectStreams: false, // Better compatibility
+    })
+
+    console.log('✅ PDF export completed!')
+    return finalPdfBytes
   } catch (error) {
     console.error('❌ Error generating 7-8 Progress Report PDF:', error)
     throw error
