@@ -31,6 +31,17 @@ import './ReportCard.css'
 import './ModernReportCard.css'
 import { PDFDocument, StandardFonts } from 'pdf-lib'
 import { useNavigate } from 'react-router-dom'
+import { generateFieldNameVariations } from './fieldMappings'
+import {
+  fillPDFFormWithData,
+  updateAllFieldAppearances,
+  embedTimesRomanFont,
+  fillPDFField,
+} from './pdfFillingUtils'
+// Import separate export functions for each report type
+import { exportProgressReport1to6 } from './exportProgressReport1to6'
+import { exportProgressReport7to8 } from './exportProgressReport7to8'
+import { exportKGInitialObservations } from './exportKGInitialObservations'
 // Firebase Storage & Firestore
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import {
@@ -49,6 +60,10 @@ import {
 import { storage, firestore } from '../../Firebase/firebase'
 import useAuth from '../../Firebase/useAuth'
 import StudentSelector from '../../components/StudentSelector'
+
+// Board Mission Statement - Auto-filled in boardInfo field
+export const BOARD_MISSION_STATEMENT =
+  'Tarbiyah Learning recognizes that each child is unique – that all children are creative and need to succeed. Thus, Tarbiyah Learning respects the individual needs of children and fosters a caring and creative environment. Tarbiyah Learning also emphasizes the Islamic, social, and intellectual development of each child.'
 
 // NOTE: All PDF assets are served from the public folder so we can access them by URL at runtime.
 // The folder name is "ReportCards" (no space).
@@ -282,7 +297,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           telephone: '613 421 1700',
           
           // Board Info - Mission Statement
-          boardInfo: 'Tarbiyah Learning recognizes that each child is unique – that all children are creative and need to succeed. Thus, Tarbiyah Learning respects the individual needs of children and fosters a caring and creative environment. Tarbiyah Learning also emphasizes the Islamic, social, and intellectual development of each child.',
+          boardInfo: BOARD_MISSION_STATEMENT,
           
           // Grade 7-8 Subject Names (for Native Language and Other)
           nativeLanguage: 'Quran and Arabic Studies',
@@ -480,7 +495,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           telephone: '613 421 1700',
           
           // Board Info - Mission Statement
-          boardInfo: 'Tarbiyah Learning recognizes that each child is unique – that all children are creative and need to succeed. Thus, Tarbiyah Learning respects the individual needs of children and fosters a caring and creative environment. Tarbiyah Learning also emphasizes the Islamic, social, and intellectual development of each child.',
+          boardInfo: BOARD_MISSION_STATEMENT,
           
           // Grade 7-8 Subject Names (for Native Language and Other)
           nativeLanguage: 'Quran and Arabic Studies',
@@ -800,8 +815,9 @@ const ReportCard = ({ presetReportCardId = null }) => {
     }
   }, [formData, selectedReportCard, selectedStudent])
 
-  // Generate possible field name variations for a form key
-  const generateFieldNameVariations = (formKey) => {
+  // NOTE: generateFieldNameVariations is now imported from ./fieldMappings.js (shared with PDFViewer)
+  // The old local function below is commented out - remove it later for cleanup
+  const OLD_generateFieldNameVariations_REMOVE_ME = (formKey) => {
     if (!formKey) return []
 
     const variations = [formKey]
@@ -1126,308 +1142,68 @@ const ReportCard = ({ presetReportCardId = null }) => {
     }
 
     try {
-      // Generate a fresh PDF with form data and flatten it for download
-      console.log('🔧 Generating fresh PDF with form data for flattening...')
+      console.log(`🔧 Generating PDF for report type: ${reportCardType.id}`)
 
-      // Fetch the original PDF template
-      const response = await fetch(reportCardType.pdfPath)
-      if (!response.ok) {
-        throw new Error('Failed to fetch PDF template')
-      }
+      const studentName = (formData.student_name || formData.student || 'student').replace(
+        /\s+/g,
+        '-',
+      )
 
-      const originalPdfBytes = await response.arrayBuffer()
-      const pdfDoc = await PDFDocument.load(originalPdfBytes)
-      const form = pdfDoc.getForm()
-      const fields = form.getFields()
-
-      console.log(`📋 Found ${fields.length} form fields in original PDF`)
-
-      // Embed Times Roman font for regular text fields (10pt)
-      let timesRomanFont
-      try {
-        // Try to load Times New Roman from fonts folder, fallback to standard TimesRoman
-        const timesFontBytes = await fetch('/fonts/TimesNewRoman.ttf').then((res) =>
-          res.arrayBuffer(),
-        ).catch(() => null)
-        if (timesFontBytes) {
-          timesRomanFont = await pdfDoc.embedFont(timesFontBytes)
-        } else {
-          timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman)
-        }
-      } catch (e) {
-        // Fallback to standard TimesRoman font
-        timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman)
-      }
-
-      // Fill the form with current form data (reuse the logic from PDFViewer)
-      let filledCount = 0
-      for (const [formKey, value] of Object.entries(formData)) {
-        // Skip empty values but allow false for checkboxes
-        if (value === null || value === undefined || value === '') continue
-
-        // Process grade field to extract just the number (e.g., "grade 8" -> "8")
-        let processedValue = value
-        if (formKey === 'grade' && value) {
-          const gradeValue = value.toString()
-          const match = gradeValue.match(/\d+/)
-          processedValue = match ? match[0] : gradeValue
-          console.log(`📝 Processing grade: "${gradeValue}" -> "${processedValue}"`)
-        }
-
-        // Handle signature fields specially
-        if (
-          formKey === 'teacherSignature' ||
-          formKey === 'principalSignature' ||
-          formKey === 'teachersignature' ||
-          formKey === 'principalsignature'
-        ) {
-          console.log(`🖊️ Processing signature field "${formKey}"`)
-
-          if (!value.type || !value.value) {
-            console.warn(`Skipping incomplete signature field "${formKey}"`)
-            continue
-          }
-
-          const signatureFieldMappings = {
-            teacherSignature: [
-              'teacherSignature',
-              "Teacher's Signature",
-              'Teacher Signature',
-              'Signature1',
-              'Text_1',
-            ],
-            principalSignature: [
-              'principalSignature',
-              "Principal's Signature",
-              'Principal Signature',
-              'Signature2',
-              'Number_1',
-            ],
-            teachersignature: [
-              'teacherSignature',
-              "Teacher's Signature",
-              'Teacher Signature',
-              'Signature1',
-              'Text_1',
-            ],
-            principalsignature: [
-              'principalSignature',
-              "Principal's Signature",
-              'Principal Signature',
-              'Signature2',
-              'Number_1',
-            ],
-          }
-
-          try {
-            let sigField = null
-            const possibleNames = signatureFieldMappings[formKey] || [formKey]
-
-            for (const name of possibleNames) {
-              sigField = form.getFieldMaybe(name)
-              if (sigField) break
-            }
-
-            if (sigField) {
-              let signatureImageBytes
-              if (value.type === 'typed') {
-                // Convert typed text to an image (simplified version)
-                const canvas = document.createElement('canvas')
-                const context = canvas.getContext('2d')
-                context.font = '48px "Dancing Script"'
-                const textMetrics = context.measureText(value.value)
-                canvas.width = textMetrics.width + 40
-                canvas.height = 80
-                context.font = '48px "Dancing Script"'
-                context.fillStyle = '#000000'
-                context.fillText(value.value, 20, 50)
-                signatureImageBytes = await fetch(canvas.toDataURL('image/png')).then((res) =>
-                  res.arrayBuffer(),
-                )
-              } else {
-                signatureImageBytes = await fetch(value.value).then((res) => res.arrayBuffer())
-              }
-
-              const signatureImage = await pdfDoc.embedPng(signatureImageBytes)
-              const widgets = sigField.acroField.getWidgets()
-
-              if (widgets.length > 0) {
-                const rect = widgets[0].getRectangle()
-                const pageRef = widgets[0].P()
-                const page = pdfDoc.getPages().find((p) => p.ref === pageRef)
-
-                if (page) {
-                  const widthRatio = rect.width / signatureImage.width
-                  const heightRatio = (rect.height - 5) / signatureImage.height
-                  const scale = Math.min(widthRatio, heightRatio)
-                  const width = signatureImage.width * scale
-                  const height = signatureImage.height * scale
-                  const x = rect.x + (rect.width - width) / 2
-                  const y = rect.y + (rect.height - height) / 2
-
-                  page.drawImage(signatureImage, { x, y, width, height })
-                  filledCount++
-                }
-              }
-            }
-          } catch (e) {
-            console.error(`Failed to process signature for ${formKey}:`, e)
-          }
-          continue
-        }
-
-        // Handle regular form fields
-        const possibleFieldNames = generateFieldNameVariations(formKey)
-
-        for (const fieldName of possibleFieldNames) {
-          try {
-            const field = form.getFieldMaybe(fieldName)
-            if (field) {
-              const success = fillPDFField(field, processedValue, timesRomanFont, 10)
-              if (success) {
-                filledCount++
-                break
-              }
-            }
-          } catch (error) {
-            console.warn(`Error trying field ${fieldName}:`, error.message)
-          }
-        }
-      }
-
-      console.log(`📝 Successfully filled ${filledCount} form fields`)
-
-      // Add TLA logo to the "Board Logo" area
-      try {
-        const logoResponse = await fetch('/assets/brand/TLA_logo_simple.svg')
-        if (logoResponse.ok) {
-          const svgText = await logoResponse.text()
-          const svgBlob = new Blob([svgText], { type: 'image/svg+xml' })
-          const svgUrl = URL.createObjectURL(svgBlob)
-
-          await new Promise((resolve, reject) => {
-            const img = new Image()
-            img.onload = async () => {
-              try {
-                const canvas = document.createElement('canvas')
-                const ctx = canvas.getContext('2d')
-                canvas.width = 240
-                canvas.height = 120
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-
-                canvas.toBlob(async (blob) => {
-                  try {
-                    const logoBytes = await blob.arrayBuffer()
-                    const logoImage = await pdfDoc.embedPng(logoBytes)
-                    const firstPage = pdfDoc.getPages()[0]
-                    const pageHeight = firstPage.getHeight()
-                    const logoWidth = 60
-                    const logoHeight = 30
-                    const logoX = firstPage.getWidth() - logoWidth - 5
-                    const logoY = pageHeight - logoHeight - 5
-
-                    firstPage.drawImage(logoImage, {
-                      x: logoX,
-                      y: logoY,
-                      width: logoWidth,
-                      height: logoHeight,
-                    })
-                    console.log('✅ TLA logo added to PDF')
-                    URL.revokeObjectURL(svgUrl)
-                    resolve()
-                  } catch (error) {
-                    URL.revokeObjectURL(svgUrl)
-                    reject(error)
-                  }
-                }, 'image/png')
-              } catch (error) {
-                URL.revokeObjectURL(svgUrl)
-                reject(error)
-              }
-            }
-            img.onerror = () => {
-              URL.revokeObjectURL(svgUrl)
-              reject(new Error('Failed to load SVG image'))
-            }
-            img.src = svgUrl
-          })
-        }
-      } catch (logoError) {
-        console.warn('Could not add TLA logo:', logoError)
-      }
-
-      // Now flatten the form to make fields non-editable
-      console.log('🔧 Flattening PDF form fields for download...')
+      // Route to the appropriate export function based on report type
       let finalPdfBytes
-
-      try {
-        if (fields.length > 0) {
-          console.log('🎯 FLATTENING: Standard + Fallback approach')
-
-          // METHOD 1: Try standard pdf-lib flattening first
-          console.log('🔧 Step 1: Standard pdf-lib form.flatten()...')
-          form.flatten()
-
-          // METHOD 2: Remove AcroForm from catalog
-          console.log('🗑️ Step 2: Removing AcroForm from catalog...')
-          const catalog = pdfDoc.catalog
-          catalog.delete('AcroForm')
-
-          // Save and test the standard approach
-          finalPdfBytes = await pdfDoc.save()
-
-          // VERIFICATION: Check if standard flattening worked
-          try {
-            const verifyDoc = await PDFDocument.load(finalPdfBytes)
-            const verifyForm = verifyDoc.getForm()
-            const verifyFields = verifyForm.getFields()
-            console.log(`🔍 VERIFICATION: Flattened PDF has ${verifyFields.length} form fields`)
-
-            if (verifyFields.length === 0) {
-              console.log('✅ SUCCESS: Standard flattening worked perfectly!')
-            } else {
-              console.warn('⚠️ Standard flattening incomplete, trying aggressive approach...')
-
-              // FALLBACK METHOD: Page copying (if standard didn't work)
-              console.log('🚀 FALLBACK: Aggressive page-copying approach...')
-              const originalFilledDoc = await PDFDocument.load(finalPdfBytes)
-              const pages = originalFilledDoc.getPages()
-              const newPdfDoc = await PDFDocument.create()
-
-              for (let i = 0; i < pages.length; i++) {
-                console.log(`  📄 Copying page ${i + 1}/${pages.length}`)
-                const [copiedPage] = await newPdfDoc.copyPages(originalFilledDoc, [i])
-                newPdfDoc.addPage(copiedPage)
-              }
-
-              // Ensure absolutely no form references
-              const newCatalog = newPdfDoc.catalog
-              if (newCatalog.has('AcroForm')) {
-                newCatalog.delete('AcroForm')
-              }
-
-              finalPdfBytes = await newPdfDoc.save()
-              console.log('✅ AGGRESSIVE SUCCESS: Created completely form-free PDF copy')
-            }
-          } catch (verifyError) {
-            // If verification fails, it usually means no forms exist - that's good!
-            console.log('✅ EXCELLENT: Verification failed because no forms exist!')
+      switch (reportCardType.id) {
+        case '1-6-progress':
+          finalPdfBytes = await exportProgressReport1to6(reportCardType.pdfPath, formData, studentName)
+          break
+        case '7-8-progress':
+          finalPdfBytes = await exportProgressReport7to8(reportCardType.pdfPath, formData, studentName)
+          break
+        case 'kg-initial-observations':
+          finalPdfBytes = await exportKGInitialObservations(reportCardType.pdfPath, formData, studentName)
+          break
+        default:
+          // For other report types, use the generic approach (can be extended later)
+          console.warn(`⚠️ No specific export function for report type: ${reportCardType.id}`)
+          console.log('Using generic PDF filling approach...')
+          
+          // Fetch the original PDF template
+          const response = await fetch(reportCardType.pdfPath)
+          if (!response.ok) {
+            throw new Error('Failed to fetch PDF template')
           }
-        } else {
-          console.log('ℹ️ No form fields found, saving as-is')
-          finalPdfBytes = await pdfDoc.save()
-        }
-      } catch (flattenError) {
-        console.error('❌ PDF flattening failed:', flattenError)
-        console.warn('⚠️ Using filled PDF without flattening')
-        finalPdfBytes = await pdfDoc.save()
+
+          const originalPdfBytes = await response.arrayBuffer()
+          const pdfDoc = await PDFDocument.load(originalPdfBytes)
+          const form = pdfDoc.getForm()
+          const fields = form.getFields()
+
+          console.log(`📋 Found ${fields.length} form fields in original PDF`)
+
+          // Embed Times Roman font for regular text fields (10pt)
+          const timesRomanFont = await embedTimesRomanFont(pdfDoc)
+
+          // Fill all form fields using shared utility
+          await fillPDFFormWithData(pdfDoc, formData, timesRomanFont, 'Download')
+
+          // Update field appearances BEFORE flattening
+          await updateAllFieldAppearances(form, pdfDoc, 'Download')
+
+          // Flatten the form
+          if (fields.length > 0) {
+            form.flatten()
+            const catalog = pdfDoc.catalog
+            try {
+              catalog.delete('AcroForm')
+            } catch (e) {
+              console.warn('Could not remove AcroForm:', e)
+            }
+          }
+
+          finalPdfBytes = await pdfDoc.save({ useObjectStreams: false })
+          break
       }
 
       const blob = new Blob([finalPdfBytes], { type: 'application/pdf' })
-      const studentName = (formData.student_name || formData.student || 'student').replace(
-        /\\s+/g,
-        '-',
-      )
       const fileName = `${reportCardType?.name || 'report-card'}-${studentName}-filled.pdf`
 
       // Upload to Firebase first

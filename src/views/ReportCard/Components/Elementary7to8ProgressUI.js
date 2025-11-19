@@ -34,6 +34,7 @@ import CIcon from '@coreui/icons-react'
 import SignatureCanvas from 'react-signature-canvas'
 import PropTypes from 'prop-types'
 import AIReportCommentInput from '../../../components/AIReportCommentInput'
+import { BOARD_MISSION_STATEMENT } from '../utils'
 
 /**
  * AI-Enhanced Text Area
@@ -162,10 +163,27 @@ AICommentField.propTypes = {
  * Signature Pad Component
  * Matches the exact implementation from Kindergarten report card
  */
-const SignaturePad = ({ title, onSignatureChange }) => {
+const SignaturePad = ({ title, onSignatureChange, initialValue }) => {
   const [mode, setMode] = useState('typed') // 'typed', 'drawn'
   const [typedName, setTypedName] = useState('')
   const signatureCanvasRef = useRef(null)
+
+  // Initialize from initialValue if provided
+  useEffect(() => {
+    if (initialValue && initialValue.type === 'typed' && initialValue.value) {
+      // Only update if the value is different to avoid unnecessary re-renders
+      if (typedName !== initialValue.value) {
+        setTypedName(initialValue.value)
+        setMode('typed')
+      }
+    } else if (initialValue && initialValue.type === 'drawn' && initialValue.value) {
+      if (mode !== 'drawn') {
+        setMode('drawn')
+      }
+      // For drawn signatures, the value is a data URL that would need to be loaded into canvas
+      // This is handled by the export function, so we just set the mode here
+    }
+  }, [initialValue]) // Only run when initialValue changes
 
   const handleModeChange = (newMode) => {
     setMode(newMode)
@@ -259,6 +277,7 @@ const SignaturePad = ({ title, onSignatureChange }) => {
 SignaturePad.propTypes = {
   title: PropTypes.string.isRequired,
   onSignatureChange: PropTypes.func.isRequired,
+  initialValue: PropTypes.object,
 }
 
 /**
@@ -285,6 +304,16 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
       })
     }
   }, [teacherName, formData.teacher, onFormDataChange])
+
+  // Auto-populate boardInfo with mission statement if empty
+  useEffect(() => {
+    if (!formData.boardInfo || formData.boardInfo.trim() === '') {
+      onFormDataChange({
+        ...formData,
+        boardInfo: BOARD_MISSION_STATEMENT,
+      })
+    }
+  }, [formData.boardInfo, onFormDataChange])
 
   return (
     <div>
@@ -403,6 +432,25 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               type="tel"
             />
           </div>
+
+          <div className="mb-3">
+            <CFormLabel htmlFor="boardInfo">
+              <CIcon icon={cilSchool} className="me-2" />
+              Board Information
+            </CFormLabel>
+            <AICommentField
+              name="boardInfo"
+              value={formData.boardInfo || ''}
+              onChange={handleInputChange}
+              placeholder="Enter board information..."
+              rows={3}
+              isGenerating={false}
+              onGenerate={() => {}}
+              maxLength={500}
+              formData={formData}
+              onFormDataChange={onFormDataChange}
+            />
+          </div>
         </CCol>
       </CRow>
 
@@ -508,30 +556,6 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               placeholder="Enter total times late"
               type="number"
               min="0"
-            />
-          </div>
-        </CCol>
-      </CRow>
-
-      {/* Board Information with AI */}
-      <CRow className="mt-3">
-        <CCol md={12}>
-          <div className="mb-3">
-            <CFormLabel htmlFor="boardInfo">
-              <CIcon icon={cilSchool} className="me-2" />
-              Board Information
-            </CFormLabel>
-            <AICommentField
-              name="boardInfo"
-              value={formData.boardInfo || ''}
-              onChange={handleInputChange}
-              placeholder="Enter board information..."
-              rows={3}
-              isGenerating={false}
-              onGenerate={() => {}}
-              maxLength={500}
-              formData={formData}
-              onFormDataChange={onFormDataChange}
             />
           </div>
         </CCol>
@@ -1063,6 +1087,18 @@ SubjectAreasSection.propTypes = {
  * Matches the exact structure from Elementary 1-6
  */
 const CommentsSignaturesSection = ({ formData, onFormDataChange }) => {
+  // Auto-fill principal signature with "Ghazala Choudhary"
+  useEffect(() => {
+    if (!formData.principalSignature || 
+        !formData.principalSignature.value || 
+        formData.principalSignature.value.trim() === '') {
+      onFormDataChange({
+        ...formData,
+        principalSignature: { type: 'typed', value: 'Ghazala Choudhary' },
+      })
+    }
+  }, [formData.principalSignature, onFormDataChange])
+
   const handleInputChange = (e) => {
     const { name, value } = e.target
     onFormDataChange({
@@ -1111,6 +1147,7 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange }) => {
               <SignaturePad
                 title="Principal's Signature"
                 onSignatureChange={handlePrincipalSignatureChange}
+                initialValue={formData.principalSignature}
               />
             </CCol>
           </CRow>
