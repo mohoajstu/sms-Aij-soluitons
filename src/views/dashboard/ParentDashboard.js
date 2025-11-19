@@ -17,7 +17,6 @@ import sygnet from '../../assets/brand/TLA_logo_simple.svg'
 import { collection, getDocs, query, where, orderBy, limit, documentId } from 'firebase/firestore'
 import { firestore } from '../../firebase'
 import useAuth from '../../Firebase/useAuth'
-import { loadCurrentUserProfile } from '../../utils/userProfile'
 import dayjs from 'dayjs'
 
 const ParentDashboard = () => {
@@ -29,52 +28,56 @@ const ParentDashboard = () => {
   const [announcements, setAnnouncements] = useState([])
 
   useEffect(() => {
-    if (!user) return
+    if (!user || !user.email) return
 
     const loadData = async () => {
       try {
-        // Get canonical parent profile and Tarbiyah ID
-        const profile = await loadCurrentUserProfile(firestore, user)
-        if (!profile) return
-        const parentId = profile.id
-        const firstName = profile.data?.personalInfo?.firstName || ''
-        const lastName = profile.data?.personalInfo?.lastName || ''
-        setParentName(`${firstName} ${lastName}`.trim())
-
-        // Fetch children (students) linked to this parent by tarbiyahId
-        const qFather = query(
+        // Find student by the logged-in email (parent logs in with child's email)
+        const studentsQuery = query(
           collection(firestore, 'students'),
-          where('parents.father.tarbiyahId', '==', parentId),
+          where('contact.email', '==', user.email)
         )
-        const qMother = query(
-          collection(firestore, 'students'),
-          where('parents.mother.tarbiyahId', '==', parentId),
-        )
-        const [snapF, snapM] = await Promise.all([getDocs(qFather), getDocs(qMother)])
-        const merged = new Map()
-        snapF.forEach((d) => merged.set(d.id, { id: d.id, data: d.data() }))
-        snapM.forEach((d) => merged.set(d.id, { id: d.id, data: d.data() }))
+        const studentsSnapshot = await getDocs(studentsQuery)
 
-        const childIds = Array.from(merged.keys())
-        // Initialize children list with name and grade
-        const baseChildren = Array.from(merged.values()).map(({ id, data }) => {
-          const first = data?.personalInfo?.firstName || ''
-          const last = data?.personalInfo?.lastName || ''
-          const grade =
-            data?.schooling?.gradeLevel ||
-            data?.schooling?.grade ||
-            data?.gradeLevel ||
-            data?.grade ||
-            ''
-          return {
-            id,
-            name: `${first} ${last}`.trim() || id,
-            grade: grade ? (String(grade).startsWith('Grade') ? grade : `Grade ${grade}`) : '',
-            attendancePercent: null,
-          }
-        })
+        if (studentsSnapshot.empty) {
+          console.error('No student found with email:', user.email)
+          setChildren([])
+          return
+        }
+
+        // Get the student document (should be only one)
+        const studentDoc = studentsSnapshot.docs[0]
+        const studentId = studentDoc.id
+        const studentData = studentDoc.data()
+
+        const first = studentData?.personalInfo?.firstName || ''
+        const last = studentData?.personalInfo?.lastName || ''
+        const grade =
+          studentData?.schooling?.gradeLevel ||
+          studentData?.schooling?.grade ||
+          studentData?.gradeLevel ||
+          studentData?.grade ||
+          ''
+        
+        // Set parent name (could be student's name or a parent name from student data)
+        const parentFirstName = studentData?.parents?.father?.firstName || 
+                               studentData?.parents?.mother?.firstName || 
+                               first
+        const parentLastName = studentData?.parents?.father?.lastName || 
+                              studentData?.parents?.mother?.lastName || 
+                              last
+        setParentName(`${parentFirstName} ${parentLastName}`.trim() || 'Parent')
+
+        // Initialize children list with single student
+        const baseChildren = [{
+          id: studentId,
+          name: `${first} ${last}`.trim() || studentId,
+          grade: grade ? (String(grade).startsWith('Grade') ? grade : `Grade ${grade}`) : '',
+          attendancePercent: null,
+        }]
 
         setChildren(baseChildren)
+        const childIds = [studentId]
 
         // Compute recent attendance rates (last 60 days) from attendance collection
         if (childIds.length > 0) {

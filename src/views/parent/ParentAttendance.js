@@ -4,7 +4,6 @@ import dayjs from 'dayjs'
 import { collection, getDocs, query, where, documentId } from 'firebase/firestore'
 import { firestore } from '../../Firebase/firebase'
 import useAuth from '../../Firebase/useAuth'
-import { loadCurrentUserProfile } from '../../utils/userProfile'
 
 const ParentAttendance = () => {
   const { user } = useAuth()
@@ -15,38 +14,36 @@ const ParentAttendance = () => {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!user) return
+    if (!user || !user.email) return
 
     const loadChildren = async () => {
       setLoading(true)
       setError('')
       try {
-        const profile = await loadCurrentUserProfile(firestore, user)
-        if (!profile) {
+        // Find student by the logged-in email (parent logs in with child's email)
+        const studentsQuery = query(
+          collection(firestore, 'students'),
+          where('contact.email', '==', user.email)
+        )
+        const studentsSnapshot = await getDocs(studentsQuery)
+
+        if (studentsSnapshot.empty) {
           setChildren([])
           setLoading(false)
           return
         }
-        const parentId = profile.id
 
-        const qFather = query(
-          collection(firestore, 'students'),
-          where('parents.father.tarbiyahId', '==', parentId),
-        )
-        const qMother = query(
-          collection(firestore, 'students'),
-          where('parents.mother.tarbiyahId', '==', parentId),
-        )
-        const [snapF, snapM] = await Promise.all([getDocs(qFather), getDocs(qMother)])
-        const merged = new Map()
-        snapF.forEach((d) => merged.set(d.id, { id: d.id, data: d.data() }))
-        snapM.forEach((d) => merged.set(d.id, { id: d.id, data: d.data() }))
+        // Get the student document (should be only one)
+        const studentDoc = studentsSnapshot.docs[0]
+        const studentId = studentDoc.id
+        const studentData = studentDoc.data()
 
-        const kids = Array.from(merged.values()).map(({ id, data }) => {
-          const first = data?.personalInfo?.firstName || ''
-          const last = data?.personalInfo?.lastName || ''
-          return { id, name: `${first} ${last}`.trim() || id }
-        })
+        const first = studentData?.personalInfo?.firstName || ''
+        const last = studentData?.personalInfo?.lastName || ''
+        const kids = [{
+          id: studentId,
+          name: `${first} ${last}`.trim() || studentId
+        }]
         setChildren(kids)
         setActiveIdx(0)
 

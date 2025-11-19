@@ -58,13 +58,13 @@ const _nav = [
     icon: <BeenhereOutlinedIcon className="nav-icon" />,
     hideFor: ['parent', 'student', 'teacher', 'faculty'],
   },
-  {
-    component: CNavItem,
-    name: 'Onboarding',
-    to: '/onboarding',
-    icon: <CIcon icon={cilUserPlus} customClassName="nav-icon" />,
-    hideFor: ['student', 'teacher'],
-  },
+  // {
+  //   component: CNavItem,
+  //   name: 'Onboarding',
+  //   to: '/onboarding',
+  //   icon: <CIcon icon={cilUserPlus} customClassName="nav-icon" />,
+  //   hideFor: ['student', 'teacher'],
+  // },
   {
     component: CNavItem,
     name: 'People Management',
