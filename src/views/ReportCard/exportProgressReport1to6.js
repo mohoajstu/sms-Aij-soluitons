@@ -138,64 +138,7 @@ export const exportProgressReport1to6 = async (pdfPath, formData, studentName) =
       console.warn(`⚠️ Unmatched fields (won't appear in PDF):`, unmatchedFields.slice(0, 10))
     }
 
-    // Add TLA logo to the "Board Logo" area
-    try {
-      const logoResponse = await fetch('/assets/brand/TLA_logo_simple.svg')
-      if (logoResponse.ok) {
-        const svgText = await logoResponse.text()
-        const svgBlob = new Blob([svgText], { type: 'image/svg+xml' })
-        const svgUrl = URL.createObjectURL(svgBlob)
-
-        await new Promise((resolve, reject) => {
-          const img = new Image()
-          img.onload = async () => {
-            try {
-              const canvas = document.createElement('canvas')
-              const ctx = canvas.getContext('2d')
-              canvas.width = 240
-              canvas.height = 120
-              ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-
-              canvas.toBlob(async (blob) => {
-                try {
-                  const logoBytes = await blob.arrayBuffer()
-                  const logoImage = await pdfDoc.embedPng(logoBytes)
-                  const firstPage = pdfDoc.getPages()[0]
-                  const pageHeight = firstPage.getHeight()
-                  const logoWidth = 60
-                  const logoHeight = 30
-                  const logoX = firstPage.getWidth() - logoWidth - 5
-                  const logoY = pageHeight - logoHeight - 5
-
-                  firstPage.drawImage(logoImage, {
-                    x: logoX,
-                    y: logoY,
-                    width: logoWidth,
-                    height: logoHeight,
-                  })
-                  console.log('✅ TLA logo added to PDF')
-                  URL.revokeObjectURL(svgUrl)
-                  resolve()
-                } catch (error) {
-                  URL.revokeObjectURL(svgUrl)
-                  reject(error)
-                }
-              }, 'image/png')
-            } catch (error) {
-              URL.revokeObjectURL(svgUrl)
-              reject(error)
-            }
-          }
-          img.onerror = () => {
-            URL.revokeObjectURL(svgUrl)
-            reject(new Error('Failed to load SVG image'))
-          }
-          img.src = svgUrl
-        })
-      }
-    } catch (logoError) {
-      console.warn('Could not add TLA logo:', logoError)
-    }
+    // Logo overlay removed for 1-6 Progress Report
 
     // ⚠️ CRITICAL: Update field appearances BEFORE flattening to ensure checkboxes are visible
     console.log('🎨 Updating all field appearances before flattening...')
