@@ -345,9 +345,25 @@ const ReportCard = ({ presetReportCardId = null }) => {
           fieldCount: Object.keys(draftData.formData || {}).length,
         })
 
-        // Hydrate form with draft data
-        setFormData(draftData.formData || {})
+        // Hydrate form with draft data, but ALWAYS refresh attendance with latest student data
+        const refreshedFormData = {
+          ...draftData.formData,
+          // ALWAYS use the latest attendance data from the student object
+          daysAbsent: student.currentTermAbsenceCount || 0,
+          totalDaysAbsent: student.yearAbsenceCount || 0,
+          timesLate: student.currentTermLateCount || 0,
+          totalTimesLate: student.yearLateCount || 0,
+        }
+        
+        setFormData(refreshedFormData)
         setCurrentDraftId(draftId)
+
+        console.log('📊 Refreshed attendance data with latest counts:', {
+          daysAbsent: student.currentTermAbsenceCount || 0,
+          totalDaysAbsent: student.yearAbsenceCount || 0,
+          timesLate: student.currentTermLateCount || 0,
+          totalTimesLate: student.yearLateCount || 0,
+        })
 
         return draftData
       }
@@ -372,9 +388,25 @@ const ReportCard = ({ presetReportCardId = null }) => {
           fieldCount: Object.keys(draftData.formData || {}).length,
         })
 
-        // Hydrate form with draft data
-        setFormData(draftData.formData || {})
+        // Hydrate form with draft data, but ALWAYS refresh attendance with latest student data
+        const refreshedFormData = {
+          ...draftData.formData,
+          // ALWAYS use the latest attendance data from the student object
+          daysAbsent: student.currentTermAbsenceCount || 0,
+          totalDaysAbsent: student.yearAbsenceCount || 0,
+          timesLate: student.currentTermLateCount || 0,
+          totalTimesLate: student.yearLateCount || 0,
+        }
+        
+        setFormData(refreshedFormData)
         setCurrentDraftId(existingDraft.id)
+
+        console.log('📊 Refreshed attendance data with latest counts:', {
+          daysAbsent: student.currentTermAbsenceCount || 0,
+          totalDaysAbsent: student.yearAbsenceCount || 0,
+          timesLate: student.currentTermLateCount || 0,
+          totalTimesLate: student.yearLateCount || 0,
+        })
 
         return draftData
       }
@@ -619,6 +651,14 @@ const ReportCard = ({ presetReportCardId = null }) => {
         console.log('📝 Updating existing draft...')
         const existingData = existingDoc.data()
         
+        // If this draft was previously approved, reset it to pending when edited
+        const wasApproved = existingData.adminReviewStatus === 'approved' || existingData.status === 'complete'
+        const resetApprovalStatus = wasApproved ? 'pending' : (existingData.adminReviewStatus || 'pending')
+        
+        if (wasApproved) {
+          console.log('⚠️ Draft was previously approved - resetting to pending status for re-approval')
+        }
+        
         // Update existing draft - preserve original creator info
         await updateDoc(draftRef, {
           ...draftData,
@@ -626,9 +666,18 @@ const ReportCard = ({ presetReportCardId = null }) => {
           originalTeacherId: existingData.originalTeacherId || existingData.uid,
           originalTeacherName: existingData.originalTeacherName || existingData.teacherName,
           lastModified: serverTimestamp(), // Update modification time
+          // Reset approval status if it was previously approved
+          adminReviewStatus: resetApprovalStatus,
+          status: wasApproved ? 'draft' : (existingData.status || 'draft'),
+          // Clear approval metadata if resetting
+          ...(wasApproved && {
+            adminReviewedAt: null,
+            adminReviewedBy: null,
+            publishedToParents: false,
+          }),
         })
-        setSaveMessage('Draft updated successfully!')
-        console.log('✅ Draft updated successfully')
+        setSaveMessage(wasApproved ? 'Draft updated successfully - requires re-approval!' : 'Draft updated successfully!')
+        console.log('✅ Draft updated successfully', wasApproved ? '(reset to pending)' : '')
       } else {
         console.log('📄 Creating new draft...')
         // Create new draft with original creator info
@@ -688,10 +737,19 @@ const ReportCard = ({ presetReportCardId = null }) => {
         const parsedFormData = JSON.parse(draftFormData)
         const parsedStudent = JSON.parse(draftStudent)
 
+        // ALWAYS refresh attendance data with latest student counts
+        const refreshedFormData = {
+          ...parsedFormData,
+          daysAbsent: parsedStudent.currentTermAbsenceCount || 0,
+          totalDaysAbsent: parsedStudent.yearAbsenceCount || 0,
+          timesLate: parsedStudent.currentTermLateCount || 0,
+          totalTimesLate: parsedStudent.yearLateCount || 0,
+        }
+
         // Set the report card type first (this overrides any presetReportCardId)
         setSelectedReportCard(draftReportType)
         setSelectedStudent(parsedStudent)
-        setFormData(parsedFormData)
+        setFormData(refreshedFormData) // Use refreshed data
         setCurrentDraftId(editingDraftId) // Track which draft we're editing
 
         // Clear the draft editing flags
@@ -740,16 +798,18 @@ const ReportCard = ({ presetReportCardId = null }) => {
         }
 
         // Preserve auto-populated student data when switching report card types
+        // ALWAYS use latest attendance data from selectedStudent
         const currentStudentData = {
           student: formData.student,
           student_name: formData.student_name,
           OEN: formData.OEN,
           oen: formData.oen,
           grade: formData.grade,
-          daysAbsent: formData.daysAbsent,
-          totalDaysAbsent: formData.totalDaysAbsent,
-          timesLate: formData.timesLate,
-          totalTimesLate: formData.totalTimesLate,
+          // ALWAYS refresh attendance data from latest student info
+          daysAbsent: selectedStudent?.currentTermAbsenceCount || 0,
+          totalDaysAbsent: selectedStudent?.yearAbsenceCount || 0,
+          timesLate: selectedStudent?.currentTermLateCount || 0,
+          totalTimesLate: selectedStudent?.yearLateCount || 0,
           email: formData.email,
           phone1: formData.phone1,
           phone2: formData.phone2,

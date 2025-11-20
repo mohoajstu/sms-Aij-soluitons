@@ -29,10 +29,15 @@ import {
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilCheck, cilX, cilUser, cilCloudDownload, cilFilter, cilSearch, cilPencil, cilFindInPage } from '@coreui/icons'
-import { collection, getDocs, query, where, orderBy, updateDoc, doc, getDoc } from 'firebase/firestore'
-import { firestore } from '../../../Firebase/firebase'
+import { collection, getDocs, query, where, orderBy, updateDoc, doc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore'
+import { firestore, storage } from '../../../Firebase/firebase'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import useAuth from '../../../Firebase/useAuth'
 import dayjs from 'dayjs'
+import { exportProgressReport1to6 } from '../exportProgressReport1to6'
+import { exportProgressReport7to8 } from '../exportProgressReport7to8'
+import { exportKGInitialObservations } from '../exportKGInitialObservations'
+import { REPORT_CARD_TYPES } from '../utils'
 
 const AdminReportCardReview = () => {
   const [reportCards, setReportCards] = useState([])
@@ -41,11 +46,15 @@ const AdminReportCardReview = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [teacherFilter, setTeacherFilter] = useState('all')
+  const [gradeFilter, setGradeFilter] = useState('all')
   const [teachers, setTeachers] = useState([])
+  const [grades, setGrades] = useState([])
   const [viewModalVisible, setViewModalVisible] = useState(false)
   const [selectedReportCard, setSelectedReportCard] = useState(null)
   const [selectedReportCardData, setSelectedReportCardData] = useState(null)
   const [loadingPdf, setLoadingPdf] = useState(false)
+  const [approvingIds, setApprovingIds] = useState(new Set())
+  const [batchApproving, setBatchApproving] = useState(false)
   const { user, role } = useAuth()
 
   // Load report cards from Firestore
@@ -67,6 +76,7 @@ const AdminReportCardReview = () => {
         const reportCardsList = []
         draftsSnapshot.forEach((doc) => {
           const data = doc.data()
+          const grade = data.formData?.grade || data.selectedStudent?.grade || ''
           reportCardsList.push({
             id: doc.id,
             studentName: data.studentName,
@@ -79,6 +89,8 @@ const AdminReportCardReview = () => {
             formData: data.formData,
             selectedStudent: data.selectedStudent,
             createdAt: data.createdAt?.toDate?.() || new Date(),
+            grade: grade, // Extract grade for filtering
+            tarbiyahId: data.tarbiyahId || data.selectedStudent?.schoolId || data.selectedStudent?.id || '',
           })
         })
 
@@ -90,6 +102,15 @@ const AdminReportCardReview = () => {
           id: name
         }))
         setTeachers(uniqueTeachers)
+
+        // Extract unique grades
+        const uniqueGrades = [...new Set(reportCardsList.map(rc => rc.grade).filter(g => g))].sort((a, b) => {
+          // Sort grades numerically
+          const aNum = parseInt(a) || 0
+          const bNum = parseInt(b) || 0
+          return aNum - bNum
+        })
+        setGrades(uniqueGrades)
       } catch (err) {
         console.error('Error loading report cards:', err)
         setError('Failed to load report cards for review.')
@@ -101,7 +122,7 @@ const AdminReportCardReview = () => {
     loadReportCards()
   }, [role])
 
-  // Update report card status
+  // Update report card status (for needs_revision)
   const updateReportCardStatus = async (reportCardId, newStatus) => {
     try {
       const reportCardRef = doc(firestore, 'reportCardDrafts', reportCardId)
@@ -125,6 +146,153 @@ const AdminReportCardReview = () => {
     }
   }
 
+  // Approve and publish report card with PDF generation
+  const approveAndPublishReportCard = async (reportCard) => {
+    setApprovingIds(prev => new Set(prev).add(reportCard.id))
+    
+    try {
+      console.log('🔧 Starting approval process for:', reportCard.studentName)
+      
+      // Get the report card type configuration
+      const reportCardType = REPORT_CARD_TYPES.find(t => t.id === reportCard.reportCardType)
+      if (!reportCardType?.pdfPath) {
+        throw new Error('Report card type configuration not found')
+      }
+
+      // Generate PDF based on report type
+      const studentName = (reportCard.studentName || 'student').replace(/\s+/g, '-')
+      let finalPdfBytes
+
+      switch (reportCard.reportCardType) {
+        case '1-6-progress':
+          finalPdfBytes = await exportProgressReport1to6(reportCardType.pdfPath, reportCard.formData, studentName)
+          break
+        case '7-8-progress':
+          finalPdfBytes = await exportProgressReport7to8(reportCardType.pdfPath, reportCard.formData, studentName)
+          break
+        case 'kg-initial-observations':
+          finalPdfBytes = await exportKGInitialObservations(reportCardType.pdfPath, reportCard.formData, studentName)
+          break
+        // For other report types, notify that they need to be downloaded manually first
+        case 'kg-report':
+        case '1-6-report-card':
+        case '7-8-report-card':
+          throw new Error(
+            `This report type (${reportCardType.name}) requires manual download first. ` +
+            `Please use the "Edit" button to open the report and download it, then the approval will work.`
+          )
+        default:
+          throw new Error(`Unsupported report type: ${reportCard.reportCardType}. Please contact support.`)
+      }
+
+      console.log('✅ PDF generated successfully')
+
+      // Upload to Firebase Storage
+      const blob = new Blob([finalPdfBytes], { type: 'application/pdf' })
+      const timestamp = Date.now()
+      const filePath = `reportCards/approved/${reportCard.reportCardType}-${studentName}-${timestamp}.pdf`
+      const storageRef = ref(storage, filePath)
+
+      await uploadBytes(storageRef, blob)
+      const downloadURL = await getDownloadURL(storageRef)
+      
+      console.log('✅ PDF uploaded to Storage:', downloadURL)
+
+      // Create approved record in reportCards collection (visible to parents)
+      await addDoc(collection(firestore, 'reportCards'), {
+        uid: reportCard.teacherId,
+        type: reportCard.reportCardType,
+        filePath,
+        url: downloadURL,
+        studentName: studentName,
+        tarbiyahId: reportCard.tarbiyahId,
+        status: 'approved', // Approved status makes it visible to parents
+        studentId: reportCard.selectedStudent?.id || '',
+        reportCardTypeName: reportCard.reportCardTypeName,
+        grade: reportCard.grade || '',
+        teacherName: reportCard.teacherName,
+        approvedBy: user.uid,
+        approvedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+      })
+
+      console.log('✅ Approved record created in reportCards')
+
+      // Update the draft with approval info and final PDF URL
+      const draftRef = doc(firestore, 'reportCardDrafts', reportCard.id)
+      await updateDoc(draftRef, {
+        adminReviewStatus: 'approved',
+        adminReviewedAt: serverTimestamp(),
+        adminReviewedBy: user.uid,
+        status: 'complete',
+        completedAt: serverTimestamp(),
+        finalPdfUrl: downloadURL,
+        finalPdfPath: filePath,
+        publishedToParents: true,
+      })
+
+      console.log('✅ Draft updated with approval status')
+
+      // Update local state
+      setReportCards(prev => 
+        prev.map(rc => 
+          rc.id === reportCard.id 
+            ? { ...rc, status: 'approved' }
+            : rc
+        )
+      )
+
+      alert(`✅ Report card approved and published for ${reportCard.studentName}!`)
+      
+    } catch (err) {
+      console.error('❌ Error approving report card:', err)
+      alert(`Failed to approve report card: ${err.message}`)
+    } finally {
+      setApprovingIds(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(reportCard.id)
+        return newSet
+      })
+    }
+  }
+
+  // Batch approve all reports for a specific grade
+  const batchApproveByGrade = async (grade) => {
+    const reportsToApprove = reportCards.filter(
+      rc => rc.grade === grade && rc.status === 'pending'
+    )
+
+    if (reportsToApprove.length === 0) {
+      alert(`No pending reports found for Grade ${grade}`)
+      return
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to approve and publish ${reportsToApprove.length} report card(s) for Grade ${grade}? This will make them visible to parents.`
+    )
+
+    if (!confirmed) return
+
+    setBatchApproving(true)
+    let successCount = 0
+    let failCount = 0
+
+    for (const report of reportsToApprove) {
+      try {
+        await approveAndPublishReportCard(report)
+        successCount++
+      } catch (err) {
+        console.error(`Failed to approve report for ${report.studentName}:`, err)
+        failCount++
+      }
+    }
+
+    setBatchApproving(false)
+    alert(
+      `Batch approval complete!\n✅ Approved: ${successCount}\n❌ Failed: ${failCount}`
+    )
+  }
+
   // Filter report cards
   const filteredReportCards = reportCards.filter(rc => {
     const matchesSearch = !searchTerm || 
@@ -134,8 +302,9 @@ const AdminReportCardReview = () => {
 
     const matchesStatus = statusFilter === 'all' || rc.status === statusFilter
     const matchesTeacher = teacherFilter === 'all' || rc.teacherName === teacherFilter
+    const matchesGrade = gradeFilter === 'all' || rc.grade === gradeFilter
 
-    return matchesSearch && matchesStatus && matchesTeacher
+    return matchesSearch && matchesStatus && matchesTeacher && matchesGrade
   })
 
   // Get status badge color
@@ -264,7 +433,7 @@ const AdminReportCardReview = () => {
         </CCardHeader>
         <CCardBody>
           {/* Filters */}
-          <CRow className="mb-4">
+          <CRow className="mb-3">
             <CCol md={4}>
               <CInputGroup>
                 <CInputGroupText>
@@ -277,7 +446,7 @@ const AdminReportCardReview = () => {
                 />
               </CInputGroup>
             </CCol>
-            <CCol md={3}>
+            <CCol md={2}>
               <CFormSelect
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -288,7 +457,20 @@ const AdminReportCardReview = () => {
                 <option value="needs_revision">Needs Revision</option>
               </CFormSelect>
             </CCol>
-            <CCol md={3}>
+            <CCol md={2}>
+              <CFormSelect
+                value={gradeFilter}
+                onChange={(e) => setGradeFilter(e.target.value)}
+              >
+                <option value="all">All Grades</option>
+                {grades.map(grade => (
+                  <option key={grade} value={grade}>
+                    Grade {grade}
+                  </option>
+                ))}
+              </CFormSelect>
+            </CCol>
+            <CCol md={2}>
               <CFormSelect
                 value={teacherFilter}
                 onChange={(e) => setTeacherFilter(e.target.value)}
@@ -308,13 +490,108 @@ const AdminReportCardReview = () => {
                   setSearchTerm('')
                   setStatusFilter('all')
                   setTeacherFilter('all')
+                  setGradeFilter('all')
                 }}
+                className="w-100"
               >
                 <CIcon icon={cilFilter} className="me-1" />
                 Clear
               </CButton>
             </CCol>
           </CRow>
+
+          {/* Batch Approval Section - Show when there are pending reports in filtered results */}
+          {(() => {
+            const pendingInFilter = filteredReportCards.filter(rc => rc.status === 'pending')
+            return pendingInFilter.length > 0 && (
+              <CRow className="mb-3">
+                <CCol>
+                  <CAlert color="info" className="mb-0">
+                    <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                      <div>
+                        <strong>
+                          {gradeFilter !== 'all' 
+                            ? `Grade ${gradeFilter}: ${pendingInFilter.length} pending report(s)`
+                            : `${pendingInFilter.length} pending report(s) in filtered results`}
+                        </strong>
+                      </div>
+                      <div className="d-flex gap-2">
+                        {gradeFilter !== 'all' && (
+                          <CButton
+                            color="success"
+                            size="sm"
+                            onClick={() => batchApproveByGrade(gradeFilter)}
+                            disabled={batchApproving}
+                          >
+                            {batchApproving ? (
+                              <>
+                                <CSpinner size="sm" className="me-2" />
+                                Approving...
+                              </>
+                            ) : (
+                              <>
+                                <CIcon icon={cilCheck} className="me-1" />
+                                Approve All Grade {gradeFilter}
+                              </>
+                            )}
+                          </CButton>
+                        )}
+                        <CButton
+                          color="success"
+                          size="sm"
+                          onClick={async () => {
+                            const pendingReports = filteredReportCards.filter(rc => rc.status === 'pending')
+                            if (pendingReports.length === 0) {
+                              alert('No pending reports to approve in the current filter.')
+                              return
+                            }
+
+                            const confirmed = window.confirm(
+                              `Are you sure you want to approve and publish ${pendingReports.length} report card(s)? This will make them visible to parents.`
+                            )
+
+                            if (!confirmed) return
+
+                            setBatchApproving(true)
+                            let successCount = 0
+                            let failCount = 0
+
+                            for (const report of pendingReports) {
+                              try {
+                                await approveAndPublishReportCard(report)
+                                successCount++
+                              } catch (err) {
+                                console.error(`Failed to approve report for ${report.studentName}:`, err)
+                                failCount++
+                              }
+                            }
+
+                            setBatchApproving(false)
+                            alert(
+                              `Batch approval complete!\n✅ Approved: ${successCount}\n❌ Failed: ${failCount}`
+                            )
+                          }}
+                          disabled={batchApproving}
+                        >
+                          {batchApproving ? (
+                            <>
+                              <CSpinner size="sm" className="me-2" />
+                              Approving...
+                            </>
+                          ) : (
+                            <>
+                              <CIcon icon={cilCheck} className="me-1" />
+                              Approve All ({pendingInFilter.length})
+                            </>
+                          )}
+                        </CButton>
+                      </div>
+                    </div>
+                  </CAlert>
+                </CCol>
+              </CRow>
+            )
+          })()}
 
           {/* Summary Stats */}
           <CRow className="mb-4">
@@ -365,6 +642,7 @@ const AdminReportCardReview = () => {
             <CTableHead>
               <CTableRow>
                 <CTableHeaderCell>Student</CTableHeaderCell>
+                <CTableHeaderCell>Grade</CTableHeaderCell>
                 <CTableHeaderCell>Teacher</CTableHeaderCell>
                 <CTableHeaderCell>Report Type</CTableHeaderCell>
                 <CTableHeaderCell>Status</CTableHeaderCell>
@@ -373,69 +651,96 @@ const AdminReportCardReview = () => {
               </CTableRow>
             </CTableHead>
             <CTableBody>
-              {filteredReportCards.map((reportCard) => (
-                <CTableRow key={reportCard.id}>
-                  <CTableDataCell>
-                    <strong>{reportCard.studentName}</strong>
-                  </CTableDataCell>
-                  <CTableDataCell>{reportCard.teacherName}</CTableDataCell>
-                  <CTableDataCell>{reportCard.reportCardTypeName}</CTableDataCell>
-                  <CTableDataCell>
-                    <CBadge color={getStatusBadgeColor(reportCard.status)}>
-                      <CIcon icon={getStatusIcon(reportCard.status)} className="me-1" />
-                      {reportCard.status.replace('_', ' ').toUpperCase()}
-                    </CBadge>
-                  </CTableDataCell>
-                  <CTableDataCell>
-                    {dayjs(reportCard.lastModified).format('MMM DD, YYYY HH:mm')}
-                  </CTableDataCell>
-                  <CTableDataCell>
-                    <div className="d-flex gap-2">
-                      <CButton
-                        color="info"
-                        size="sm"
-                        onClick={() => handleViewReportCard(reportCard)}
-                        disabled={loadingPdf}
-                      >
-                        <CIcon icon={cilFindInPage} className="me-1" />
-                        View
-                      </CButton>
-                      
-                      {reportCard.status === 'pending' && (
-                        <>
+              {filteredReportCards.map((reportCard) => {
+                const isApproving = approvingIds.has(reportCard.id)
+                return (
+                  <CTableRow key={reportCard.id}>
+                    <CTableDataCell>
+                      <strong>{reportCard.studentName}</strong>
+                    </CTableDataCell>
+                    <CTableDataCell>
+                      {reportCard.grade ? `Grade ${reportCard.grade}` : '-'}
+                    </CTableDataCell>
+                    <CTableDataCell>{reportCard.teacherName}</CTableDataCell>
+                    <CTableDataCell>{reportCard.reportCardTypeName}</CTableDataCell>
+                    <CTableDataCell>
+                      <CBadge color={getStatusBadgeColor(reportCard.status)}>
+                        <CIcon icon={getStatusIcon(reportCard.status)} className="me-1" />
+                        {reportCard.status.replace('_', ' ').toUpperCase()}
+                      </CBadge>
+                    </CTableDataCell>
+                    <CTableDataCell>
+                      {dayjs(reportCard.lastModified).format('MMM DD, YYYY HH:mm')}
+                    </CTableDataCell>
+                    <CTableDataCell>
+                      <div className="d-flex gap-2">
+                        <CButton
+                          color="info"
+                          size="sm"
+                          onClick={() => handleViewReportCard(reportCard)}
+                          disabled={loadingPdf || isApproving}
+                        >
+                          <CIcon icon={cilFindInPage} className="me-1" />
+                          View
+                        </CButton>
+                        
+                        {reportCard.status === 'pending' && (
+                          <>
+                            <CButton
+                              color="success"
+                              size="sm"
+                              onClick={() => approveAndPublishReportCard(reportCard)}
+                              disabled={isApproving || batchApproving}
+                            >
+                              {isApproving ? (
+                                <>
+                                  <CSpinner size="sm" className="me-1" />
+                                  Approving...
+                                </>
+                              ) : (
+                                <>
+                                  <CIcon icon={cilCheck} className="me-1" />
+                                  Approve & Publish
+                                </>
+                              )}
+                            </CButton>
+                            <CButton
+                              color="warning"
+                              size="sm"
+                              onClick={() => updateReportCardStatus(reportCard.id, 'needs_revision')}
+                              disabled={isApproving || batchApproving}
+                            >
+                              <CIcon icon={cilX} className="me-1" />
+                              Needs Revision
+                            </CButton>
+                          </>
+                        )}
+                        
+                        {reportCard.status === 'needs_revision' && (
                           <CButton
                             color="success"
                             size="sm"
-                            onClick={() => updateReportCardStatus(reportCard.id, 'approved')}
+                            onClick={() => approveAndPublishReportCard(reportCard)}
+                            disabled={isApproving || batchApproving}
                           >
-                            <CIcon icon={cilCheck} className="me-1" />
-                            Approve
+                            {isApproving ? (
+                              <>
+                                <CSpinner size="sm" className="me-1" />
+                                Approving...
+                              </>
+                            ) : (
+                              <>
+                                <CIcon icon={cilCheck} className="me-1" />
+                                Approve & Publish
+                              </>
+                            )}
                           </CButton>
-                          <CButton
-                            color="warning"
-                            size="sm"
-                            onClick={() => updateReportCardStatus(reportCard.id, 'needs_revision')}
-                          >
-                            <CIcon icon={cilX} className="me-1" />
-                            Needs Revision
-                          </CButton>
-                        </>
-                      )}
-                      
-                      {reportCard.status === 'needs_revision' && (
-                        <CButton
-                          color="success"
-                          size="sm"
-                          onClick={() => updateReportCardStatus(reportCard.id, 'approved')}
-                        >
-                          <CIcon icon={cilCheck} className="me-1" />
-                          Approve
-                        </CButton>
-                      )}
-                    </div>
-                  </CTableDataCell>
-                </CTableRow>
-              ))}
+                        )}
+                      </div>
+                    </CTableDataCell>
+                  </CTableRow>
+                )
+              })}
             </CTableBody>
           </CTable>
 

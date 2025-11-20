@@ -51,26 +51,59 @@ const ParentReportCards = () => {
         for (const kid of kids) {
           map[kid.id] = []
           try {
-            // Primary: match on tarbiyahId
-            const byIdQ = query(collection(firestore, 'reportCards'), where('tarbiyahId', '==', kid.id))
+            // Primary: match on tarbiyahId and only show approved/published reports
+            const byIdQ = query(
+              collection(firestore, 'reportCards'),
+              where('tarbiyahId', '==', kid.id),
+              where('status', 'in', ['approved', 'published'])
+            )
             let rcSnap = await getDocs(byIdQ)
 
             // Legacy fallback: match on slugged studentName if no results
             if (rcSnap.empty) {
               const legacySlug = kid.name.replace(/\s+/g, '-')
-              const byNameQ = query(collection(firestore, 'reportCards'), where('studentName', '==', legacySlug))
+              const byNameQ = query(
+                collection(firestore, 'reportCards'),
+                where('studentName', '==', legacySlug),
+                where('status', 'in', ['approved', 'published'])
+              )
               rcSnap = await getDocs(byNameQ)
             }
 
+            // Group by report type ID and keep only the latest approved one for each type
+            // This ensures parents see only ONE report card per type (e.g., one "1-6 progress", one "7-8 progress")
+            const reportsByType = new Map()
+            
             rcSnap.forEach((docSnap) => {
               const data = docSnap.data() || {}
               const url = data.url
               const filePath = data.filePath || ''
-              const displayName = filePath ? filePath.split('/').pop() : data.type || 'report'
+              // Use reportCardType (ID) as the unique key, fallback to reportCardTypeName or type
+              const reportTypeId = data.reportCardType || data.type || 'unknown'
+              const reportTypeName = data.reportCardTypeName || data.type || 'Report Card'
+              const approvedAt = data.approvedAt?.toDate?.() || data.createdAt?.toDate?.() || new Date()
+              
               if (url) {
-                map[kid.id].push({ name: displayName, url })
+                // Use report type ID as the unique key (e.g., "1-6-progress", "7-8-progress", "kg-initial-observations")
+                const reportKey = reportTypeId
+                
+                // If we haven't seen this type, or this one is newer, keep it
+                if (!reportsByType.has(reportKey) || approvedAt > reportsByType.get(reportKey).approvedAt) {
+                  const displayName = reportTypeName // Show the friendly name, not the filename
+                  reportsByType.set(reportKey, {
+                    name: displayName,
+                    url,
+                    grade: data.grade || '',
+                    approvedAt: approvedAt,
+                    type: reportTypeName,
+                    typeId: reportTypeId
+                  })
+                }
               }
             })
+            
+            // Convert map to array and sort by approval date (newest first)
+            map[kid.id] = Array.from(reportsByType.values()).sort((a, b) => b.approvedAt - a.approvedAt)
           } catch (inner) {
             console.warn('Error fetching reportCards for', kid.id, inner)
           }

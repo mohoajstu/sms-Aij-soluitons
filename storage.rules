@@ -1,0 +1,115 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && 
+             firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+             (
+               firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.primaryRole != null &&
+               (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.primaryRole.lower() == 'admin' ||
+                firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.primaryRole.lower() == 'schooladmin' ||
+                firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.primaryRole.lower() == 'school_admin')
+             ) ||
+             (
+               firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role != null &&
+               (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role.lower() == 'admin' ||
+                firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role.lower() == 'schooladmin' ||
+                firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role.lower() == 'school_admin')
+             ) ||
+             (
+               firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo != null &&
+               (
+                 (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo.role != null &&
+                  (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo.role.lower() == 'admin' ||
+                   firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo.role.lower() == 'schooladmin' ||
+                   firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo.role.lower() == 'school_admin')) ||
+                 (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo.primaryRole != null &&
+                  (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo.primaryRole.lower() == 'admin' ||
+                   firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo.primaryRole.lower() == 'schooladmin' ||
+                   firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo.primaryRole.lower() == 'school_admin'))
+               )
+             );
+    }
+    
+    // Helper function to check if user is faculty
+    function isFaculty() {
+      return request.auth != null && 
+             firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+             (
+               (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.primaryRole != null &&
+                firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.primaryRole.lower() == 'faculty') ||
+               (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role != null &&
+                firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role.lower() == 'faculty') ||
+               (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo != null &&
+                firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo.role != null &&
+                firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo.role.lower() == 'faculty') ||
+               (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo != null &&
+                firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo.primaryRole != null &&
+                firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo.primaryRole.lower() == 'faculty')
+             );
+    }
+    
+    // Helper function to check if user is parent
+    function isParent() {
+      return request.auth != null && 
+             firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+             (
+               (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.primaryRole != null &&
+                firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.primaryRole.lower() == 'parent') ||
+               (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role != null &&
+                firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role.lower() == 'parent') ||
+               (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo != null &&
+                firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo.role != null &&
+                firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo.role.lower() == 'parent') ||
+               (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo != null &&
+                firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo.primaryRole != null &&
+                firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo.primaryRole.lower() == 'parent')
+             );
+    }
+    
+    // EXISTING RULE: Report Cards - Teacher uploads (drafts and completed)
+    // This rule allows authenticated users to manage their own report cards
+    match /reportCards/{userId}/{allPaths=**} {
+      // Admins can read/write all
+      allow read, write: if isAdmin();
+      
+      // Faculty/teachers can read/write their own uploads
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // NEW RULE: Report Cards - Approved reports (visible to parents)
+    // Admins upload approved reports here, parents can read them
+    match /reportCards/approved/{fileName} {
+      // Admins can read/write all approved report cards
+      allow read, write: if isAdmin();
+      
+      // Faculty can read/write their own report cards (if they uploaded them)
+      allow read, write: if isFaculty() && 
+                            request.resource.metadata != null &&
+                            request.resource.metadata.uid == request.auth.uid;
+      
+      // Parents can read approved report cards (for their children)
+      allow read: if isParent();
+    }
+    
+    // EXISTING RULE: Registration files - public uploads
+    // This rule allows ANYONE to upload registration files into categorized folders
+    match /registrations/{registrationId}/{category}/{fileName} {
+      // Allow reading a file. This is needed to get the download URL after uploading.
+      // IMPORTANT: This means anyone with the direct link can view the file.
+      allow get: if true;
+      
+      // Listing directory contents is blocked for security.
+      allow list: if false;
+      
+      // Allow uploads that meet specific criteria:
+      // - The file is a PDF, DOC/DOCX, JPG, or PNG.
+      // - The file size is less than 5MB.
+      allow write: if request.resource.size < 5 * 1024 * 1024 &&
+                      request.resource.contentType.matches('application/pdf|image/jpeg|image/png|application/msword|application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    }
+  }
+}
