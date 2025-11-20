@@ -28,10 +28,10 @@ import {
   CModalFooter,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilCheck, cilX, cilUser, cilCloudDownload, cilFilter, cilSearch, cilPencil, cilFindInPage } from '@coreui/icons'
-import { collection, getDocs, query, where, orderBy, updateDoc, doc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore'
+import { cilCheck, cilX, cilUser, cilCloudDownload, cilFilter, cilSearch, cilPencil, cilFindInPage, cilTrash } from '@coreui/icons'
+import { collection, getDocs, query, where, orderBy, updateDoc, doc, getDoc, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore'
 import { firestore, storage } from '../../../Firebase/firebase'
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
 import useAuth from '../../../Firebase/useAuth'
 import dayjs from 'dayjs'
 import { exportProgressReport1to6 } from '../exportProgressReport1to6'
@@ -55,6 +55,7 @@ const AdminReportCardReview = () => {
   const [loadingPdf, setLoadingPdf] = useState(false)
   const [approvingIds, setApprovingIds] = useState(new Set())
   const [batchApproving, setBatchApproving] = useState(false)
+  const [deletingIds, setDeletingIds] = useState(new Set())
   const { user, role } = useAuth()
 
   // Load report cards from Firestore
@@ -387,6 +388,207 @@ const AdminReportCardReview = () => {
     }
   }
 
+  // Delete report card
+  const handleDeleteReportCard = async (reportCard) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete the report card for ${reportCard.studentName}?\n\n` +
+      `This will permanently delete:\n` +
+      `- The draft from the system\n` +
+      `- Any associated approved report card (if published)\n` +
+      `- The PDF file from storage (if exists)\n\n` +
+      `This action cannot be undone.`
+    )
+
+    if (!confirmed) return
+
+    setDeletingIds(prev => new Set(prev).add(reportCard.id))
+
+    try {
+      // Load the full draft to get file paths
+      const draftRef = doc(firestore, 'reportCardDrafts', reportCard.id)
+      const draftSnap = await getDoc(draftRef)
+      const draftData = draftSnap.exists() ? draftSnap.data() : null
+
+      // Delete PDF from storage if it exists
+      if (draftData?.finalPdfPath) {
+        try {
+          const storageRef = ref(storage, draftData.finalPdfPath)
+          await deleteObject(storageRef)
+          console.log('✅ Deleted PDF from storage:', draftData.finalPdfPath)
+        } catch (storageError) {
+          console.warn('⚠️ Could not delete PDF from storage (may not exist):', storageError)
+          // Continue with deletion even if storage deletion fails
+        }
+      }
+
+      // Find and delete corresponding approved report card if it exists
+      // Parents query by tarbiyahId (primary) or studentName (fallback), so we need to check both
+      try {
+        const approvedDocsToDelete = new Map() // Use Map to avoid duplicates by document ID
+        
+        // The studentName in approved reports is slugged (with dashes), so we need to slug it
+        const studentNameSlug = (reportCard.studentName || '').replace(/\s+/g, '-').toLowerCase()
+        const reportType = reportCard.reportCardType // This is what we're looking for
+        
+        console.log('🔍 Searching for approved report cards to delete:', {
+          tarbiyahId: reportCard.tarbiyahId,
+          studentName: reportCard.studentName,
+          studentNameSlug: studentNameSlug,
+          reportType: reportType,
+          studentId: reportCard.selectedStudent?.id
+        })
+        
+        // Method 1: Query by tarbiyahId (primary method parents use)
+        // Query without status filter first to see all matches, then filter
+        if (reportCard.tarbiyahId) {
+          try {
+            const byTarbiyahIdQuery = query(
+              collection(firestore, 'reportCards'),
+              where('tarbiyahId', '==', reportCard.tarbiyahId)
+            )
+            const tarbiyahSnapshot = await getDocs(byTarbiyahIdQuery)
+            console.log(`📋 Found ${tarbiyahSnapshot.size} report card(s) by tarbiyahId`)
+            
+            tarbiyahSnapshot.forEach((doc) => {
+              const data = doc.data()
+              const docReportType = data.reportCardType || data.type
+              const docStatus = data.status
+              const docStudentName = data.studentName || ''
+              
+              // Match by report type and check if it's visible to parents
+              if (docReportType === reportType && 
+                  (docStatus === 'approved' || docStatus === 'published' || docStatus === 'complete')) {
+                console.log(`✅ Matched approved report card by tarbiyahId:`, {
+                  id: doc.id,
+                  type: docReportType,
+                  status: docStatus,
+                  studentName: docStudentName
+                })
+                approvedDocsToDelete.set(doc.id, data)
+              }
+            })
+          } catch (tarbiyahError) {
+            console.warn('⚠️ Error querying by tarbiyahId:', tarbiyahError)
+          }
+        }
+
+        // Method 2: Query by studentName (fallback method parents use)
+        // Try slugged version (this is what's stored in approved reports)
+        try {
+          const byNameQuery = query(
+            collection(firestore, 'reportCards'),
+            where('studentName', '==', studentNameSlug)
+          )
+          const nameSnapshot = await getDocs(byNameQuery)
+          console.log(`📋 Found ${nameSnapshot.size} report card(s) by studentName (slugged)`)
+          
+          nameSnapshot.forEach((doc) => {
+            const data = doc.data()
+            const docReportType = data.reportCardType || data.type
+            const docStatus = data.status
+            
+            // Match by report type and check if it's visible to parents
+            if (docReportType === reportType && 
+                (docStatus === 'approved' || docStatus === 'published' || docStatus === 'complete')) {
+              console.log(`✅ Matched approved report card by studentName:`, {
+                id: doc.id,
+                type: docReportType,
+                status: docStatus
+              })
+              approvedDocsToDelete.set(doc.id, data)
+            }
+          })
+        } catch (nameError) {
+          console.warn('⚠️ Error querying by studentName:', nameError)
+        }
+
+        // Method 3: Also try matching by studentId if available
+        if (reportCard.selectedStudent?.id) {
+          try {
+            const byStudentIdQuery = query(
+              collection(firestore, 'reportCards'),
+              where('studentId', '==', reportCard.selectedStudent.id)
+            )
+            const studentIdSnapshot = await getDocs(byStudentIdQuery)
+            console.log(`📋 Found ${studentIdSnapshot.size} report card(s) by studentId`)
+            
+            studentIdSnapshot.forEach((doc) => {
+              const data = doc.data()
+              const docReportType = data.reportCardType || data.type
+              const docStatus = data.status
+              
+              if (docReportType === reportType && 
+                  (docStatus === 'approved' || docStatus === 'published' || docStatus === 'complete')) {
+                console.log(`✅ Matched approved report card by studentId:`, {
+                  id: doc.id,
+                  type: docReportType,
+                  status: docStatus
+                })
+                approvedDocsToDelete.set(doc.id, data)
+              }
+            })
+          } catch (studentIdError) {
+            console.warn('⚠️ Error querying by studentId:', studentIdError)
+          }
+        }
+        
+        console.log(`🗑️ Found ${approvedDocsToDelete.size} approved report card(s) to delete`)
+        
+        // Delete all found approved report cards
+        for (const [docId, approvedData] of approvedDocsToDelete) {
+          // Delete PDF from storage if it exists
+          if (approvedData?.filePath) {
+            try {
+              const approvedStorageRef = ref(storage, approvedData.filePath)
+              await deleteObject(approvedStorageRef)
+              console.log('✅ Deleted approved PDF from storage:', approvedData.filePath)
+            } catch (storageError) {
+              console.warn('⚠️ Could not delete approved PDF from storage:', storageError)
+            }
+          }
+          
+          // Delete the approved report card document
+          await deleteDoc(doc(firestore, 'reportCards', docId))
+          console.log('✅ Deleted approved report card document:', docId)
+        }
+
+        if (approvedDocsToDelete.size > 0) {
+          console.log(`✅ Successfully deleted ${approvedDocsToDelete.size} approved report card(s) from parent view`)
+        } else {
+          console.warn('⚠️ No approved report cards found to delete. The document may not exist or may have already been deleted.')
+        }
+      } catch (approvedError) {
+        console.error('❌ Error checking/deleting approved report cards:', approvedError)
+        // Continue with draft deletion even if approved deletion fails
+      }
+
+      // Delete the draft document
+      await deleteDoc(draftRef)
+      console.log('✅ Deleted draft:', reportCard.id)
+
+      // Update local state
+      setReportCards(prev => prev.filter(rc => rc.id !== reportCard.id))
+
+      // Close modal if the deleted report card was being viewed
+      if (selectedReportCard?.id === reportCard.id) {
+        setViewModalVisible(false)
+        setSelectedReportCard(null)
+        setSelectedReportCardData(null)
+      }
+
+      alert(`✅ Report card for ${reportCard.studentName} has been deleted successfully.`)
+    } catch (err) {
+      console.error('❌ Error deleting report card:', err)
+      alert(`Failed to delete report card: ${err.message}`)
+    } finally {
+      setDeletingIds(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(reportCard.id)
+        return newSet
+      })
+    }
+  }
+
   if (role !== 'admin') {
     return (
       <CContainer fluid>
@@ -653,6 +855,7 @@ const AdminReportCardReview = () => {
             <CTableBody>
               {filteredReportCards.map((reportCard) => {
                 const isApproving = approvingIds.has(reportCard.id)
+                const isDeleting = deletingIds.has(reportCard.id)
                 return (
                   <CTableRow key={reportCard.id}>
                     <CTableDataCell>
@@ -678,7 +881,7 @@ const AdminReportCardReview = () => {
                           color="info"
                           size="sm"
                           onClick={() => handleViewReportCard(reportCard)}
-                          disabled={loadingPdf || isApproving}
+                          disabled={loadingPdf || isApproving || isDeleting}
                         >
                           <CIcon icon={cilFindInPage} className="me-1" />
                           View
@@ -690,7 +893,7 @@ const AdminReportCardReview = () => {
                               color="success"
                               size="sm"
                               onClick={() => approveAndPublishReportCard(reportCard)}
-                              disabled={isApproving || batchApproving}
+                              disabled={isApproving || batchApproving || isDeleting}
                             >
                               {isApproving ? (
                                 <>
@@ -708,7 +911,7 @@ const AdminReportCardReview = () => {
                               color="warning"
                               size="sm"
                               onClick={() => updateReportCardStatus(reportCard.id, 'needs_revision')}
-                              disabled={isApproving || batchApproving}
+                              disabled={isApproving || batchApproving || isDeleting}
                             >
                               <CIcon icon={cilX} className="me-1" />
                               Needs Revision
@@ -721,7 +924,7 @@ const AdminReportCardReview = () => {
                             color="success"
                             size="sm"
                             onClick={() => approveAndPublishReportCard(reportCard)}
-                            disabled={isApproving || batchApproving}
+                            disabled={isApproving || batchApproving || isDeleting}
                           >
                             {isApproving ? (
                               <>
@@ -736,6 +939,25 @@ const AdminReportCardReview = () => {
                             )}
                           </CButton>
                         )}
+
+                        <CButton
+                          color="danger"
+                          size="sm"
+                          onClick={() => handleDeleteReportCard(reportCard)}
+                          disabled={isApproving || batchApproving || isDeleting}
+                        >
+                          {isDeleting ? (
+                            <>
+                              <CSpinner size="sm" className="me-1" />
+                              Deleting...
+                            </>
+                          ) : (
+                            <>
+                              <CIcon icon={cilTrash} className="me-1" />
+                              Delete
+                            </>
+                          )}
+                        </CButton>
                       </div>
                     </CTableDataCell>
                   </CTableRow>
@@ -844,13 +1066,38 @@ const AdminReportCardReview = () => {
             Close
           </CButton>
           {selectedReportCardData && (
-            <CButton
-              color="primary"
-              onClick={() => handleEditReportCard(selectedReportCardData)}
-            >
-              <CIcon icon={cilPencil} className="me-1" />
-              Edit Report Card
-            </CButton>
+            <>
+              <CButton
+                color="primary"
+                onClick={() => handleEditReportCard(selectedReportCardData)}
+              >
+                <CIcon icon={cilPencil} className="me-1" />
+                Edit Report Card
+              </CButton>
+              <CButton
+                color="danger"
+                onClick={() => {
+                  if (window.confirm(
+                    `Are you sure you want to delete this report card for ${selectedReportCardData.studentName}? This action cannot be undone.`
+                  )) {
+                    handleDeleteReportCard(selectedReportCardData)
+                  }
+                }}
+                disabled={deletingIds.has(selectedReportCardData.id)}
+              >
+                {deletingIds.has(selectedReportCardData.id) ? (
+                  <>
+                    <CSpinner size="sm" className="me-1" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <CIcon icon={cilTrash} className="me-1" />
+                    Delete
+                  </>
+                )}
+              </CButton>
+            </>
           )}
         </CModalFooter>
       </CModal>
