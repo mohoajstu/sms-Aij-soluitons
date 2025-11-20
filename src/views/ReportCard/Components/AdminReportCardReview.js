@@ -28,7 +28,7 @@ import {
   CModalFooter,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilCheck, cilX, cilUser, cilCloudDownload, cilFilter, cilSearch, cilPencil, cilFindInPage } from '@coreui/icons'
+import { cilCheck, cilX, cilUser, cilCloudDownload, cilFilter, cilSearch, cilPencil, cilFindInPage, cilReload } from '@coreui/icons'
 import { collection, getDocs, query, where, orderBy, updateDoc, doc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore'
 import { firestore, storage } from '../../../Firebase/firebase'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
@@ -55,6 +55,8 @@ const AdminReportCardReview = () => {
   const [loadingPdf, setLoadingPdf] = useState(false)
   const [approvingIds, setApprovingIds] = useState(new Set())
   const [batchApproving, setBatchApproving] = useState(false)
+  const [selectedForReapproval, setSelectedForReapproval] = useState(new Set())
+  const [reapprovingIds, setReapprovingIds] = useState(new Set())
   const { user, role } = useAuth()
 
   // Load report cards from Firestore
@@ -91,6 +93,8 @@ const AdminReportCardReview = () => {
             createdAt: data.createdAt?.toDate?.() || new Date(),
             grade: grade, // Extract grade for filtering
             tarbiyahId: data.tarbiyahId || data.selectedStudent?.schoolId || data.selectedStudent?.id || '',
+            adminReviewedAt: data.adminReviewedAt?.toDate?.() || null,
+            finalPdfUrl: data.finalPdfUrl || null,
           })
         })
 
@@ -256,6 +260,212 @@ const AdminReportCardReview = () => {
     }
   }
 
+  // Re-approve report card (regenerate PDF without logo and update existing records)
+  const reapproveReportCard = async (reportCard) => {
+    setReapprovingIds(prev => new Set(prev).add(reportCard.id))
+    
+    try {
+      console.log('🔄 Starting re-approval process for:', reportCard.studentName)
+      
+      // Get the report card type configuration
+      const reportCardType = REPORT_CARD_TYPES.find(t => t.id === reportCard.reportCardType)
+      if (!reportCardType?.pdfPath) {
+        throw new Error('Report card type configuration not found')
+      }
+
+      // Generate PDF based on report type (without logo now)
+      const studentName = (reportCard.studentName || 'student').replace(/\s+/g, '-')
+      let finalPdfBytes
+
+      switch (reportCard.reportCardType) {
+        case '1-6-progress':
+          finalPdfBytes = await exportProgressReport1to6(reportCardType.pdfPath, reportCard.formData, studentName)
+          break
+        case '7-8-progress':
+          finalPdfBytes = await exportProgressReport7to8(reportCardType.pdfPath, reportCard.formData, studentName)
+          break
+        case 'kg-initial-observations':
+          finalPdfBytes = await exportKGInitialObservations(reportCardType.pdfPath, reportCard.formData, studentName)
+          break
+        default:
+          throw new Error(`Unsupported report type: ${reportCard.reportCardType}. Please contact support.`)
+      }
+
+      console.log('✅ PDF regenerated successfully (without logo)')
+
+      // Upload new PDF to Firebase Storage
+      const blob = new Blob([finalPdfBytes], { type: 'application/pdf' })
+      const timestamp = Date.now()
+      const filePath = `reportCards/approved/${reportCard.reportCardType}-${studentName}-${timestamp}.pdf`
+      const storageRef = ref(storage, filePath)
+
+      await uploadBytes(storageRef, blob)
+      const downloadURL = await getDownloadURL(storageRef)
+      
+      console.log('✅ New PDF uploaded to Storage:', downloadURL)
+
+      // Find and update existing approved record in reportCards collection
+      const reportCardsQuery = query(
+        collection(firestore, 'reportCards'),
+        where('tarbiyahId', '==', reportCard.tarbiyahId),
+        where('type', '==', reportCard.reportCardType),
+        where('status', '==', 'approved')
+      )
+      const reportCardsSnapshot = await getDocs(reportCardsQuery)
+      
+      if (!reportCardsSnapshot.empty) {
+        // Update the most recent approved record
+        const reportCardsList = reportCardsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          data: doc.data(),
+          approvedAt: doc.data().approvedAt?.toDate?.() || new Date(0)
+        }))
+        reportCardsList.sort((a, b) => b.approvedAt - a.approvedAt)
+        
+        const latestReportCard = reportCardsList[0]
+        const reportCardRef = doc(firestore, 'reportCards', latestReportCard.id)
+        await updateDoc(reportCardRef, {
+          url: downloadURL,
+          filePath: filePath,
+          reapprovedAt: serverTimestamp(),
+          reapprovedBy: user.uid,
+        })
+        console.log('✅ Updated existing reportCards record')
+      } else {
+        // If no existing record found, create a new one (shouldn't happen, but safety net)
+        await addDoc(collection(firestore, 'reportCards'), {
+          uid: reportCard.teacherId,
+          type: reportCard.reportCardType,
+          filePath,
+          url: downloadURL,
+          studentName: studentName,
+          tarbiyahId: reportCard.tarbiyahId,
+          status: 'approved',
+          studentId: reportCard.selectedStudent?.id || '',
+          reportCardTypeName: reportCard.reportCardTypeName,
+          grade: reportCard.grade || '',
+          teacherName: reportCard.teacherName,
+          approvedBy: user.uid,
+          approvedAt: serverTimestamp(),
+          reapprovedAt: serverTimestamp(),
+          reapprovedBy: user.uid,
+          createdAt: serverTimestamp(),
+        })
+        console.log('✅ Created new reportCards record (no existing found)')
+      }
+
+      // Update the draft with new final PDF URL
+      const draftRef = doc(firestore, 'reportCardDrafts', reportCard.id)
+      await updateDoc(draftRef, {
+        finalPdfUrl: downloadURL,
+        finalPdfPath: filePath,
+        reapprovedAt: serverTimestamp(),
+        reapprovedBy: user.uid,
+      })
+
+      console.log('✅ Draft updated with new PDF URL')
+
+      // Update local state
+      setReportCards(prev => 
+        prev.map(rc => 
+          rc.id === reportCard.id 
+            ? { ...rc, finalPdfUrl: downloadURL }
+            : rc
+        )
+      )
+
+      console.log(`✅ Report card re-approved for ${reportCard.studentName}!`)
+      
+    } catch (err) {
+      console.error('❌ Error re-approving report card:', err)
+      alert(`Failed to re-approve report card: ${err.message}`)
+      throw err // Re-throw so batch re-approve can track failures
+    } finally {
+      setReapprovingIds(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(reportCard.id)
+        return newSet
+      })
+    }
+  }
+
+  // Batch re-approve selected approved reports
+  const batchReapproveSelected = async () => {
+    const reportsToReapprove = reportCards.filter(rc => 
+      rc.status === 'approved' && selectedForReapproval.has(rc.id)
+    )
+
+    if (reportsToReapprove.length === 0) {
+      alert('Please select at least one approved report to re-approve.')
+      return
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to re-approve ${reportsToReapprove.length} selected report card(s)? ` +
+      `This will regenerate the PDFs without the logo overlay and update the existing records.`
+    )
+
+    if (!confirmed) return
+
+    setBatchApproving(true)
+    let successCount = 0
+    let failCount = 0
+
+    for (const report of reportsToReapprove) {
+      try {
+        await reapproveReportCard(report)
+        successCount++
+        // Remove from selection after successful re-approval
+        setSelectedForReapproval(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(report.id)
+          return newSet
+        })
+      } catch (err) {
+        console.error(`Failed to re-approve report for ${report.studentName}:`, err)
+        failCount++
+      }
+    }
+
+    setBatchApproving(false)
+    alert(
+      `Batch re-approval complete!\n✅ Re-approved: ${successCount}\n❌ Failed: ${failCount}`
+    )
+  }
+
+  // Toggle selection for re-approval
+  const toggleReapprovalSelection = (reportCardId) => {
+    setSelectedForReapproval(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(reportCardId)) {
+        newSet.delete(reportCardId)
+      } else {
+        newSet.add(reportCardId)
+      }
+      return newSet
+    })
+  }
+
+  // Select/deselect all approved reports in filtered results
+  const toggleAllApproved = () => {
+    const approvedInFilter = getApprovedInFilter()
+    if (approvedInFilter.length === 0) return
+    
+    const allSelected = approvedInFilter.every(rc => selectedForReapproval.has(rc.id))
+    
+    setSelectedForReapproval(prev => {
+      const newSet = new Set(prev)
+      if (allSelected) {
+        // Deselect all approved in current filter
+        approvedInFilter.forEach(rc => newSet.delete(rc.id))
+      } else {
+        // Select all approved in current filter
+        approvedInFilter.forEach(rc => newSet.add(rc.id))
+      }
+      return newSet
+    })
+  }
+
   // Batch approve all reports for a specific grade
   const batchApproveByGrade = async (grade) => {
     const reportsToApprove = reportCards.filter(
@@ -306,6 +516,21 @@ const AdminReportCardReview = () => {
 
     return matchesSearch && matchesStatus && matchesTeacher && matchesGrade
   })
+
+  // Get approved reports in filtered results
+  const getApprovedInFilter = () => {
+    return filteredReportCards.filter(rc => rc.status === 'approved')
+  }
+
+  // Check if there are any approved reports in filtered results
+  const hasApprovedInFilter = filteredReportCards.some(rc => rc.status === 'approved')
+  
+  // Check if all approved reports in filter are selected
+  const allApprovedSelected = () => {
+    const approvedInFilter = getApprovedInFilter()
+    if (approvedInFilter.length === 0) return false
+    return approvedInFilter.every(rc => selectedForReapproval.has(rc.id))
+  }
 
   // Get status badge color
   const getStatusBadgeColor = (status) => {
@@ -500,6 +725,61 @@ const AdminReportCardReview = () => {
             </CCol>
           </CRow>
 
+          {/* Re-approve Section - Show only when status filter is set to "approved" */}
+          {statusFilter === 'approved' && hasApprovedInFilter && (() => {
+            const approvedInFilter = getApprovedInFilter()
+            return (
+              <CRow className="mb-3">
+                <CCol>
+                  <CAlert color="info" className="mb-0">
+                    <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                      <div>
+                        <strong>
+                          {approvedInFilter.length} approved report(s) in filtered results
+                        </strong>
+                        <br />
+                        <small className="text-muted">
+                          Select reports to regenerate PDFs without logo overlay
+                        </small>
+                      </div>
+                      <div className="d-flex gap-2">
+                        <CButton
+                          color="secondary"
+                          size="sm"
+                          variant="outline"
+                          onClick={toggleAllApproved}
+                          disabled={batchApproving}
+                        >
+                          {allApprovedSelected()
+                            ? 'Deselect All'
+                            : 'Select All'}
+                        </CButton>
+                        <CButton
+                          color="info"
+                          size="sm"
+                          onClick={batchReapproveSelected}
+                          disabled={batchApproving || selectedForReapproval.size === 0}
+                        >
+                          {batchApproving ? (
+                            <>
+                              <CSpinner size="sm" className="me-2" />
+                              Re-approving...
+                            </>
+                          ) : (
+                            <>
+                              <CIcon icon={cilReload} className="me-1" />
+                              Re-approve Selected ({selectedForReapproval.size})
+                            </>
+                          )}
+                        </CButton>
+                      </div>
+                    </div>
+                  </CAlert>
+                </CCol>
+              </CRow>
+            )
+          })()}
+
           {/* Batch Approval Section - Show when there are pending reports in filtered results */}
           {(() => {
             const pendingInFilter = filteredReportCards.filter(rc => rc.status === 'pending')
@@ -641,6 +921,29 @@ const AdminReportCardReview = () => {
           <CTable responsive hover>
             <CTableHead>
               <CTableRow>
+                {statusFilter === 'approved' && hasApprovedInFilter && (
+                  <CTableHeaderCell style={{ width: '50px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    <input
+                      type="checkbox"
+                      id="select-all-approved"
+                      checked={allApprovedSelected()}
+                      onChange={(e) => {
+                        e.stopPropagation()
+                        if (!batchApproving) {
+                          toggleAllApproved()
+                        }
+                      }}
+                      disabled={batchApproving}
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        cursor: batchApproving ? 'not-allowed' : 'pointer',
+                        margin: 0,
+                        accentColor: '#0d6efd'
+                      }}
+                    />
+                  </CTableHeaderCell>
+                )}
                 <CTableHeaderCell>Student</CTableHeaderCell>
                 <CTableHeaderCell>Grade</CTableHeaderCell>
                 <CTableHeaderCell>Teacher</CTableHeaderCell>
@@ -653,8 +956,38 @@ const AdminReportCardReview = () => {
             <CTableBody>
               {filteredReportCards.map((reportCard) => {
                 const isApproving = approvingIds.has(reportCard.id)
+                const isReapproving = reapprovingIds.has(reportCard.id)
+                const isSelected = selectedForReapproval.has(reportCard.id)
+                const isApproved = reportCard.status === 'approved'
                 return (
                   <CTableRow key={reportCard.id}>
+                    {statusFilter === 'approved' && hasApprovedInFilter && (
+                      <CTableDataCell style={{ width: '50px', textAlign: 'center', verticalAlign: 'middle' }}>
+                        {isApproved ? (
+                          <input
+                            type="checkbox"
+                            id={`reapprove-${reportCard.id}`}
+                            checked={isSelected}
+                            onChange={(e) => {
+                              e.stopPropagation()
+                              if (!isReapproving && !batchApproving) {
+                                toggleReapprovalSelection(reportCard.id)
+                              }
+                            }}
+                            disabled={isReapproving || batchApproving}
+                            style={{
+                              width: '20px',
+                              height: '20px',
+                              cursor: isReapproving || batchApproving ? 'not-allowed' : 'pointer',
+                              margin: 0,
+                              accentColor: '#0d6efd'
+                            }}
+                          />
+                        ) : (
+                          <span style={{ width: '20px', display: 'inline-block' }}></span>
+                        )}
+                      </CTableDataCell>
+                    )}
                     <CTableDataCell>
                       <strong>{reportCard.studentName}</strong>
                     </CTableDataCell>
@@ -690,7 +1023,7 @@ const AdminReportCardReview = () => {
                               color="success"
                               size="sm"
                               onClick={() => approveAndPublishReportCard(reportCard)}
-                              disabled={isApproving || batchApproving}
+                              disabled={isApproving || batchApproving || reapprovingIds.has(reportCard.id)}
                             >
                               {isApproving ? (
                                 <>
@@ -721,7 +1054,7 @@ const AdminReportCardReview = () => {
                             color="success"
                             size="sm"
                             onClick={() => approveAndPublishReportCard(reportCard)}
-                            disabled={isApproving || batchApproving}
+                            disabled={isApproving || batchApproving || isReapproving}
                           >
                             {isApproving ? (
                               <>
@@ -732,6 +1065,27 @@ const AdminReportCardReview = () => {
                               <>
                                 <CIcon icon={cilCheck} className="me-1" />
                                 Approve & Publish
+                              </>
+                            )}
+                          </CButton>
+                        )}
+                        
+                        {isApproved && (
+                          <CButton
+                            color="info"
+                            size="sm"
+                            onClick={() => reapproveReportCard(reportCard)}
+                            disabled={isReapproving || batchApproving || isApproving}
+                          >
+                            {isReapproving ? (
+                              <>
+                                <CSpinner size="sm" className="me-1" />
+                                Re-approving...
+                              </>
+                            ) : (
+                              <>
+                                <CIcon icon={cilReload} className="me-1" />
+                                Re-approve
                               </>
                             )}
                           </CButton>
