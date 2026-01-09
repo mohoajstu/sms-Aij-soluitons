@@ -52,6 +52,7 @@ function CreateCourse() {
     },
     staff: [], // Changed from teachers to staff for consistency
     teacherIds: [],
+    ece: null, // Early Childhood Educator (single person, separate from main teachers)
     budget: {
       totalBudget: 0,
       accumulatedCost: 0,
@@ -98,6 +99,7 @@ function CreateCourse() {
     'Physical Education',
     'Art',
     'Computer Science',
+    'ECE', // B13: Add ECE as course option
   ]
 
   // Fetch faculty data from Firebase
@@ -168,6 +170,28 @@ function CreateCourse() {
       staff: selectedInstructors,
       teacherIds: selectedInstructors.map(instructor => instructor.id),
     })
+  }
+
+  // Handle ECE selection (single)
+  const handleECESelection = (e) => {
+    const selectedId = e.target.value
+    if (selectedId && selectedId !== '') {
+      const selectedECE = faculty.find(f => f.id === selectedId)
+      if (selectedECE) {
+        setFormData({
+          ...formData,
+          ece: {
+            id: selectedECE.id,
+            name: selectedECE.name,
+          },
+        })
+      }
+    } else {
+      setFormData({
+        ...formData,
+        ece: null,
+      })
+    }
   }
 
   const handleInputChange = (e) => {
@@ -424,6 +448,11 @@ function CreateCourse() {
         teacherAuthUIDs: enhancedStaffData.map(s => s.authUID), // Firebase Auth UIDs
         teacherTarbiyahIds: enhancedStaffData.map(s => s.tarbiyahId), // Tarbiyah IDs
         teachers: enhancedStaffData.map(s => s.name), // Names for display
+        // ECE (Early Childhood Educator) - separate from main teachers
+        ece: formData.ece ? {
+          id: formData.ece.id,
+          name: formData.ece.name,
+        } : null,
         // Students and enrollment
         students: formData.students,
         enrolledList: formData.enrolledList,
@@ -681,8 +710,8 @@ function CreateCourse() {
             </div>
 
             {/* Teachers Section */}
-            <div className="teachers-section">
-              <CFormLabel>Instructors</CFormLabel>
+            <div className="teachers-section mb-4">
+              <CFormLabel>Instructors (Homeroom Teachers)</CFormLabel>
               {loadingFaculty ? (
                 <div className="text-center py-3">
                   <CSpinner size="sm" /> Loading faculty...
@@ -721,6 +750,50 @@ function CreateCourse() {
                           </span>
                 ))}
               </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* ECE Section */}
+            <div className="ece-section mb-4">
+              <CFormLabel htmlFor="ece">Early Childhood Educator (ECE)</CFormLabel>
+              <small className="form-text text-muted d-block mb-2">
+                Select an Early Childhood Educator to assign to this course (optional)
+              </small>
+              {loadingFaculty ? (
+                <div className="text-center py-3">
+                  <CSpinner size="sm" /> Loading faculty...
+                </div>
+              ) : (
+                <>
+                  <CFormSelect
+                    id="ece"
+                    value={formData.ece?.id || ''}
+                    onChange={handleECESelection}
+                    className="mb-2"
+                  >
+                    <option value="">No ECE assigned</option>
+                    {faculty.map((instructor) => (
+                      <option 
+                        key={instructor.id} 
+                        value={instructor.id}
+                      >
+                        {instructor.name} ({instructor.id})
+                      </option>
+                    ))}
+                  </CFormSelect>
+                  
+                  {/* Display selected ECE */}
+                  {formData.ece && (
+                    <div className="mt-2">
+                      <strong>Selected ECE:</strong>
+                      <div className="mt-1">
+                        <span className="badge bg-success me-1">
+                          {formData.ece.name}
+                        </span>
+                      </div>
                     </div>
                   )}
                 </>

@@ -44,7 +44,7 @@ const EarlyReadingScreeningSection = ({ formData, onFormDataChange }) => {
     <CRow className="align-items-center">
       <CCol md={5} className="mb-3 mb-md-0">
         <CFormLabel className="fw-bold">ERS completed:</CFormLabel>
-        <div>
+        <div className="d-flex gap-3 align-items-center">
           <CFormCheck
             inline
             type="checkbox"
@@ -53,6 +53,10 @@ const EarlyReadingScreeningSection = ({ formData, onFormDataChange }) => {
             label="yes"
             checked={formData.ERSCompletedYes || false}
             onChange={handleCheckboxChange}
+            style={{ 
+              minWidth: '60px',
+              cursor: 'pointer',
+            }}
           />
           <CFormCheck
             inline
@@ -62,6 +66,10 @@ const EarlyReadingScreeningSection = ({ formData, onFormDataChange }) => {
             label="no"
             checked={formData.ERSCompletedNo || false}
             onChange={handleCheckboxChange}
+            style={{ 
+              minWidth: '60px',
+              cursor: 'pointer',
+            }}
           />
           <CFormCheck
             inline
@@ -71,6 +79,10 @@ const EarlyReadingScreeningSection = ({ formData, onFormDataChange }) => {
             label="NA"
             checked={formData.ERSCompletedNA || false}
             onChange={handleCheckboxChange}
+            style={{ 
+              minWidth: '60px',
+              cursor: 'pointer',
+            }}
           />
         </div>
       </CCol>
@@ -113,7 +125,7 @@ const EarlyReadingScreeningSection = ({ formData, onFormDataChange }) => {
 
       <CCol md={3}>
         <CFormLabel className="fw-bold">Benchmark met:</CFormLabel>
-        <div>
+        <div className="d-flex gap-3 align-items-center">
           <CFormCheck
             inline
             type="checkbox"
@@ -122,6 +134,10 @@ const EarlyReadingScreeningSection = ({ formData, onFormDataChange }) => {
             label="yes"
             checked={formData.ERSBenchmarkYes || false}
             onChange={handleCheckboxChange}
+            style={{ 
+              minWidth: '60px',
+              cursor: 'pointer',
+            }}
           />
           <CFormCheck
             inline
@@ -131,6 +147,10 @@ const EarlyReadingScreeningSection = ({ formData, onFormDataChange }) => {
             label="no"
             checked={formData.ERSBenchmarkNo || false}
             onChange={handleCheckboxChange}
+            style={{ 
+              minWidth: '60px',
+              cursor: 'pointer',
+            }}
           />
         </div>
       </CCol>

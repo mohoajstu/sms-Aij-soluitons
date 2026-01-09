@@ -74,7 +74,15 @@ const AttendanceReportTable = () => {
   // State for filter dropdowns
   const [classOptions, setClassOptions] = useState([])
   const [studentOptions, setStudentOptions] = useState([])
-  const statusOptions = useMemo(() => ['Present', 'Absent', 'Late', 'Excused'], [])
+  // D19: Add Excused-Late and Excused-Absent to attendance statuses
+  const statusOptions = useMemo(() => [
+    'Present', 
+    'Absent', 
+    'Late', 
+    'Excused',
+    'Excused Late',
+    'Excused Absent'
+  ], [])
 
   // Define homeroom class patterns
   const homeroomPatterns = [

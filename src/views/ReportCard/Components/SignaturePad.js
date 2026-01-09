@@ -1,12 +1,34 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { CButton, CButtonGroup, CFormInput } from '@coreui/react'
 import SignatureCanvas from 'react-signature-canvas'
 
-const SignaturePad = ({ title, onSignatureChange }) => {
+const SignaturePad = ({ title, onSignatureChange, initialValue }) => {
   const [mode, setMode] = useState('typed') // 'typed', 'drawn'
   const [typedName, setTypedName] = useState('')
   const signatureCanvasRef = useRef(null)
+
+  // Auto-fill with initial value if provided
+  useEffect(() => {
+    if (initialValue) {
+      let valueToSet = ''
+      if (typeof initialValue === 'object' && initialValue.type === 'typed' && initialValue.value) {
+        valueToSet = initialValue.value
+      } else if (typeof initialValue === 'string' && initialValue.trim() !== '') {
+        valueToSet = initialValue
+      }
+      
+      // Only update if we have a value and it's different from current
+      if (valueToSet && typedName !== valueToSet) {
+        setTypedName(valueToSet)
+        // Don't call onSignatureChange here to avoid infinite loops
+        // The parent component already has the value
+      }
+    } else if (!initialValue && typedName) {
+      // If initialValue is cleared, clear the typed name
+      setTypedName('')
+    }
+  }, [initialValue])
 
   const handleModeChange = (newMode) => {
     setMode(newMode)
@@ -92,6 +114,13 @@ const SignaturePad = ({ title, onSignatureChange }) => {
 SignaturePad.propTypes = {
   title: PropTypes.string.isRequired,
   onSignatureChange: PropTypes.func.isRequired,
+  initialValue: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.shape({
+      type: PropTypes.string,
+      value: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+    }),
+  ]),
 }
 
 export default SignaturePad 

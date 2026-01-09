@@ -52,6 +52,8 @@ const AICommentField = ({
   formData,
   onFormDataChange,
 }) => {
+  // B8: Use character limits utility if maxLength not provided
+  const effectiveMaxLength = maxLength || getCharacterLimit(name)
   const currentLength = value?.length || 0
 
   return (
@@ -62,7 +64,7 @@ const AICommentField = ({
         onChange={onChange}
         placeholder={placeholder}
         rows={rows}
-        maxLength={maxLength}
+        maxLength={effectiveMaxLength}
         style={{
           resize: 'vertical',
           paddingRight: '50px',
@@ -94,17 +96,17 @@ const AICommentField = ({
         />
       </div>
 
-      {maxLength && (
+      {effectiveMaxLength && (
         <div
           className="position-absolute"
           style={{
             bottom: '8px',
             right: '15px',
             fontSize: '0.8rem',
-            color: currentLength > maxLength ? '#dc3545' : '#6c757d',
+            color: currentLength > effectiveMaxLength ? '#dc3545' : '#6c757d',
           }}
         >
-          {currentLength}/{maxLength}
+          {currentLength}/{effectiveMaxLength}
         </div>
       )}
     </div>
@@ -649,7 +651,7 @@ LearningSkillsSection.propTypes = {
  * Subject Areas Section with Marks
  * Modern form section for subject area assessments with marks
  */
-const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerating }) => {
+const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerating, selectedTerm = 'term1' }) => {
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
     const newValue = type === 'checkbox' ? checked : value
@@ -729,42 +731,42 @@ const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerat
       key: 'healthEd',
       fields: ['healthEdESL', 'healthEdIEP', 'healthEdFrench'],
       markFields: ['healthMarkReport1', 'healthMarkReport2'],
-      commentField: 'healthAndPEStrengthsAndNextStepsForImprovement',
+      commentField: 'healthEdStrengthAndNextStepsForImprovement',
     },
     {
       name: 'Physical Education',
       key: 'pe',
       fields: ['peESL', 'peIEP', 'peFrench'],
       markFields: ['peMarkReport1', 'peMarkReport2'],
-      commentField: 'healthAndPEStrengthsAndNextStepsForImprovement',
+      commentField: 'peStrengthAndNextStepsForImprovement',
     },
     {
       name: 'Dance',
       key: 'dance',
       fields: ['danceESL', 'danceIEP', 'danceFrench', 'danceNA'],
       markFields: ['danceMarkReport1', 'danceMarkReport2'],
-      commentField: 'artsStrengthAndNextStepsForImprovement',
+      commentField: 'danceStrengthAndNextStepsForImprovement',
     },
     {
       name: 'Drama',
       key: 'drama',
       fields: ['dramaESL', 'dramaIEP', 'dramaFrench', 'dramaNA'],
       markFields: ['dramaMarkReport1', 'dramaMarkReport2'],
-      commentField: 'artsStrengthAndNextStepsForImprovement',
+      commentField: 'dramaStrengthAndNextStepsForImprovement',
     },
     {
       name: 'Music',
       key: 'music',
       fields: ['musicESL', 'musicIEP', 'musicFrench', 'musicNA'],
       markFields: ['musicMarkReport1', 'musicMarkReport2'],
-      commentField: 'artsStrengthAndNextStepsForImprovement',
+      commentField: 'musicStrengthAndNextStepsForImprovement',
     },
     {
       name: 'Visual Arts',
       key: 'visualArts',
       fields: ['visualArtsESL', 'visualArtsIEP', 'visualArtsFrench', 'visualArtsNA'],
       markFields: ['visualArtsMarkReport1', 'visualArtsMarkReport2'],
-      commentField: 'artsStrengthAndNextStepsForImprovement',
+      commentField: 'visualArtsStrengthAndNextStepsForImprovement',
     },
     {
       name: 'Other',
@@ -1146,33 +1148,41 @@ const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerat
                     Marks
                   </h6>
                   <div className="d-flex flex-wrap gap-3">
-                    {subject.markFields.map((field) => {
-                      const fieldLabel = field
-                        .replace('MarkReport', ' Mark ')
-                        .replace(/([A-Z])/g, ' $1')
-                        .trim()
-                      return (
-                        <div key={field} className="mb-2">
-                          <CFormLabel htmlFor={field} className="small mb-1">
-                            {fieldLabel}
-                          </CFormLabel>
-                          <CFormSelect
-                            id={field}
-                            name={field}
-                            value={formData[field] || ''}
-                            onChange={handleInputChange}
-                            size="sm"
-                          >
-                            <option value="">Select</option>
-                            {getMarkOptions().map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.value} - {option.label}
-                              </option>
-                            ))}
-                          </CFormSelect>
-                        </div>
-                      )
-                    })}
+                    {subject.markFields
+                      .filter((field) => {
+                        // Filter fields based on selected term
+                        // Only show Report1 fields for term1, Report2 fields for term2
+                        if (selectedTerm === 'term1') {
+                          return field.includes('Report1') || field.includes('report1')
+                        } else if (selectedTerm === 'term2') {
+                          return field.includes('Report2') || field.includes('report2')
+                        }
+                        // If term is not specified, show all fields (backward compatibility)
+                        return true
+                      })
+                      .map((field) => {
+                        const fieldLabel = field
+                          .replace('MarkReport', ' Mark ')
+                          .replace(/([A-Z])/g, ' $1')
+                          .trim()
+                        return (
+                          <div key={field} className="mb-2">
+                            <CFormLabel htmlFor={field} className="small mb-1">
+                              {fieldLabel}
+                            </CFormLabel>
+                            {/* D20: Change Mark field from dropdown to textbox */}
+                            <CFormInput
+                              type="text"
+                              id={field}
+                              name={field}
+                              value={formData[field] || ''}
+                              onChange={handleInputChange}
+                              size="sm"
+                              placeholder="Enter mark (e.g., A, B+, 85)"
+                            />
+                          </div>
+                        )
+                      })}
                   </div>
                 </CCol>
               )}
@@ -1230,42 +1240,45 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange, onGenerate, isG
     })
   }
 
+  // Auto-fill teacher signature with homeroom teacher name
+  useEffect(() => {
+    if (formData.teacher_name) {
+      const currentSignature = formData.teacherSignature?.value || ''
+      const expectedName = formData.teacher_name + (formData.teacher_name.includes('ERS') ? '' : ' ERS')
+      
+      // Always auto-fill if signature is empty or doesn't match
+      if (!currentSignature || currentSignature.trim() === '' || currentSignature !== expectedName) {
+        const updatedFormData = {
+          ...formData,
+          teacherSignature: { type: 'typed', value: expectedName },
+        }
+        // Only update if principal signature is also set or will be set
+        if (!updatedFormData.principalSignature?.value) {
+          updatedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
+        }
+        onFormDataChange(updatedFormData)
+      }
+    }
+  }, [formData.teacher_name])
+
+  // Auto-fill principal signature with "Ghazala Choudhary"
+  useEffect(() => {
+    const currentPrincipal = formData.principalSignature?.value || ''
+    const expectedPrincipal = 'Ghazala Choudhary'
+    
+    // Always auto-fill if signature is empty or doesn't match
+    if (!currentPrincipal || currentPrincipal.trim() === '' || currentPrincipal !== expectedPrincipal) {
+      const updatedFormData = {
+        ...formData,
+        principalSignature: { type: 'typed', value: expectedPrincipal },
+      }
+      onFormDataChange(updatedFormData)
+    }
+  }, [])
+
   return (
     <div>
-      <div className="mb-4">
-        <p className="text-muted">
-          This section contains final comments and signatures for the report card.
-        </p>
-      </div>
-
-      {/* Additional Comments */}
-      <CRow className="mb-4">
-        <CCol md={12}>
-          <div className="mb-3">
-            <CFormLabel htmlFor="boardSpace">
-              <CIcon icon={cilLightbulb} className="me-2" />
-              Additional Comments
-            </CFormLabel>
-            <AICommentField
-              name="boardSpace"
-              value={formData.boardSpace || ''}
-              onChange={handleInputChange}
-              placeholder="Provide any additional comments about the student's progress, achievements, or areas for improvement..."
-              rows={4}
-              isGenerating={isGenerating}
-              onGenerate={onGenerate}
-              maxLength={500}
-              formData={formData}
-              onFormDataChange={onFormDataChange}
-            />
-            <div className="form-text">
-              Optional additional comments about the student's overall progress and achievements.
-            </div>
-          </div>
-        </CCol>
-      </CRow>
-
-      {/* Signatures - Exact same as Kindergarten */}
+      {/* Signatures */}
       <CCard className="mb-4 shadow-sm">
         <CCardHeader style={{ backgroundColor: '#6f42c1', color: 'white' }}>
           <div className="d-flex align-items-center">
@@ -1282,6 +1295,7 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange, onGenerate, isG
             <CCol md={6}>
               <SignaturePad
                 title="Teacher's Signature"
+                initialValue={formData.teacherSignature}
                 onSignatureChange={(value) => {
                   console.log('Teacher signature changed:', value)
                   onFormDataChange({ ...formData, teacherSignature: value })
@@ -1291,6 +1305,7 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange, onGenerate, isG
             <CCol md={6}>
               <SignaturePad
                 title="Principal's Signature"
+                initialValue={formData.principalSignature}
                 onSignatureChange={(value) => {
                   console.log('Principal signature changed:', value)
                   onFormDataChange({ ...formData, principalSignature: value })
@@ -1329,6 +1344,7 @@ const Elementary1to6ReportUI = ({
   saveMessage,
   selectedStudent,
   selectedReportCard,
+  selectedTerm = 'term1', // B7: Default to term1 if not provided
 }) => {
   const [activeAccordion, setActiveAccordion] = useState([
     'student-info',
@@ -1470,6 +1486,7 @@ const Elementary1to6ReportUI = ({
                 onFormDataChange={onFormDataChange}
                 onGenerate={handleGenerate}
                 isGenerating={false} // No longer generating here, handled by AIReportCommentInput
+                selectedTerm={selectedTerm}
               />
             </CAccordionBody>
           </CAccordionItem>

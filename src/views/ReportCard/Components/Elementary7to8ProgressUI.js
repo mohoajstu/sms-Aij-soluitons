@@ -35,6 +35,7 @@ import SignatureCanvas from 'react-signature-canvas'
 import PropTypes from 'prop-types'
 import AIReportCommentInput from '../../../components/AIReportCommentInput'
 import { BOARD_MISSION_STATEMENT } from '../utils'
+import { getCharacterLimit } from '../utils/characterLimits'
 
 /**
  * AI-Enhanced Text Area
@@ -52,6 +53,8 @@ const AICommentField = ({
   formData,
   onFormDataChange,
 }) => {
+  // B8: Use character limits utility if maxLength not provided
+  const effectiveMaxLength = maxLength || getCharacterLimit(name)
   const currentLength = value?.length || 0
 
   return (
@@ -62,7 +65,7 @@ const AICommentField = ({
         onChange={onChange}
         placeholder={placeholder}
         rows={rows}
-        maxLength={maxLength}
+        maxLength={effectiveMaxLength}
         style={{
           resize: 'vertical',
           paddingRight: '50px',
@@ -94,17 +97,17 @@ const AICommentField = ({
         />
       </div>
 
-      {maxLength && (
+      {effectiveMaxLength && (
         <div
           className="position-absolute"
           style={{
             bottom: '8px',
             right: '15px',
             fontSize: '0.8rem',
-            color: currentLength > maxLength ? '#dc3545' : '#6c757d',
+            color: currentLength > effectiveMaxLength ? '#dc3545' : '#6c757d',
           }}
         >
-          {currentLength}/{maxLength}
+          {currentLength}/{effectiveMaxLength}
         </div>
       )}
     </div>

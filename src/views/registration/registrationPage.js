@@ -18,7 +18,7 @@ import './registrationPage.css';
 
 const RegistrationForm = () => {
   const [formData, setFormData] = useState({
-    schoolYear: '2025',
+    schoolYear: '',
     grade: '',
     firstName: '',
     middleName: '',
@@ -45,12 +45,10 @@ const RegistrationForm = () => {
     secondaryGuardianPhone: '',
     secondaryGuardianEmail: '',
     secondaryGuardianAddress: '',
-    primaryGuardianTlaId: '',
-    secondaryGuardianTlaId: '',
   });
 
-  const [primaryGuardianInfo, setPrimaryGuardianInfo] = useState(null)
-  const [secondaryGuardianInfo, setSecondaryGuardianInfo] = useState(null)
+  const [registrationSettings, setRegistrationSettings] = useState(null);
+  const [dobError, setDobError] = useState('');
 
   const [uploadedFiles, setUploadedFiles] = useState({
     immunization: [],
@@ -61,6 +59,26 @@ const RegistrationForm = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+
+  // Load registration settings on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settingsDoc = await getDoc(doc(firestore, 'systemSettings', 'registration'));
+        if (settingsDoc.exists()) {
+          const settings = settingsDoc.data();
+          setRegistrationSettings(settings);
+          // Set default school year from settings
+          if (settings.schoolYear) {
+            setFormData(prev => ({ ...prev, schoolYear: settings.schoolYear }));
+          }
+        }
+      } catch (error) {
+        console.error('Error loading registration settings:', error);
+      }
+    };
+    loadSettings();
+  }, []);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -77,58 +95,87 @@ const RegistrationForm = () => {
     }));
   };
 
-  const handleTlaIdChange = async (guardianType, tlaId) => {
-    handleInputChange(`${guardianType}TlaId`, tlaId)
-    if (tlaId.match(/^TP\d{6}$/)) {
-      try {
-        const parentDoc = await getDoc(doc(firestore, 'parents', tlaId))
-        if (parentDoc.exists()) {
-          const parentData = parentDoc.data()
-          if (guardianType === 'primaryGuardian') {
-            setPrimaryGuardianInfo(parentData)
-          } else {
-            setSecondaryGuardianInfo(parentData)
-          }
-        } else {
-          if (guardianType === 'primaryGuardian') {
-            setPrimaryGuardianInfo(null)
-          } else {
-            setSecondaryGuardianInfo(null)
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching parent data:', error)
-      }
-    } else {
-      if (guardianType === 'primaryGuardian') {
-        setPrimaryGuardianInfo(null)
-      } else {
-        setSecondaryGuardianInfo(null)
-      }
+  // Validate date of birth against eligibility cutoff
+  const validateDateOfBirth = (dob) => {
+    if (!dob || !registrationSettings?.eligibilityCutoffDate) {
+      return { valid: true, error: '' };
     }
+
+    const dobDate = new Date(dob);
+    const cutoffDate = new Date(registrationSettings.eligibilityCutoffDate);
+    
+    // Calculate age at cutoff date
+    const ageAtCutoff = cutoffDate.getFullYear() - dobDate.getFullYear();
+    const monthDiff = cutoffDate.getMonth() - dobDate.getMonth();
+    const dayDiff = cutoffDate.getDate() - dobDate.getDate();
+    
+    let actualAge = ageAtCutoff;
+    if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+      actualAge--;
+    }
+
+    if (actualAge < 4) {
+      const cutoffDateFormatted = cutoffDate.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      return {
+        valid: false,
+        error: `Student must be at least 4 years old by ${cutoffDateFormatted} to be eligible for registration.`
+      };
+    }
+
+    return { valid: true, error: '' };
+  }
+
+  const handleDateOfBirthChange = (value) => {
+    handleInputChange('dateOfBirth', value);
+    const validation = validateDateOfBirth(value);
+    setDobError(validation.error);
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
+
+    // Validate date of birth before submission
+    if (formData.dateOfBirth) {
+      const validation = validateDateOfBirth(formData.dateOfBirth);
+      if (!validation.valid) {
+        setDobError(validation.error);
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
-      // 1. Get the next registration ID using a transaction
-      const counterRef = doc(firestore, 'counters', 'registrations');
-      const newRegistrationId = await runTransaction(firestore, async (transaction) => {
-        const counterDoc = await transaction.get(counterRef);
-        
-        let newCount = 0;
-        if (counterDoc.exists()) {
-          newCount = counterDoc.data().currentCount + 1;
-        }
-        
-        transaction.set(counterRef, { currentCount: newCount });
-        
-        // Format the ID to TLRXXXXX
-        return `TLR${String(newCount).padStart(5, '0')}`;
-      });
+      // 1. Generate a unique registration ID
+      // Try to use counter if available, otherwise generate a timestamp-based ID
+      let newRegistrationId;
+      try {
+        const counterRef = doc(firestore, 'counters', 'registrations');
+        newRegistrationId = await runTransaction(firestore, async (transaction) => {
+          const counterDoc = await transaction.get(counterRef);
+          
+          let newCount = 0;
+          if (counterDoc.exists()) {
+            newCount = counterDoc.data().currentCount + 1;
+          }
+          
+          transaction.set(counterRef, { currentCount: newCount });
+          
+          // Format the ID to TLRXXXXX
+          return `TLR${String(newCount).padStart(5, '0')}`;
+        });
+      } catch (error) {
+        // If transaction fails (e.g., unauthenticated), generate a timestamp-based ID
+        console.warn('Could not use counter, generating timestamp-based ID:', error);
+        const timestamp = Date.now();
+        const random = Math.floor(Math.random() * 1000);
+        newRegistrationId = `TLR${timestamp}${String(random).padStart(3, '0')}`;
+      }
 
       // 2. Create a list of file upload tasks to run in parallel
       const uploadPromises = [];
@@ -184,28 +231,22 @@ const RegistrationForm = () => {
           primaryEmail: formData.primaryEmail,
           studentAddress: formData.studentAddress,
         },
-        primaryGuardian: primaryGuardianInfo
-          ? { ...primaryGuardianInfo.personalInfo, ...primaryGuardianInfo.contact }
-          : {
-              firstName: formData.primaryGuardianFirstName,
-              middleName: formData.primaryGuardianMiddleName || '',
-              lastName: formData.primaryGuardianLastName,
-              phone: formData.primaryGuardianPhone,
-              email: formData.primaryGuardianEmail,
-              address: formData.primaryGuardianAddress,
-              schoolId: formData.primaryGuardianTlaId || '',
-            },
-        secondaryGuardian: secondaryGuardianInfo
-          ? { ...secondaryGuardianInfo.personalInfo, ...secondaryGuardianInfo.contact }
-          : {
-              firstName: formData.secondaryGuardianFirstName || '',
-              middleName: formData.secondaryGuardianMiddleName || '',
-              lastName: formData.secondaryGuardianLastName || '',
-              phone: formData.secondaryGuardianPhone || '',
-              email: formData.secondaryGuardianEmail || '',
-              address: formData.secondaryGuardianAddress || '',
-              schoolId: formData.secondaryGuardianTlaId || '',
-            },
+        primaryGuardian: {
+          firstName: formData.primaryGuardianFirstName,
+          middleName: formData.primaryGuardianMiddleName || '',
+          lastName: formData.primaryGuardianLastName,
+          phone: formData.primaryGuardianPhone,
+          email: formData.primaryGuardianEmail,
+          address: formData.primaryGuardianAddress,
+        },
+        secondaryGuardian: {
+          firstName: formData.secondaryGuardianFirstName || '',
+          middleName: formData.secondaryGuardianMiddleName || '',
+          lastName: formData.secondaryGuardianLastName || '',
+          phone: formData.secondaryGuardianPhone || '',
+          email: formData.secondaryGuardianEmail || '',
+          address: formData.secondaryGuardianAddress || '',
+        },
         payment: {
           method: 'cash',
           status: 'pending',
@@ -268,22 +309,43 @@ const RegistrationForm = () => {
               <div className="form-grid md-grid-cols-2">
                 <div>
                   <label htmlFor="schoolYear" className="form-label">School Year*</label>
-                  <input type="text" id="schoolYear" className="form-input" value={formData.schoolYear} onChange={e => handleInputChange('schoolYear', e.target.value)} required />
+                  <input 
+                    type="text" 
+                    id="schoolYear" 
+                    className="form-input" 
+                    value={formData.schoolYear} 
+                    onChange={e => handleInputChange('schoolYear', e.target.value)} 
+                    required 
+                    readOnly={!!registrationSettings?.schoolYear}
+                  />
+                  {registrationSettings?.schoolYear && (
+                    <p className="form-info-text">Applying for {registrationSettings.schoolYear}</p>
+                  )}
               </div>
                 <div>
                   <label htmlFor="grade" className="form-label">Grade Applied For*</label>
-                  <select id="grade" className="form-select" value={formData.grade} onChange={e => handleInputChange('grade', e.target.value)} required>
+                  <select 
+                    id="grade" 
+                    className="form-select" 
+                    value={formData.grade} 
+                    onChange={e => handleInputChange('grade', e.target.value)} 
+                    required
+                  >
                     <option value="">Select Grade</option>
-                    <option value="Jr Kindergarten">Jr Kindergarten</option>
-                    <option value="Sr Kindergarten">Sr Kindergarten</option>
-                    <option value="Grade 1">Grade 1</option>
-                    <option value="Grade 2">Grade 2</option>
-                    <option value="Grade 3">Grade 3</option>
-                    <option value="Grade 4">Grade 4</option>
-                    <option value="Grade 5">Grade 5</option>
-                    <option value="Grade 6">Grade 6</option>
-                    <option value="Grade 7">Grade 7</option>
-                    <option value="Grade 8">Grade 8</option>
+                    {(registrationSettings?.availableGrades || [
+                      'Jr Kindergarten',
+                      'Sr Kindergarten',
+                      'Grade 1',
+                      'Grade 2',
+                      'Grade 3',
+                      'Grade 4',
+                      'Grade 5',
+                      'Grade 6',
+                      'Grade 7',
+                      'Grade 8',
+                    ]).map((grade) => (
+                      <option key={grade} value={grade}>{grade}</option>
+                    ))}
                 </select>
               </div>
             </div>
@@ -325,7 +387,24 @@ const RegistrationForm = () => {
                 </div>
                 <div>
                   <label htmlFor="dateOfBirth" className="form-label">Date of Birth*</label>
-                  <input type="date" id="dateOfBirth" className="form-input" value={formData.dateOfBirth} onChange={e => handleInputChange('dateOfBirth', e.target.value)} required />
+                  <input 
+                    type="date" 
+                    id="dateOfBirth" 
+                    className={`form-input ${dobError ? 'is-invalid' : ''}`} 
+                    value={formData.dateOfBirth} 
+                    onChange={e => handleDateOfBirthChange(e.target.value)} 
+                    required 
+                  />
+                  {dobError && (
+                    <div className="form-error-text" style={{ color: '#dc3545', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                      {dobError}
+                    </div>
+                  )}
+                  {registrationSettings?.eligibilityCutoffDate && !dobError && (
+                    <p className="form-info-text">
+                      Student must be at least 4 years old by {new Date(registrationSettings.eligibilityCutoffDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} to be eligible.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="oen" className="form-label">OEN (Ontario Education Number){isOenRequired && '*'}</label>
@@ -400,21 +479,7 @@ const RegistrationForm = () => {
               {/* Primary Guardian */}
               <div className="form-section">
                 <h3 className="form-section-title">Primary Guardian Information*</h3>
-                <div className="mb-4">
-                  <label htmlFor="primaryGuardianTlaId" className="form-label">
-                    If this guardian already has a Tarbiyah account, please enter the TLA ID here.
-                  </label>
-                  <input
-                    type="text"
-                    id="primaryGuardianTlaId"
-                    className="form-input"
-                    value={formData.primaryGuardianTlaId}
-                    onChange={(e) => handleTlaIdChange('primaryGuardian', e.target.value)}
-                  />
-                </div>
-                {!primaryGuardianInfo && (
-                  <>
-                    <div className="form-grid lg-grid-cols-3">
+                <div className="form-grid lg-grid-cols-3">
                       <div>
                         <label htmlFor="primaryGuardianFirstName" className="form-label">
                           Legal First Name*
@@ -495,28 +560,12 @@ const RegistrationForm = () => {
                         required
                       />
                     </div>
-                  </>
-                )}
               </div>
 
               {/* Secondary Guardian */}
               <div className="form-section-divider">
                 <h3 className="form-section-title">Secondary Guardian Information (Optional)</h3>
-                <div className="mb-4">
-                  <label htmlFor="secondaryGuardianTlaId" className="form-label">
-                    If this guardian already has a Tarbiyah account, please enter the TLA ID here.
-                  </label>
-                  <input
-                    type="text"
-                    id="secondaryGuardianTlaId"
-                    className="form-input"
-                    value={formData.secondaryGuardianTlaId}
-                    onChange={(e) => handleTlaIdChange('secondaryGuardian', e.target.value)}
-                  />
-                </div>
-                {!secondaryGuardianInfo && (
-                  <>
-                    <div className="form-grid lg-grid-cols-3">
+                <div className="form-grid lg-grid-cols-3">
                       <div>
                         <label htmlFor="secondaryGuardianFirstName" className="form-label">
                           Legal First Name
@@ -604,8 +653,6 @@ const RegistrationForm = () => {
                         }
                       />
                     </div>
-                  </>
-                )}
               </div>
             </div>
           </div>

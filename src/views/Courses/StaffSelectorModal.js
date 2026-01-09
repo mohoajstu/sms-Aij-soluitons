@@ -1,10 +1,11 @@
 // StaffSelectorModal.js - Modal for managing course staff/teachers
 import React, { useState, useEffect } from 'react'
 import { CModal, CModalHeader, CModalTitle, CModalBody, CModalFooter, CButton, CFormInput, CFormLabel, CTable, CTableHead, CTableRow, CTableHeaderCell, CTableBody, CTableDataCell, CSpinner, CBadge } from '@coreui/react'
-import { collection, getDocs, query, where, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore'
+import { collection, getDocs, query, where, doc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from 'firebase/firestore'
 import { firestore } from '../../firebase'
 
-const StaffSelectorModal = ({ visible, courseId, courseData, onClose, onUpdate }) => {
+const StaffSelectorModal = ({ visible, courseId, courseData, onClose, onUpdate, mode = 'staff' }) => {
+  // mode can be 'staff' or 'ece' - determines if we're managing staff or ECE
   const [availableStaff, setAvailableStaff] = useState([])
   const [currentStaff, setCurrentStaff] = useState([])
   const [search, setSearch] = useState('')
@@ -65,12 +66,22 @@ const StaffSelectorModal = ({ visible, courseId, courseData, onClose, onUpdate }
     }
   }
 
-  // Load current course staff
+  // Load current course staff or ECE
   const loadCurrentStaff = () => {
-    if (courseData && courseData.teacher) {
-      setCurrentStaff(Array.isArray(courseData.teacher) ? courseData.teacher : [])
+    if (mode === 'ece') {
+      // For ECE mode, show current ECE as a single-item array
+      if (courseData && courseData.ece) {
+        setCurrentStaff([courseData.ece])
+      } else {
+        setCurrentStaff([])
+      }
     } else {
-      setCurrentStaff([])
+      // For staff mode, show all teachers
+      if (courseData && courseData.teacher) {
+        setCurrentStaff(Array.isArray(courseData.teacher) ? courseData.teacher : [])
+      } else {
+        setCurrentStaff([])
+      }
     }
   }
 
@@ -81,7 +92,7 @@ const StaffSelectorModal = ({ visible, courseId, courseData, onClose, onUpdate }
     }
   }, [visible, courseData])
 
-  // Add staff member to course
+  // Add staff member or ECE to course
   const handleAddStaff = async (staffMember) => {
     if (updating) return
     
@@ -97,14 +108,23 @@ const StaffSelectorModal = ({ visible, courseId, courseData, onClose, onUpdate }
         source: staffMember.source
       }
 
-      // Update course document
-      await updateDoc(courseRef, {
-        teacher: arrayUnion(newStaffMember),
-        teacherIds: arrayUnion(staffMember.id)
-      })
-
-      // Update local state
-      setCurrentStaff(prev => [...prev, newStaffMember])
+      if (mode === 'ece') {
+        // For ECE, replace the existing ECE (single person)
+        await updateDoc(courseRef, {
+          ece: newStaffMember,
+          updatedAt: serverTimestamp()
+        })
+        // Update local state - replace existing ECE
+        setCurrentStaff([newStaffMember])
+      } else {
+        // For staff, add to teacher array
+        await updateDoc(courseRef, {
+          teacher: arrayUnion(newStaffMember),
+          teacherIds: arrayUnion(staffMember.id)
+        })
+        // Update local state
+        setCurrentStaff(prev => [...prev, newStaffMember])
+      }
       
       // Notify parent component
       if (onUpdate) {
@@ -112,14 +132,14 @@ const StaffSelectorModal = ({ visible, courseId, courseData, onClose, onUpdate }
       }
       
     } catch (error) {
-      console.error('Error adding staff member:', error)
-      alert('Failed to add staff member. Please try again.')
+      console.error(`Error adding ${mode === 'ece' ? 'ECE' : 'staff member'}:`, error)
+      alert(`Failed to add ${mode === 'ece' ? 'ECE' : 'staff member'}. Please try again.`)
     } finally {
       setUpdating(false)
     }
   }
 
-  // Remove staff member from course
+  // Remove staff member or ECE from course
   const handleRemoveStaff = async (staffMember) => {
     if (updating) return
     
@@ -128,14 +148,23 @@ const StaffSelectorModal = ({ visible, courseId, courseData, onClose, onUpdate }
       
       const courseRef = doc(firestore, 'courses', courseId)
       
-      // Update course document
-      await updateDoc(courseRef, {
-        teacher: arrayRemove(staffMember),
-        teacherIds: arrayRemove(staffMember.id)
-      })
-
-      // Update local state
-      setCurrentStaff(prev => prev.filter(staff => staff.id !== staffMember.id))
+      if (mode === 'ece') {
+        // For ECE, set to null
+        await updateDoc(courseRef, {
+          ece: null,
+          updatedAt: serverTimestamp()
+        })
+        // Update local state
+        setCurrentStaff([])
+      } else {
+        // For staff, remove from teacher array
+        await updateDoc(courseRef, {
+          teacher: arrayRemove(staffMember),
+          teacherIds: arrayRemove(staffMember.id)
+        })
+        // Update local state
+        setCurrentStaff(prev => prev.filter(staff => staff.id !== staffMember.id))
+      }
       
       // Notify parent component
       if (onUpdate) {
@@ -143,8 +172,8 @@ const StaffSelectorModal = ({ visible, courseId, courseData, onClose, onUpdate }
       }
       
     } catch (error) {
-      console.error('Error removing staff member:', error)
-      alert('Failed to remove staff member. Please try again.')
+      console.error(`Error removing ${mode === 'ece' ? 'ECE' : 'staff member'}:`, error)
+      alert(`Failed to remove ${mode === 'ece' ? 'ECE' : 'staff member'}. Please try again.`)
     } finally {
       setUpdating(false)
     }
@@ -158,19 +187,22 @@ const StaffSelectorModal = ({ visible, courseId, courseData, onClose, onUpdate }
     return !isAlreadyAdded && matchesSearch
   })
 
+  // For ECE mode, if one is already assigned, show message
+  const hasECE = mode === 'ece' && currentStaff.length > 0
+
   return (
     <CModal size="xl" visible={visible} onClose={onClose}>
       <CModalHeader>
-        <CModalTitle>Manage Course Staff</CModalTitle>
+        <CModalTitle>{mode === 'ece' ? 'Assign Early Childhood Educator (ECE)' : 'Manage Course Staff'}</CModalTitle>
       </CModalHeader>
       
       <CModalBody>
         <div className="row">
-          {/* Current Staff */}
+          {/* Current Staff or ECE */}
           <div className="col-md-6">
-            <h5>Current Staff ({currentStaff.length})</h5>
+            <h5>{mode === 'ece' ? 'Current ECE' : `Current Staff (${currentStaff.length})`}</h5>
             {currentStaff.length === 0 ? (
-              <p className="text-muted">No staff assigned to this course</p>
+              <p className="text-muted">{mode === 'ece' ? 'No ECE assigned to this course' : 'No staff assigned to this course'}</p>
             ) : (
               <CTable striped bordered>
                 <CTableHead>
@@ -213,7 +245,14 @@ const StaffSelectorModal = ({ visible, courseId, courseData, onClose, onUpdate }
 
           {/* Available Staff */}
           <div className="col-md-6">
-            <h5>Available Staff</h5>
+            <h5>{mode === 'ece' ? 'Available Staff (Select ECE)' : 'Available Staff'}</h5>
+            {mode === 'ece' && hasECE && (
+              <div className="alert alert-info mb-3">
+                <small>
+                  An ECE is already assigned. Selecting a new one will replace the current ECE.
+                </small>
+              </div>
+            )}
             <div className="mb-3">
               <CFormLabel>Search Staff</CFormLabel>
               <CFormInput
@@ -254,7 +293,7 @@ const StaffSelectorModal = ({ visible, courseId, courseData, onClose, onUpdate }
                             onClick={() => handleAddStaff(staff)}
                             disabled={updating}
                           >
-                            {updating ? <CSpinner size="sm" /> : 'Add'}
+                            {updating ? <CSpinner size="sm" /> : mode === 'ece' ? 'Assign' : 'Add'}
                           </CButton>
                         </div>
                       </div>

@@ -93,6 +93,13 @@ const _nav = [
     icon: <CIcon icon={cilCalendar} customClassName="nav-icon" />,
     hideFor: ['parent'],
   },
+  {
+    component: CNavItem,
+    name: 'SMS Settings',
+    to: '/admin/sms-settings',
+    icon: <CIcon icon={cilSpeedometer} customClassName="nav-icon" />,
+    hideFor: ['parent', 'student', 'teacher', 'faculty'],
+  },
 ]
 
 export default _nav

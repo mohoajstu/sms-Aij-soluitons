@@ -26,6 +26,7 @@ import { collection, getDocs, addDoc, doc, getDoc, updateDoc, writeBatch, server
 import { initializeGoogleApi, initializeGIS, authenticate, createEvent } from '../../services/calendarService'
 
 // Mock data for subject options
+// B13: Add ECE as course option
 const SUBJECTS = [
   'Islamic Studies',
   'Quran',
@@ -36,6 +37,7 @@ const SUBJECTS = [
   'Physical Education',
   'Art',
   'Computer Science',
+  'ECE', // B13: Add ECE as course option
 ]
 
 // Mock data for grade options

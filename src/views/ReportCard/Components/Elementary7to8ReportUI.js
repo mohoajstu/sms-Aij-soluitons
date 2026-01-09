@@ -35,15 +35,138 @@ import CIcon from '@coreui/icons-react'
 import SignatureCanvas from 'react-signature-canvas'
 import PropTypes from 'prop-types'
 import AIReportCommentInput from '../../../components/AIReportCommentInput'
+import { getCharacterLimit } from '../utils/characterLimits'
+
+/**
+ * AI-Enhanced Text Area
+ * A reusable component for text areas with an AI generation button.
+ */
+const AICommentField = ({
+  name,
+  value,
+  onChange,
+  placeholder,
+  rows = 10,
+  isGenerating = false,
+  onGenerate,
+  maxLength,
+  formData,
+  onFormDataChange,
+}) => {
+  // B8: Use character limits utility if maxLength not provided
+  const effectiveMaxLength = maxLength || getCharacterLimit(name)
+  const currentLength = value?.length || 0
+
+  return (
+    <div className="ai-input-field position-relative mb-3">
+      <CFormTextarea
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        rows={rows}
+        maxLength={effectiveMaxLength}
+        style={{
+          resize: 'vertical',
+          paddingRight: '50px',
+          paddingBottom: '25px', // Make space for character counter
+          borderRadius: '8px',
+          border: '2px solid #e9ecef',
+          fontSize: '1rem',
+        }}
+      />
+
+      {/* AI Generation Button */}
+      <div className="position-absolute" style={{ top: '10px', right: '10px' }}>
+        <AIReportCommentInput
+          label=""
+          formData={{
+            student_name: formData.student,
+            grade: formData.grade,
+            subject: getSubjectForField(name),
+          }}
+          handleChange={(field, aiValue) => {
+            // Map AI output directly to the specific field
+            if (field === 'teacher_comments' || field === 'strengths_next_steps') {
+              onFormDataChange({ ...formData, [name]: aiValue })
+            }
+          }}
+          buttonText=""
+          explicitReportType="Elementary 7-8 Report Card"
+          className="ai-button-minimal"
+        />
+      </div>
+
+      {effectiveMaxLength && (
+        <div
+          className="position-absolute"
+          style={{
+            bottom: '8px',
+            right: '15px',
+            fontSize: '0.8rem',
+            color: currentLength > effectiveMaxLength ? '#dc3545' : '#6c757d',
+          }}
+        >
+          {currentLength}/{effectiveMaxLength}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Helper function to determine subject based on field name
+const getSubjectForField = (fieldName) => {
+  if (fieldName === 'strengthsAndNextStepsForImprovement') return 'Learning Skills & Work Habits'
+  if (fieldName === 'boardSpace') return 'Overall Progress'
+  if (fieldName.includes('language')) return 'Language'
+  if (fieldName.includes('math')) return 'Mathematics'
+  if (fieldName.includes('science')) return 'Science'
+  if (fieldName.includes('french')) return 'French'
+  if (fieldName.includes('social')) return 'Social Studies'
+  if (fieldName.includes('health')) return 'Health Education'
+  if (fieldName.includes('pe') || fieldName.includes('PE')) return 'Physical Education'
+  if (fieldName.includes('arts') || fieldName.includes('Arts')) return 'Arts'
+  if (fieldName.includes('native')) return 'Native Language'
+  if (fieldName.includes('other')) return 'Other'
+  return 'General'
+}
+
+AICommentField.propTypes = {
+  name: PropTypes.string.isRequired,
+  value: PropTypes.string,
+  onChange: PropTypes.func.isRequired,
+  placeholder: PropTypes.string,
+  rows: PropTypes.number,
+  isGenerating: PropTypes.bool,
+  onGenerate: PropTypes.func.isRequired,
+  maxLength: PropTypes.number,
+  formData: PropTypes.object.isRequired,
+  onFormDataChange: PropTypes.func.isRequired,
+}
 
 /**
  * Signature Pad Component
  * Matches the exact implementation from Kindergarten report card
  */
-const SignaturePad = ({ title, onSignatureChange }) => {
+const SignaturePad = ({ title, onSignatureChange, initialValue }) => {
   const [mode, setMode] = useState('typed') // 'typed', 'drawn'
   const [typedName, setTypedName] = useState('')
   const signatureCanvasRef = useRef(null)
+
+  // Auto-fill with initial value if provided
+  useEffect(() => {
+    if (initialValue && typeof initialValue === 'object' && initialValue.type === 'typed' && initialValue.value) {
+      if (!typedName || typedName !== initialValue.value) {
+        setTypedName(initialValue.value)
+        onSignatureChange(initialValue)
+      }
+    } else if (initialValue && typeof initialValue === 'string' && initialValue.trim() !== '') {
+      if (!typedName || typedName !== initialValue) {
+        setTypedName(initialValue)
+        onSignatureChange({ type: 'typed', value: initialValue })
+      }
+    }
+  }, [initialValue, typedName, onSignatureChange])
 
   const handleModeChange = (newMode) => {
     setMode(newMode)
@@ -137,6 +260,13 @@ const SignaturePad = ({ title, onSignatureChange }) => {
 SignaturePad.propTypes = {
   title: PropTypes.string.isRequired,
   onSignatureChange: PropTypes.func.isRequired,
+  initialValue: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.shape({
+      type: PropTypes.string,
+      value: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+    }),
+  ]),
 }
 
 /**
@@ -585,7 +715,7 @@ LearningSkillsSection.propTypes = {
  * Subject Areas Section with Marks
  * Modern form section for subject area assessments with marks
  */
-const SubjectAreasSection = ({ formData, onFormDataChange }) => {
+const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term1' }) => {
   // Auto-fill default values for nativeLanguage and other
   useEffect(() => {
     const updates = {}
@@ -731,14 +861,14 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
         'healthEdMarkReport2',
         'healthEdMedianReport2',
       ],
-      commentField: 'healthAndPEStrengthsAndNextStepsForImprovement',
+      commentField: 'healthEdStrengthAndNextStepsForImprovement',
     },
     {
       name: 'Physical Education',
       key: 'pe',
       fields: ['peESL', 'peIEP', 'peFrench'],
       markFields: ['peMarkReport1', 'peMedianReport1', 'peMarkReport2', 'peMedianReport2'],
-      commentField: 'healthAndPEStrengthsAndNextStepsForImprovement',
+      commentField: 'peStrengthAndNextStepsForImprovement',
     },
     {
       name: 'Dance',
@@ -750,7 +880,7 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
         'danceMarkReport2',
         'danceMedianReport2',
       ],
-      commentField: 'artsStrengthsAndNextStepsForImprovement',
+      commentField: 'danceStrengthAndNextStepsForImprovement',
     },
     {
       name: 'Drama',
@@ -762,7 +892,7 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
         'dramaMarkReport2',
         'dramaMedianReport2',
       ],
-      commentField: 'artsStrengthsAndNextStepsForImprovement',
+      commentField: 'dramaStrengthAndNextStepsForImprovement',
     },
     {
       name: 'Music',
@@ -774,7 +904,7 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
         'musicMarkReport2',
         'musicMedianReport2',
       ],
-      commentField: 'artsStrengthsAndNextStepsForImprovement',
+      commentField: 'musicStrengthAndNextStepsForImprovement',
     },
     {
       name: 'Visual Arts',
@@ -786,7 +916,7 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
         'visualArtsMarkReport2',
         'visualArtsMedianReport2',
       ],
-      commentField: 'artsStrengthsAndNextStepsForImprovement',
+      commentField: 'visualArtsStrengthAndNextStepsForImprovement',
     },
     {
       name: 'Other',
@@ -1189,33 +1319,41 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                     Marks
                   </h6>
                   <div className="d-flex flex-wrap gap-3">
-                    {subject.markFields.map((field) => {
-                      const fieldLabel = field
-                        .replace('MarkReport', ' Mark ')
-                        .replace(/([A-Z])/g, ' $1')
-                        .trim()
-                      return (
-                        <div key={field} className="mb-2">
-                          <CFormLabel htmlFor={field} className="small mb-1">
-                            {fieldLabel}
-                          </CFormLabel>
-                          <CFormSelect
-                            id={field}
-                            name={field}
-                            value={formData[field] || ''}
-                            onChange={handleInputChange}
-                            size="sm"
-                          >
-                            <option value="">Select</option>
-                            {getMarkOptions().map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.value} - {option.label}
-                              </option>
-                            ))}
-                          </CFormSelect>
-                        </div>
-                      )
-                    })}
+                    {subject.markFields
+                      .filter((field) => {
+                        // Filter fields based on selected term
+                        // Only show Report1 fields for term1, Report2 fields for term2
+                        if (selectedTerm === 'term1') {
+                          return field.includes('Report1') || field.includes('report1')
+                        } else if (selectedTerm === 'term2') {
+                          return field.includes('Report2') || field.includes('report2')
+                        }
+                        // If term is not specified, show all fields (backward compatibility)
+                        return true
+                      })
+                      .map((field) => {
+                        const fieldLabel = field
+                          .replace('MarkReport', ' Mark ')
+                          .replace(/([A-Z])/g, ' $1')
+                          .trim()
+                        return (
+                          <div key={field} className="mb-2">
+                            <CFormLabel htmlFor={field} className="small mb-1">
+                              {fieldLabel}
+                            </CFormLabel>
+                            {/* D20: Change Mark field from dropdown to textbox */}
+                            <CFormInput
+                              type="text"
+                              id={field}
+                              name={field}
+                              value={formData[field] || ''}
+                              onChange={handleInputChange}
+                              size="sm"
+                              placeholder="Enter mark (e.g., A, B+, 85)"
+                            />
+                          </div>
+                        )
+                      })}
                   </div>
                 </CCol>
               )}
@@ -1266,7 +1404,7 @@ SubjectAreasSection.propTypes = {
  * Comments & Signatures Section
  * Matches the Kindergarten report card structure exactly
  */
-const CommentsSignaturesSection = ({ formData, onFormDataChange }) => {
+const CommentsSignaturesSection = ({ formData, onFormDataChange, onGenerate, isGenerating }) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target
     onFormDataChange({
@@ -1275,45 +1413,45 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange }) => {
     })
   }
 
+  // Auto-fill teacher signature with homeroom teacher name
+  useEffect(() => {
+    if (formData.teacher_name) {
+      const currentSignature = formData.teacherSignature?.value || ''
+      const expectedName = formData.teacher_name + (formData.teacher_name.includes('ERS') ? '' : ' ERS')
+      
+      // Always auto-fill if signature is empty or doesn't match
+      if (!currentSignature || currentSignature.trim() === '' || currentSignature !== expectedName) {
+        const updatedFormData = {
+          ...formData,
+          teacherSignature: { type: 'typed', value: expectedName },
+        }
+        // Only update if principal signature is also set or will be set
+        if (!updatedFormData.principalSignature?.value) {
+          updatedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
+        }
+        onFormDataChange(updatedFormData)
+      }
+    }
+  }, [formData.teacher_name])
+
+  // Auto-fill principal signature with "Ghazala Choudhary"
+  useEffect(() => {
+    const currentPrincipal = formData.principalSignature?.value || ''
+    const expectedPrincipal = 'Ghazala Choudhary'
+    
+    // Always auto-fill if signature is empty or doesn't match
+    if (!currentPrincipal || currentPrincipal.trim() === '' || currentPrincipal !== expectedPrincipal) {
+      const updatedFormData = {
+        ...formData,
+        principalSignature: { type: 'typed', value: expectedPrincipal },
+      }
+      onFormDataChange(updatedFormData)
+    }
+  }, [])
+
   return (
     <div>
-      <div className="mb-4">
-        <p className="text-muted">
-          This section contains final comments and signatures for the report card.
-        </p>
-      </div>
-
-      {/* Additional Comments */}
-      <CRow className="mb-4">
-        <CCol md={12}>
-          <div className="mb-3">
-            <CFormLabel htmlFor="boardSpace">
-              <CIcon icon={cilLightbulb} className="me-2" />
-              Additional Comments
-            </CFormLabel>
-            <AIReportCommentInput
-              label="Generate Additional Comments"
-              formData={{
-                student_name: formData.student,
-                grade: formData.grade,
-              }}
-              handleChange={(field, value) => {
-                // Map AI output to the actual form field
-                if (field === 'teacher_comments' || field === 'strengths_next_steps') {
-                  onFormDataChange({ ...formData, boardSpace: value })
-                }
-              }}
-              buttonText="Generate Additional Comments"
-              explicitReportType="Elementary 7-8 Report Card"
-            />
-            <div className="form-text">
-              Optional additional comments about the student's overall progress and achievements.
-            </div>
-          </div>
-        </CCol>
-      </CRow>
-
-      {/* Signatures - Exact same as Kindergarten */}
+      {/* Signatures */}
       <CCard className="mb-4 shadow-sm">
         <CCardHeader style={{ backgroundColor: '#6f42c1', color: 'white' }}>
           <div className="d-flex align-items-center">
@@ -1330,6 +1468,7 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange }) => {
             <CCol md={6}>
               <SignaturePad
                 title="Teacher's Signature"
+                initialValue={formData.teacherSignature}
                 onSignatureChange={(value) => {
                   console.log('Teacher signature changed:', value)
                   onFormDataChange({ ...formData, teacherSignature: value })
@@ -1339,6 +1478,7 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange }) => {
             <CCol md={6}>
               <SignaturePad
                 title="Principal's Signature"
+                initialValue={formData.principalSignature}
                 onSignatureChange={(value) => {
                   console.log('Principal signature changed:', value)
                   onFormDataChange({ ...formData, principalSignature: value })
@@ -1360,6 +1500,8 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange }) => {
 CommentsSignaturesSection.propTypes = {
   formData: PropTypes.object.isRequired,
   onFormDataChange: PropTypes.func.isRequired,
+  onGenerate: PropTypes.func,
+  isGenerating: PropTypes.bool,
 }
 
 /**
@@ -1375,6 +1517,7 @@ const Elementary7to8ReportUI = ({
   saveMessage,
   selectedStudent,
   selectedReportCard,
+  selectedTerm = 'term1', // B7: Default to term1 if not provided
 }) => {
   const [activeAccordion, setActiveAccordion] = useState([
     'student-info',
@@ -1469,7 +1612,7 @@ const Elementary7to8ReportUI = ({
               </div>
             </CAccordionHeader>
             <CAccordionBody>
-              <SubjectAreasSection formData={formData} onFormDataChange={onFormDataChange} />
+              <SubjectAreasSection formData={formData} onFormDataChange={onFormDataChange} selectedTerm={selectedTerm} />
             </CAccordionBody>
           </CAccordionItem>
 
@@ -1487,7 +1630,12 @@ const Elementary7to8ReportUI = ({
               </div>
             </CAccordionHeader>
             <CAccordionBody>
-              <CommentsSignaturesSection formData={formData} onFormDataChange={onFormDataChange} />
+              <CommentsSignaturesSection 
+                formData={formData} 
+                onFormDataChange={onFormDataChange}
+                onGenerate={() => {}}
+                isGenerating={false}
+              />
             </CAccordionBody>
           </CAccordionItem>
         </CAccordion>

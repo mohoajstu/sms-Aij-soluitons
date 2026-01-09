@@ -54,14 +54,24 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Registration forms: ANYONE can create (for public registration), admins/faculty can read/write
+    // Registration forms: ANYONE can create and update (for public registration), admins/faculty can read/write/delete
     match /registrations/{docId} {
       allow create: if true; // Allow anyone to submit registration forms
-      allow read, write, update, delete: if isAdmin() || isFaculty();
+      allow update: if true; // Allow anyone to update their registration (for editing before submission)
+      allow read, write, delete: if isAdmin() || isFaculty();
     }
 
-    // Counters collection: needed for generating registration IDs - allow authenticated access
+    // Registration settings: anyone can read (needed for public registration form), only admins can write
+    match /systemSettings/{docId} {
+      allow read: if docId == 'registration' || isAdmin() || isFaculty();
+      allow write: if isAdmin();
+    }
+
+    // Counters collection: needed for generating registration IDs
     match /counters/{docId} {
+      // Allow anyone to read/write the registrations counter (for public registration)
+      allow read, write: if docId == 'registrations';
+      // Other counters require authentication
       allow read, write: if isAuthenticated();
     }
 

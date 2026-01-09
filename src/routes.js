@@ -93,6 +93,8 @@ const AllAnnouncements = React.lazy(() => import('./views/Announcements/AllAnnou
 // Profile
 const ProfilePage = React.lazy(() => import('./views/pages/profile/ProfilePage'))
 const OnboardingPage = React.lazy(() => import('./views/pages/onboarding/OnboardingPage'))
+// Admin SMS Settings
+const SmsSettings = React.lazy(() => import('./views/admin/SmsSettings'))
 // Removed duplicate Page404 and Page500 declarations
 // const Page404 = React.lazy(() => import('./views/pages/page404/Page404'))
 // const Page500 = React.lazy(() => import('./views/pages/page500/Page500'))
@@ -134,6 +136,7 @@ const routes = [
   { path: '/profile', name: 'Profile', element: ProfilePage },
   { path: '/people', name: 'People Management', element: PeoplePage },
   { path: '/schedule', name: 'Schedule', element: ScheduleMainPage },
+  { path: '/admin/sms-settings', name: 'SMS Settings', element: SmsSettings, hideFor: ['parent', 'student', 'teacher', 'faculty'] },
 
   // Template-specific report-card routes
   { path: '/reportcards/kg-initial', name: 'KG Initial Observations', element: KindergartenInitialPage },

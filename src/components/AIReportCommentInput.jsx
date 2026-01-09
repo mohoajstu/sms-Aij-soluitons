@@ -35,14 +35,48 @@ export default function AIReportCommentInput({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const studentName = formData.student_name || formData.student || "the student";
+  const studentName = formData.student_name || formData.student || "";
   const grade = formData.grade || "";
   const subject = subjectField ? formData[subjectField] : formData.subject || "";
 
   // For kindergarten reports, grade is not required - only check explicitReportType
   const isKindergartenReport = explicitReportType?.toLowerCase().includes('kindergarten');
   
-  const isFormReady = studentName && studentName !== "the student" && (grade || isKindergartenReport);
+  // Check if required fields are filled
+  // More lenient: accept any non-empty student name
+  const hasStudentName = studentName && studentName.trim() !== "" && studentName.trim() !== "the student";
+  const hasGrade = grade && grade.trim() !== "";
+  // For non-kindergarten reports, we need both student name and grade
+  // For kindergarten, only student name is required
+  const isFormReady = hasStudentName && (hasGrade || isKindergartenReport);
+  
+  // Build validation message
+  const getValidationMessage = () => {
+    const missingFields = [];
+    if (!hasStudentName) {
+      missingFields.push("student name");
+    }
+    if (!isKindergartenReport && !hasGrade) {
+      missingFields.push("grade");
+    }
+    
+    if (missingFields.length === 0) {
+      return "Click to generate AI comments";
+    }
+    
+    return `Please fill in: ${missingFields.join(" and ")} before generating AI comments`;
+  };
+  
+  // Debug logging to help diagnose issues
+  console.log('AI Button State:', {
+    studentName,
+    grade,
+    hasStudentName,
+    hasGrade,
+    isKindergartenReport,
+    isFormReady,
+    formDataKeys: Object.keys(formData),
+  });
 
   const placeholder = [
     "Briefly tell the AI what to emphasize. Examples:",
@@ -101,32 +135,55 @@ export default function AIReportCommentInput({
 
   return (
     <div className={`ai-input-field ${className}`}>
-      <CFormLabel className="d-flex align-items-center justify-content-between">
-        <span>{label}</span>
-        <small className="text-muted">
-          {isFormReady ? 
-            "Ready to generate" : 
-            isKindergartenReport ? 
-              "Fill student name first" : 
-              "Fill student name and grade first"
-          }
-        </small>
-      </CFormLabel>
+      {label && (
+        <CFormLabel className="d-flex align-items-center justify-content-between">
+          <span>{label}</span>
+          <small className="text-muted">
+            {isFormReady ? 
+              "Ready to generate" : 
+              isKindergartenReport ? 
+                "Fill student name first" : 
+                "Fill student name and grade first"
+            }
+          </small>
+        </CFormLabel>
+      )}
       
-      <div className="ai-input-container mb-3">
+      <div 
+        className="ai-input-container mb-3" 
+        style={{ 
+          position: 'relative', 
+          zIndex: 1000,
+          pointerEvents: 'auto',
+        }}
+      >
         <CButton
           type="button"
           color="primary"
           variant="outline"
           className="d-flex align-items-center"
-          onClick={() => setOpen(true)}
-          disabled={isLoading || !isFormReady}
-          title={isFormReady ? 
-            "Generate with AI" : 
-            isKindergartenReport ? 
-              "Complete student name first" : 
-              "Complete student name and grade first"
-          }
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('AI Button clicked, isFormReady:', isFormReady);
+            if (isFormReady) {
+              setOpen(true);
+            } else {
+              // Show alert if form is not ready
+              alert(getValidationMessage());
+            }
+          }}
+          disabled={isLoading}
+          title={getValidationMessage()}
+          style={{
+            cursor: isLoading ? 'wait' : 'pointer',
+            opacity: isLoading ? 0.6 : 1,
+            pointerEvents: isLoading ? 'none' : 'auto',
+            position: 'relative',
+            zIndex: 1001,
+            minWidth: 'auto',
+            minHeight: 'auto',
+          }}
         >
           <CIcon icon={cilStar} className={buttonText && buttonText.trim() ? "me-2" : ""} />
           {buttonText && buttonText.trim() ? (
@@ -200,8 +257,9 @@ export default function AIReportCommentInput({
             </CButton>
             <CButton 
               color="primary" 
-              disabled={isLoading || !isFormReady} 
+              disabled={isLoading || !isFormReady}
               onClick={handleGenerate}
+              title={!isFormReady ? getValidationMessage() : "Generate AI comments"}
             >
               {isLoading ? (
                 <>

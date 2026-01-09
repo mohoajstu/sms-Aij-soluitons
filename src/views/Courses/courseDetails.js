@@ -16,6 +16,7 @@ import {
 import { auth } from '../../firebase'
 import StudentSelectorModal from './StudentForm'
 import StaffSelectorModal from './StaffSelectorModal'
+import CourseGrades from './CourseGrades' // B14: Course grades with median calculation
 
 function CourseDetailPage() {
   const { id } = useParams()
@@ -32,7 +33,9 @@ function CourseDetailPage() {
   const [userRole, setUserRole] = useState('')
   const [showStudentModal, setShowStudentModal] = useState(false)
   const [showStaffModal, setShowStaffModal] = useState(false)
+  const [showECEModal, setShowECEModal] = useState(false) // Separate modal for ECE
   const [updating, setUpdating] = useState(false)
+  const [activeSection, setActiveSection] = useState('overview') // B14: Track active section
 
   useEffect(() => {
     const initApis = async () => {
@@ -312,14 +315,43 @@ function CourseDetailPage() {
         </CRow>
       </div>
 
+      {/* B14: Section Navigation */}
       <CCard className="mt-4">
         <CCardBody>
-          <h3 style={{ borderBottom: `2px solid ${courseColor}` }}>Course Overview</h3>
+          <div className="d-flex gap-2 mb-3">
+            <CButton
+              color={activeSection === 'overview' ? 'primary' : 'secondary'}
+              onClick={() => setActiveSection('overview')}
+            >
+              Overview
+            </CButton>
+            <CButton
+              color={activeSection === 'grades' ? 'primary' : 'secondary'}
+              onClick={() => setActiveSection('grades')}
+            >
+              Grades
+            </CButton>
+          </div>
+        </CCardBody>
+      </CCard>
+
+      {/* B14: Grades Section */}
+      {activeSection === 'grades' && (
+        <div className="mt-4">
+          <CourseGrades courseId={id} />
+        </div>
+      )}
+
+      {/* Course Overview Section */}
+      {activeSection === 'overview' && (
+        <CCard className="mt-4">
+          <CCardBody>
+            <h3 style={{ borderBottom: `2px solid ${courseColor}` }}>Course Overview</h3>
           <div className="course-overview-section mt-4">
             
             <CRow>
               <CCol md={6}>
-                <h4>Staff</h4>
+                <h4>Staff (Homeroom Teachers)</h4>
                 {userRole === 'admin' && (
                   <CButton color="primary" size="sm" className="mb-2" onClick={() => setShowStaffModal(true)}>
                     Manage Staff
@@ -360,6 +392,60 @@ function CourseDetailPage() {
                     )}
                   </tbody>
                 </table>
+
+                {/* ECE Section */}
+                <div className="mt-4">
+                  <h5>Early Childhood Educator (ECE)</h5>
+                  {course?.ece ? (
+                    <div className="d-flex align-items-center justify-content-between p-2 border rounded">
+                      <div>
+                        <strong>{course.ece.name || 'Unnamed ECE'}</strong>
+                        {course.ece.id && (
+                          <div className="text-muted small">ID: {course.ece.id}</div>
+                        )}
+                      </div>
+                      {userRole === 'admin' && (
+                        <CButton
+                          color="danger"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              setUpdating(true)
+                              const courseRef = doc(firestore, 'courses', id)
+                              await updateDoc(courseRef, {
+                                ece: null,
+                                updatedAt: serverTimestamp(),
+                              })
+                              setCourse((prev) => ({ ...prev, ece: null }))
+                            } catch (error) {
+                              console.error('Error removing ECE:', error)
+                              alert('Failed to remove ECE. Please try again.')
+                            } finally {
+                              setUpdating(false)
+                            }
+                          }}
+                          disabled={updating}
+                        >
+                          Remove ECE
+                        </CButton>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-muted p-2 border rounded">
+                      No ECE assigned
+                      {userRole === 'admin' && (
+                        <CButton
+                          color="primary"
+                          size="sm"
+                          className="ms-2"
+                          onClick={() => setShowECEModal(true)}
+                        >
+                          Assign ECE
+                        </CButton>
+                      )}
+                    </div>
+                  )}
+                </div>
               </CCol>
               <CCol md={6}>
                 <h4>Students</h4>
@@ -417,6 +503,7 @@ function CourseDetailPage() {
           </div>
         </CCardBody>
       </CCard>
+      )}
       {/* Student selection & creation modal */}
       <StudentSelectorModal visible={showStudentModal} courseId={id} onClose={() => setShowStudentModal(false)} />
       
@@ -425,9 +512,36 @@ function CourseDetailPage() {
         visible={showStaffModal} 
         courseId={id} 
         courseData={course}
+        mode="staff"
         onClose={() => setShowStaffModal(false)}
         onUpdate={() => {
           // Refresh course data after staff update
+          const fetchCourseData = async () => {
+            if (!id) return
+            try {
+              const courseDocRef = doc(firestore, 'courses', id)
+              const courseDoc = await getDoc(courseDocRef)
+              if (courseDoc.exists()) {
+                const courseData = courseDoc.data()
+                setCourse({ id: courseDoc.id, ...courseData })
+              }
+            } catch (error) {
+              console.error('Error refreshing course data:', error)
+            }
+          }
+          fetchCourseData()
+        }}
+      />
+
+      {/* ECE management modal */}
+      <StaffSelectorModal 
+        visible={showECEModal} 
+        courseId={id} 
+        courseData={course}
+        mode="ece"
+        onClose={() => setShowECEModal(false)}
+        onUpdate={() => {
+          // Refresh course data after ECE update
           const fetchCourseData = async () => {
             if (!id) return
             try {

@@ -14,10 +14,14 @@ import {
   CNavLink,
   CTabContent,
   CTabPane,
+  CTabs,
+  CTabList,
+  CTab,
+  CTabPanel,
   CFormSelect,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilDescription, cilCloudDownload, cilHistory } from '@coreui/icons'
+import { cilDescription, cilCloudDownload, cilHistory, cilSave } from '@coreui/icons'
 import { saveAs } from 'file-saver'
 
 import PDFViewer from './Components/PDFViewer'
@@ -60,10 +64,18 @@ import {
 import { storage, firestore } from '../../Firebase/firebase'
 import useAuth from '../../Firebase/useAuth'
 import StudentSelector from '../../components/StudentSelector'
+import { getHomeroomTeacherName } from './utils/homeroomTeacher'
+import { getECEName } from './utils/getECE'
+import { syncGradesToCourse } from './utils/syncGradesToCourse'
+import {
+  separateTermFields,
+  mergeTermFields,
+  copyTerm1ToTerm2,
+} from './utils/termFieldSeparation'
 
 // Board Mission Statement - Auto-filled in boardInfo field
 export const BOARD_MISSION_STATEMENT =
-  'Tarbiyah Learning recognizes that each child is unique – that all children are creative and need to succeed. Thus, Tarbiyah Learning respects the individual needs of children and fosters a caring and creative environment. Tarbiyah Learning also emphasizes the Islamic, social, and intellectual development of each child.'
+  'At the Advancement of Muslim Families Institute (AMFI), our mission is to nurture strong, spiritually grounded Muslim families like trees deeply rooted in faith. We cultivate these roots through holistic education, faith-based social networks, and innovative online services that draw nourishment from the timeless wisdom of the Qur\'an and Sunnah.\n\nOur programs form the trunk that supports growth—connecting hearts, strengthening character, and providing a firm structure grounded in Islamic principles. From this foundation, the branches of our work extend into diverse areas of family life: education, community development, and personal growth.\n\nThe leaves of our efforts symbolize the spreading of knowledge and compassion, bringing shade and sustenance to the wider Ummah. And ultimately, the fruit of our mission is seen in future generations who embody knowledge, integrity, and unwavering faith—families who contribute to a thriving, spiritually vibrant community.\n\nAt AMFI, we believe that the strength of the Ummah lies in the strength of its families. Our work is a commitment to cultivating these families rooted in belief, growing in unity, and bearing fruit that benefits the world.'
 
 // NOTE: All PDF assets are served from the public folder so we can access them by URL at runtime.
 // The folder name is "ReportCards" (no space).
@@ -116,6 +128,18 @@ export const REPORT_CARD_TYPES = [
     route: '/reportcards/7-8-report',
     uiComponent: 'Elementary7to8ReportUI',
   },
+  // B11: TODO - Quran Report template
+  // Note: Currently "Quran and Arabic Studies" is used as the nativeLanguage field value in report cards.
+  // If a separate Quran Report template/PDF is needed, add it here with appropriate PDF path and UI component.
+  // Example:
+  // {
+  //   id: 'quran-report',
+  //   name: 'Quran Report',
+  //   pdfPath: '/assets/ReportCards/quran-report.pdf',
+  //   description: 'Quran-specific report card',
+  //   route: '/reportcards/quran-report',
+  //   uiComponent: 'QuranReportUI',
+  // },
 ]
 
 // Define the structure of our form data with JSDoc
@@ -163,20 +187,98 @@ const ReportCard = ({ presetReportCardId = null }) => {
   const [formError, setFormError] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
+  // B7: Term 1/Term 2 tabs
+  const [selectedTerm, setSelectedTerm] = useState('term1') // 'term1' or 'term2'
 
   // Current authenticated user (needed for storage path)
-  const { user } = useAuth()
+  const { user, role } = useAuth()
 
   const navigate = useNavigate()
+
+  // B9 & B3: Load report card settings
+  useEffect(() => {
+    const loadSettings = async () => {
+      // All users should respect settings (not just admins)
+      try {
+        const settingsDoc = await getDoc(doc(firestore, 'systemSettings', 'reportCardSms'))
+        if (settingsDoc.exists()) {
+          const settingsData = settingsDoc.data()
+          setDisableEditing(settingsData.disableEditing || false)
+          setHideProgressReports(settingsData.hideProgressReports || false)
+        }
+      } catch (error) {
+        console.error('Error loading report card settings:', error)
+      }
+    }
+    loadSettings()
+  }, [])
 
   // Draft loading state
   const [isLoadingDraft, setIsLoadingDraft] = useState(false)
   const isLoadingDraftRef = useRef(false) // Synchronous guard
   const [currentDraftId, setCurrentDraftId] = useState(null) // Track which draft is loaded
+  // B9: Disable editing setting
+  const [disableEditing, setDisableEditing] = useState(false)
+  // B3: Hide progress reports setting
+  const [hideProgressReports, setHideProgressReports] = useState(false)
+  // B5: Next/Previous navigation
+  const [classStudents, setClassStudents] = useState([])
+  const [currentStudentIndex, setCurrentStudentIndex] = useState(-1)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
   // Get current report card configuration
   const getCurrentReportType = () => {
     return REPORT_CARD_TYPES.find((type) => type.id === selectedReportCard)
+  }
+
+  // B3 & B4: Get filtered report card types based on settings and student grade
+  const getFilteredReportCardTypes = () => {
+    let filtered = [...REPORT_CARD_TYPES]
+
+    // B3: Filter out progress reports if setting is enabled
+    if (hideProgressReports) {
+      filtered = filtered.filter(type => {
+        const isProgress = 
+          type.id.includes('progress') || 
+          type.id.includes('initial-observations') ||
+          type.name.toLowerCase().includes('progress')
+        return !isProgress
+      })
+    }
+
+    // B4: Filter by student grade if student is selected
+    if (selectedStudent) {
+      const grade = selectedStudent.grade || selectedStudent.program || ''
+      const gradeLower = grade.toString().toLowerCase()
+      
+      // Normalize grade (extract number if present)
+      const gradeNumber = gradeLower.match(/\d+/)?.[0]
+      const isJK = gradeLower.includes('jk') || gradeLower === 'junior kindergarten'
+      const isSK = gradeLower.includes('sk') || gradeLower === 'senior kindergarten'
+      const isKindergarten = isJK || isSK
+
+      filtered = filtered.filter(type => {
+        // Kindergarten reports (JK/SK)
+        if (isKindergarten) {
+          return type.id.includes('kg-') || type.id.includes('kindergarten')
+        }
+        
+        // Grades 1-6
+        if (gradeNumber && ['1', '2', '3', '4', '5', '6'].includes(gradeNumber)) {
+          return type.id.includes('1-6') || type.id.includes('1to6')
+        }
+        
+        // Grades 7-8
+        if (gradeNumber && ['7', '8'].includes(gradeNumber)) {
+          return type.id.includes('7-8') || type.id.includes('7to8')
+        }
+
+        // If grade doesn't match any pattern, show all (fallback)
+        return true
+      })
+    }
+
+    return filtered
   }
 
   /**
@@ -203,9 +305,140 @@ const ReportCard = ({ presetReportCardId = null }) => {
     }
   }
 
+  // B5: Load class students for navigation
+  const loadClassStudents = async (student) => {
+    if (!student) {
+      setClassStudents([])
+      setCurrentStudentIndex(-1)
+      return
+    }
+
+    try {
+      // Find the student's class/course
+      const coursesRef = collection(firestore, 'courses')
+      const coursesQuery = query(
+        coursesRef,
+        where('archived', '==', false),
+        where('enrolledList', 'array-contains', student.id)
+      )
+      const coursesSnapshot = await getDocs(coursesQuery)
+
+      if (!coursesSnapshot.empty) {
+        // Get the first matching course (assuming student is in one primary class)
+        const courseDoc = coursesSnapshot.docs[0]
+        const courseData = courseDoc.data()
+        const enrolledList = courseData.enrolledList || courseData.students || []
+
+        // Load all students in this class
+        const studentsPromises = enrolledList.map(async (studentId) => {
+          try {
+            const studentDoc = await getDoc(doc(firestore, 'students', studentId))
+            if (studentDoc.exists()) {
+              const studentData = studentDoc.data()
+              const firstName = studentData.personalInfo?.firstName || studentData.firstName || ''
+              const lastName = studentData.personalInfo?.lastName || studentData.lastName || ''
+              return {
+                id: studentDoc.id,
+                fullName: `${firstName} ${lastName}`.trim(),
+                ...studentData,
+                // Include all the fields that handleStudentSelect expects
+                grade: studentData.schooling?.program || studentData.personalInfo?.grade || studentData.grade || '',
+                oen: studentData.schooling?.oen || studentData.personalInfo?.oen || studentData.oen || '',
+                schoolId: studentData.personalInfo?.schoolId || studentData.schoolId || studentData.tarbiyahId || studentDoc.id,
+                currentTermAbsenceCount: studentData.attendanceStats?.currentTermAbsenceCount || 0,
+                currentTermLateCount: studentData.attendanceStats?.currentTermLateCount || 0,
+                yearAbsenceCount: studentData.attendanceStats?.yearAbsenceCount || 0,
+                yearLateCount: studentData.attendanceStats?.yearLateCount || 0,
+                email: studentData.contact?.email || '',
+                phone1: studentData.contact?.phone1 || '',
+                phone2: studentData.contact?.phone2 || '',
+                emergencyPhone: studentData.contact?.emergencyPhone || '',
+                streetAddress: studentData.address?.streetAddress || '',
+                residentialArea: studentData.address?.residentialArea || '',
+                poBox: studentData.address?.poBox || '',
+                nationality: studentData.citizenship?.nationality || '',
+                nationalId: studentData.citizenship?.nationalId || '',
+                nationalIdExpiry: studentData.citizenship?.nationalIdExpiry || '',
+                primaryLanguage: studentData.language?.primary || '',
+                secondaryLanguage: studentData.language?.secondary || '',
+                fatherName: studentData.parents?.father?.name || '',
+                motherName: studentData.parents?.mother?.name || '',
+                fatherId: studentData.parents?.father?.tarbiyahId || '',
+                motherId: studentData.parents?.mother?.tarbiyahId || '',
+                dob: studentData.personalInfo?.dob || '',
+                gender: studentData.personalInfo?.gender || '',
+                salutation: studentData.personalInfo?.salutation || '',
+                nickName: studentData.personalInfo?.nickName || '',
+                middleName: studentData.personalInfo?.middleName || '',
+                program: studentData.schooling?.program || '',
+                daySchoolEmployer: studentData.daySchoolEmployer || '',
+                notes: studentData.notes || '',
+                returningStudentYear: studentData.returningStudentYear || '',
+                custodyDetails: studentData.custodyDetails || '',
+                primaryRole: studentData.primaryRole || '',
+              }
+            }
+            return null
+          } catch (error) {
+            console.error(`Error loading student ${studentId}:`, error)
+            return null
+          }
+        })
+
+        const studentsList = (await Promise.all(studentsPromises)).filter(Boolean)
+        // Sort by name
+        studentsList.sort((a, b) => a.fullName.localeCompare(b.fullName))
+
+        setClassStudents(studentsList)
+
+        // Find current student index
+        const currentIndex = studentsList.findIndex((s) => s.id === student.id)
+        setCurrentStudentIndex(currentIndex >= 0 ? currentIndex : -1)
+      } else {
+        // No class found, just set current student
+        setClassStudents([student])
+        setCurrentStudentIndex(0)
+      }
+    } catch (error) {
+      console.error('Error loading class students:', error)
+      setClassStudents([student])
+      setCurrentStudentIndex(0)
+    }
+  }
+
+  // B5: Handle navigation between students
+  const handleNavigateStudent = async (direction) => {
+    if (classStudents.length === 0 || currentStudentIndex < 0) return
+
+    const newIndex =
+      direction === 'next'
+        ? (currentStudentIndex + 1) % classStudents.length
+        : currentStudentIndex === 0
+        ? classStudents.length - 1
+        : currentStudentIndex - 1
+
+    const newStudent = classStudents[newIndex]
+    if (newStudent) {
+      // Check for unsaved changes
+      if (hasUnsavedChanges) {
+        const confirmNavigate = window.confirm(
+          'You have unsaved changes. Are you sure you want to navigate to another student?'
+        )
+        if (!confirmNavigate) return
+      }
+
+      setCurrentStudentIndex(newIndex)
+      // Use handleStudentSelect to properly load the new student
+      await handleStudentSelect(newStudent)
+    }
+  }
+
   // Handle student selection
-  const handleStudentSelect = (student) => {
+  const handleStudentSelect = async (student) => {
     setSelectedStudent(student)
+
+    // B5: Load class students for navigation
+    await loadClassStudents(student)
 
     // Clear localStorage for all report card types when selecting a new student
     if (student) {
@@ -218,9 +451,30 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
     // Auto-populate form data with student information
     if (student) {
+      // B6: Get homeroom teacher name
+      const homeroomTeacherPromise = getHomeroomTeacherName(student)
+      
+      // B10: Autofill date (from settings or today's date)
+      let dateString = ''
+      try {
+        const settingsDoc = await getDoc(doc(firestore, 'systemSettings', 'reportCardSms'))
+        if (settingsDoc.exists()) {
+          const settingsData = settingsDoc.data()
+          dateString = settingsData.reportCardDate || ''
+        }
+      } catch (error) {
+        console.warn('Error loading report card date setting:', error)
+      }
+      
+      // If no setting or empty, use today's date
+      if (!dateString) {
+        const today = new Date()
+        dateString = today.toLocaleDateString('en-CA') // YYYY-MM-DD format
+      }
+      
       // Clear previous form data but preserve teacher information
       const newFormData = {
-        // Only preserve teacher data from previous form
+        // Only preserve teacher data from previous form if not empty
         teacher: formData.teacher || '',
         teacher_name: formData.teacher_name || '',
         // Basic student info
@@ -239,6 +493,9 @@ const ReportCard = ({ presetReportCardId = null }) => {
           return match ? match[0] : gradeValue
         })(),
 
+        // B10: Autofill date (only if not already set by user)
+        date: formData.date || dateString,
+        
         // Attendance data
         daysAbsent: student.currentTermAbsenceCount || 0,
         totalDaysAbsent: student.yearAbsenceCount || 0,
@@ -300,23 +557,89 @@ const ReportCard = ({ presetReportCardId = null }) => {
           boardInfo: BOARD_MISSION_STATEMENT,
           
           // Grade 7-8 Subject Names (for Native Language and Other)
-          nativeLanguage: 'Quran and Arabic Studies',
+          nativeLanguage: 'Arabic Studies',
           other: 'Islamic Studies',
           
           // Ensure boardSpace is always blank for 1-6 progress report
           boardSpace: '',
           boardspace: '',
+          
+          // B12: Auto-check French Core checkbox for all reports
+          frenchCore: true,
+          
+          // B16: Set Dance, Drama, Music to N/A by default
+          danceNA: true,
+          dramaNA: true,
+          musicNA: true,
+          
+          // Initialize signatures (will be updated when teacher loads)
+          teacherSignature: { type: 'typed', value: '' },
+          principalSignature: { type: 'typed', value: 'Ghazala Choudhary' },
       }
+      
+      // B6: Set homeroom teacher name (async, update after initial set)
+      // Also get ECE for kindergarten reports
+      const ecePromise = (selectedReportCard === 'kg-initial-observations' || selectedReportCard === 'kg-report') 
+        ? getECEName(student) 
+        : Promise.resolve('')
+      
       setFormData(newFormData)
+      
+      // Load homeroom teacher and ECE asynchronously
+      Promise.all([homeroomTeacherPromise, ecePromise]).then(([teacherName, eceName]) => {
+        if (teacherName) {
+          const teacherNameWithERS = teacherName + (teacherName.includes('ERS') ? '' : ' ERS')
+          setFormData((prevData) => {
+            // Always set signatures if they're not already set
+            const updatedData = {
+              ...prevData,
+              teacher: teacherName,
+              teacher_name: teacherName,
+              // B15: Add ERS to signature if needed
+              teacher_signature: teacherNameWithERS,
+            }
+            
+            // Auto-fill teacher signature if not already set
+            if (!prevData.teacherSignature?.value || prevData.teacherSignature.value.trim() === '') {
+              updatedData.teacherSignature = { type: 'typed', value: teacherNameWithERS }
+            }
+            
+            // Auto-fill principal signature if not already set
+            if (!prevData.principalSignature?.value || prevData.principalSignature.value.trim() === '') {
+              updatedData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
+            }
+            
+            // Auto-fill ECE for kindergarten reports
+            if (eceName && (selectedReportCard === 'kg-initial-observations' || selectedReportCard === 'kg-report')) {
+              if (!prevData.earlyChildEducator || prevData.earlyChildEducator.trim() === '') {
+                updatedData.earlyChildEducator = eceName
+              }
+              if (!prevData.earlyChildhoodEducator || prevData.earlyChildhoodEducator.trim() === '') {
+                updatedData.earlyChildhoodEducator = eceName
+              }
+            }
+            
+            return updatedData
+          })
+        }
+      }).catch((error) => {
+        console.error('Error loading homeroom teacher or ECE:', error)
+      })
     }
   }
 
   /**
-   * Load existing draft from Firebase for the given student + report type
+   * Load existing draft from Firebase for the given student + report type + term
+   * Order of persistence:
+   * 1. If draft exists for this student + report type + term, load it
+   * 2. For Term 2: If no Term 2 draft, use final Term 1 form, or latest Term 1 draft
+   * 3. If nothing found, return null (will create new draft)
+   * 
    * @param {Object} student - Selected student object
    * @param {string} reportType - Report card type ID
+   * @param {string} term - Term identifier ('term1' or 'term2')
    */
-  const loadExistingDraft = async (student, reportType) => {
+  const loadExistingDraft = async (student, reportType, term = selectedTerm) => {
     if (!student || !reportType || !user) {
       console.log('⏭️ Skipping draft load - missing required data')
       return null
@@ -330,89 +653,392 @@ const ReportCard = ({ presetReportCardId = null }) => {
       console.log('🔍 Checking for existing draft:', {
         studentId: student.id,
         reportType: reportType,
+        term: term,
+        userId: user.uid,
       })
 
-      // Step 1: Try deterministic ID first (userUid_studentId_reportType)
-      const draftId = `${user.uid}_${student.id}_${reportType}`
+      // Step 1: Try deterministic ID first (userUid_studentId_reportType_term)
+      const draftId = `${user.uid}_${student.id}_${reportType}_${term}`
       const draftRef = doc(firestore, 'reportCardDrafts', draftId)
       const draftSnap = await getDoc(draftRef)
 
       if (draftSnap.exists()) {
         const draftData = draftSnap.data()
-        console.log('✅ Found existing draft:', {
+        const loadedFormData = draftData.formData || {}
+        
+        console.log('✅ Found existing draft with deterministic ID:', {
           draftId: draftId,
+          term: term,
+          status: draftData.status,
           lastModified: draftData.lastModified?.toDate?.(),
-          fieldCount: Object.keys(draftData.formData || {}).length,
+          fieldCount: Object.keys(loadedFormData).length,
+          hasFormData: !!loadedFormData && Object.keys(loadedFormData).length > 0,
         })
 
-        // Hydrate form with draft data, but ALWAYS refresh attendance with latest student data
+        // Separate term-specific and shared fields from loaded data
+        const { termData: loadedTermData, sharedData: loadedSharedData } = separateTermFields(loadedFormData, term)
+        
+        // Merge term-specific and shared fields
+        const mergedFormData = mergeTermFields(loadedTermData, loadedSharedData, {})
+        
+        // ALWAYS refresh attendance with latest student data
         const refreshedFormData = {
-          ...draftData.formData,
-          // ALWAYS use the latest attendance data from the student object
+          ...mergedFormData,
           daysAbsent: student.currentTermAbsenceCount || 0,
           totalDaysAbsent: student.yearAbsenceCount || 0,
           timesLate: student.currentTermLateCount || 0,
           totalTimesLate: student.yearLateCount || 0,
+        }
+        
+        // Auto-fill signatures if not already set
+        if (!refreshedFormData.teacherSignature?.value && refreshedFormData.teacher_name) {
+          const teacherName = refreshedFormData.teacher_name + (refreshedFormData.teacher_name.includes('ERS') ? '' : ' ERS')
+          refreshedFormData.teacherSignature = { type: 'typed', value: teacherName }
+        }
+        if (!refreshedFormData.principalSignature?.value) {
+          refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
         }
         
         setFormData(refreshedFormData)
         setCurrentDraftId(draftId)
 
-        console.log('📊 Refreshed attendance data with latest counts:', {
-          daysAbsent: student.currentTermAbsenceCount || 0,
-          totalDaysAbsent: student.yearAbsenceCount || 0,
-          timesLate: student.currentTermLateCount || 0,
-          totalTimesLate: student.yearLateCount || 0,
+        console.log('📊 Loaded draft data:', {
+          term: term,
+          termSpecificFields: Object.keys(loadedTermData).length,
+          sharedFields: Object.keys(loadedSharedData).length,
+          totalFields: Object.keys(refreshedFormData).length,
         })
 
         return draftData
+      } else {
+        console.log('❌ Draft not found with deterministic ID:', draftId)
       }
 
-      // Step 2: Query for ANY draft with this student + report type (cross-teacher support)
-      console.log('🔍 Step 2: Searching for drafts from ANY teacher...')
-      const draftsQuery = query(
-        collection(firestore, 'reportCardDrafts'),
-        where('studentId', '==', student.id),
-        where('reportCardType', '==', reportType)
-      )
-      const querySnapshot = await getDocs(draftsQuery)
+      // Step 2: Query for ANY draft with this student + report type + term (cross-teacher support)
+      console.log('🔍 Step 2: Searching for drafts from ANY teacher for this term...')
+      try {
+        // Try with term filter first
+        let draftsQuery = query(
+          collection(firestore, 'reportCardDrafts'),
+          where('studentId', '==', student.id),
+          where('reportCardType', '==', reportType),
+          where('term', '==', term)
+        )
+        let querySnapshot = await getDocs(draftsQuery)
 
-      if (!querySnapshot.empty) {
-        const existingDraft = querySnapshot.docs[0]
-        const draftData = existingDraft.data()
+        // If query fails or returns empty, try without term filter and filter in memory
+        if (querySnapshot.empty) {
+          console.log('🔍 Step 2a: Trying query without term filter...')
+          draftsQuery = query(
+            collection(firestore, 'reportCardDrafts'),
+            where('studentId', '==', student.id),
+            where('reportCardType', '==', reportType)
+          )
+          querySnapshot = await getDocs(draftsQuery)
+        }
+
+        if (!querySnapshot.empty) {
+          // Get the most recent draft matching the term
+          const drafts = querySnapshot.docs
+            .map(doc => ({
+              id: doc.id,
+              data: doc.data(),
+              lastModified: doc.data().lastModified?.toDate?.() || doc.data().createdAt?.toDate?.() || new Date(0),
+            }))
+            .filter(draft => draft.data.term === term) // Filter by term in memory if needed
+          
+          if (drafts.length > 0) {
+            // Sort by lastModified descending
+            drafts.sort((a, b) => b.lastModified - a.lastModified)
+            const existingDraft = drafts[0]
+            const draftData = existingDraft.data
+            const loadedFormData = draftData.formData || {}
+            
+            console.log('✅ Found draft from any teacher:', {
+              draftId: existingDraft.id,
+              term: term,
+              originalTeacher: draftData.teacherName,
+              lastModified: existingDraft.lastModified,
+              fieldCount: Object.keys(loadedFormData).length,
+            })
+
+            // Separate term-specific and shared fields
+            const { termData: loadedTermData, sharedData: loadedSharedData } = separateTermFields(loadedFormData, term)
+            
+            // Merge term-specific and shared fields
+            const mergedFormData = mergeTermFields(loadedTermData, loadedSharedData, {})
+            
+            // ALWAYS refresh attendance with latest student data
+            const refreshedFormData = {
+              ...mergedFormData,
+              daysAbsent: student.currentTermAbsenceCount || 0,
+              totalDaysAbsent: student.yearAbsenceCount || 0,
+              timesLate: student.currentTermLateCount || 0,
+              totalTimesLate: student.yearLateCount || 0,
+            }
+            
+            // Auto-fill signatures if not already set
+            if (!refreshedFormData.teacherSignature?.value && refreshedFormData.teacher_name) {
+              const teacherName = refreshedFormData.teacher_name + (refreshedFormData.teacher_name.includes('ERS') ? '' : ' ERS')
+              refreshedFormData.teacherSignature = { type: 'typed', value: teacherName }
+            }
+            if (!refreshedFormData.principalSignature?.value) {
+              refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
+            }
+            
+            setFormData(refreshedFormData)
+            setCurrentDraftId(existingDraft.id)
+
+            console.log('📊 Loaded cross-teacher draft:', {
+              term: term,
+              termSpecificFields: Object.keys(loadedTermData).length,
+              sharedFields: Object.keys(loadedSharedData).length,
+            })
+
+            return draftData
+          }
+        }
+      } catch (queryError) {
+        console.warn('⚠️ Error querying drafts (may not have index):', queryError)
+        // Continue to next step
+      }
+
+      // Step 3: For Term 2, try to load from final Term 1 form or latest Term 1 draft
+      if (term === 'term2') {
+        console.log('🔍 Step 3: Term 2 - Looking for final Term 1 form or latest Term 1 draft...')
         
-        console.log('✅ Found draft from another teacher:', {
-          draftId: existingDraft.id,
-          originalTeacher: draftData.teacherName,
-          lastModified: draftData.lastModified?.toDate?.(),
-          fieldCount: Object.keys(draftData.formData || {}).length,
-        })
-
-        // Hydrate form with draft data, but ALWAYS refresh attendance with latest student data
-        const refreshedFormData = {
-          ...draftData.formData,
-          // ALWAYS use the latest attendance data from the student object
-          daysAbsent: student.currentTermAbsenceCount || 0,
-          totalDaysAbsent: student.yearAbsenceCount || 0,
-          timesLate: student.currentTermLateCount || 0,
-          totalTimesLate: student.yearLateCount || 0,
+        // First, try to find completed Term 1 report in reportCards collection
+        // Then get the formData from the associated draft (which should still exist with status: 'complete')
+        try {
+          // Try querying without status filter first (filter in memory)
+          let completedReportsQuery = query(
+            collection(firestore, 'reportCards'),
+            where('studentId', '==', student.id),
+            where('type', '==', reportType),
+            where('term', '==', 'term1')
+          )
+          let completedReportsSnapshot = await getDocs(completedReportsQuery)
+          
+          // Filter for completed/approved status in memory
+          const completedReports = completedReportsSnapshot.docs
+            .map(doc => ({
+              id: doc.id,
+              data: doc.data(),
+              completedAt: doc.data().completedAt?.toDate?.() || doc.data().createdAt?.toDate?.() || new Date(0),
+            }))
+            .filter(report => {
+              const status = report.data.status
+              return status === 'complete' || status === 'approved'
+            })
+          
+          if (completedReports.length > 0) {
+            // Get the most recent completed report
+            completedReports.sort((a, b) => b.completedAt - a.completedAt)
+            const latestCompleted = completedReports[0]
+            
+            console.log('✅ Found completed Term 1 report:', {
+              reportId: latestCompleted.id,
+              completedAt: latestCompleted.completedAt,
+              status: latestCompleted.data.status,
+            })
+            
+            // Try to get the formData from the associated draft
+            // First try current user's draft, then try querying for any Term 1 draft
+            let term1DraftSnap = null
+            const term1DraftId = `${user.uid}_${student.id}_${reportType}_term1`
+            const term1DraftRef = doc(firestore, 'reportCardDrafts', term1DraftId)
+            term1DraftSnap = await getDoc(term1DraftRef)
+            
+            // If not found, query for any Term 1 draft for this student
+            if (!term1DraftSnap.exists()) {
+              console.log('🔍 Current user draft not found, searching for any Term 1 draft...')
+              const term1DraftsQuery = query(
+                collection(firestore, 'reportCardDrafts'),
+                where('studentId', '==', student.id),
+                where('reportCardType', '==', reportType),
+                where('term', '==', 'term1')
+              )
+              const term1DraftsSnapshot = await getDocs(term1DraftsQuery)
+              
+              if (!term1DraftsSnapshot.empty) {
+                // Get the most recent Term 1 draft (prefer completed ones)
+                const term1Drafts = term1DraftsSnapshot.docs.map(doc => ({
+                  id: doc.id,
+                  data: doc.data(),
+                  lastModified: doc.data().lastModified?.toDate?.() || doc.data().createdAt?.toDate?.() || new Date(0),
+                  isComplete: doc.data().status === 'complete',
+                }))
+                
+                // Sort: completed first, then by lastModified
+                term1Drafts.sort((a, b) => {
+                  if (a.isComplete !== b.isComplete) return b.isComplete - a.isComplete
+                  return b.lastModified - a.lastModified
+                })
+                
+                const latestTerm1Draft = term1Drafts[0]
+                term1DraftSnap = { exists: () => true, data: () => latestTerm1Draft.data }
+                console.log('✅ Found Term 1 draft from any teacher:', latestTerm1Draft.id)
+              }
+            }
+            
+            if (term1DraftSnap && term1DraftSnap.exists()) {
+              const term1DraftData = term1DraftSnap.data()
+              const term1FormData = term1DraftData.formData || {}
+              
+              console.log('📋 Using completed Term 1 draft as base for Term 2', {
+                draftId: term1DraftId,
+                fieldCount: Object.keys(term1FormData).length,
+              })
+              
+              // Convert Term 1 fields to Term 2 equivalents
+              const term2FormData = copyTerm1ToTerm2(term1FormData)
+              
+              // C18: Autofill Placement only in Term 2 for KG reports
+              if (reportType && (reportType.includes('kg') || reportType.includes('kindergarten'))) {
+                const grade = student.grade || student.program || ''
+                const gradeLower = grade.toString().toLowerCase()
+                
+                // SK -> Grade 1, JK -> KG Year 2
+                if (gradeLower.includes('sk') || gradeLower === 'senior kindergarten') {
+                  term2FormData.placementInSeptemberGrade1 = true
+                  term2FormData.placementInSeptemberKG2 = false
+                } else if (gradeLower.includes('jk') || gradeLower === 'junior kindergarten') {
+                  term2FormData.placementInSeptemberKG2 = true
+                  term2FormData.placementInSeptemberGrade1 = false
+                }
+              }
+              
+              // ALWAYS refresh attendance with latest student data
+              const refreshedFormData = {
+                ...term2FormData,
+                daysAbsent: student.currentTermAbsenceCount || 0,
+                totalDaysAbsent: student.yearAbsenceCount || 0,
+                timesLate: student.currentTermLateCount || 0,
+                totalTimesLate: student.yearLateCount || 0,
+              }
+              
+              // Auto-fill signatures if not already set
+              if (!refreshedFormData.teacherSignature?.value && refreshedFormData.teacher_name) {
+                const teacherName = refreshedFormData.teacher_name + (refreshedFormData.teacher_name.includes('ERS') ? '' : ' ERS')
+                refreshedFormData.teacherSignature = { type: 'typed', value: teacherName }
+              }
+              if (!refreshedFormData.principalSignature?.value) {
+                refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
+              }
+              
+              setFormData(refreshedFormData)
+              setCurrentDraftId(null) // Will create new Term 2 draft
+              
+              console.log('📊 Loaded Term 1 completed form as base for Term 2')
+              return { formData: term2FormData, isFromTerm1: true }
+            }
+          }
+        } catch (completedError) {
+          console.warn('⚠️ Error querying completed reports:', completedError)
+          // Continue to try Term 1 draft
         }
         
-        setFormData(refreshedFormData)
-        setCurrentDraftId(existingDraft.id)
-
-        console.log('📊 Refreshed attendance data with latest counts:', {
-          daysAbsent: student.currentTermAbsenceCount || 0,
-          totalDaysAbsent: student.yearAbsenceCount || 0,
-          timesLate: student.currentTermLateCount || 0,
-          totalTimesLate: student.yearLateCount || 0,
-        })
-
-        return draftData
+        // If no completed Term 1 form, try to get latest Term 1 draft
+        try {
+          // Try with term filter first
+          let term1DraftsQuery = query(
+            collection(firestore, 'reportCardDrafts'),
+            where('studentId', '==', student.id),
+            where('reportCardType', '==', reportType),
+            where('term', '==', 'term1')
+          )
+          let term1DraftsSnapshot = await getDocs(term1DraftsQuery)
+          
+          // If empty, try without term filter and filter in memory
+          if (term1DraftsSnapshot.empty) {
+            console.log('🔍 Trying Term 1 draft query without term filter...')
+            term1DraftsQuery = query(
+              collection(firestore, 'reportCardDrafts'),
+              where('studentId', '==', student.id),
+              where('reportCardType', '==', reportType)
+            )
+            term1DraftsSnapshot = await getDocs(term1DraftsQuery)
+          }
+          
+          if (!term1DraftsSnapshot.empty) {
+            // Get the most recent Term 1 draft (prefer completed ones)
+            const term1Drafts = term1DraftsSnapshot.docs
+              .map(doc => ({
+                id: doc.id,
+                data: doc.data(),
+                lastModified: doc.data().lastModified?.toDate?.() || doc.data().createdAt?.toDate?.() || new Date(0),
+                isComplete: doc.data().status === 'complete',
+                term: doc.data().term || 'term1',
+              }))
+              .filter(draft => draft.term === 'term1') // Filter by term in memory if needed
+            
+            if (term1Drafts.length > 0) {
+              // Sort: completed first, then by lastModified
+              term1Drafts.sort((a, b) => {
+                if (a.isComplete !== b.isComplete) return b.isComplete - a.isComplete
+                return b.lastModified - a.lastModified
+              })
+              
+              const latestTerm1Draft = term1Drafts[0]
+              const term1FormData = latestTerm1Draft.data.formData || {}
+              
+              console.log('📋 Using latest Term 1 draft as base for Term 2:', {
+                draftId: latestTerm1Draft.id,
+                lastModified: latestTerm1Draft.lastModified,
+                isComplete: latestTerm1Draft.isComplete,
+                fieldCount: Object.keys(term1FormData).length,
+              })
+              
+              // Convert Term 1 fields to Term 2 equivalents
+              const term2FormData = copyTerm1ToTerm2(term1FormData)
+              
+              // C18: Autofill Placement only in Term 2 for KG reports
+              if (reportType && (reportType.includes('kg') || reportType.includes('kindergarten'))) {
+                const grade = student.grade || student.program || ''
+                const gradeLower = grade.toString().toLowerCase()
+                
+                // SK -> Grade 1, JK -> KG Year 2
+                if (gradeLower.includes('sk') || gradeLower === 'senior kindergarten') {
+                  term2FormData.placementInSeptemberGrade1 = true
+                  term2FormData.placementInSeptemberKG2 = false
+                } else if (gradeLower.includes('jk') || gradeLower === 'junior kindergarten') {
+                  term2FormData.placementInSeptemberKG2 = true
+                  term2FormData.placementInSeptemberGrade1 = false
+                }
+              }
+              
+              // ALWAYS refresh attendance with latest student data
+              const refreshedFormData = {
+                ...term2FormData,
+                daysAbsent: student.currentTermAbsenceCount || 0,
+                totalDaysAbsent: student.yearAbsenceCount || 0,
+                timesLate: student.currentTermLateCount || 0,
+                totalTimesLate: student.yearLateCount || 0,
+              }
+              
+              // Auto-fill signatures if not already set
+              if (!refreshedFormData.teacherSignature?.value && refreshedFormData.teacher_name) {
+                const teacherName = refreshedFormData.teacher_name + (refreshedFormData.teacher_name.includes('ERS') ? '' : ' ERS')
+                refreshedFormData.teacherSignature = { type: 'typed', value: teacherName }
+              }
+              if (!refreshedFormData.principalSignature?.value) {
+                refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
+              }
+              
+              setFormData(refreshedFormData)
+              setCurrentDraftId(null) // Will create new Term 2 draft
+              
+              console.log('📊 Loaded Term 1 draft as base for Term 2')
+              return { formData: term2FormData, isFromTerm1: true }
+            }
+          }
+        } catch (term1DraftError) {
+          console.warn('⚠️ Error querying Term 1 drafts:', term1DraftError)
+        }
       }
 
-      // Step 3: No draft found - return null (form will use auto-populated student data)
-      console.log('📝 No existing draft found')
+      // Step 4: No draft found - return null (form will use auto-populated student data)
+      console.log('📝 No existing draft found - will create new draft')
       setCurrentDraftId(null)
       return null
 
@@ -428,7 +1054,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
     }
   }
 
-  // Load existing draft when student + report type changes
+  // Load existing draft when student + report type + term changes
   useEffect(() => {
     // Skip if either is not selected
     if (!selectedStudent || !selectedReportCard) {
@@ -450,7 +1076,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
     // Load draft from Firebase
     const loadDraft = async () => {
-      const existingDraft = await loadExistingDraft(selectedStudent, selectedReportCard)
+      const existingDraft = await loadExistingDraft(selectedStudent, selectedReportCard, selectedTerm)
 
       // If no draft found, populate with student basics
       if (!existingDraft) {
@@ -530,7 +1156,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           boardInfo: BOARD_MISSION_STATEMENT,
           
           // Grade 7-8 Subject Names (for Native Language and Other)
-          nativeLanguage: 'Quran and Arabic Studies',
+          nativeLanguage: 'Arabic Studies',
           other: 'Islamic Studies',
           
           boardSpace: '',
@@ -541,12 +1167,21 @@ const ReportCard = ({ presetReportCardId = null }) => {
           teacher_name: formData.teacher_name || '',
         }
 
+        // Auto-fill signatures if not already set
+        if (!studentData.teacherSignature?.value && studentData.teacher_name) {
+          const teacherName = studentData.teacher_name + (studentData.teacher_name.includes('ERS') ? '' : ' ERS')
+          studentData.teacherSignature = { type: 'typed', value: teacherName }
+        }
+        if (!studentData.principalSignature?.value) {
+          studentData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
+        }
+
         setFormData(studentData)
       }
     }
 
     loadDraft()
-  }, [selectedStudent, selectedReportCard, user])
+  }, [selectedStudent, selectedReportCard, selectedTerm, user]) // B7: Include selectedTerm in dependencies
 
   // Handle form data changes with improved structure
   const handleFormDataChange = (newFormData) => {
@@ -561,6 +1196,11 @@ const ReportCard = ({ presetReportCardId = null }) => {
     
     // Auto-save logic can go here if needed
     // (For now, manual save via saveDraft button)
+  }
+
+  // B17: Save All functionality - saves the entire report card
+  const saveAll = async () => {
+    await saveDraft()
   }
 
   // Save draft report card to Firestore
@@ -590,20 +1230,37 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
       const reportCardType = getCurrentReportType()
 
+      // Separate term-specific fields from shared fields
+      const { termData, sharedData } = separateTermFields(formData, selectedTerm)
+      
       // Clean formData to remove undefined values (Firestore doesn't allow undefined)
-      const cleanFormData = {}
-      Object.keys(formData).forEach((key) => {
-        const value = formData[key]
+      const cleanTermData = {}
+      Object.keys(termData).forEach((key) => {
+        const value = termData[key]
         if (value !== undefined && value !== null) {
-          // Convert empty strings to empty string (not undefined)
-          cleanFormData[key] = value === '' ? '' : value
+          cleanTermData[key] = value === '' ? '' : value
         }
       })
+      
+      const cleanSharedData = {}
+      Object.keys(sharedData).forEach((key) => {
+        const value = sharedData[key]
+        if (value !== undefined && value !== null) {
+          cleanSharedData[key] = value === '' ? '' : value
+        }
+      })
+      
+      // Merge term-specific and shared data for storage
+      const cleanFormData = {
+        ...cleanSharedData,
+        ...cleanTermData,
+      }
 
-      console.log('🧹 Cleaned form data, removed undefined values:', {
-        originalKeys: Object.keys(formData).length,
-        cleanedKeys: Object.keys(cleanFormData).length,
-        removedKeys: Object.keys(formData).filter((key) => formData[key] === undefined),
+      console.log('🧹 Separated and cleaned form data:', {
+        term: selectedTerm,
+        termSpecificFields: Object.keys(cleanTermData).length,
+        sharedFields: Object.keys(cleanSharedData).length,
+        totalFields: Object.keys(cleanFormData).length,
       })
 
       // Simplified draft data to avoid potential serialization issues
@@ -615,6 +1272,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
         tarbiyahId: selectedStudent.schoolId || selectedStudent.id || '',
         reportCardType: selectedReportCard,
         reportCardTypeName: reportCardType?.name || 'Unknown',
+        term: selectedTerm, // B7: Store term in draft
         formData: cleanFormData, // Use cleaned form data
         // Store only essential student data to avoid circular references
         selectedStudent: {
@@ -637,7 +1295,8 @@ const ReportCard = ({ presetReportCardId = null }) => {
       })
 
       // Use existing draft ID if we loaded one, otherwise create new
-      const draftId = currentDraftId || `${user.uid}_${selectedStudent.id}_${selectedReportCard}`
+      // B7: Include term in draft ID to separate Term 1 and Term 2 documents
+      const draftId = currentDraftId || `${user.uid}_${selectedStudent.id}_${selectedReportCard}_${selectedTerm}`
       const draftRef = doc(firestore, 'reportCardDrafts', draftId)
 
       console.log('💾 Attempting to save to Firestore with ID:', draftId)
@@ -677,7 +1336,14 @@ const ReportCard = ({ presetReportCardId = null }) => {
           }),
         })
         setSaveMessage(wasApproved ? 'Draft updated successfully - requires re-approval!' : 'Draft updated successfully!')
+        setHasUnsavedChanges(false) // B5: Clear unsaved changes flag
         console.log('✅ Draft updated successfully', wasApproved ? '(reset to pending)' : '')
+        
+        // Sync grades to course if this is a report card (not progress report)
+        if (selectedReportCard && !selectedReportCard.includes('progress') && !selectedReportCard.includes('initial')) {
+          syncGradesToCourse(cleanFormData, selectedStudent.id, selectedTerm, selectedReportCard)
+            .catch(error => console.error('Error syncing grades:', error))
+        }
       } else {
         console.log('📄 Creating new draft...')
         // Create new draft with original creator info
@@ -687,7 +1353,14 @@ const ReportCard = ({ presetReportCardId = null }) => {
           originalTeacherName: user.displayName || user.email || 'Unknown Teacher',
         })
         setSaveMessage('Draft saved successfully!')
+        setHasUnsavedChanges(false) // B5: Clear unsaved changes flag
         console.log('✅ New draft created successfully')
+        
+        // Sync grades to course if this is a report card (not progress report)
+        if (selectedReportCard && !selectedReportCard.includes('progress') && !selectedReportCard.includes('initial')) {
+          syncGradesToCourse(cleanFormData, selectedStudent.id, selectedTerm, selectedReportCard)
+            .catch(error => console.error('Error syncing grades:', error))
+        }
       }
 
       // Update currentDraftId after save
@@ -1277,6 +1950,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           const downloadURL = await getDownloadURL(storageRef)
 
           // Store a reference in Firestore
+          // B7: Include term in saved report card document
           await addDoc(collection(firestore, 'reportCards'), {
             uid: user.uid,
             type: selectedReportCard,
@@ -1287,13 +1961,15 @@ const ReportCard = ({ presetReportCardId = null }) => {
             status: 'complete',
             studentId: selectedStudent?.id || '',
             reportCardTypeName: reportCardType?.name || 'Unknown',
+            term: selectedTerm, // B7: Store term (term1 or term2)
             createdAt: serverTimestamp(),
             completedAt: serverTimestamp(),
           })
 
           // Convert draft to completed status instead of deleting
+          // B7: Include term in draft ID
           if (selectedStudent) {
-            const draftId = `${user.uid}_${selectedStudent.id}_${selectedReportCard}`
+            const draftId = `${user.uid}_${selectedStudent.id}_${selectedReportCard}_${selectedTerm}`
             try {
               // Update the draft to mark it as completed
               const draftRef = doc(firestore, 'reportCardDrafts', draftId)
@@ -1303,6 +1979,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
                 tarbiyahId: selectedStudent?.schoolId || selectedStudent?.id || '',
                 finalPdfUrl: downloadURL,
                 finalPdfPath: filePath,
+                term: selectedTerm, // Store term in draft
               })
               console.log('✅ Updated draft to completed status')
             } catch (updateError) {
@@ -1341,10 +2018,13 @@ const ReportCard = ({ presetReportCardId = null }) => {
       loading: formLoading,
       error: formError,
       onSaveDraft: saveDraft,
+      onSaveAll: saveAll, // B17: Save All functionality
       isSaving: isSaving,
       saveMessage: saveMessage,
       selectedStudent: selectedStudent,
       selectedReportCard: selectedReportCard,
+      disableEditing: disableEditing, // B9: Pass disable editing flag
+      selectedTerm: selectedTerm, // B7: Pass selected term to filter fields
     }
 
     switch (reportType?.uiComponent) {
@@ -1420,7 +2100,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
                     className="mb-3"
                   >
                     <option value="">Choose a report card type...</option>
-                    {REPORT_CARD_TYPES.map((type) => (
+                    {getFilteredReportCardTypes().map((type) => (
                       <option key={type.id} value={type.id}>
                         {type.name}
                       </option>
@@ -1486,11 +2166,82 @@ const ReportCard = ({ presetReportCardId = null }) => {
                       </div>
                     </div>
                   )}
-                  <div className="mt-3">
+                  <div className="mt-3 d-flex gap-2 align-items-center">
                     <CButton color="outline-secondary" size="sm" onClick={handleChangeStudent}>
                       Change Student
                     </CButton>
+                    {/* B5: Next/Previous navigation */}
+                    {classStudents.length > 0 && currentStudentIndex >= 0 && (
+                      <div className="d-flex align-items-center gap-2">
+                        <CButton
+                          color="outline-primary"
+                          size="sm"
+                          onClick={() => handleNavigateStudent('previous')}
+                          disabled={disableEditing || classStudents.length <= 1}
+                          variant="outline"
+                        >
+                          ← Previous
+                        </CButton>
+                        <CButton
+                          color="outline-primary"
+                          size="sm"
+                          onClick={() => handleNavigateStudent('next')}
+                          disabled={disableEditing || classStudents.length <= 1}
+                          variant="outline"
+                        >
+                          Next →
+                        </CButton>
+                        {classStudents.length > 1 && (
+                          <small className="text-muted ms-2">
+                            ({currentStudentIndex + 1} of {classStudents.length})
+                          </small>
+                        )}
+                      </div>
+                    )}
                   </div>
+                </div>
+              </CCardBody>
+            </CCard>
+          )}
+
+          {/* B7: Term 1/Term 2 Tabs */}
+          {selectedReportCard && selectedStudent && (
+            <CCard className="mb-4">
+              <CCardBody>
+                <h5 className="mb-3">Select Term</h5>
+                <CNav variant="tabs" role="tablist">
+                  <CNavItem>
+                    <CNavLink
+                      active={selectedTerm === 'term1'}
+                      onClick={() => {
+                        setSelectedTerm('term1')
+                        setCurrentDraftId(null) // Reset draft ID to reload
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      Term 1
+                    </CNavLink>
+                  </CNavItem>
+                  <CNavItem>
+                    <CNavLink
+                      active={selectedTerm === 'term2'}
+                      onClick={() => {
+                        setSelectedTerm('term2')
+                        setCurrentDraftId(null) // Reset draft ID to reload
+                        // The useEffect will automatically call loadExistingDraft when selectedTerm changes
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      Term 2
+                    </CNavLink>
+                  </CNavItem>
+                </CNav>
+                <div className="mt-2">
+                  <small className="text-muted">
+                    {selectedTerm === 'term1' 
+                      ? 'Term 1: First term report card data. Save Term 1 before moving to Term 2.'
+                      : 'Term 2: Second term report card. Term 1 data will be used as baseline if Term 2 is new. Term 2 saves to a separate document.'}
+                  </small>
                 </div>
               </CCardBody>
             </CCard>
@@ -1521,6 +2272,37 @@ const ReportCard = ({ presetReportCardId = null }) => {
               {/* Form Section */}
               <CCol lg={6} className="form-section">
                 {renderModernForm()}
+
+                {/* B17: Save All Button */}
+                <CCard className="mt-3">
+                  <CCardBody className="text-center">
+                    <h6 className="mb-3">Save Report Card</h6>
+                    <CButton
+                      color="primary"
+                      size="lg"
+                      onClick={saveAll}
+                      disabled={isSaving || !selectedStudent || !selectedReportCard || disableEditing}
+                      className="d-flex align-items-center justify-content-center gap-2 mx-auto"
+                    >
+                      {isSaving ? (
+                        <>
+                          <CSpinner size="sm" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <CIcon icon={cilSave} />
+                          Save All
+                        </>
+                      )}
+                    </CButton>
+                    {saveMessage && (
+                      <div className={`alert ${saveMessage.includes('successfully') ? 'alert-success' : 'alert-danger'} mt-3`}>
+                        {saveMessage}
+                      </div>
+                    )}
+                  </CCardBody>
+                </CCard>
 
                 {/* Download PDF Button */}
                 <CCard className="mt-3">
