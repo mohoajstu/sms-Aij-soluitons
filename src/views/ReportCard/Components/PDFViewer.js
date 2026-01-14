@@ -382,27 +382,41 @@ const PDFViewer = React.memo(
       debounce(async () => {
         // Use the most up-to-date form data from the ref
         const currentFormData = latestFormData.current
+        // Normalize signatures so they are always present when we have teacher/principal names
+        const normalizedFormData = { ...currentFormData }
+        const teacherNameForSig = normalizedFormData.teacherSignature?.value ||
+          normalizedFormData.teacher_name ||
+          normalizedFormData.teacher
+        if (!normalizedFormData.teacherSignature && teacherNameForSig) {
+          normalizedFormData.teacherSignature = { type: 'typed', value: teacherNameForSig }
+          console.log('PDFViewer: ✍️ Auto-added teacherSignature for filling:', normalizedFormData.teacherSignature)
+        }
+        const principalNameForSig = normalizedFormData.principalSignature?.value || 'Ghazala Choudary'
+        if (!normalizedFormData.principalSignature && principalNameForSig) {
+          normalizedFormData.principalSignature = { type: 'typed', value: principalNameForSig }
+          console.log('PDFViewer: ✍️ Auto-added principalSignature for filling:', normalizedFormData.principalSignature)
+        }
         // Capture current page number at the start of fill operation to preserve user's position
         const currentPageWhenFilling = latestPageNumber.current
 
         console.log('PDFViewer: Starting to fill PDF with form data:', currentFormData)
         console.log('PDFViewer: Current page when filling:', currentPageWhenFilling)
         console.log('PDFViewer: Signature fields in form data:', {
-          teachersignature: currentFormData.teachersignature,
-          principalsignature: currentFormData.principalsignature,
-          teacherSignature: currentFormData.teacherSignature,
-          principalSignature: currentFormData.principalSignature,
+          teachersignature: normalizedFormData.teachersignature,
+          principalsignature: normalizedFormData.principalsignature,
+          teacherSignature: normalizedFormData.teacherSignature,
+          principalSignature: normalizedFormData.principalSignature,
         })
-        console.log('PDFViewer: ALL formData keys:', Object.keys(currentFormData))
-        console.log('PDFViewer: Full formData:', currentFormData)
+        console.log('PDFViewer: ALL formData keys:', Object.keys(normalizedFormData))
+        console.log('PDFViewer: Full formData:', normalizedFormData)
 
         try {
           // Reduce console spam - only log when there's meaningful form data
-          const formDataKeys = Object.keys(currentFormData).filter(
+          const formDataKeys = Object.keys(normalizedFormData).filter(
             (key) =>
-              currentFormData[key] !== null &&
-              currentFormData[key] !== undefined &&
-              currentFormData[key] !== '',
+              normalizedFormData[key] !== null &&
+              normalizedFormData[key] !== undefined &&
+              normalizedFormData[key] !== '',
           )
 
           if (formDataKeys.length === 0) {
@@ -498,7 +512,7 @@ const PDFViewer = React.memo(
           )
 
           // Fill fields based on form data
-          for (const [formKey, value] of Object.entries(currentFormData)) {
+          for (const [formKey, value] of Object.entries(normalizedFormData)) {
             // Skip empty values but allow false for checkboxes
             // Also allow 0 for numeric fields
             if (value === null || value === undefined || value === '') {
@@ -564,31 +578,40 @@ const PDFViewer = React.memo(
               const signatureFieldMappings = {
                 teacherSignature: [
                   'teacherSignature',
+                  'teachersignature',
+                  'TeacherSignature',
                   "Teacher's Signature",
                   'Teacher Signature',
-                  'Text_1', // For 1-6 progress report and 7-8 report card
-                  'Signature_1', // For 7-8 report card
+                  'Text_1', // legacy
+                  'Signature_1', // legacy (7-8 older template)
                 ],
                 principalSignature: [
                   'principalSignature',
+                  'principalsignature',
+                  'PrincipalSignature',
                   "Principal's Signature",
                   'Principal Signature',
-                  'Number_1', // For 1-6 progress report
-                  'principleSignature', // Typo in 7-8 report card
+                  'Signature_1', // legacy (some 7-8 templates use a single signature field)
+                  'Number_1', // legacy (1-6 progress)
+                  'principleSignature', // legacy typo
                 ],
                 teachersignature: [
                   'teacherSignature',
+                  'teachersignature',
+                  'TeacherSignature',
                   "Teacher's Signature",
                   'Teacher Signature',
-                  'Text_1', // For 1-6 progress report and 7-8 report card
-                  'Signature_1', // For 7-8 report card
+                  'Text_1', // legacy
+                  'Signature_1', // legacy (7-8 older template)
                 ],
                 principalsignature: [
                   'principalSignature',
+                  'principalsignature',
+                  'PrincipalSignature',
                   "Principal's Signature",
                   'Principal Signature',
-                  'Number_1', // For 1-6 progress report
-                  'principleSignature', // Typo in 7-8 report card
+                  'Number_1', // legacy (1-6 progress)
+                  'principleSignature', // legacy typo
                 ],
               }
 

@@ -989,10 +989,16 @@
     "id": 164,
     "name": "otherNA"
   },
-  "Signature_1": {
+  "teacherSignature": {
     "type": "PDFSignature",
-    "formDataKey": "signature_1",
+    "formDataKey": "teachersignature",
     "id": 165,
-    "name": "Signature_1"
+    "name": "teacherSignature"
+  },
+  "principalSignature": {
+    "type": "PDFSignature",
+    "formDataKey": "principalsignature",
+    "id": 166,
+    "name": "principalSignature"
   }
 }

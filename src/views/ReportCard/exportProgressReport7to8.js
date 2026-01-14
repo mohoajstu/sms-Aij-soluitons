@@ -52,10 +52,39 @@ export const exportProgressReport7to8 = async (pdfPath, formData, studentName) =
         console.log(`🖊️ Processing signature field "${formKey}"`)
 
         const signatureFieldMappings = {
-          teacherSignature: ['teacherSignature', "Teacher's Signature", 'Teacher Signature'],
-          principalSignature: ['principalSignature', "Principal's Signature", 'Principal Signature'],
-          teachersignature: ['teacherSignature', "Teacher's Signature", 'Teacher Signature'],
-          principalsignature: ['principalSignature', "Principal's Signature", 'Principal Signature'],
+          teacherSignature: [
+            'teacherSignature',
+            'teachersignature',
+            'TeacherSignature',
+            "Teacher's Signature",
+            'Teacher Signature',
+            'Signature_1', // legacy 7-8 template
+          ],
+          principalSignature: [
+            'principalSignature',
+            'principalsignature',
+            'PrincipalSignature',
+            "Principal's Signature",
+            'Principal Signature',
+            'Signature_1', // some 7-8 templates reuse this single signature field
+            'Number_1', // legacy 7-8 template
+          ],
+          teachersignature: [
+            'teacherSignature',
+            'teachersignature',
+            'TeacherSignature',
+            "Teacher's Signature",
+            'Teacher Signature',
+            'Signature_1',
+          ],
+          principalsignature: [
+            'principalSignature',
+            'principalsignature',
+            'PrincipalSignature',
+            "Principal's Signature",
+            'Principal Signature',
+            'Number_1',
+          ],
         }
 
         try {
