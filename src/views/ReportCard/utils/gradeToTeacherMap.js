@@ -39,10 +39,12 @@ export const getTeacherForGrade = (grade) => {
     return GRADE_TO_TEACHER_MAP[normalizedGrade]
   }
   
-  // Handle SK without number (default to SK1)
+  // Handle SK without number - DON'T default to SK1
+  // Let it fall through to course-based lookup which can determine SK1 vs SK2
+  // based on course name (e.g., "Homeroom SK - Tr. Rafia" vs "Homeroom SK - Tr. Huda")
   if (normalizedGrade === 'sk') {
-    console.log(`✅ getTeacherForGrade: SK without number, defaulting to SK1: ${GRADE_TO_TEACHER_MAP['sk1']}`)
-    return GRADE_TO_TEACHER_MAP['sk1']
+    console.log(`⚠️ getTeacherForGrade: SK without number - cannot determine SK1 vs SK2, returning empty to trigger course lookup`)
+    return ''
   }
   
   // Handle "Grade X" format (e.g., "grade 3", "Grade 3", "grade3")

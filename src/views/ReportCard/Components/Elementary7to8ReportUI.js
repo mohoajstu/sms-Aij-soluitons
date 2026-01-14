@@ -536,7 +536,7 @@ StudentSchoolInfoSection.propTypes = {
  * Learning Skills & Work Habits Section
  * Modern form section for learning skills assessment
  */
-const LearningSkillsSection = ({ formData, onFormDataChange }) => {
+const LearningSkillsSection = ({ formData, onFormDataChange, selectedTerm = 'term1' }) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target
     onFormDataChange({
@@ -545,14 +545,10 @@ const LearningSkillsSection = ({ formData, onFormDataChange }) => {
     })
   }
 
-  const learningSkills = [
+  // Learning skills with term variants
+  const learningSkillsTerm1 = [
     {
       key: 'reponsibility1',
-      label: 'Responsibility',
-      description: 'Fulfills responsibilities and commitments within the learning environment',
-    },
-    {
-      key: 'responsibility2',
       label: 'Responsibility',
       description: 'Fulfills responsibilities and commitments within the learning environment',
     },
@@ -562,17 +558,7 @@ const LearningSkillsSection = ({ formData, onFormDataChange }) => {
       description: 'Devises and applies a plan of work to complete projects and tasks',
     },
     {
-      key: 'organization2',
-      label: 'Organization',
-      description: 'Devises and applies a plan of work to complete projects and tasks',
-    },
-    {
       key: 'independentWork1',
-      label: 'Independent Work',
-      description: 'Accepts various roles and an equitable share of work in a group',
-    },
-    {
-      key: 'independentWork2',
       label: 'Independent Work',
       description: 'Accepts various roles and an equitable share of work in a group',
     },
@@ -582,17 +568,7 @@ const LearningSkillsSection = ({ formData, onFormDataChange }) => {
       description: 'Responds positively to the ideas, opinions, values, and traditions of others',
     },
     {
-      key: 'collaboration2',
-      label: 'Collaboration',
-      description: 'Responds positively to the ideas, opinions, values, and traditions of others',
-    },
-    {
       key: 'initiative',
-      label: 'Initiative',
-      description: 'Looks for and acts on new ideas and opportunities for learning',
-    },
-    {
-      key: 'initiative2',
       label: 'Initiative',
       description: 'Looks for and acts on new ideas and opportunities for learning',
     },
@@ -601,12 +577,43 @@ const LearningSkillsSection = ({ formData, onFormDataChange }) => {
       label: 'Self-Regulation',
       description: 'Sets own individual goals and monitors progress towards achieving them',
     },
+  ]
+
+  const learningSkillsTerm2 = [
+    {
+      key: 'responsibility2',
+      label: 'Responsibility',
+      description: 'Fulfills responsibilities and commitments within the learning environment',
+    },
+    {
+      key: 'organization2',
+      label: 'Organization',
+      description: 'Devises and applies a plan of work to complete projects and tasks',
+    },
+    {
+      key: 'independentWork2',
+      label: 'Independent Work',
+      description: 'Accepts various roles and an equitable share of work in a group',
+    },
+    {
+      key: 'collaboration2',
+      label: 'Collaboration',
+      description: 'Responds positively to the ideas, opinions, values, and traditions of others',
+    },
+    {
+      key: 'initiative2',
+      label: 'Initiative',
+      description: 'Looks for and acts on new ideas and opportunities for learning',
+    },
     {
       key: 'selfRegulation2',
       label: 'Self-Regulation',
       description: 'Sets own individual goals and monitors progress towards achieving them',
     },
   ]
+
+  // Select the appropriate skills based on term
+  const learningSkills = selectedTerm === 'term2' ? learningSkillsTerm2 : learningSkillsTerm1
 
   const getRatingOptions = () => [
     { value: 'E', label: 'Excellent' },
@@ -618,6 +625,11 @@ const LearningSkillsSection = ({ formData, onFormDataChange }) => {
   return (
     <div>
       <div className="mb-4">
+        <div className="d-flex align-items-center mb-2">
+          <span className={`term-badge ${selectedTerm}`}>
+            {selectedTerm === 'term1' ? 'Term 1' : selectedTerm === 'term2' ? 'Term 2' : 'All Terms'}
+          </span>
+        </div>
         <p className="text-muted">
           The development of learning skills and work habits is an integral part of a student's
           learning. To the extent possible, the evaluation of learning skills and work habits, apart
@@ -712,6 +724,7 @@ const LearningSkillsSection = ({ formData, onFormDataChange }) => {
 LearningSkillsSection.propTypes = {
   formData: PropTypes.object.isRequired,
   onFormDataChange: PropTypes.func.isRequired,
+  selectedTerm: PropTypes.string,
 }
 
 /**
@@ -1320,6 +1333,9 @@ const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term1
                   <h6 className="text-success mb-3">
                     <CIcon icon={cilStar} className="me-2" />
                     Marks
+                    <span className={`term-badge ms-2 ${selectedTerm}`}>
+                      {selectedTerm === 'term1' ? 'Term 1' : selectedTerm === 'term2' ? 'Term 2' : 'All Terms'}
+                    </span>
                   </h6>
                   <div className="d-flex flex-wrap gap-3">
                     {subject.markFields
@@ -1335,12 +1351,27 @@ const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term1
                         return true
                       })
                       .map((field) => {
-                        const fieldLabel = field
-                          .replace('MarkReport', ' Mark ')
+                        // Create a cleaner label
+                        let fieldLabel = field
+                          .replace(/Report1|Report2/g, '')
+                          .replace(/Mark$/, ' Mark')
+                          .replace(/Median$/, ' Median')
                           .replace(/([A-Z])/g, ' $1')
                           .trim()
+                        
+                        // Clean up the subject name from the label since it's already in the header
+                        fieldLabel = fieldLabel
+                          .replace(subject.key, '')
+                          .replace(/^\s+/, '')
+                          .trim()
+                        
+                        // If label is just "Mark" or "Median", add proper prefix
+                        if (fieldLabel === 'Mark' || fieldLabel === 'Median') {
+                          fieldLabel = `${subject.name} ${fieldLabel}`
+                        }
+                        
                         return (
-                          <div key={field} className="mb-2">
+                          <div key={field} className="mb-2" style={{ minWidth: '180px' }}>
                             <CFormLabel htmlFor={field} className="small mb-1">
                               {fieldLabel}
                             </CFormLabel>
@@ -1371,22 +1402,56 @@ const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term1
                       <CIcon icon={cilLightbulb} className="me-2" />
                       {subject.name} - Strengths and Next Steps
                     </CFormLabel>
-                    <AIReportCommentInput
-                      label="Generate Subject Comments"
-                      formData={{
-                        student_name: formData.student,
-                        grade: formData.grade,
-                        subject: subject.name,
-                      }}
-                      handleChange={(field, value) => {
-                        // Map AI output to the actual subject comment field
-                        if (field === 'teacher_comments' || field === 'strengths_next_steps') {
-                          onFormDataChange({ ...formData, [subject.commentField]: value })
-                        }
-                      }}
-                      buttonText="Generate Subject Comments"
-                      explicitReportType="Elementary 7-8 Report Card"
-                    />
+                    <div className="ai-input-field position-relative">
+                      <CFormTextarea
+                        id={subject.commentField}
+                        name={subject.commentField}
+                        value={formData[subject.commentField] || ''}
+                        onChange={handleInputChange}
+                        placeholder={`Provide comments about the student's performance in ${subject.name.toLowerCase()}...`}
+                        rows={4}
+                        maxLength={500}
+                        style={{
+                          resize: 'vertical',
+                          paddingRight: '50px',
+                          paddingBottom: '25px',
+                          borderRadius: '8px',
+                          border: '2px solid #e9ecef',
+                          fontSize: '1rem',
+                        }}
+                      />
+                      {/* AI Generation Button */}
+                      <div className="position-absolute" style={{ top: '10px', right: '10px' }}>
+                        <AIReportCommentInput
+                          label=""
+                          formData={{
+                            student_name: formData.student,
+                            grade: formData.grade,
+                            subject: subject.name,
+                          }}
+                          handleChange={(field, value) => {
+                            // Map AI output to the actual subject comment field
+                            if (field === 'teacher_comments' || field === 'strengths_next_steps') {
+                              onFormDataChange({ ...formData, [subject.commentField]: value })
+                            }
+                          }}
+                          buttonText=""
+                          explicitReportType="Elementary 7-8 Report Card"
+                          className="ai-button-minimal"
+                        />
+                      </div>
+                      <div
+                        className="position-absolute"
+                        style={{
+                          bottom: '8px',
+                          right: '15px',
+                          fontSize: '0.8rem',
+                          color: (formData[subject.commentField]?.length || 0) > 500 ? '#dc3545' : '#6c757d',
+                        }}
+                      >
+                        {formData[subject.commentField]?.length || 0}/500
+                      </div>
+                    </div>
                   </div>
                 </CCol>
               </CRow>
@@ -1401,6 +1466,7 @@ const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term1
 SubjectAreasSection.propTypes = {
   formData: PropTypes.object.isRequired,
   onFormDataChange: PropTypes.func.isRequired,
+  selectedTerm: PropTypes.string,
 }
 
 /**
@@ -1553,6 +1619,51 @@ const Elementary7to8ReportUI = ({
 
   return (
     <div className="modern-report-card-form">
+      <style>
+        {`
+          .ai-button-minimal .ai-input-container {
+            margin-bottom: 0 !important;
+          }
+          .ai-button-minimal .ai-input-container button {
+            background: none !important;
+            border: none !important;
+            color: #6c757d !important;
+            padding: 4px !important;
+            min-width: auto !important;
+            width: auto !important;
+            height: auto !important;
+          }
+          .ai-button-minimal .ai-input-container button:hover {
+            color: #0d6efd !important;
+            background: none !important;
+          }
+          .ai-button-minimal .ai-input-container button:disabled {
+            color: #adb5bd !important;
+          }
+          .ai-button-minimal label {
+            display: none !important;
+          }
+          .ai-button-minimal small {
+            display: none !important;
+          }
+          .term-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+          }
+          .term-badge.term1 {
+            background-color: #e3f2fd;
+            color: #1565c0;
+          }
+          .term-badge.term2 {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+          }
+        `}
+      </style>
       <CForm>
         {error && (
           <CAlert color="danger" className="mb-4">
@@ -1597,7 +1708,7 @@ const Elementary7to8ReportUI = ({
               </div>
             </CAccordionHeader>
             <CAccordionBody>
-              <LearningSkillsSection formData={formData} onFormDataChange={onFormDataChange} />
+              <LearningSkillsSection formData={formData} onFormDataChange={onFormDataChange} selectedTerm={selectedTerm} />
             </CAccordionBody>
           </CAccordionItem>
 

@@ -48,6 +48,32 @@ const extractTeacherName = (courseData) => {
     return courseData.teacher.trim()
   }
 
+  // Format 4: Extract SK teacher from course name
+  // Handles patterns like "Homeroom SK - Tr. Huda", "SK (Tr. Rafia)", etc.
+  const courseName = (courseData.name || courseData.title || '').toLowerCase()
+  if (courseName.includes('sk')) {
+    // Check for Huda (SK2)
+    if (courseName.includes('huda')) {
+      console.log(`✅ Extracted SK teacher from course name: Huda Abdel-Baqi (course: ${courseData.name || courseData.title})`)
+      return 'Huda Abdel-Baqi'
+    }
+    // Check for Rafia (SK1)
+    if (courseName.includes('rafia')) {
+      console.log(`✅ Extracted SK teacher from course name: Rafia Husain (course: ${courseData.name || courseData.title})`)
+      return 'Rafia Husain'
+    }
+    // Check for SK2 designation
+    if (courseName.includes('sk2') || courseName.includes('sk 2')) {
+      console.log(`✅ SK2 detected in course name: Huda Abdel-Baqi (course: ${courseData.name || courseData.title})`)
+      return 'Huda Abdel-Baqi'
+    }
+    // Check for SK1 designation
+    if (courseName.includes('sk1') || courseName.includes('sk 1')) {
+      console.log(`✅ SK1 detected in course name: Rafia Husain (course: ${courseData.name || courseData.title})`)
+      return 'Rafia Husain'
+    }
+  }
+
   return ''
 }
 
