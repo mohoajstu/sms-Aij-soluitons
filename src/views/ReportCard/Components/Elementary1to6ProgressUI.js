@@ -19,7 +19,6 @@ import {
   CAccordionBody,
   CSpinner,
 } from '@coreui/react'
-import useCurrentTeacher from '../../../hooks/useCurrentTeacher'
 import SaveButton from '../../../components/SaveButton'
 import {
   cilBook,
@@ -284,8 +283,6 @@ SignaturePad.propTypes = {
  * Modern form section for student and school details
  */
 const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
-  const { teacherName, loading } = useCurrentTeacher()
-
   const handleInputChange = (e) => {
     const { name, value } = e.target
     onFormDataChange({
@@ -293,16 +290,6 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
       [name]: value,
     })
   }
-
-  // Auto-populate teacher name when component mounts or teacher name changes
-  useEffect(() => {
-    if (teacherName && !formData.teacher) {
-      onFormDataChange({
-        ...formData,
-        teacher: teacherName,
-      })
-    }
-  }, [teacherName, formData.teacher, onFormDataChange])
 
   // Auto-populate boardInfo with mission statement if empty
   useEffect(() => {
@@ -373,11 +360,11 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               id="teacher"
               name="teacher"
-              value={formData.teacher || teacherName || ''}
-              onChange={handleInputChange}
-              placeholder={loading ? 'Loading...' : "Enter teacher's name"}
+              value={formData.teacher_name || formData.teacher || ''}
+              readOnly
               required
-              disabled={loading}
+              className="bg-light"
+              title="Teacher name is automatically set from homeroom teacher"
             />
           </div>
         </CCol>
@@ -1074,7 +1061,7 @@ const SignatureSection = ({ formData, onFormDataChange }) => {
         formData.principalSignature.value.trim() === '') {
       onFormDataChange({
         ...formData,
-        principalSignature: { type: 'typed', value: 'Ghazala Choudhary' },
+        principalSignature: { type: 'typed', value: 'Ghazala Choudary' },
       })
     }
   }, [formData.principalSignature, onFormDataChange])

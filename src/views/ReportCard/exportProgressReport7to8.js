@@ -70,15 +70,43 @@ export const exportProgressReport7to8 = async (pdfPath, formData, studentName) =
           if (sigField) {
             let signatureImageBytes
             if (value.type === 'typed') {
+              // Ensure Dancing Script font is loaded before rendering
+              // Check if font is already loaded, if not load it
+              let fontReady = false
+              try {
+                // Check if font is already available
+                await document.fonts.ready
+                fontReady = document.fonts.check('48px "Dancing Script"')
+                
+                if (!fontReady) {
+                  // Load the font if not already loaded
+                  const font = new FontFace(
+                    'Dancing Script',
+                    'url(https://fonts.gstatic.com/s/dancingscript/v25/If2cXTr6YS-zF4S-kcSWSVi_sxjLh2Gv2lthgSmF2lT2pS1t-g.ttf)'
+                  )
+                  await font.load()
+                  document.fonts.add(font)
+                  // Wait a bit to ensure font is ready
+                  await new Promise(resolve => setTimeout(resolve, 100))
+                }
+              } catch (e) {
+                console.warn('Font loading error, using fallback:', e)
+              }
+              
               const canvas = document.createElement('canvas')
               const context = canvas.getContext('2d')
-              context.font = '48px "Dancing Script"'
+              
+              // Use the cursive font
+              context.font = '48px "Dancing Script", cursive'
               const textMetrics = context.measureText(value.value)
               canvas.width = textMetrics.width + 40
               canvas.height = 80
-              context.font = '48px "Dancing Script"'
+              
+              // Redraw with font
+              context.font = '48px "Dancing Script", cursive'
               context.fillStyle = '#000000'
               context.fillText(value.value, 20, 50)
+              
               signatureImageBytes = await fetch(canvas.toDataURL('image/png')).then((res) =>
                 res.arrayBuffer(),
               )

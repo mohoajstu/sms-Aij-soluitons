@@ -29,6 +29,7 @@ const StudentSelector = ({
   showLabel = true,
   required = false,
   showClassList = true,
+  reportCardType = null, // Filter classes based on selected report card type
 }) => {
   const [students, setStudents] = useState([])
   const [classes, setClasses] = useState([])
@@ -77,7 +78,70 @@ const StudentSelector = ({
           })
           .filter((cls) => cls.students && cls.students.length > 0) // Only classes with students
 
-        setClasses(classesList)
+        // Filter out "moho" classes for non-admin users
+        let classesToShow = classesList
+        if (role !== 'admin') {
+          classesToShow = classesList.filter((cls) => {
+            const name = (cls.name || '').toLowerCase()
+            const id = (cls.id || '').toLowerCase()
+            // Hide classes with "moho" in name or id for non-admins
+            return !name.includes('moho') && !id.includes('moho')
+          })
+        }
+
+        // Filter classes based on report card type
+        let filteredClasses = classesToShow
+        if (reportCardType) {
+          filteredClasses = classesToShow.filter((cls) => {
+            const grade = (cls.grade || '').toString().toLowerCase()
+            const name = (cls.name || '').toLowerCase()
+            const gradeNumber = grade.match(/\d+/)?.[0]
+            
+            // Check for JK (Junior Kindergarten)
+            const isJK = grade.includes('jk') || name.includes('jk') || grade === 'junior kindergarten'
+            
+            // Check for SK (Senior Kindergarten) - including SK1, SK2, etc.
+            // SK1 and SK2 are still kindergarten, not grade 1-6
+            const isSK = 
+              grade.includes('sk') || 
+              name.includes('sk') || 
+              grade === 'senior kindergarten' ||
+              name.includes('sk1') ||
+              name.includes('sk2') ||
+              grade.includes('sk1') ||
+              grade.includes('sk2')
+            
+            const isKindergarten = isJK || isSK
+
+            // KG report cards → only show KG classes (including SK1, SK2)
+            if (reportCardType.includes('kg-') || reportCardType.includes('kindergarten')) {
+              return isKindergarten
+            }
+            
+            // Grades 1-6 report cards → only show Gr 1-6 classes (exclude SK1, SK2)
+            if (reportCardType.includes('1-6') || reportCardType.includes('1to6')) {
+              // Exclude kindergarten classes (JK, SK, SK1, SK2)
+              if (isKindergarten) return false
+              // Only show classes with grade numbers 1-6
+              return gradeNumber && ['1', '2', '3', '4', '5', '6'].includes(gradeNumber)
+            }
+            
+            // Grades 7-8 report cards → only show Gr 7-8 classes
+            if (reportCardType.includes('7-8') || reportCardType.includes('7to8')) {
+              // Exclude kindergarten classes
+              if (isKindergarten) return false
+              // Only show classes with grade numbers 7-8
+              return gradeNumber && ['7', '8'].includes(gradeNumber)
+            }
+
+            // If report card type doesn't match any pattern, show all classes
+            return true
+          })
+        } else {
+          filteredClasses = classesToShow
+        }
+
+        setClasses(filteredClasses)
       } catch (err) {
         console.error('Error loading classes:', err)
       }
@@ -86,7 +150,15 @@ const StudentSelector = ({
     if (showClassList) {
       loadClasses()
     }
-  }, [showClassList])
+  }, [showClassList, reportCardType]) // Re-filter when report card type changes
+
+  // Clear selected class when report card type changes
+  useEffect(() => {
+    if (reportCardType) {
+      setSelectedClass('')
+      setSearchTerm('')
+    }
+  }, [reportCardType])
 
   // Load students from Firestore
   useEffect(() => {

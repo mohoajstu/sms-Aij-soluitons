@@ -195,7 +195,8 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
   const navigate = useNavigate()
 
-  // B9 & B3: Load report card settings
+  // B9 & B3: Load report card settings and sync date field
+  const [reportCardDateSetting, setReportCardDateSetting] = useState('')
   useEffect(() => {
     const loadSettings = async () => {
       // All users should respect settings (not just admins)
@@ -205,6 +206,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           const settingsData = settingsDoc.data()
           setDisableEditing(settingsData.disableEditing || false)
           setHideProgressReports(settingsData.hideProgressReports || false)
+          setReportCardDateSetting(settingsData.reportCardDate || '')
         }
       } catch (error) {
         console.error('Error loading report card settings:', error)
@@ -212,6 +214,28 @@ const ReportCard = ({ presetReportCardId = null }) => {
     }
     loadSettings()
   }, [])
+
+  // Auto-fill date field from settings whenever it changes or formData is updated
+  useEffect(() => {
+    if (selectedStudent && reportCardDateSetting) {
+      // Only update if date is empty or not set
+      if (!formData.date || formData.date.trim() === '') {
+        setFormData((prevData) => ({
+          ...prevData,
+          date: reportCardDateSetting,
+        }))
+      }
+    } else if (selectedStudent && !reportCardDateSetting) {
+      // If no setting, use today's date if date is empty
+      if (!formData.date || formData.date.trim() === '') {
+        const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD format
+        setFormData((prevData) => ({
+          ...prevData,
+          date: today,
+        }))
+      }
+    }
+  }, [reportCardDateSetting, selectedStudent])
 
   // Draft loading state
   const [isLoadingDraft, setIsLoadingDraft] = useState(false)
@@ -246,7 +270,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
       })
     }
 
-    // B4: Filter by student grade if student is selected
+    // B4: Strict grade-based filtering - only show matching grade options
     if (selectedStudent) {
       const grade = selectedStudent.grade || selectedStudent.program || ''
       const gradeLower = grade.toString().toLowerCase()
@@ -258,23 +282,23 @@ const ReportCard = ({ presetReportCardId = null }) => {
       const isKindergarten = isJK || isSK
 
       filtered = filtered.filter(type => {
-        // Kindergarten reports (JK/SK)
+        // Kindergarten reports (JK/SK) - only show KG options
         if (isKindergarten) {
           return type.id.includes('kg-') || type.id.includes('kindergarten')
         }
         
-        // Grades 1-6
+        // Grades 1-6 - only show Gr 1-6 options
         if (gradeNumber && ['1', '2', '3', '4', '5', '6'].includes(gradeNumber)) {
           return type.id.includes('1-6') || type.id.includes('1to6')
         }
         
-        // Grades 7-8
+        // Grades 7-8 - only show Gr 7-8 options
         if (gradeNumber && ['7', '8'].includes(gradeNumber)) {
           return type.id.includes('7-8') || type.id.includes('7to8')
         }
 
-        // If grade doesn't match any pattern, show all (fallback)
-        return true
+        // Strict filtering: if grade doesn't match any pattern, show nothing
+        return false
       })
     }
 
@@ -484,10 +508,18 @@ const ReportCard = ({ presetReportCardId = null }) => {
         // OEN is stored in schooling information in people management
         OEN: student.schooling?.oen || student.oen || student.OEN || '',
         oen: student.schooling?.oen || student.oen || student.OEN || '',
-        // Extract just the number from grade (e.g., "grade 8" -> "8", "Grade 7" -> "7")
+        // Extract grade - preserve JK/SK for kindergarten, extract number for other grades
         grade: (() => {
           const gradeValue = student.grade || student.program || ''
           if (!gradeValue) return ''
+          const gradeLower = gradeValue.toString().toLowerCase()
+          // Preserve JK/SK for kindergarten reports
+          if (gradeLower.includes('jk') || gradeLower === 'junior kindergarten') {
+            return 'JK'
+          }
+          if (gradeLower.includes('sk') || gradeLower === 'senior kindergarten') {
+            return 'SK'
+          }
           // Extract number from grade string (handles "grade 8", "Grade 7", "8", etc.)
           const match = gradeValue.toString().match(/\d+/)
           return match ? match[0] : gradeValue
@@ -550,7 +582,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           school: 'Tarbiyah Learning Academy',
           schoolAddress: '3990 Old Richmond Rd, Nepean, ON K2H 8W3',
           board: 'Private',
-          principal: 'Ghazala Choudhary',
+          principal: 'Ghazala Choudary',
           telephone: '613 421 1700',
           
           // Board Info - Mission Statement
@@ -574,7 +606,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           
           // Initialize signatures (will be updated when teacher loads)
           teacherSignature: { type: 'typed', value: '' },
-          principalSignature: { type: 'typed', value: 'Ghazala Choudhary' },
+          principalSignature: { type: 'typed', value: 'Ghazala Choudary' },
       }
       
       // B6: Set homeroom teacher name (async, update after initial set)
@@ -588,7 +620,8 @@ const ReportCard = ({ presetReportCardId = null }) => {
       // Load homeroom teacher and ECE asynchronously
       Promise.all([homeroomTeacherPromise, ecePromise]).then(([teacherName, eceName]) => {
         if (teacherName) {
-          const teacherNameWithERS = teacherName + (teacherName.includes('ERS') ? '' : ' ERS')
+          // Only add ERS if not already present (case-insensitive check)
+          const teacherNameWithERS = teacherName + (teacherName.toUpperCase().includes('ERS') ? '' : ' ERS')
           setFormData((prevData) => {
             // Always set signatures if they're not already set
             const updatedData = {
@@ -606,7 +639,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
             
             // Auto-fill principal signature if not already set
             if (!prevData.principalSignature?.value || prevData.principalSignature.value.trim() === '') {
-              updatedData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
+              updatedData.principalSignature = { type: 'typed', value: 'Ghazala Choudary' }
             }
             
             // Auto-fill ECE for kindergarten reports
@@ -692,11 +725,12 @@ const ReportCard = ({ presetReportCardId = null }) => {
         
         // Auto-fill signatures if not already set
         if (!refreshedFormData.teacherSignature?.value && refreshedFormData.teacher_name) {
-          const teacherName = refreshedFormData.teacher_name + (refreshedFormData.teacher_name.includes('ERS') ? '' : ' ERS')
+          // Only add ERS if not already present (case-insensitive check)
+          const teacherName = refreshedFormData.teacher_name + (refreshedFormData.teacher_name.toUpperCase().includes('ERS') ? '' : ' ERS')
           refreshedFormData.teacherSignature = { type: 'typed', value: teacherName }
         }
         if (!refreshedFormData.principalSignature?.value) {
-          refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
+          refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudary' }
         }
         
         setFormData(refreshedFormData)
@@ -779,11 +813,12 @@ const ReportCard = ({ presetReportCardId = null }) => {
             
             // Auto-fill signatures if not already set
             if (!refreshedFormData.teacherSignature?.value && refreshedFormData.teacher_name) {
-              const teacherName = refreshedFormData.teacher_name + (refreshedFormData.teacher_name.includes('ERS') ? '' : ' ERS')
+              // Only add ERS if not already present (case-insensitive check)
+          const teacherName = refreshedFormData.teacher_name + (refreshedFormData.teacher_name.toUpperCase().includes('ERS') ? '' : ' ERS')
               refreshedFormData.teacherSignature = { type: 'typed', value: teacherName }
             }
             if (!refreshedFormData.principalSignature?.value) {
-              refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
+              refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudary' }
             }
             
             setFormData(refreshedFormData)
@@ -919,11 +954,12 @@ const ReportCard = ({ presetReportCardId = null }) => {
               
               // Auto-fill signatures if not already set
               if (!refreshedFormData.teacherSignature?.value && refreshedFormData.teacher_name) {
-                const teacherName = refreshedFormData.teacher_name + (refreshedFormData.teacher_name.includes('ERS') ? '' : ' ERS')
+                // Only add ERS if not already present (case-insensitive check)
+          const teacherName = refreshedFormData.teacher_name + (refreshedFormData.teacher_name.toUpperCase().includes('ERS') ? '' : ' ERS')
                 refreshedFormData.teacherSignature = { type: 'typed', value: teacherName }
               }
               if (!refreshedFormData.principalSignature?.value) {
-                refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
+                refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudary' }
               }
               
               setFormData(refreshedFormData)
@@ -1018,11 +1054,12 @@ const ReportCard = ({ presetReportCardId = null }) => {
               
               // Auto-fill signatures if not already set
               if (!refreshedFormData.teacherSignature?.value && refreshedFormData.teacher_name) {
-                const teacherName = refreshedFormData.teacher_name + (refreshedFormData.teacher_name.includes('ERS') ? '' : ' ERS')
+                // Only add ERS if not already present (case-insensitive check)
+          const teacherName = refreshedFormData.teacher_name + (refreshedFormData.teacher_name.toUpperCase().includes('ERS') ? '' : ' ERS')
                 refreshedFormData.teacherSignature = { type: 'typed', value: teacherName }
               }
               if (!refreshedFormData.principalSignature?.value) {
-                refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
+                refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudary' }
               }
               
               setFormData(refreshedFormData)
@@ -1149,7 +1186,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           school: 'Tarbiyah Learning Academy',
           schoolAddress: '3990 Old Richmond Rd, Nepean, ON K2H 8W3',
           board: 'Private',
-          principal: 'Ghazala Choudhary',
+          principal: 'Ghazala Choudary',
           telephone: '613 421 1700',
           
           // Board Info - Mission Statement
@@ -1167,13 +1204,24 @@ const ReportCard = ({ presetReportCardId = null }) => {
           teacher_name: formData.teacher_name || '',
         }
 
+        // Auto-fill date from settings if not already set
+        if (!studentData.date || studentData.date.trim() === '') {
+          if (reportCardDateSetting) {
+            studentData.date = reportCardDateSetting
+          } else {
+            const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD format
+            studentData.date = today
+          }
+        }
+
         // Auto-fill signatures if not already set
         if (!studentData.teacherSignature?.value && studentData.teacher_name) {
-          const teacherName = studentData.teacher_name + (studentData.teacher_name.includes('ERS') ? '' : ' ERS')
+          // Only add ERS if not already present (case-insensitive check)
+          const teacherName = studentData.teacher_name + (studentData.teacher_name.toUpperCase().includes('ERS') ? '' : ' ERS')
           studentData.teacherSignature = { type: 'typed', value: teacherName }
         }
         if (!studentData.principalSignature?.value) {
-          studentData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
+          studentData.principalSignature = { type: 'typed', value: 'Ghazala Choudary' }
         }
 
         setFormData(studentData)
@@ -1181,7 +1229,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
     }
 
     loadDraft()
-  }, [selectedStudent, selectedReportCard, selectedTerm, user]) // B7: Include selectedTerm in dependencies
+  }, [selectedStudent, selectedReportCard, selectedTerm, user, reportCardDateSetting]) // B7: Include selectedTerm and reportCardDateSetting in dependencies
 
   // Handle form data changes with improved structure
   const handleFormDataChange = (newFormData) => {
@@ -2124,6 +2172,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
                   placeholder="Search and select a student..."
                   required={true}
                   showClassList={true}
+                  reportCardType={selectedReportCard}
                 />
               </CCardBody>
             </CCard>

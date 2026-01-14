@@ -16,7 +16,6 @@ import LearningSection from './LearningSection'
 import EarlyReadingScreeningSection from './EarlyReadingScreeningSection'
 import SignatureSection from './SignatureSection'
 import AIReportCommentInput from '../../../components/AIReportCommentInput'
-import useCurrentTeacher from '../../../hooks/useCurrentTeacher'
 import SaveButton from '../../../components/SaveButton'
 import './KindergartenReportCardUI.css'
 
@@ -31,18 +30,9 @@ const KindergartenReportUI = ({
   selectedStudent,
   selectedReportCard,
 }) => {
-  const { teacherName, loading: teacherLoading } = useCurrentTeacher()
-
   const handleInputChange = (e) => {
     onFormDataChange({ ...formData, [e.target.name]: e.target.value })
   }
-
-  // Auto-populate teacher name when component mounts or teacher name changes
-  useEffect(() => {
-    if (teacherName && !formData.teacher) {
-      onFormDataChange({ ...formData, teacher: teacherName })
-    }
-  }, [teacherName, formData.teacher, onFormDataChange])
 
   const handleCheckboxChange = (e) => {
     const { name, checked } = e.target
@@ -88,12 +78,24 @@ const KindergartenReportUI = ({
   }, [formData.date, onFormDataChange])
 
   // Auto-populate grade level based on student's grade
+  // JK (Junior Kindergarten) → Year 1, SK (Senior Kindergarten) → Year 2
   useEffect(() => {
     if (formData.grade && !formData.year1 && !formData.year2) {
       const grade = formData.grade.toLowerCase()
       let newFormData = { ...formData }
 
-      if (grade.includes('1') || grade.includes('year 1') || grade.includes('grade 1')) {
+      // JK (Junior Kindergarten) → Year 1
+      if (grade.includes('jk') || grade === 'junior kindergarten') {
+        newFormData.year1 = true
+        newFormData.year2 = false
+      } 
+      // SK (Senior Kindergarten) → Year 2
+      else if (grade.includes('sk') || grade === 'senior kindergarten') {
+        newFormData.year1 = false
+        newFormData.year2 = true
+      }
+      // Fallback: check for year 1/2 or grade 1/2 patterns
+      else if (grade.includes('1') || grade.includes('year 1') || grade.includes('grade 1')) {
         newFormData.year1 = true
         newFormData.year2 = false
       } else if (grade.includes('2') || grade.includes('year 2') || grade.includes('grade 2')) {
@@ -353,10 +355,10 @@ const KindergartenReportUI = ({
                 type="text"
                 id="teacher"
                 name="teacher"
-                value={formData.teacher || teacherName || ''}
-                onChange={handleInputChange}
-                placeholder={teacherLoading ? 'Loading...' : "Enter teacher's name"}
-                disabled={teacherLoading}
+                value={formData.teacher_name || formData.teacher || ''}
+                readOnly
+                className="bg-light"
+                title="Teacher name is automatically set from homeroom teacher"
               />
             </CCol>
             <CCol md={6}>

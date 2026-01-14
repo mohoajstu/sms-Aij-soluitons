@@ -19,7 +19,6 @@ import {
   CAccordionBody,
   CSpinner,
 } from '@coreui/react'
-import useCurrentTeacher from '../../../hooks/useCurrentTeacher'
 import SaveButton from '../../../components/SaveButton'
 import {
   cilBook,
@@ -274,8 +273,6 @@ SignaturePad.propTypes = {
  * Modern form section for student and school details
  */
 const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
-  const { teacherName, loading } = useCurrentTeacher()
-
   const handleInputChange = (e) => {
     const { name, value } = e.target
     onFormDataChange({
@@ -283,16 +280,6 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
       [name]: value,
     })
   }
-
-  // Auto-populate teacher name when component mounts or teacher name changes
-  useEffect(() => {
-    if (teacherName && !formData.teacher) {
-      onFormDataChange({
-        ...formData,
-        teacher: teacherName,
-      })
-    }
-  }, [teacherName, formData.teacher, onFormDataChange])
 
   return (
     <div>
@@ -349,11 +336,11 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               id="teacher"
               name="teacher"
-              value={formData.teacher || teacherName || ''}
-              onChange={handleInputChange}
-              placeholder={loading ? 'Loading...' : "Enter teacher's name"}
+              value={formData.teacher_name || formData.teacher || ''}
+              readOnly
               required
-              disabled={loading}
+              className="bg-light"
+              title="Teacher name is automatically set from homeroom teacher"
             />
           </div>
         </CCol>
@@ -1417,7 +1404,8 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange, onGenerate, isG
   useEffect(() => {
     if (formData.teacher_name) {
       const currentSignature = formData.teacherSignature?.value || ''
-      const expectedName = formData.teacher_name + (formData.teacher_name.includes('ERS') ? '' : ' ERS')
+      // Only add ERS if not already present (case-insensitive check)
+      const expectedName = formData.teacher_name + (formData.teacher_name.toUpperCase().includes('ERS') ? '' : ' ERS')
       
       // Always auto-fill if signature is empty or doesn't match
       if (!currentSignature || currentSignature.trim() === '' || currentSignature !== expectedName) {
@@ -1427,17 +1415,17 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange, onGenerate, isG
         }
         // Only update if principal signature is also set or will be set
         if (!updatedFormData.principalSignature?.value) {
-          updatedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
+          updatedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudary' }
         }
         onFormDataChange(updatedFormData)
       }
     }
   }, [formData.teacher_name])
 
-  // Auto-fill principal signature with "Ghazala Choudhary"
+  // Auto-fill principal signature with "Ghazala Choudary"
   useEffect(() => {
     const currentPrincipal = formData.principalSignature?.value || ''
-    const expectedPrincipal = 'Ghazala Choudhary'
+    const expectedPrincipal = 'Ghazala Choudary'
     
     // Always auto-fill if signature is empty or doesn't match
     if (!currentPrincipal || currentPrincipal.trim() === '' || currentPrincipal !== expectedPrincipal) {

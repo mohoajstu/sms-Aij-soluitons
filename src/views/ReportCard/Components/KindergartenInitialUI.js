@@ -20,7 +20,6 @@ import {
   CAlert,
   CButtonGroup,
 } from '@coreui/react'
-import useCurrentTeacher from '../../../hooks/useCurrentTeacher'
 import SaveButton from '../../../components/SaveButton'
 import CIcon from '@coreui/icons-react'
 import {
@@ -246,18 +245,9 @@ SignaturePad.propTypes = {
  * Matches the exact layout of the kindergarten report card
  */
 const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
-  const { teacherName, loading } = useCurrentTeacher()
-
   const handleInputChange = (e) => {
     onFormDataChange({ ...formData, [e.target.name]: e.target.value })
   }
-
-  // Auto-populate teacher name when component mounts or teacher name changes
-  useEffect(() => {
-    if (teacherName && !formData.teacher) {
-      onFormDataChange({ ...formData, teacher: teacherName })
-    }
-  }, [teacherName, formData.teacher, onFormDataChange])
 
   const handleCheckboxChange = (e) => {
     const { name, checked } = e.target
@@ -294,12 +284,24 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
   }, [])
 
   // Auto-populate grade level based on student's grade
+  // JK (Junior Kindergarten) → Year 1, SK (Senior Kindergarten) → Year 2
   React.useEffect(() => {
     if (formData.grade && !formData.year1 && !formData.year2) {
       const grade = formData.grade.toLowerCase()
       let newFormData = { ...formData }
 
-      if (grade.includes('1') || grade.includes('year 1') || grade.includes('grade 1')) {
+      // JK (Junior Kindergarten) → Year 1
+      if (grade.includes('jk') || grade === 'junior kindergarten') {
+        newFormData.year1 = true
+        newFormData.year2 = false
+      } 
+      // SK (Senior Kindergarten) → Year 2
+      else if (grade.includes('sk') || grade === 'senior kindergarten') {
+        newFormData.year1 = false
+        newFormData.year2 = true
+      }
+      // Fallback: check for year 1/2 or grade 1/2 patterns
+      else if (grade.includes('1') || grade.includes('year 1') || grade.includes('grade 1')) {
         newFormData.year1 = true
         newFormData.year2 = false
       } else if (grade.includes('2') || grade.includes('year 2') || grade.includes('grade 2')) {
@@ -535,13 +537,12 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               name="teacher"
               type="text"
-              value={formData['teacher'] || teacherName || ''}
-              onChange={handleInputChange}
-              placeholder={loading ? 'Loading...' : "Enter teacher's name"}
-              className="form-control-lg"
+              value={formData.teacher_name || formData['teacher'] || ''}
+              readOnly
+              className="form-control-lg bg-light"
               style={{ borderRadius: '8px', border: '2px solid #e9ecef' }}
               required
-              disabled={loading}
+              title="Teacher name is automatically set from homeroom teacher"
             />
           </CCol>
           <CCol md={6}>
