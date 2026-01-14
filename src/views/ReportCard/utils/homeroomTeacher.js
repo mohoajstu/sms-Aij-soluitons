@@ -1,10 +1,14 @@
 /**
  * Utility to get homeroom teacher information for a student
  * B6: Homeroom teacher autofill
- * Dynamically retrieves homeroom teacher from courses collection based on student's grade
+ *
+ * IMPORTANT:
+ * PRIMARY: Use official grade-to-teacher mapping
+ * FALLBACK: Try course lookup, then hardcoded map
  */
 import { collection, query, where, getDocs } from 'firebase/firestore'
 import { firestore } from '../../../Firebase/firebase'
+import { getTeacherForGrade, GRADE_TO_TEACHER_MAP } from './gradeToTeacherMap'
 
 /**
  * Extract teacher name from course data (handles multiple formats)
@@ -45,6 +49,40 @@ const extractTeacherName = (courseData) => {
   }
 
   return ''
+}
+
+/**
+ * Pick the "best" course from a list of candidate courses for a student.
+ * Prefer homeroom-labeled courses, then grade-matching courses, then first.
+ */
+const pickBestCourse = (courses, normalizedGrade) => {
+  if (!Array.isArray(courses) || courses.length === 0) return null
+
+  const grade = (normalizedGrade || '').toString().toLowerCase()
+
+  const scoreCourse = (courseData) => {
+    const name = (courseData?.name || courseData?.title || '').toString().toLowerCase()
+    const courseGrade = (courseData?.grade || courseData?.gradeLevel || '').toString().toLowerCase()
+
+    let score = 0
+    if (name.includes('homeroom') || name.includes('home room')) score += 100
+    if (courseGrade === grade) score += 50
+    if (grade && name.includes(grade)) score += 20
+
+    // Special: numeric grade matching like "grade 1"
+    if (/^\d+$/.test(grade)) {
+      const gradePattern = new RegExp(`grade\\s*${grade}|grade${grade}`, 'i')
+      if (gradePattern.test(name)) score += 30
+    }
+
+    // Prefer active/non-archived if present (sometimes archived is missing)
+    if (courseData?.archived === false) score += 10
+
+    return score
+  }
+
+  const sorted = [...courses].sort((a, b) => scoreCourse(b) - scoreCourse(a))
+  return sorted[0]
 }
 
 /**
@@ -132,50 +170,118 @@ const courseMatchesGrade = (courseData, normalizedGrade) => {
 }
 
 /**
- * Hardcoded fallback mapping for homeroom teachers by grade
- * Used when course lookup fails or course doesn't have teacher info
+ * Legacy hardcoded fallback mapping (kept for backwards compatibility)
+ * Now uses GRADE_TO_TEACHER_MAP from gradeToTeacherMap.js as primary source
  */
-const HARDCODED_TEACHER_MAP = {
-  'jk': 'Amera Syed',
-  'sk': 'Rafia Husain', // Default SK
-  'sk1': 'Rafia Husain',
-  'sk2': 'Huda Abdel-Baqi',
-  '1': 'Wala Omorri',
-  '2': 'Filiz Camlibel',
-  '3': 'Nadia Rahim Mirza',
-  '4': 'Saima Qureshi',
-  '5': 'Sara Sultan',
-  '6': 'Saba Alvi',
-  '7': 'Hasna Charanek',
-  '8': 'Saba Alvi',
-}
+const HARDCODED_TEACHER_MAP = GRADE_TO_TEACHER_MAP
 
 /**
  * Get homeroom teacher name for a student
- * Dynamically retrieves from courses collection based on student's grade
- * Falls back to hardcoded mapping if course lookup fails
+ * PRIMARY: Uses official grade-to-teacher mapping
+ * FALLBACK: Tries course lookup, then hardcoded map
  * @param {Object} student - Student object with grade/program information
  * @returns {Promise<string>} Homeroom teacher name or empty string if not found
  */
 export const getHomeroomTeacherName = async (student) => {
-  if (!student) return ''
+  if (!student) {
+    console.warn('⚠️ getHomeroomTeacherName called with no student')
+    return ''
+  }
+
+  // Get student's grade/program from various possible locations
+  const grade = 
+    student.grade || 
+    student.program || 
+    student.schooling?.program || 
+    student.personalInfo?.grade || 
+    student.personalInfo?.program || 
+    ''
+  
+  console.log('🔍 Getting homeroom teacher for:', student.fullName, '| Grade:', grade, '| Full student object:', {
+    grade: student.grade,
+    program: student.program,
+    schoolingProgram: student.schooling?.program,
+    personalInfoGrade: student.personalInfo?.grade,
+    personalInfoProgram: student.personalInfo?.program
+  })
 
   try {
-    // Get student's grade/program
-    const grade = student.grade || student.program || ''
+    const studentId = student.id || student.studentId
+
     if (!grade) {
-      console.log('No grade found for student:', student.fullName)
+      console.warn('⚠️ No grade found for student:', student.fullName, '| Available fields:', Object.keys(student))
       return ''
     }
 
-    // Normalize grade for matching
+    // PRIMARY: Use official grade-to-teacher mapping FIRST
+    const teacherFromMap = getTeacherForGrade(grade)
+    if (teacherFromMap) {
+      console.log(`✅ Using official grade-to-teacher mapping for ${student.fullName} (${grade}): ${teacherFromMap}`)
+      return teacherFromMap
+    }
+
+    // Normalize grade for matching (for course lookup fallback)
     const normalizedGrade = normalizeGradeForMatching(grade)
+    console.log(`📊 Grade normalized: "${grade}" → "${normalizedGrade}"`)
+    
     if (!normalizedGrade) {
-      console.log('Could not normalize grade for student:', student.fullName, grade)
+      console.warn('⚠️ Could not normalize grade for student:', student.fullName, grade)
       return ''
     }
+
+    // 1) BEST PATH: find the student's enrolled course first (most reliable in real data)
+    // Courses often don't include "homeroom" in the name, so grade-only matching can fail.
+    if (studentId) {
+      try {
+        const coursesRef = collection(firestore, 'courses')
+
+        // Try enrolledList first
+        const enrolledListQuery = query(coursesRef, where('enrolledList', 'array-contains', studentId))
+        const enrolledListSnap = await getDocs(enrolledListQuery)
+
+        let candidateCourses = enrolledListSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
+
+        // If none, try legacy "students" array
+        if (candidateCourses.length === 0) {
+          const studentsArrayQuery = query(coursesRef, where('students', 'array-contains', studentId))
+          const studentsArraySnap = await getDocs(studentsArrayQuery)
+          candidateCourses = studentsArraySnap.docs.map((d) => ({ id: d.id, ...d.data() }))
+        }
+
+        // Filter archived in-memory (some docs don't have archived)
+        candidateCourses = candidateCourses.filter((c) => c.archived !== true)
+
+        if (candidateCourses.length > 0) {
+          console.log(`📚 Found ${candidateCourses.length} enrolled course(s) for ${student.fullName}`)
+          const bestCourse = pickBestCourse(candidateCourses, normalizedGrade)
+          console.log(`🎯 Best course selected:`, {
+            id: bestCourse.id,
+            name: bestCourse.name || bestCourse.title,
+            grade: bestCourse.grade || bestCourse.gradeLevel,
+            teacher: bestCourse.teacher,
+            teachers: bestCourse.teachers
+          })
+          const teacherFromEnrolledCourse = extractTeacherName(bestCourse)
+          if (teacherFromEnrolledCourse) {
+            console.log(
+              `✅ Found teacher via enrolled course for ${student.fullName} (${grade}): ${teacherFromEnrolledCourse} (course: ${bestCourse.name || bestCourse.id})`,
+            )
+            return teacherFromEnrolledCourse
+          }
+          console.warn(
+            `⚠️ Enrolled course(s) found for ${student.fullName} (${grade}) but no teacher extracted. Best course:`,
+            { id: bestCourse.id, name: bestCourse.name || bestCourse.title, teacher: bestCourse.teacher, teachers: bestCourse.teachers }
+          )
+        } else {
+          console.log(`ℹ️ No enrolled courses found for ${student.fullName} (${grade}). Falling back to grade-based lookup.`)
+        }
+      } catch (enrollmentErr) {
+        console.warn('Error querying courses by enrollment (will fall back):', enrollmentErr)
+      }
+    }
     
-    // Find homeroom course for this grade from courses collection
+    // 2) Fallback: Find homeroom course for this grade from courses collection
+    console.log(`🔍 Searching for grade-based homeroom course (grade: ${normalizedGrade})...`)
     const coursesRef = collection(firestore, 'courses')
     const coursesQuery = query(
       coursesRef,
@@ -183,6 +289,7 @@ export const getHomeroomTeacherName = async (student) => {
     )
     
     const coursesSnapshot = await getDocs(coursesQuery)
+    console.log(`📚 Found ${coursesSnapshot.size} non-archived courses total`)
     
     // Find matching homeroom course
     let homeroomCourse = null
@@ -193,6 +300,11 @@ export const getHomeroomTeacherName = async (student) => {
       if (courseMatchesGrade(courseData, normalizedGrade)) {
         homeroomCourse = courseData
         homeroomCourseId = doc.id
+        console.log(`✅ Found matching homeroom course:`, {
+          id: doc.id,
+          name: courseData.name || courseData.title,
+          grade: courseData.grade || courseData.gradeLevel
+        })
         return
       }
     })
@@ -202,37 +314,39 @@ export const getHomeroomTeacherName = async (student) => {
     if (homeroomCourse) {
       teacherName = extractTeacherName(homeroomCourse)
       if (teacherName) {
-        console.log(`Found homeroom teacher for ${student.fullName} (${grade}): ${teacherName} from course: ${homeroomCourseId}`)
+        console.log(`✅ Found homeroom teacher for ${student.fullName} (${grade}): ${teacherName} from course: ${homeroomCourse.name || homeroomCourseId}`)
         return teacherName
       }
-      console.log(`No teacher found in homeroom course for grade: ${grade} (course: ${homeroomCourseId})`)
+      console.warn(`⚠️ Homeroom course found but no teacher in course data for grade: ${grade} (course: ${homeroomCourse.name || homeroomCourseId})`)
     } else {
-      console.log(`No homeroom course found for grade: ${grade} (normalized: ${normalizedGrade})`)
+      console.warn(`⚠️ No homeroom course found for grade: ${grade} (normalized: ${normalizedGrade})`)
     }
 
     // Fallback to hardcoded mapping if course lookup failed or no teacher in course
+    console.log(`🔄 Attempting hardcoded fallback for normalized grade: "${normalizedGrade}"`)
     const fallbackTeacher = HARDCODED_TEACHER_MAP[normalizedGrade.toLowerCase()]
     if (fallbackTeacher) {
-      console.log(`Using hardcoded fallback teacher for ${student.fullName} (${grade}): ${fallbackTeacher}`)
+      console.log(`✅ Using hardcoded fallback teacher for ${student.fullName} (${grade} → ${normalizedGrade}): ${fallbackTeacher}`)
       return fallbackTeacher
     }
 
-    console.log(`No teacher mapping found for grade: ${grade} (normalized: ${normalizedGrade})`)
+    console.error(`❌ No teacher mapping found for grade: ${grade} (normalized: ${normalizedGrade})`)
+    console.error(`❌ Available hardcoded grades:`, Object.keys(HARDCODED_TEACHER_MAP))
     return ''
   } catch (error) {
-    console.error('Error fetching homeroom teacher:', error)
+    console.error('❌ Error fetching homeroom teacher:', error)
     
-    // Fallback to hardcoded mapping on error
+    // Fallback to official mapping on error
     const grade = student.grade || student.program || ''
     if (grade) {
-      const normalizedGrade = normalizeGradeForMatching(grade)
-      const fallbackTeacher = HARDCODED_TEACHER_MAP[normalizedGrade?.toLowerCase()]
-      if (fallbackTeacher) {
-        console.log(`Using hardcoded fallback teacher (error case) for ${student.fullName} (${grade}): ${fallbackTeacher}`)
-        return fallbackTeacher
+      const teacherFromMap = getTeacherForGrade(grade)
+      if (teacherFromMap) {
+        console.log(`✅ Using official mapping (error fallback) for ${student.fullName} (${grade}): ${teacherFromMap}`)
+        return teacherFromMap
       }
     }
     
+    console.error(`❌ Could not find teacher for ${student.fullName} even with official mapping`)
     return ''
   }
 }

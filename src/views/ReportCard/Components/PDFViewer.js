@@ -45,7 +45,27 @@ const PDFViewer = React.memo(
 
     // Keep the latest form data in a ref to avoid re-triggering effects too often
     useEffect(() => {
+      const prevTeacher = latestFormData.current?.teacher || latestFormData.current?.teacher_name
+      const newTeacher = formData.teacher || formData.teacher_name
+      
       latestFormData.current = formData
+      
+      // Log when teacher field is updated
+      if (newTeacher && newTeacher !== prevTeacher) {
+        console.log('PDFViewer: 📝 FormData ref updated with teacher:', {
+          teacher: formData.teacher,
+          teacher_name: formData.teacher_name,
+          prevTeacher: prevTeacher,
+          newTeacher: newTeacher,
+          allKeys: Object.keys(formData),
+          formDataChanged: true
+        })
+      } else if (formData.teacher || formData.teacher_name) {
+        console.log('PDFViewer: 📝 FormData ref has teacher (no change):', {
+          teacher: formData.teacher,
+          teacher_name: formData.teacher_name,
+        })
+      }
     }, [formData])
 
     // Keep the latest page number in a ref for fill operations
@@ -289,9 +309,44 @@ const PDFViewer = React.memo(
     }
 
     /**
+     * Ensure the cursive signature font is loaded before rendering.
+     */
+    const ensureSignatureFont = async () => {
+      try {
+        // Wait for any existing fonts to be ready
+        if (document?.fonts?.ready) {
+          await document.fonts.ready
+        }
+
+        const hasFont =
+          typeof document !== 'undefined' &&
+          document.fonts &&
+          document.fonts.check('48px "Dancing Script"')
+
+        if (!hasFont && typeof FontFace !== 'undefined') {
+          const font = new FontFace(
+            'Dancing Script',
+            'url(https://fonts.gstatic.com/s/dancingscript/v25/If2cXTr6YS-zF4S-kcSWSVi_sxjLh2Gv2lthgSmF2lT2pS1t-g.ttf)',
+          )
+          await font.load()
+          document.fonts.add(font)
+          if (document.fonts.ready) {
+            await document.fonts.ready
+          }
+          console.log('PDFViewer: ✅ Loaded Dancing Script font for signatures')
+        }
+      } catch (e) {
+        console.warn('PDFViewer: ⚠️ Could not load Dancing Script font, using fallback', e)
+      }
+    }
+
+    /**
      * Renders text to a canvas and returns it as a PNG data URL.
      */
     const convertTextToImage = async (text, font = '48px "Dancing Script"', color = '#000000') => {
+      // Ensure signature font is loaded so the canvas uses the cursive font
+      await ensureSignatureFont()
+
       const canvas = document.createElement('canvas')
       const context = canvas.getContext('2d')
 
@@ -338,6 +393,8 @@ const PDFViewer = React.memo(
           teacherSignature: currentFormData.teacherSignature,
           principalSignature: currentFormData.principalSignature,
         })
+        console.log('PDFViewer: ALL formData keys:', Object.keys(currentFormData))
+        console.log('PDFViewer: Full formData:', currentFormData)
 
         try {
           // Reduce console spam - only log when there's meaningful form data
@@ -488,47 +545,50 @@ const PDFViewer = React.memo(
               formKey === 'teachersignature' ||
               formKey === 'principalsignature'
             ) {
-              console.log(`PDFViewer: Processing signature field "${formKey}" with value:`, value)
+              console.log(`PDFViewer: ⭐ Processing signature field "${formKey}" with value:`, value)
               console.log(
                 `PDFViewer: Value type: ${typeof value}, has type: ${!!value?.type}, has value: ${!!value?.value}`,
               )
+              console.log(`PDFViewer: value.type = "${value?.type}", value.value = "${value?.value}"`)
 
-              if (!value.type || !value.value) {
+              if (!value || typeof value !== 'object' || !value.type || !value.value) {
                 console.warn(
-                  `PDFViewer: Skipping signature field "${formKey}" - incomplete signature object:`,
+                  `PDFViewer: ❌ Skipping signature field "${formKey}" - incomplete signature object. Expected {type, value}, got:`,
                   value,
                 )
                 continue // Skip if signature object is incomplete
               }
+              
+              console.log(`PDFViewer: ✅ Signature field "${formKey}" has valid structure, proceeding...`)
 
               const signatureFieldMappings = {
                 teacherSignature: [
                   'teacherSignature',
                   "Teacher's Signature",
                   'Teacher Signature',
-                  'Signature1',
-                  'Text_1',
+                  'Text_1', // For 1-6 progress report and 7-8 report card
+                  'Signature_1', // For 7-8 report card
                 ],
                 principalSignature: [
                   'principalSignature',
                   "Principal's Signature",
                   'Principal Signature',
-                  'Signature2',
-                  'Number_1',
+                  'Number_1', // For 1-6 progress report
+                  'principleSignature', // Typo in 7-8 report card
                 ],
                 teachersignature: [
                   'teacherSignature',
                   "Teacher's Signature",
                   'Teacher Signature',
-                  'Signature1',
-                  'Text_1',
+                  'Text_1', // For 1-6 progress report and 7-8 report card
+                  'Signature_1', // For 7-8 report card
                 ],
                 principalsignature: [
                   'principalSignature',
                   "Principal's Signature",
                   'Principal Signature',
-                  'Signature2',
-                  'Number_1',
+                  'Number_1', // For 1-6 progress report
+                  'principleSignature', // Typo in 7-8 report card
                 ],
               }
 
@@ -558,6 +618,16 @@ const PDFViewer = React.memo(
                     possibleNames,
                   )
                   continue // Skip if field not found
+                }
+
+                // For typed signatures, also try filling as text (some signature fields support text)
+                if (value.type === 'typed' && sigField.setText) {
+                  try {
+                    sigField.setText(value.value)
+                    console.log(`PDFViewer: ✅ Filled signature field "${sigField.getName()}" as text: "${value.value}"`)
+                  } catch (textError) {
+                    console.warn(`PDFViewer: Could not fill signature field as text:`, textError)
+                  }
                 }
 
                 let signatureImageBytes
@@ -629,6 +699,12 @@ const PDFViewer = React.memo(
             console.log(`PDFViewer: 🔍 Processing formKey "${formKey}" with value:`, processedValue, `(type: ${typeof processedValue})`)
             console.log(`PDFViewer: Trying ${possibleFieldNames.length} variations:`, possibleFieldNames)
             
+            // Special logging for teacher field
+            if (formKey === 'teacher' || formKey === 'teacher_name') {
+              console.log(`PDFViewer: 👨‍🏫 TEACHER FIELD - Processing "${formKey}" with value:`, processedValue)
+              console.log(`PDFViewer: 👨‍🏫 TEACHER FIELD - Trying PDF field names:`, possibleFieldNames)
+            }
+            
             // Special logging for checkbox fields
             if (formKey.includes('ESL') || formKey.includes('IEP') || formKey.includes('NA') || 
                 formKey.includes('VeryWell') || formKey.includes('Well') || formKey.includes('WithDifficulty')) {
@@ -640,9 +716,20 @@ const PDFViewer = React.memo(
                 const field = form.getFieldMaybe(fieldName)
                 if (field) {
                   console.log(`PDFViewer: ✅ Found PDF field "${fieldName}" for formKey "${formKey}"`)
+                  
+                  // Special logging for teacher field
+                  if (formKey === 'teacher' || formKey === 'teacher_name') {
+                    console.log(`PDFViewer: 👨‍🏫 TEACHER FIELD - Found PDF field "${fieldName}", attempting to fill with:`, processedValue)
+                  }
+                  
                   const success = fillPDFField(field, processedValue, timesRomanFont, 10)
                   if (success) {
                     filledCount++
+                    
+                    // Special logging for teacher field
+                    if (formKey === 'teacher' || formKey === 'teacher_name') {
+                      console.log(`PDFViewer: 👨‍🏫 TEACHER FIELD - ✅ Successfully filled "${formKey}" → PDF field "${fieldName}" with value:`, processedValue)
+                    }
 
                     // Try to get the page where this field is located
                     try {
@@ -717,6 +804,17 @@ const PDFViewer = React.memo(
             if (!fieldFilled) {
               unmatchedFormData.push(formKey)
               console.warn(`PDFViewer: ❌ Could not find PDF field for formKey "${formKey}" (value: ${processedValue})`)
+              
+              // Special logging for teacher field
+              if (formKey === 'teacher' || formKey === 'teacher_name') {
+                console.error(`PDFViewer: 👨‍🏫 TEACHER FIELD - ❌ FAILED to fill "${formKey}" with value:`, processedValue)
+                console.error(`PDFViewer: 👨‍🏫 TEACHER FIELD - Tried PDF field names:`, possibleFieldNames)
+                console.error(`PDFViewer: 👨‍🏫 TEACHER FIELD - All available PDF fields:`, allPdfFieldNames)
+                // Check if "teacher" field exists in PDF
+                const teacherFieldExists = allPdfFieldNames.some(name => name.toLowerCase() === 'teacher')
+                console.error(`PDFViewer: 👨‍🏫 TEACHER FIELD - Does "teacher" field exist in PDF?`, teacherFieldExists)
+              }
+              
               // Log what fields DO exist that might be similar
               const similarFields = allPdfFieldNames.filter(name => 
                 name.toLowerCase().includes(formKey.toLowerCase().substring(0, 4)) ||
@@ -1474,11 +1572,6 @@ const PDFViewer = React.memo(
         ],
         Number_2: ['Number_2'], // Additional field if needed
 
-        // Board space field mapping
-        boardSpace: ['boardSpace', 'strengthsAndNextStepsForImprovements2'],
-        boardspace: ['boardSpace', 'strengthsAndNextStepsForImprovements2'], // lowercase version
-        BoardSpace: ['boardSpace', 'strengthsAndNextStepsForImprovements2'],
-        BOARDSPACE: ['boardSpace', 'strengthsAndNextStepsForImprovements2'],
         languageWithDifficulty: [
           'languageWithDifficulty',
           'Language With Difficulty',

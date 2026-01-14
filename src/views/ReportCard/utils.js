@@ -73,9 +73,6 @@ import {
   copyTerm1ToTerm2,
 } from './utils/termFieldSeparation'
 
-// Board Mission Statement - Auto-filled in boardInfo field
-export const BOARD_MISSION_STATEMENT =
-  'At the Advancement of Muslim Families Institute (AMFI), our mission is to nurture strong, spiritually grounded Muslim families like trees deeply rooted in faith. We cultivate these roots through holistic education, faith-based social networks, and innovative online services that draw nourishment from the timeless wisdom of the Qur\'an and Sunnah.\n\nOur programs form the trunk that supports growth—connecting hearts, strengthening character, and providing a firm structure grounded in Islamic principles. From this foundation, the branches of our work extend into diverse areas of family life: education, community development, and personal growth.\n\nThe leaves of our efforts symbolize the spreading of knowledge and compassion, bringing shade and sustenance to the wider Ummah. And ultimately, the fruit of our mission is seen in future generations who embody knowledge, integrity, and unwavering faith—families who contribute to a thriving, spiritually vibrant community.\n\nAt AMFI, we believe that the strength of the Ummah lies in the strength of its families. Our work is a commitment to cultivating these families rooted in belief, growing in unity, and bearing fruit that benefits the world.'
 
 // NOTE: All PDF assets are served from the public folder so we can access them by URL at runtime.
 // The folder name is "ReportCards" (no space).
@@ -430,6 +427,8 @@ const ReportCard = ({ presetReportCardId = null }) => {
     }
   }
 
+  // (debug logging removed)
+
   // B5: Handle navigation between students
   const handleNavigateStudent = async (direction) => {
     if (classStudents.length === 0 || currentStudentIndex < 0) return
@@ -525,8 +524,8 @@ const ReportCard = ({ presetReportCardId = null }) => {
           return match ? match[0] : gradeValue
         })(),
 
-        // B10: Autofill date (only if not already set by user)
-        date: formData.date || dateString,
+        // B10: Autofill date (always use setting if available, otherwise today's date)
+        date: dateString,
         
         // Attendance data
         daysAbsent: student.currentTermAbsenceCount || 0,
@@ -585,8 +584,8 @@ const ReportCard = ({ presetReportCardId = null }) => {
           principal: 'Ghazala Choudary',
           telephone: '613 421 1700',
           
-          // Board Info - Mission Statement
-          boardInfo: BOARD_MISSION_STATEMENT,
+          // Board Info - Empty by default
+          boardInfo: '',
           
           // Grade 7-8 Subject Names (for Native Language and Other)
           nativeLanguage: 'Arabic Studies',
@@ -617,46 +616,71 @@ const ReportCard = ({ presetReportCardId = null }) => {
       
       setFormData(newFormData)
       
+      // (debug logging removed)
+      
       // Load homeroom teacher and ECE asynchronously
       Promise.all([homeroomTeacherPromise, ecePromise]).then(([teacherName, eceName]) => {
+        console.log('🎯 Homeroom Teacher Promise resolved:', {
+          teacherName,
+          eceName,
+          reportType: selectedReportCard,
+          studentName: student.fullName,
+        })
+        
         if (teacherName) {
-          // Only add ERS if not already present (case-insensitive check)
-          const teacherNameWithERS = teacherName + (teacherName.toUpperCase().includes('ERS') ? '' : ' ERS')
+          console.log('✅ Setting teacher fields:', teacherName)
           setFormData((prevData) => {
-            // Always set signatures if they're not already set
+            console.log('📝 Previous formData teacher fields:', {
+              teacher: prevData.teacher,
+              teacher_name: prevData.teacher_name,
+            })
+            
+            // Create a new object to ensure React detects the change
             const updatedData = {
               ...prevData,
               teacher: teacherName,
               teacher_name: teacherName,
-              // B15: Add ERS to signature if needed
-              teacher_signature: teacherNameWithERS,
             }
             
             // Auto-fill teacher signature if not already set
             if (!prevData.teacherSignature?.value || prevData.teacherSignature.value.trim() === '') {
-              updatedData.teacherSignature = { type: 'typed', value: teacherNameWithERS }
+              updatedData.teacherSignature = { type: 'typed', value: teacherName }
+              console.log('✅ Set teacherSignature:', updatedData.teacherSignature)
             }
             
             // Auto-fill principal signature if not already set
             if (!prevData.principalSignature?.value || prevData.principalSignature.value.trim() === '') {
               updatedData.principalSignature = { type: 'typed', value: 'Ghazala Choudary' }
+              console.log('✅ Set principalSignature:', updatedData.principalSignature)
             }
             
             // Auto-fill ECE for kindergarten reports
             if (eceName && (selectedReportCard === 'kg-initial-observations' || selectedReportCard === 'kg-report')) {
-              if (!prevData.earlyChildEducator || prevData.earlyChildEducator.trim() === '') {
-                updatedData.earlyChildEducator = eceName
-              }
-              if (!prevData.earlyChildhoodEducator || prevData.earlyChildhoodEducator.trim() === '') {
-                updatedData.earlyChildhoodEducator = eceName
-              }
+              // Always update ECE fields with the current ECE from the course
+              updatedData.earlyChildEducator = eceName
+              updatedData.earlyChildhoodEducator = eceName
+              console.log('✅ Set ECE fields:', eceName)
             }
             
-            return updatedData
+            console.log('📤 Updated formData teacher fields:', {
+              teacher: updatedData.teacher,
+              teacher_name: updatedData.teacher_name,
+              teacherSignature: updatedData.teacherSignature,
+              principalSignature: updatedData.principalSignature,
+            })
+            console.log('📤 Full updated formData keys:', Object.keys(updatedData))
+            console.log('📤 Teacher value in updatedData:', updatedData.teacher)
+            console.log('📤 Teacher_name value in updatedData:', updatedData.teacher_name)
+            console.log('📤 Returning updated formData - React should re-render now')
+            
+            // Return a new object to ensure React detects the change
+            return { ...updatedData }
           })
+        } else {
+          console.warn('⚠️ No teacher name returned from getHomeroomTeacherName')
         }
       }).catch((error) => {
-        console.error('Error loading homeroom teacher or ECE:', error)
+        console.error('❌ Error loading homeroom teacher or ECE:', error)
       })
     }
   }
@@ -715,6 +739,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
         const mergedFormData = mergeTermFields(loadedTermData, loadedSharedData, {})
         
         // ALWAYS refresh attendance with latest student data
+        // Also ensure date and teacher are set
         const refreshedFormData = {
           ...mergedFormData,
           daysAbsent: student.currentTermAbsenceCount || 0,
@@ -723,11 +748,33 @@ const ReportCard = ({ presetReportCardId = null }) => {
           totalTimesLate: student.yearLateCount || 0,
         }
         
+        // Auto-fill date from settings if not already set
+        if (!refreshedFormData.date) {
+          try {
+            const settingsDoc = await getDoc(doc(firestore, 'systemSettings', 'reportCardSms'))
+            if (settingsDoc.exists()) {
+              const settingsData = settingsDoc.data()
+              refreshedFormData.date = settingsData.reportCardDate || new Date().toLocaleDateString('en-CA')
+            } else {
+              refreshedFormData.date = new Date().toLocaleDateString('en-CA')
+            }
+          } catch (error) {
+            refreshedFormData.date = new Date().toLocaleDateString('en-CA')
+          }
+        }
+        
+        // Auto-fill teacher if not already set
+        if (!refreshedFormData.teacher && !refreshedFormData.teacher_name) {
+          const teacherName = await getHomeroomTeacherName(student)
+          if (teacherName) {
+            refreshedFormData.teacher = teacherName
+            refreshedFormData.teacher_name = teacherName
+          }
+        }
+        
         // Auto-fill signatures if not already set
-        if (!refreshedFormData.teacherSignature?.value && refreshedFormData.teacher_name) {
-          // Only add ERS if not already present (case-insensitive check)
-          const teacherName = refreshedFormData.teacher_name + (refreshedFormData.teacher_name.toUpperCase().includes('ERS') ? '' : ' ERS')
-          refreshedFormData.teacherSignature = { type: 'typed', value: teacherName }
+        if (!refreshedFormData.teacherSignature?.value && (refreshedFormData.teacher_name || refreshedFormData.teacher)) {
+          refreshedFormData.teacherSignature = { type: 'typed', value: refreshedFormData.teacher_name || refreshedFormData.teacher }
         }
         if (!refreshedFormData.principalSignature?.value) {
           refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudary' }
@@ -803,6 +850,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
             const mergedFormData = mergeTermFields(loadedTermData, loadedSharedData, {})
             
             // ALWAYS refresh attendance with latest student data
+            // Also ensure date and teacher are set
             const refreshedFormData = {
               ...mergedFormData,
               daysAbsent: student.currentTermAbsenceCount || 0,
@@ -811,11 +859,33 @@ const ReportCard = ({ presetReportCardId = null }) => {
               totalTimesLate: student.yearLateCount || 0,
             }
             
+            // Auto-fill date from settings if not already set
+            if (!refreshedFormData.date) {
+              try {
+                const settingsDoc = await getDoc(doc(firestore, 'systemSettings', 'reportCardSms'))
+                if (settingsDoc.exists()) {
+                  const settingsData = settingsDoc.data()
+                  refreshedFormData.date = settingsData.reportCardDate || new Date().toLocaleDateString('en-CA')
+                } else {
+                  refreshedFormData.date = new Date().toLocaleDateString('en-CA')
+                }
+              } catch (error) {
+                refreshedFormData.date = new Date().toLocaleDateString('en-CA')
+              }
+            }
+            
+            // Auto-fill teacher if not already set
+            if (!refreshedFormData.teacher && !refreshedFormData.teacher_name) {
+              const teacherName = await getHomeroomTeacherName(student)
+              if (teacherName) {
+                refreshedFormData.teacher = teacherName
+                refreshedFormData.teacher_name = teacherName
+              }
+            }
+            
             // Auto-fill signatures if not already set
-            if (!refreshedFormData.teacherSignature?.value && refreshedFormData.teacher_name) {
-              // Only add ERS if not already present (case-insensitive check)
-          const teacherName = refreshedFormData.teacher_name + (refreshedFormData.teacher_name.toUpperCase().includes('ERS') ? '' : ' ERS')
-              refreshedFormData.teacherSignature = { type: 'typed', value: teacherName }
+            if (!refreshedFormData.teacherSignature?.value && (refreshedFormData.teacher_name || refreshedFormData.teacher)) {
+              refreshedFormData.teacherSignature = { type: 'typed', value: refreshedFormData.teacher_name || refreshedFormData.teacher }
             }
             if (!refreshedFormData.principalSignature?.value) {
               refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudary' }
@@ -944,6 +1014,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
               }
               
               // ALWAYS refresh attendance with latest student data
+              // Also ensure date and teacher are set
               const refreshedFormData = {
                 ...term2FormData,
                 daysAbsent: student.currentTermAbsenceCount || 0,
@@ -952,11 +1023,33 @@ const ReportCard = ({ presetReportCardId = null }) => {
                 totalTimesLate: student.yearLateCount || 0,
               }
               
+              // Auto-fill date from settings if not already set
+              if (!refreshedFormData.date) {
+                try {
+                  const settingsDoc = await getDoc(doc(firestore, 'systemSettings', 'reportCardSms'))
+                  if (settingsDoc.exists()) {
+                    const settingsData = settingsDoc.data()
+                    refreshedFormData.date = settingsData.reportCardDate || new Date().toLocaleDateString('en-CA')
+                  } else {
+                    refreshedFormData.date = new Date().toLocaleDateString('en-CA')
+                  }
+                } catch (error) {
+                  refreshedFormData.date = new Date().toLocaleDateString('en-CA')
+                }
+              }
+              
+              // Auto-fill teacher if not already set
+              if (!refreshedFormData.teacher && !refreshedFormData.teacher_name) {
+                const teacherName = await getHomeroomTeacherName(student)
+                if (teacherName) {
+                  refreshedFormData.teacher = teacherName
+                  refreshedFormData.teacher_name = teacherName
+                }
+              }
+              
               // Auto-fill signatures if not already set
-              if (!refreshedFormData.teacherSignature?.value && refreshedFormData.teacher_name) {
-                // Only add ERS if not already present (case-insensitive check)
-          const teacherName = refreshedFormData.teacher_name + (refreshedFormData.teacher_name.toUpperCase().includes('ERS') ? '' : ' ERS')
-                refreshedFormData.teacherSignature = { type: 'typed', value: teacherName }
+              if (!refreshedFormData.teacherSignature?.value && (refreshedFormData.teacher_name || refreshedFormData.teacher)) {
+                refreshedFormData.teacherSignature = { type: 'typed', value: refreshedFormData.teacher_name || refreshedFormData.teacher }
               }
               if (!refreshedFormData.principalSignature?.value) {
                 refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudary' }
@@ -1055,8 +1148,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
               // Auto-fill signatures if not already set
               if (!refreshedFormData.teacherSignature?.value && refreshedFormData.teacher_name) {
                 // Only add ERS if not already present (case-insensitive check)
-          const teacherName = refreshedFormData.teacher_name + (refreshedFormData.teacher_name.toUpperCase().includes('ERS') ? '' : ' ERS')
-                refreshedFormData.teacherSignature = { type: 'typed', value: teacherName }
+          refreshedFormData.teacherSignature = { type: 'typed', value: refreshedFormData.teacher_name }
               }
               if (!refreshedFormData.principalSignature?.value) {
                 refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudary' }
@@ -1189,8 +1281,8 @@ const ReportCard = ({ presetReportCardId = null }) => {
           principal: 'Ghazala Choudary',
           telephone: '613 421 1700',
           
-          // Board Info - Mission Statement
-          boardInfo: BOARD_MISSION_STATEMENT,
+          // Board Info - Empty by default
+          boardInfo: '',
           
           // Grade 7-8 Subject Names (for Native Language and Other)
           nativeLanguage: 'Arabic Studies',
@@ -1204,27 +1296,32 @@ const ReportCard = ({ presetReportCardId = null }) => {
           teacher_name: formData.teacher_name || '',
         }
 
-        // Auto-fill date from settings if not already set
-        if (!studentData.date || studentData.date.trim() === '') {
-          if (reportCardDateSetting) {
-            studentData.date = reportCardDateSetting
-          } else {
-            const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD format
-            studentData.date = today
-          }
+        // Auto-fill date from settings (always use current setting to keep dates in sync)
+        if (reportCardDateSetting) {
+          studentData.date = reportCardDateSetting
+        } else if (!studentData.date || studentData.date.trim() === '') {
+          // Only use today's date if no setting and no existing date
+          const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD format
+          studentData.date = today
         }
 
         // Auto-fill signatures if not already set
         if (!studentData.teacherSignature?.value && studentData.teacher_name) {
-          // Only add ERS if not already present (case-insensitive check)
-          const teacherName = studentData.teacher_name + (studentData.teacher_name.toUpperCase().includes('ERS') ? '' : ' ERS')
-          studentData.teacherSignature = { type: 'typed', value: teacherName }
+          studentData.teacherSignature = { type: 'typed', value: studentData.teacher_name }
         }
         if (!studentData.principalSignature?.value) {
           studentData.principalSignature = { type: 'typed', value: 'Ghazala Choudary' }
         }
 
-        setFormData(studentData)
+        // Merge with any existing formData to avoid overwriting freshly-set fields (e.g., teacher)
+        setFormData((prev) => ({
+          ...studentData,
+          // Preserve teacher fields/signatures if they were already populated
+          teacher: prev.teacher || studentData.teacher,
+          teacher_name: prev.teacher_name || studentData.teacher_name,
+          teacherSignature: prev.teacherSignature || studentData.teacherSignature,
+          principalSignature: prev.principalSignature || studentData.principalSignature,
+        }))
       }
     }
 

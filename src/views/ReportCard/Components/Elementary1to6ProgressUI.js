@@ -33,7 +33,6 @@ import CIcon from '@coreui/icons-react'
 import SignatureCanvas from 'react-signature-canvas'
 import PropTypes from 'prop-types'
 import AIReportCommentInput from '../../../components/AIReportCommentInput'
-import { BOARD_MISSION_STATEMENT } from '../utils'
 import { getCharacterLimit } from '../utils/characterLimits'
 
 /**
@@ -291,15 +290,6 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
     })
   }
 
-  // Auto-populate boardInfo with mission statement if empty
-  useEffect(() => {
-    if (!formData.boardInfo || formData.boardInfo.trim() === '') {
-      onFormDataChange({
-        ...formData,
-        boardInfo: BOARD_MISSION_STATEMENT,
-      })
-    }
-  }, [formData.boardInfo, onFormDataChange])
 
   return (
     <div>
@@ -365,6 +355,22 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               required
               className="bg-light"
               title="Teacher name is automatically set from homeroom teacher"
+            />
+          </div>
+
+          <div className="mb-3">
+            <CFormLabel htmlFor="date">
+              <CIcon icon={cilCalendar} className="me-2" />
+              Date
+            </CFormLabel>
+            <CFormInput
+              type="date"
+              id="date"
+              name="date"
+              value={formData.date || ''}
+              readOnly
+              className="bg-light"
+              title="Date is automatically set from Report Card Settings"
             />
           </div>
         </CCol>
@@ -1054,7 +1060,23 @@ SubjectAreasSection.propTypes = {
  * Contains signature pads for the teacher and principal.
  */
 const SignatureSection = ({ formData, onFormDataChange }) => {
-  // Auto-fill principal signature with "Ghazala Choudhary"
+  // Auto-fill teacher signature with homeroom teacher name
+  useEffect(() => {
+    if (formData.teacher_name || formData.teacher) {
+      const teacherName = formData.teacher_name || formData.teacher
+      const currentSignature = formData.teacherSignature?.value || ''
+      
+      // Auto-fill if signature is empty or doesn't match
+      if (!currentSignature || currentSignature.trim() === '' || currentSignature !== teacherName) {
+        onFormDataChange({
+          ...formData,
+          teacherSignature: { type: 'typed', value: teacherName },
+        })
+      }
+    }
+  }, [formData.teacher_name, formData.teacher])
+
+  // Auto-fill principal signature with "Ghazala Choudary"
   useEffect(() => {
     if (!formData.principalSignature || 
         !formData.principalSignature.value || 
@@ -1092,6 +1114,7 @@ const SignatureSection = ({ formData, onFormDataChange }) => {
             <SignaturePad
               title="Teacher's Signature"
               onSignatureChange={handleTeacherSignatureChange}
+              initialValue={formData.teacherSignature}
             />
           </CCol>
           <CCol md={6}>

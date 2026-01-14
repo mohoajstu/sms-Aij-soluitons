@@ -15,15 +15,20 @@ export const generateFieldNameVariations = (formKey) => {
   const exactFieldMappings = {
     // ============ BASIC INFORMATION ============
     // Common across all report types
-    date: ['date', 'data'], // Note: 7-8 PDF has typo "data"
+    date: ['date', 'Date', 'DATE', 'data'], // Note: some PDFs have typo "data"
     student: ['student'],
+    student_name: ['student', 'Student', 'studentName'], // Form uses student_name, PDF uses student
     grade: ['grade'],
     teacher: ['teacher'],
+    teacher_name: ['teacher', 'Teacher', 'teacherName'], // Form uses teacher_name, PDF uses teacher
     OEN: ['OEN'],
+    oen: ['OEN'], // Lowercase variation
     board: ['board'],
     school: ['school'],
     schoolAddress: ['schoolAddress'],
+    school_address: ['schoolAddress'], // Form uses school_address, PDF uses schoolAddress
     boardAddress: ['boardAddress'],
+    board_address: ['boardAddress'], // Form uses board_address, PDF uses boardAddress
     principal: [
       'principal',
       'Principal',
@@ -32,7 +37,14 @@ export const generateFieldNameVariations = (formKey) => {
       'principal:',
       'PrincipalName',
       'principalName',
-      'principle', // Typo in 7-8 PDF
+      'principle', // Typo in 7-8 progress PDF (this is the ONLY field for principal name)
+      'Principle',
+    ],
+    // Handle the typo in 7-8 progress PDF where principal field is named "principle"
+    principle: [
+      'principle',
+      'principal',
+      'Principal',
       'Principle',
     ],
     telephone: ['telephone'],
@@ -50,9 +62,13 @@ export const generateFieldNameVariations = (formKey) => {
 
     // ============ ATTENDANCE ============
     daysAbsent: ['daysAbsent'],
+    days_absent: ['daysAbsent'], // Form uses days_absent, PDF uses daysAbsent
     totalDaysAbsent: ['totalDaysAbsent'],
+    total_days_absent: ['totalDaysAbsent'], // Form uses total_days_absent, PDF uses totalDaysAbsent
     timesLate: ['timesLate'],
+    times_late: ['timesLate'], // Form uses times_late, PDF uses timesLate
     totalTimesLate: ['totalTimesLate'],
+    total_times_late: ['totalTimesLate'], // Form uses total_times_late, PDF uses totalTimesLate
 
     // ============ LEARNING SKILLS ============
     // 1-6 Progress uses numbered fields (responsibility1, responsibility2)
@@ -245,15 +261,15 @@ export const generateFieldNameVariations = (formKey) => {
       'teacherSignature',
       "Teacher's Signature",
       'Teacher Signature',
-      'Signature1',
-      'Text_1',
+      'Text_1', // For 1-6 progress report and 7-8 report card
+      'Signature_1', // For 7-8 report card (alternate)
     ],
     principalSignature: [
       'principalSignature',
       "Principal's Signature",
       'Principal Signature',
-      'Signature2',
-      'Number_1',
+      'Number_1', // For 1-6 progress report
+      'principleSignature', // Typo in 7-8 report card
     ],
 
     // Handle lowercase variations
@@ -261,15 +277,15 @@ export const generateFieldNameVariations = (formKey) => {
       'teacherSignature',
       "Teacher's Signature",
       'Teacher Signature',
-      'Signature1',
-      'Text_1',
+      'Text_1', // For 1-6 progress report and 7-8 report card
+      'Signature_1', // For 7-8 report card (alternate)
     ],
     principalsignature: [
       'principalSignature',
       "Principal's Signature",
       'Principal Signature',
-      'Signature2',
-      'Number_1',
+      'Number_1', // For 1-6 progress report
+      'principleSignature', // Typo in 7-8 report card
     ],
 
     // ============ ADDITIONAL MAPPINGS FOR FORM DATA KEYS ============

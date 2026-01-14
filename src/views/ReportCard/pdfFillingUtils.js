@@ -355,6 +355,37 @@ export const fillPDFField = (field, value, font = null, fontSize = 10) => {
         }
         break
 
+      case 'PDFSignature':
+        // Signature fields can sometimes be filled as text
+        // Try to set as text if the field supports it
+        if (field.setText) {
+          const stringValue = value.toString()
+          field.setText(stringValue)
+          
+          // Update field appearance if font is provided
+          if (font) {
+            try {
+              const acroField = field.acroField
+              acroField.setDefaultAppearance(`/F1 ${fontSize} Tf`)
+              field.updateAppearances(font)
+            } catch (appearanceError) {
+              console.warn(`Could not update signature field appearance for "${fieldName}":`, appearanceError)
+            }
+          }
+          
+          return true
+        }
+        // If setText is not available, try to access as text field
+        try {
+          if (field.acroField && typeof field.acroField.setValue === 'function') {
+            field.acroField.setValue(value.toString())
+            return true
+          }
+        } catch (e) {
+          console.warn(`Could not fill signature field "${fieldName}" as text:`, e)
+        }
+        break
+
       default:
         // Try to set as text for unknown field types
         if (field.setText) {
@@ -395,6 +426,11 @@ export const fillPDFFormWithData = async (pdfDoc, formData, timesRomanFont, cont
       continue
     }
 
+    // Special logging for teacher field
+    if (formKey === 'teacher' || formKey === 'teacher_name') {
+      console.log(`${context}: 🔍 Processing teacher field "${formKey}" with value:`, value)
+    }
+
     // Process grade field to extract just the number (e.g., "grade 8" -> "8")
     let processedValue = value
     if (formKey === 'grade' && value) {
@@ -417,6 +453,11 @@ export const fillPDFFormWithData = async (pdfDoc, formData, timesRomanFont, cont
     // Handle regular form fields
     const possibleFieldNames = generateFieldNameVariations(formKey)
 
+    // Special logging for teacher field
+    if (formKey === 'teacher' || formKey === 'teacher_name') {
+      console.log(`${context}: 🔍 Trying to fill teacher field "${formKey}" with possible PDF field names:`, possibleFieldNames)
+    }
+
     let fieldFilled = false
     for (const fieldName of possibleFieldNames) {
       try {
@@ -427,6 +468,11 @@ export const fillPDFFormWithData = async (pdfDoc, formData, timesRomanFont, cont
             filledCount++
             matchedFields.push({ formKey, pdfField: fieldName, value: processedValue.toString() })
             fieldFilled = true
+            
+            // Special logging for teacher field
+            if (formKey === 'teacher' || formKey === 'teacher_name') {
+              console.log(`${context}: ✅ Successfully filled teacher field "${formKey}" → PDF field "${fieldName}" with value:`, processedValue)
+            }
             break
           }
         }
@@ -437,6 +483,11 @@ export const fillPDFFormWithData = async (pdfDoc, formData, timesRomanFont, cont
 
     if (!fieldFilled) {
       unmatchedFields.push(formKey)
+      
+      // Special logging for teacher field
+      if (formKey === 'teacher' || formKey === 'teacher_name') {
+        console.warn(`${context}: ⚠️ Could not fill teacher field "${formKey}" - no matching PDF field found. Tried:`, possibleFieldNames)
+      }
     }
   }
 

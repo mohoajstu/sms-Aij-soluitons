@@ -52,10 +52,10 @@ export const exportProgressReport1to6 = async (pdfPath, formData, studentName) =
         console.log(`🖊️ Processing signature field "${formKey}"`)
 
         const signatureFieldMappings = {
-          teacherSignature: ['teacherSignature', "Teacher's Signature", 'Teacher Signature', 'Signature1', 'Text_1'],
-          principalSignature: ['principalSignature', "Principal's Signature", 'Principal Signature', 'Signature2', 'Number_1'],
-          teachersignature: ['teacherSignature', "Teacher's Signature", 'Teacher Signature', 'Signature1', 'Text_1'],
-          principalsignature: ['principalSignature', "Principal's Signature", 'Principal Signature', 'Signature2', 'Number_1'],
+          teacherSignature: ['teacherSignature', "Teacher's Signature", 'Teacher Signature', 'Text_1'], // Text_1 is extra field in 1-6 progress
+          principalSignature: ['principalSignature', "Principal's Signature", 'Principal Signature', 'Number_1'], // Number_1 is extra field in 1-6 progress
+          teachersignature: ['teacherSignature', "Teacher's Signature", 'Teacher Signature', 'Text_1'],
+          principalsignature: ['principalSignature', "Principal's Signature", 'Principal Signature', 'Number_1'],
         }
 
         try {
@@ -68,6 +68,16 @@ export const exportProgressReport1to6 = async (pdfPath, formData, studentName) =
           }
 
           if (sigField) {
+            // For typed signatures, also try filling as text (some signature fields support text)
+            if (value.type === 'typed' && sigField.setText) {
+              try {
+                sigField.setText(value.value)
+                console.log(`✅ Filled signature field "${sigField.getName()}" as text: "${value.value}"`)
+              } catch (textError) {
+                console.warn(`Could not fill signature field as text:`, textError)
+              }
+            }
+
             let signatureImageBytes
             if (value.type === 'typed') {
               // Ensure Dancing Script font is loaded before rendering

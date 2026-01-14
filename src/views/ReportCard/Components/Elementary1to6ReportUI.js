@@ -250,6 +250,17 @@ SignaturePad.propTypes = {
  * Modern form section for student and school details
  */
 const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
+  // Log when teacher field changes
+  useEffect(() => {
+    if (formData.teacher || formData.teacher_name) {
+      console.log('Elementary1to6ReportUI: 📝 Teacher field in formData:', {
+        teacher: formData.teacher,
+        teacher_name: formData.teacher_name,
+        willDisplay: formData.teacher_name || formData.teacher || ''
+      })
+    }
+  }, [formData.teacher, formData.teacher_name])
+
   const handleInputChange = (e) => {
     const { name, value } = e.target
     onFormDataChange({
@@ -322,6 +333,22 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
               required
               className="bg-light"
               title="Teacher name is automatically set from homeroom teacher"
+            />
+          </div>
+
+          <div className="mb-3">
+            <CFormLabel htmlFor="date">
+              <CIcon icon={cilCalendar} className="me-2" />
+              Date
+            </CFormLabel>
+            <CFormInput
+              type="date"
+              id="date"
+              name="date"
+              value={formData.date || ''}
+              readOnly
+              className="bg-light"
+              title="Date is automatically set from Report Card Settings"
             />
           </div>
         </CCol>
@@ -1231,8 +1258,7 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange, onGenerate, isG
   useEffect(() => {
     if (formData.teacher_name) {
       const currentSignature = formData.teacherSignature?.value || ''
-      // Only add ERS if not already present (case-insensitive check)
-      const expectedName = formData.teacher_name + (formData.teacher_name.toUpperCase().includes('ERS') ? '' : ' ERS')
+      const expectedName = formData.teacher_name
       
       // Always auto-fill if signature is empty or doesn't match
       if (!currentSignature || currentSignature.trim() === '' || currentSignature !== expectedName) {

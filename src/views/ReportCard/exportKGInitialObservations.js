@@ -52,10 +52,10 @@ export const exportKGInitialObservations = async (pdfPath, formData, studentName
         console.log(`🖊️ Processing signature field "${formKey}"`)
 
         const signatureFieldMappings = {
-          teacherSignature: ['teacherSignature', "Teacher's Signature", 'Teacher Signature', 'Signature1', 'Text_1'],
-          principalSignature: ['principalSignature', "Principal's Signature", 'Principal Signature', 'Signature2', 'Number_1'],
-          teachersignature: ['teacherSignature', "Teacher's Signature", 'Teacher Signature', 'Signature1', 'Text_1'],
-          principalsignature: ['principalSignature', "Principal's Signature", 'Principal Signature', 'Signature2', 'Number_1'],
+          teacherSignature: ['teacherSignature', "Teacher's Signature", 'Teacher Signature'],
+          principalSignature: ['principalSignature', "Principal's Signature", 'Principal Signature'],
+          teachersignature: ['teacherSignature', "Teacher's Signature", 'Teacher Signature'],
+          principalsignature: ['principalSignature', "Principal's Signature", 'Principal Signature'],
         }
 
         try {
