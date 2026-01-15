@@ -133,6 +133,14 @@ const StudentSelector = ({
               // Only show classes with grade numbers 7-8
               return gradeNumber && ['7', '8'].includes(gradeNumber)
             }
+            
+            // Quran report cards → only show Gr 1-8 classes (exclude kindergarten)
+            if (reportCardType === 'quran-report' || reportCardType.includes('quran')) {
+              // Exclude kindergarten classes (JK, SK, SK1, SK2)
+              if (isKindergarten) return false
+              // Only show classes with grade numbers 1-8
+              return gradeNumber && ['1', '2', '3', '4', '5', '6', '7', '8'].includes(gradeNumber)
+            }
 
             // If report card type doesn't match any pattern, show all classes
             return true
@@ -249,8 +257,50 @@ const StudentSelector = ({
     loadStudents()
   }, [])
 
-  // Filter students based on search term and class selection
+  // Filter students based on search term, class selection, and report card type
   const filteredStudents = students.filter((student) => {
+    // Filter by report card type (grade restrictions)
+    if (reportCardType) {
+      const grade = (student.grade || student.program || '').toString().toLowerCase()
+      const gradeNumber = grade.match(/\d+/)?.[0]
+      
+      // Check for kindergarten
+      const isJK = grade.includes('jk') || grade === 'junior kindergarten'
+      const isSK = grade.includes('sk') || grade === 'senior kindergarten' || 
+                   grade.includes('sk1') || grade.includes('sk2')
+      const isKindergarten = isJK || isSK
+      
+      // Quran report cards → only show Gr 1-8 students (exclude kindergarten)
+      if (reportCardType === 'quran-report' || reportCardType.includes('quran')) {
+        if (isKindergarten) return false
+        // Only show students with grade numbers 1-8
+        if (!gradeNumber || !['1', '2', '3', '4', '5', '6', '7', '8'].includes(gradeNumber)) {
+          return false
+        }
+      }
+      
+      // KG report cards → only show KG students
+      if (reportCardType.includes('kg-') || reportCardType.includes('kindergarten')) {
+        if (!isKindergarten) return false
+      }
+      
+      // Grades 1-6 report cards → only show Gr 1-6 students
+      if (reportCardType.includes('1-6') || reportCardType.includes('1to6')) {
+        if (isKindergarten) return false
+        if (!gradeNumber || !['1', '2', '3', '4', '5', '6'].includes(gradeNumber)) {
+          return false
+        }
+      }
+      
+      // Grades 7-8 report cards → only show Gr 7-8 students
+      if (reportCardType.includes('7-8') || reportCardType.includes('7to8')) {
+        if (isKindergarten) return false
+        if (!gradeNumber || !['7', '8'].includes(gradeNumber)) {
+          return false
+        }
+      }
+    }
+    
     // If class is selected, filter by class first
     if (selectedClass && viewMode === 'class') {
       const selectedClassData = classes.find(cls => cls.id === selectedClass)

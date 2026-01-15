@@ -1,7 +1,7 @@
 // StaffSelectorModal.js - Modal for managing course staff/teachers
 import React, { useState, useEffect } from 'react'
 import { CModal, CModalHeader, CModalTitle, CModalBody, CModalFooter, CButton, CFormInput, CFormLabel, CTable, CTableHead, CTableRow, CTableHeaderCell, CTableBody, CTableDataCell, CSpinner, CBadge } from '@coreui/react'
-import { collection, getDocs, query, where, doc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from 'firebase/firestore'
+import { collection, getDocs, query, where, doc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, deleteField } from 'firebase/firestore'
 import { firestore } from '../../firebase'
 
 const StaffSelectorModal = ({ visible, courseId, courseData, onClose, onUpdate, mode = 'staff' }) => {
@@ -149,9 +149,9 @@ const StaffSelectorModal = ({ visible, courseId, courseData, onClose, onUpdate, 
       const courseRef = doc(firestore, 'courses', courseId)
       
       if (mode === 'ece') {
-        // For ECE, set to null
+        // For ECE, delete the field
         await updateDoc(courseRef, {
-          ece: null,
+          ece: deleteField(),
           updatedAt: serverTimestamp()
         })
         // Update local state

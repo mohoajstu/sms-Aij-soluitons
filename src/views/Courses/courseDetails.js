@@ -1,7 +1,7 @@
 // CourseDetailPage.jsx
 import React, { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, arrayRemove, deleteField, serverTimestamp } from 'firebase/firestore'
 import { firestore } from '../../firebase'
 import './courseDetails.css'
 import { CButton, CCard, CCardBody, CRow, CCol } from '@coreui/react'
@@ -405,29 +405,40 @@ function CourseDetailPage() {
                         )}
                       </div>
                       {userRole === 'admin' && (
-                        <CButton
-                          color="danger"
-                          size="sm"
-                          onClick={async () => {
-                            try {
-                              setUpdating(true)
-                              const courseRef = doc(firestore, 'courses', id)
-                              await updateDoc(courseRef, {
-                                ece: null,
-                                updatedAt: serverTimestamp(),
-                              })
-                              setCourse((prev) => ({ ...prev, ece: null }))
-                            } catch (error) {
-                              console.error('Error removing ECE:', error)
-                              alert('Failed to remove ECE. Please try again.')
-                            } finally {
-                              setUpdating(false)
-                            }
-                          }}
-                          disabled={updating}
-                        >
-                          Remove ECE
-                        </CButton>
+                        <div className="d-flex gap-2">
+                          <CButton
+                            color="primary"
+                            size="sm"
+                            onClick={() => setShowECEModal(true)}
+                            disabled={updating}
+                          >
+                            Change ECE
+                          </CButton>
+                          <CButton
+                            color="danger"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                setUpdating(true)
+                                const courseRef = doc(firestore, 'courses', id)
+                                await updateDoc(courseRef, {
+                                  ece: deleteField(),
+                                  updatedAt: serverTimestamp(),
+                                })
+                                setCourse((prev) => ({ ...prev, ece: null }))
+                              } catch (error) {
+                                console.error('Error removing ECE:', error)
+                                console.error('Error details:', error.message, error.code)
+                                alert(`Failed to remove ECE: ${error.message || 'Please try again.'}`)
+                              } finally {
+                                setUpdating(false)
+                              }
+                            }}
+                            disabled={updating}
+                          >
+                            Remove ECE
+                          </CButton>
+                        </div>
                       )}
                     </div>
                   ) : (
