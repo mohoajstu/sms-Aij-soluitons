@@ -117,6 +117,9 @@ function CreateCourse() {
             lastName: data.personalInfo?.lastName || '',
             email: data.contact?.email || '',
             active: data.active !== false, // Default to true if not specified
+            role: data.personalInfo?.role || 'Faculty',
+            schoolId: data.schoolId || doc.id,
+            source: 'faculty',
           }
         }).filter(f => f.active) // Only show active faculty
         
@@ -183,6 +186,9 @@ function CreateCourse() {
           ece: {
             id: selectedECE.id,
             name: selectedECE.name,
+            role: selectedECE.role || 'Faculty',
+            schoolId: selectedECE.schoolId || selectedECE.id,
+            source: selectedECE.source || 'faculty',
           },
         })
       }
@@ -449,9 +455,13 @@ function CreateCourse() {
         teacherTarbiyahIds: enhancedStaffData.map(s => s.tarbiyahId), // Tarbiyah IDs
         teachers: enhancedStaffData.map(s => s.name), // Names for display
         // ECE (Early Childhood Educator) - separate from main teachers
+        // Save full ECE structure with id, name, role, schoolId, and source
         ece: formData.ece ? {
           id: formData.ece.id,
           name: formData.ece.name,
+          role: formData.ece.role || 'Faculty',
+          schoolId: formData.ece.schoolId || formData.ece.id,
+          source: formData.ece.source || 'faculty',
         } : null,
         // Students and enrollment
         students: formData.students,

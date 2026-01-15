@@ -239,6 +239,7 @@ StudentInfoSection.propTypes = {
  * Quran Assessment Section
  * Contains the grade ratings for Hifdh, Tajweed, and Tafsir
  * Shows only the relevant term based on selectedTerm prop
+ * Uses letter grades (E, G, S, N) for grades 1-6 and percentages for grades 7-8
  */
 const QuranAssessmentSection = ({ formData, onFormDataChange, selectedTerm = 'term1' }) => {
   const handleInputChange = (e) => {
@@ -248,6 +249,12 @@ const QuranAssessmentSection = ({ formData, onFormDataChange, selectedTerm = 'te
       [name]: value,
     })
   }
+
+  // Determine if student is in grades 1-6 or 7-8
+  const grade = formData.grade || ''
+  const gradeNumber = grade.toString().match(/\d+/)?.[0]
+  const isGrades1to6 = gradeNumber && ['1', '2', '3', '4', '5', '6'].includes(gradeNumber)
+  const isGrades7to8 = gradeNumber && ['7', '8'].includes(gradeNumber)
 
   const strands = [
     {
@@ -286,22 +293,23 @@ const QuranAssessmentSection = ({ formData, onFormDataChange, selectedTerm = 'te
     <div>
       <div className="mb-4">
         <p className="text-muted">
-          Rate the student's performance in each strand for <strong>{termLabel}</strong>. 
-          Use E (Excellent), G (Good), S (Satisfactory), or N (Needs Improvement).
+          Rate the student's performance in each strand for <strong>{termLabel}</strong>.
+          {isGrades1to6 && ' Enter letter grades (e.g., E, G, S, N).'}
+          {isGrades7to8 && ' Enter a percentage grade (0-100).'}
+          {!isGrades1to6 && !isGrades7to8 && ' Enter the grade for each strand.'}
         </p>
       </div>
 
-      {/* Rating Legend */}
-      <CCard className="mb-4 border-0" style={{ backgroundColor: '#f8f9fa' }}>
-        <CCardBody className="py-2">
-          <div className="d-flex justify-content-around flex-wrap">
-            <span><strong>E</strong> = Excellent</span>
-            <span><strong>G</strong> = Good</span>
-            <span><strong>S</strong> = Satisfactory</span>
-            <span><strong>N</strong> = Needs Improvement</span>
-          </div>
-        </CCardBody>
-      </CCard>
+      {/* Percentage Legend - Only show for grades 7-8 */}
+      {isGrades7to8 && (
+        <CCard className="mb-4 border-0" style={{ backgroundColor: '#f8f9fa' }}>
+          <CCardBody className="py-2">
+            <div className="text-center">
+              <span>Enter percentage grades from <strong>0 to 100</strong></span>
+            </div>
+          </CCardBody>
+        </CCard>
+      )}
 
       {/* Assessment Table - Shows only the selected term */}
       <CCard className="border-0 shadow-sm">
@@ -326,19 +334,31 @@ const QuranAssessmentSection = ({ formData, onFormDataChange, selectedTerm = 'te
                       {strand.name}
                     </CTableDataCell>
                     <CTableDataCell className="text-center align-middle">
-                      <CFormSelect
-                        id={fieldKey}
-                        name={fieldKey}
-                        value={formData[fieldKey] || ''}
-                        onChange={handleInputChange}
-                        style={{ minWidth: '100px' }}
-                      >
-                        {ratingOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.value || 'Select'}
-                          </option>
-                        ))}
-                      </CFormSelect>
+                      {isGrades7to8 ? (
+                        // Percentage input for grades 7-8
+                        <CFormInput
+                          type="number"
+                          id={fieldKey}
+                          name={fieldKey}
+                          value={formData[fieldKey] || ''}
+                          onChange={handleInputChange}
+                          min="0"
+                          max="100"
+                          placeholder="0-100"
+                          style={{ minWidth: '100px', textAlign: 'center' }}
+                        />
+                      ) : (
+                        // Text input for grades 1-6 (letter grades - free text)
+                        <CFormInput
+                          type="text"
+                          id={fieldKey}
+                          name={fieldKey}
+                          value={formData[fieldKey] || ''}
+                          onChange={handleInputChange}
+                          placeholder="E, G, S, N"
+                          style={{ minWidth: '100px', textAlign: 'center' }}
+                        />
+                      )}
                     </CTableDataCell>
                     <CTableDataCell className="text-muted align-middle" style={{ fontSize: '0.9rem' }}>
                       {strand.description}
