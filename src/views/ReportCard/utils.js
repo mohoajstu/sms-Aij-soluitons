@@ -31,6 +31,7 @@ import Elementary1to6ProgressUI from './Components/Elementary1to6ProgressUI'
 import Elementary1to6ReportUI from './Components/Elementary1to6ReportUI'
 import Elementary7to8ProgressUI from './Components/Elementary7to8ProgressUI'
 import Elementary7to8ReportUI from './Components/Elementary7to8ReportUI'
+import QuranReportUI from './Components/QuranReportUI'
 import './ReportCard.css'
 import './ModernReportCard.css'
 import { PDFDocument, StandardFonts } from 'pdf-lib'
@@ -46,6 +47,7 @@ import {
 import { exportProgressReport1to6 } from './exportProgressReport1to6'
 import { exportProgressReport7to8 } from './exportProgressReport7to8'
 import { exportKGInitialObservations } from './exportKGInitialObservations'
+import { exportQuranReport } from './exportQuranReport'
 // Firebase Storage & Firestore
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import {
@@ -125,18 +127,15 @@ export const REPORT_CARD_TYPES = [
     route: '/reportcards/7-8-report',
     uiComponent: 'Elementary7to8ReportUI',
   },
-  // B11: TODO - Quran Report template
-  // Note: Currently "Quran and Arabic Studies" is used as the nativeLanguage field value in report cards.
-  // If a separate Quran Report template/PDF is needed, add it here with appropriate PDF path and UI component.
-  // Example:
-  // {
-  //   id: 'quran-report',
-  //   name: 'Quran Report',
-  //   pdfPath: '/assets/ReportCards/quran-report.pdf',
-  //   description: 'Quran-specific report card',
-  //   route: '/reportcards/quran-report',
-  //   uiComponent: 'QuranReportUI',
-  // },
+  {
+    id: 'quran-report',
+    name: 'Quran Studies Report Card',
+    pdfPath: '/assets/ReportCards/Quran Report Card Template 2026.pdf',
+    description: 'Quran Studies report card for all grades',
+    route: '/reportcards/quran-report',
+    uiComponent: 'QuranReportUI',
+    gradesApplicable: 'all', // Available for all grades
+  },
 ]
 
 // Define the structure of our form data with JSDoc
@@ -279,6 +278,11 @@ const ReportCard = ({ presetReportCardId = null }) => {
       const isKindergarten = isJK || isSK
 
       filtered = filtered.filter(type => {
+        // Always show reports that are applicable to all grades (e.g., Quran report)
+        if (type.gradesApplicable === 'all') {
+          return true
+        }
+        
         // Kindergarten reports (JK/SK) - only show KG options
         if (isKindergarten) {
           return type.id.includes('kg-') || type.id.includes('kindergarten')
@@ -474,8 +478,8 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
     // Auto-populate form data with student information
     if (student) {
-      // B6: Get homeroom teacher name
-      const homeroomTeacherPromise = getHomeroomTeacherName(student)
+      // B6: Get homeroom teacher name (pass report type for Quran-specific handling)
+      const homeroomTeacherPromise = getHomeroomTeacherName(student, selectedReportCard)
       
       // B10: Autofill date (from settings or today's date)
       let dateString = ''
@@ -503,6 +507,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
         // Basic student info
         student: student.fullName,
         student_name: student.fullName,
+        name: student.fullName, // For Quran Report PDF which uses 'name' field
         studentId: student.id, // Track which student this data belongs to
         // OEN is stored in schooling information in people management
         OEN: student.schooling?.oen || student.oen || student.OEN || '',
@@ -765,7 +770,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
         
         // Auto-fill teacher if not already set
         if (!refreshedFormData.teacher && !refreshedFormData.teacher_name) {
-          const teacherName = await getHomeroomTeacherName(student)
+          const teacherName = await getHomeroomTeacherName(student, selectedReportCard)
           if (teacherName) {
             refreshedFormData.teacher = teacherName
             refreshedFormData.teacher_name = teacherName
@@ -876,7 +881,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
             
             // Auto-fill teacher if not already set
             if (!refreshedFormData.teacher && !refreshedFormData.teacher_name) {
-              const teacherName = await getHomeroomTeacherName(student)
+              const teacherName = await getHomeroomTeacherName(student, selectedReportCard)
               if (teacherName) {
                 refreshedFormData.teacher = teacherName
                 refreshedFormData.teacher_name = teacherName
@@ -2039,6 +2044,9 @@ const ReportCard = ({ presetReportCardId = null }) => {
         case 'kg-initial-observations':
           finalPdfBytes = await exportKGInitialObservations(reportCardType.pdfPath, formData, studentName)
           break
+        case 'quran-report':
+          finalPdfBytes = await exportQuranReport(reportCardType.pdfPath, formData, studentName)
+          break
         default:
           // For other report types, use the generic approach (can be extended later)
           console.warn(`⚠️ No specific export function for report type: ${reportCardType.id}`)
@@ -2185,6 +2193,8 @@ const ReportCard = ({ presetReportCardId = null }) => {
         return <Elementary7to8ProgressUI {...formProps} />
       case 'Elementary7to8ReportUI':
         return <Elementary7to8ReportUI {...formProps} />
+      case 'QuranReportUI':
+        return <QuranReportUI {...formProps} />
       default:
         // Default to the initial Kindergarten UI if no specific component is found
         return <KindergartenInitialUI {...formProps} />

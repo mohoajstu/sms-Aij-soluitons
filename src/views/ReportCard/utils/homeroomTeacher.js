@@ -8,7 +8,7 @@
  */
 import { collection, query, where, getDocs } from 'firebase/firestore'
 import { firestore } from '../../../Firebase/firebase'
-import { getTeacherForGrade, GRADE_TO_TEACHER_MAP } from './gradeToTeacherMap'
+import { getTeacherForGrade, GRADE_TO_TEACHER_MAP, getQuranTeacherForGrade } from './gradeToTeacherMap'
 
 /**
  * Extract teacher name from course data (handles multiple formats)
@@ -206,9 +206,10 @@ const HARDCODED_TEACHER_MAP = GRADE_TO_TEACHER_MAP
  * PRIMARY: Uses official grade-to-teacher mapping
  * FALLBACK: Tries course lookup, then hardcoded map
  * @param {Object} student - Student object with grade/program information
+ * @param {string} reportType - Optional report type (e.g., 'quran-report')
  * @returns {Promise<string>} Homeroom teacher name or empty string if not found
  */
-export const getHomeroomTeacherName = async (student) => {
+export const getHomeroomTeacherName = async (student, reportType = null) => {
   if (!student) {
     console.warn('⚠️ getHomeroomTeacherName called with no student')
     return ''
@@ -223,13 +224,23 @@ export const getHomeroomTeacherName = async (student) => {
     student.personalInfo?.program || 
     ''
   
-  console.log('🔍 Getting homeroom teacher for:', student.fullName, '| Grade:', grade, '| Full student object:', {
+  console.log('🔍 Getting homeroom teacher for:', student.fullName, '| Grade:', grade, '| Report Type:', reportType, '| Full student object:', {
     grade: student.grade,
     program: student.program,
     schoolingProgram: student.schooling?.program,
     personalInfoGrade: student.personalInfo?.grade,
     personalInfoProgram: student.personalInfo?.program
   })
+
+  // Special handling for Quran reports - use Quran teacher mapping
+  if (reportType === 'quran-report') {
+    const quranTeacher = getQuranTeacherForGrade(grade)
+    if (quranTeacher) {
+      console.log(`✅ Using Quran teacher mapping for ${student.fullName} (${grade}): ${quranTeacher}`)
+      return quranTeacher
+    }
+    console.log(`⚠️ No Quran teacher found for grade ${grade}, falling back to default`)
+  }
 
   try {
     const studentId = student.id || student.studentId

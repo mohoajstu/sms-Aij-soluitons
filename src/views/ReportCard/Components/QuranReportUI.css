@@ -1,0 +1,108 @@
+/* Quran Report UI Styles */
+
+/* Override table styles for better appearance */
+.quran-assessment-table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.quran-assessment-table .table {
+  margin-bottom: 0;
+}
+
+.quran-assessment-table th {
+  font-weight: 600;
+  text-transform: none;
+}
+
+.quran-assessment-table td {
+  vertical-align: middle;
+}
+
+/* Strand name styling */
+.strand-name {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+/* Rating select styling */
+.rating-select {
+  min-width: 80px;
+  text-align: center;
+  border-radius: 6px;
+  padding: 0.375rem 0.75rem;
+}
+
+/* Rating legend card */
+.rating-legend {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.rating-legend span {
+  margin-right: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.rating-legend strong {
+  color: #198754;
+}
+
+/* AI comment field styling for Quran report */
+.quran-comment-field {
+  position: relative;
+}
+
+.quran-comment-field textarea {
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  transition: border-color 0.2s ease;
+}
+
+.quran-comment-field textarea:focus {
+  border-color: #198754;
+  box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+}
+
+/* Accordion header icon styling */
+.accordion-button .me-2 {
+  color: #198754;
+}
+
+.accordion-button:not(.collapsed) .me-2 {
+  color: #fff;
+}
+
+/* Success text for Quran theme */
+.text-quran-success {
+  color: #198754;
+}
+
+/* Card header styling for Quran theme */
+.quran-card-header {
+  background-color: #198754;
+  color: white;
+  font-weight: 600;
+}
+
+/* Form input readonly styling */
+.form-control.bg-light[readonly] {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .rating-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .rating-legend span {
+    margin-right: 0;
+  }
+}
+

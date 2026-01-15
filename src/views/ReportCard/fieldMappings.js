@@ -256,6 +256,17 @@ export const generateFieldNameVariations = (formKey) => {
     otherNA: ['otherNA', 'Other Na'],
     sans2Other: ['sans2Other', 'sans2other'],
 
+    // ============ QURAN REPORT FIELDS ============
+    // Quran Studies assessment fields
+    hifdhTerm1: ['hifdhTerm1', 'hifdhterm1'],
+    hifdhTerm2: ['hifdhTerm2', 'hifdhterm2'],
+    tajweedTerm1: ['tajweedTerm1', 'tajweedterm1'],
+    tajweedTerm2: ['tajweedTerm2', 'tajweedterm2'],
+    tafsirTerm1: ['tafsirTerm1', 'tafsirterm1'],
+    tafsirTerm2: ['tafsirTerm2', 'tafsirterm2'],
+    sans: ['sans'], // Quran report comment field
+    name: ['name'], // Quran report uses 'name' for student name
+
     // ============ SIGNATURES ============
     teacherSignature: [
       'teacherSignature',

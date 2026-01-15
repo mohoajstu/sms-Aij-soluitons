@@ -19,6 +19,63 @@ export const GRADE_TO_TEACHER_MAP = {
 }
 
 /**
+ * Quran Teacher Mapping
+ * Mapping of grades to Quran Studies teachers
+ * Used for auto-filling teacher name in Quran Report Cards
+ */
+export const QURAN_TEACHER_MAP = {
+  // Grade-specific Quran teachers
+  '1': 'Naheda Nour',
+  '2': 'Najat Shallouf',
+  '3': 'Rana Issa',
+  '4': 'Rima Zarka',
+  '5': 'Soha Amri',
+  '6': 'Amani Alkoujak',
+  '7': 'Rima Zarka',      // Gr 4 and 7 share same teacher
+  '8': 'Rana Issa',       // Gr 3 and 8 share same teacher
+  // Default for kindergarten or unmatched grades
+  'default': '',
+}
+
+/**
+ * Get Quran teacher name for a given grade
+ * @param {string} grade - Student grade (e.g., 'JK', 'SK1', '1', '2', etc.)
+ * @returns {string} Quran teacher name
+ */
+export const getQuranTeacherForGrade = (grade) => {
+  if (!grade) {
+    return QURAN_TEACHER_MAP['default'] || ''
+  }
+  
+  const normalizedGrade = grade.toString().toLowerCase().trim()
+  console.log(`🕌 getQuranTeacherForGrade: Looking up grade "${grade}" (normalized: "${normalizedGrade}")`)
+  
+  // Check for grade-specific Quran teacher first (direct match)
+  if (QURAN_TEACHER_MAP[normalizedGrade]) {
+    console.log(`✅ getQuranTeacherForGrade: Direct match found: ${QURAN_TEACHER_MAP[normalizedGrade]}`)
+    return QURAN_TEACHER_MAP[normalizedGrade]
+  }
+  
+  // Handle "Grade X" format (e.g., "Grade 3", "grade 7")
+  const gradeMatch = normalizedGrade.match(/grade\s*(\d+)/i)
+  if (gradeMatch && QURAN_TEACHER_MAP[gradeMatch[1]]) {
+    console.log(`✅ getQuranTeacherForGrade: Extracted grade "${gradeMatch[1]}": ${QURAN_TEACHER_MAP[gradeMatch[1]]}`)
+    return QURAN_TEACHER_MAP[gradeMatch[1]]
+  }
+  
+  // Try extracting just the number from any string
+  const numberMatch = normalizedGrade.match(/\d+/)
+  if (numberMatch && QURAN_TEACHER_MAP[numberMatch[0]]) {
+    console.log(`✅ getQuranTeacherForGrade: Extracted number "${numberMatch[0]}": ${QURAN_TEACHER_MAP[numberMatch[0]]}`)
+    return QURAN_TEACHER_MAP[numberMatch[0]]
+  }
+  
+  // Return default (empty for kindergarten - they may not have Quran reports)
+  console.log(`ℹ️ getQuranTeacherForGrade: No Quran teacher mapping for grade "${grade}"`)
+  return QURAN_TEACHER_MAP['default'] || ''
+}
+
+/**
  * Get teacher name for a given grade
  * @param {string} grade - Student grade (e.g., 'JK', 'SK1', '1', '2', 'Grade 3', etc.)
  * @returns {string} Teacher name or empty string if not found

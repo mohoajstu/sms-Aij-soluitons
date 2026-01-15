@@ -1,0 +1,82 @@
+{
+  "date": {
+    "type": "PDFTextField",
+    "formDataKey": "date",
+    "id": 0,
+    "name": "date"
+  },
+  "name": {
+    "type": "PDFTextField",
+    "formDataKey": "student",
+    "id": 1,
+    "name": "name"
+  },
+  "grade": {
+    "type": "PDFTextField",
+    "formDataKey": "grade",
+    "id": 2,
+    "name": "grade"
+  },
+  "teacher": {
+    "type": "PDFTextField",
+    "formDataKey": "teacher",
+    "id": 3,
+    "name": "teacher"
+  },
+  "sans": {
+    "type": "PDFTextField",
+    "formDataKey": "sans",
+    "id": 4,
+    "name": "sans",
+    "isAIField": true
+  },
+  "hifdhTerm1": {
+    "type": "PDFTextField",
+    "formDataKey": "hifdhTerm1",
+    "id": 5,
+    "name": "hifdhTerm1",
+    "term": 1,
+    "strand": "Memorization (Hifdh)"
+  },
+  "hifdhTerm2": {
+    "type": "PDFTextField",
+    "formDataKey": "hifdhTerm2",
+    "id": 6,
+    "name": "hifdhTerm2",
+    "term": 2,
+    "strand": "Memorization (Hifdh)"
+  },
+  "tajweedTerm1": {
+    "type": "PDFTextField",
+    "formDataKey": "tajweedTerm1",
+    "id": 7,
+    "name": "tajweedTerm1",
+    "term": 1,
+    "strand": "Pronunciation (Tajweed)"
+  },
+  "tajweedTerm2": {
+    "type": "PDFTextField",
+    "formDataKey": "tajweedTerm2",
+    "id": 8,
+    "name": "tajweedTerm2",
+    "term": 2,
+    "strand": "Pronunciation (Tajweed)"
+  },
+  "tafsirTerm1": {
+    "type": "PDFTextField",
+    "formDataKey": "tafsirTerm1",
+    "id": 9,
+    "name": "tafsirTerm1",
+    "term": 1,
+    "strand": "Understanding (Tafsir)"
+  },
+  "tafsirTerm2": {
+    "type": "PDFTextField",
+    "formDataKey": "tafsirTerm2",
+    "id": 10,
+    "name": "tafsirTerm2",
+    "term": 2,
+    "strand": "Understanding (Tafsir)"
+  }
+}
+
