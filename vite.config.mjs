@@ -61,6 +61,10 @@ export default defineConfig(() => {
     // Ensure environment variables are properly loaded
     define: {
       'process.env': {}
-    }
+    },
+    test: {
+      environment: 'node',
+      include: ['src/**/*.test.{js,jsx}'],
+    },
   }
 })

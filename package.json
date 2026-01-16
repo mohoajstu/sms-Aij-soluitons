@@ -18,6 +18,8 @@
     "serve": "vite preview",
     "start": "vite",
     "test": "react-scripts test",
+    "test:unit": "vitest run",
+    "test:watch": "vitest",
     "eject": "react-scripts eject",
     "onboard": "node src/scripts/addOnboardingToParents.js",
     "fb:config:push": "node scripts/push-firebase-config.js",

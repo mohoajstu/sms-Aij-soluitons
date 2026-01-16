@@ -19,9 +19,19 @@ export const getFieldTerm = (fieldName) => {
   if (lowerField.includes('report1') || lowerField.endsWith('report1')) {
     return 'term1'
   }
+
+  // Quran report fields use "Term1" / "Term2"
+  if (lowerField.includes('term1') || lowerField.endsWith('term1')) {
+    return 'term1'
+  }
   
   // Term 2 fields end with "report2" or contain "report2" (case insensitive)
   if (lowerField.includes('report2') || lowerField.endsWith('report2')) {
+    return 'term2'
+  }
+  
+  // Quran report fields use "Term1" / "Term2"
+  if (lowerField.includes('term2') || lowerField.endsWith('term2')) {
     return 'term2'
   }
   
@@ -80,6 +90,17 @@ export const mergeTermFields = (termData, sharedData, otherTermData = {}) => {
  * @param {Object} term1FormData - Term 1 form data
  * @returns {Object} - Form data suitable for Term 2 initialization
  */
+const replaceWithMatchingCase = (match, replacement) => {
+  if (match.toUpperCase() === match) {
+    return replacement.toUpperCase()
+  }
+  if (match.toLowerCase() === match) {
+    return replacement.toLowerCase()
+  }
+  // Preserve leading capital for camel/pascal case
+  return replacement.charAt(0).toUpperCase() + replacement.slice(1).toLowerCase()
+}
+
 export const copyTerm1ToTerm2 = (term1FormData) => {
   if (!term1FormData || typeof term1FormData !== 'object') {
     return {}
@@ -92,7 +113,9 @@ export const copyTerm1ToTerm2 = (term1FormData) => {
     
     if (fieldTerm === 'term1') {
       // Convert Term 1 field to Term 2 equivalent
-      const term2Key = key.replace(/report1/gi, 'Report2').replace(/Report1/g, 'Report2')
+      let term2Key = key
+      term2Key = term2Key.replace(/report1/gi, (match) => replaceWithMatchingCase(match, 'report2'))
+      term2Key = term2Key.replace(/term1/gi, (match) => replaceWithMatchingCase(match, 'term2'))
       term2Data[term2Key] = term1FormData[key]
     } else if (fieldTerm === null) {
       // Shared field - copy as is

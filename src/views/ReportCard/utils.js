@@ -619,11 +619,18 @@ const ReportCard = ({ presetReportCardId = null }) => {
         ? getECEName(student) 
         : Promise.resolve('')
       
-      setFormData(newFormData)
+      // DO NOT set formData here - let the useEffect handle it!
+      // The useEffect will either load an existing draft OR initialize fresh data
+      // If we set formData here, it will overwrite any draft data loaded by the useEffect
+      // (React might batch the state updates, causing race conditions)
+      
+      // Store the newFormData for use in the useEffect if no draft is found
+      // We'll use this in the Promise.all below to update teacher fields
       
       // (debug logging removed)
       
       // Load homeroom teacher and ECE asynchronously
+      // This will update formData with teacher/ECE AFTER the useEffect has loaded the draft or initialized fresh data
       Promise.all([homeroomTeacherPromise, ecePromise]).then(([teacherName, eceName]) => {
         console.log('🎯 Homeroom Teacher Promise resolved:', {
           teacherName,
@@ -824,32 +831,48 @@ const ReportCard = ({ presetReportCardId = null }) => {
         }
 
         if (!querySnapshot.empty) {
+          const allDrafts = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            data: doc.data(),
+            lastModified: doc.data().lastModified?.toDate?.() || doc.data().createdAt?.toDate?.() || new Date(0),
+          }))
+
           // Get the most recent draft matching the term
-          const drafts = querySnapshot.docs
-            .map(doc => ({
-              id: doc.id,
-              data: doc.data(),
-              lastModified: doc.data().lastModified?.toDate?.() || doc.data().createdAt?.toDate?.() || new Date(0),
-            }))
-            .filter(draft => draft.data.term === term) // Filter by term in memory if needed
+          const drafts = allDrafts.filter(draft => draft.data.term === term)
           
-          if (drafts.length > 0) {
+          // If no drafts match the selected term, fall back to the latest draft
+          // to ensure saved work is visible even if term selection was off.
+          const draftsToConsider = drafts.length > 0 ? drafts : allDrafts
+          if (drafts.length === 0 && allDrafts.length > 0) {
+            console.warn('⚠️ No drafts matched selected term, falling back to latest draft', {
+              requestedTerm: term,
+              latestDraftTerm: allDrafts[0]?.data?.term,
+            })
+          }
+
+          if (draftsToConsider.length > 0) {
             // Sort by lastModified descending
-            drafts.sort((a, b) => b.lastModified - a.lastModified)
-            const existingDraft = drafts[0]
+            draftsToConsider.sort((a, b) => b.lastModified - a.lastModified)
+            const existingDraft = draftsToConsider[0]
             const draftData = existingDraft.data
             const loadedFormData = draftData.formData || {}
+            const effectiveTerm = draftData.term || term
             
             console.log('✅ Found draft from any teacher:', {
               draftId: existingDraft.id,
-              term: term,
+              term: effectiveTerm,
               originalTeacher: draftData.teacherName,
               lastModified: existingDraft.lastModified,
               fieldCount: Object.keys(loadedFormData).length,
             })
 
+            // Keep UI term in sync with the draft we loaded
+            if (effectiveTerm && effectiveTerm !== term) {
+              setSelectedTerm(effectiveTerm)
+            }
+
             // Separate term-specific and shared fields
-            const { termData: loadedTermData, sharedData: loadedSharedData } = separateTermFields(loadedFormData, term)
+            const { termData: loadedTermData, sharedData: loadedSharedData } = separateTermFields(loadedFormData, effectiveTerm)
             
             // Merge term-specific and shared fields
             const mergedFormData = mergeTermFields(loadedTermData, loadedSharedData, {})
@@ -900,7 +923,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
             setCurrentDraftId(existingDraft.id)
 
             console.log('📊 Loaded cross-teacher draft:', {
-              term: term,
+              term: effectiveTerm,
               termSpecificFields: Object.keys(loadedTermData).length,
               sharedFields: Object.keys(loadedSharedData).length,
             })
@@ -1295,10 +1318,22 @@ const ReportCard = ({ presetReportCardId = null }) => {
           
           boardSpace: '',
           boardspace: '',
+          
+          // B12: Auto-check French Core checkbox for all reports
+          frenchCore: true,
+          
+          // B16: Set Dance, Drama, Music to N/A by default
+          danceNA: true,
+          dramaNA: true,
+          musicNA: true,
 
           // Preserve teacher if already set
           teacher: formData.teacher || '',
           teacher_name: formData.teacher_name || '',
+          
+          // Initialize signatures (will be updated when teacher loads)
+          teacherSignature: { type: 'typed', value: '' },
+          principalSignature: { type: 'typed', value: 'Ghazala Choudary' },
         }
 
         // Auto-fill date from settings (always use current setting to keep dates in sync)
