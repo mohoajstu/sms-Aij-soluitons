@@ -291,15 +291,6 @@ const QuranAssessmentSection = ({ formData, onFormDataChange, selectedTerm = 'te
 
   return (
     <div>
-      <div className="mb-4">
-        <p className="text-muted">
-          Rate the student's performance in each strand for <strong>{termLabel}</strong>.
-          {isGrades1to6 && ' Enter letter grades (e.g., E, G, S, N).'}
-          {isGrades7to8 && ' Enter a percentage grade (0-100).'}
-          {!isGrades1to6 && !isGrades7to8 && ' Enter the grade for each strand.'}
-        </p>
-      </div>
-
       {/* Percentage Legend - Only show for grades 7-8 */}
       {isGrades7to8 && (
         <CCard className="mb-4 border-0" style={{ backgroundColor: '#f8f9fa' }}>
@@ -355,7 +346,6 @@ const QuranAssessmentSection = ({ formData, onFormDataChange, selectedTerm = 'te
                           name={fieldKey}
                           value={formData[fieldKey] || ''}
                           onChange={handleInputChange}
-                          placeholder="E, G, S, N"
                           style={{ minWidth: '100px', textAlign: 'center' }}
                         />
                       )}
