@@ -34,7 +34,7 @@ import Elementary7to8ReportUI from './Components/Elementary7to8ReportUI'
 import QuranReportUI from './Components/QuranReportUI'
 import './ReportCard.css'
 import './ModernReportCard.css'
-import { PDFDocument, StandardFonts } from 'pdf-lib'
+import { PDFDocument, StandardFonts, PDFNumber, PDFName } from 'pdf-lib'
 import { useNavigate } from 'react-router-dom'
 import { generateFieldNameVariations } from './fieldMappings'
 import {
@@ -1870,6 +1870,26 @@ const ReportCard = ({ presetReportCardId = null }) => {
     return [...new Set(variations)] // Remove duplicates
   }
 
+  // Determine if a field should be left-aligned
+  // Fields like name, grade, teacher, principal, and comments should be left-aligned
+  const shouldBeLeftAligned = (fieldName) => {
+    if (!fieldName) return false
+    const lowerName = fieldName.toLowerCase()
+    
+    // Fields that should be left-aligned
+    const leftAlignFields = [
+      'name', 'student', 'studentname',
+      'grade',
+      'teacher', 'teachernam', 'teachername',
+      'principal', 'principle', 'principalname',
+      'sans', // Comments field
+      'strengths', 'nextsteps', 'improvement',
+      'comments', 'comment',
+    ]
+    
+    return leftAlignFields.some(field => lowerName.includes(field))
+  }
+
   // Fill a specific PDF field with a value
   const fillPDFField = (field, value, font = null, fontSize =8) => {
     try {
@@ -1907,12 +1927,23 @@ const ReportCard = ({ presetReportCardId = null }) => {
             try {
               // Set default appearance with font size before updating appearances
               const acroField = field.acroField
-              acroField.setDefaultAppearance(`/F1 ${fontSize} Tf`)
+              // Set text alignment using quadding (Q) property
+              // 0=left, 1=center, 2=right
+              const alignment = shouldBeLeftAligned(fieldName) ? 0 : 1
+              acroField.setDefaultAppearance(`/F1 ${fontSize} Tf 0 g`)
+              
+              // Set the quadding (Q) property on the field's dictionary
+              // This controls text alignment within the field
+              try {
+                acroField.dict.set(PDFName.of('Q'), PDFNumber.of(alignment))
+              } catch (quaddingError) {
+                console.warn(`Could not set quadding for "${fieldName}":`, quaddingError)
+              }
               
               // Update appearances with the font
               field.updateAppearances(font)
               
-              console.log(`✅ Updated text field "${fieldName}" appearance with font size ${fontSize}pt`)
+              console.log(`✅ Updated text field "${fieldName}" appearance with font size ${fontSize}pt, alignment: ${alignment === 0 ? 'left' : 'center'}`)
             } catch (appearanceError) {
               console.warn(`Could not update appearance for "${fieldName}":`, appearanceError)
               // Try to update appearances without setting default appearance

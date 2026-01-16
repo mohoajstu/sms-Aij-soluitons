@@ -1,7 +1,7 @@
                                                                                                                                                                                                                                                                                                                                       import React, { useState, useEffect, useRef, useCallback } from 'react'
 import * as pdfjsLib from 'pdfjs-dist'
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min?url'
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
+import { PDFDocument, rgb, StandardFonts, PDFNumber, PDFName } from 'pdf-lib'
 import { CButton, CSpinner, CAlert } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import {
@@ -1822,6 +1822,26 @@ const PDFViewer = React.memo(
       return [...new Set(variations)] // Remove duplicates
     }
 
+    // Determine if a field should be left-aligned
+    // Fields like name, grade, teacher, principal, and comments should be left-aligned
+    const shouldBeLeftAligned = (fieldName) => {
+      if (!fieldName) return false
+      const lowerName = fieldName.toLowerCase()
+      
+      // Fields that should be left-aligned
+      const leftAlignFields = [
+        'name', 'student', 'studentname',
+        'grade',
+        'teacher', 'teachernam', 'teachername',
+        'principal', 'principle', 'principalname',
+        'sans', // Comments field
+        'strengths', 'nextsteps', 'improvement',
+        'comments', 'comment',
+      ]
+      
+      return leftAlignFields.some(field => lowerName.includes(field))
+    }
+
     // Fill a specific PDF field with a value
     const fillPDFField = (field, value, font = null, fontSize = 10) => {
       try {
@@ -1863,15 +1883,24 @@ const PDFViewer = React.memo(
               try {
                 // Set default appearance with font size before updating appearances
                 const acroField = field.acroField
-                // Use a simple font reference - pdf-lib will handle the actual reference
-                // The font name will be set when we call updateAppearances
-                acroField.setDefaultAppearance(`/F1 ${fontSize} Tf`)
+                // Set text alignment using quadding (Q) property
+                // 0=left, 1=center, 2=right
+                const alignment = shouldBeLeftAligned(fieldName) ? 0 : 1
+                acroField.setDefaultAppearance(`/F1 ${fontSize} Tf 0 g`)
+                
+                // Set the quadding (Q) property on the field's dictionary
+                // This controls text alignment within the field
+                try {
+                  acroField.dict.set(PDFName.of('Q'), PDFNumber.of(alignment))
+                } catch (quaddingError) {
+                  console.warn(`PDFViewer: Could not set quadding for "${fieldName}":`, quaddingError)
+                }
                 
                 // Update appearances with the font (this will properly reference the font)
                 field.updateAppearances(font)
                 
                 console.log(
-                  `PDFViewer: ✅ Updated text field "${fieldName}" appearance with font size ${fontSize}pt`,
+                  `PDFViewer: ✅ Updated text field "${fieldName}" appearance with font size ${fontSize}pt, alignment: ${alignment === 0 ? 'left' : 'center'}`,
                 )
               } catch (appearanceError) {
                 console.warn(

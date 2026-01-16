@@ -3,7 +3,7 @@
  * Ensures preview and download use IDENTICAL logic
  */
 
-import { PDFDocument, StandardFonts } from 'pdf-lib'
+import { PDFDocument, StandardFonts, PDFNumber, PDFName } from 'pdf-lib'
 import { generateFieldNameVariations } from './fieldMappings'
 
 /**
@@ -149,6 +149,31 @@ export const updateAllFieldAppearances = async (form, pdfDoc, context = 'PDF') =
 }
 
 /**
+ * Determine if a field should be left-aligned
+ * Fields like name, grade, teacher, principal, and comments should be left-aligned
+ * 
+ * @param {string} fieldName - The PDF field name
+ * @returns {boolean} - True if field should be left-aligned
+ */
+const shouldBeLeftAligned = (fieldName) => {
+  if (!fieldName) return false
+  const lowerName = fieldName.toLowerCase()
+  
+  // Fields that should be left-aligned
+  const leftAlignFields = [
+    'name', 'student', 'studentname',
+    'grade',
+    'teacher', 'teachernam', 'teachername',
+    'principal', 'principle', 'principalname',
+    'sans', // Comments field
+    'strengths', 'nextsteps', 'improvement',
+    'comments', 'comment',
+  ]
+  
+  return leftAlignFields.some(field => lowerName.includes(field))
+}
+
+/**
  * Fill a PDF field with a value
  * Handles text fields, checkboxes, dropdowns, radio groups
  * 
@@ -185,7 +210,19 @@ export const fillPDFField = (field, value, font = null, fontSize = 10) => {
         if (font) {
           try {
             const acroField = field.acroField
-            acroField.setDefaultAppearance(`/F1 ${fontSize} Tf`)
+            // Set text alignment using quadding (Q) property
+            // 0=left, 1=center, 2=right
+            const alignment = shouldBeLeftAligned(fieldName) ? 0 : 1
+            acroField.setDefaultAppearance(`/F1 ${fontSize} Tf 0 g`)
+            
+            // Set the quadding (Q) property on the field's dictionary
+            // This controls text alignment within the field
+            try {
+              acroField.dict.set(PDFName.of('Q'), PDFNumber.of(alignment))
+            } catch (quaddingError) {
+              console.warn(`Could not set quadding for "${fieldName}":`, quaddingError)
+            }
+            
             field.updateAppearances(font)
           } catch (appearanceError) {
             console.warn(`Could not update appearance for "${fieldName}":`, appearanceError)
@@ -366,7 +403,16 @@ export const fillPDFField = (field, value, font = null, fontSize = 10) => {
           if (font) {
             try {
               const acroField = field.acroField
-              acroField.setDefaultAppearance(`/F1 ${fontSize} Tf`)
+              // Signature fields should be left-aligned
+              acroField.setDefaultAppearance(`/F1 ${fontSize} Tf 0 g`)
+              
+              // Set the quadding (Q) property for left alignment
+              try {
+                acroField.dict.set(PDFName.of('Q'), PDFNumber.of(0))
+              } catch (quaddingError) {
+                console.warn(`Could not set quadding for signature field "${fieldName}":`, quaddingError)
+              }
+              
               field.updateAppearances(font)
             } catch (appearanceError) {
               console.warn(`Could not update signature field appearance for "${fieldName}":`, appearanceError)

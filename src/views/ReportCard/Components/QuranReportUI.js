@@ -46,7 +46,7 @@ const AICommentField = ({
   onChange,
   placeholder,
   rows = 6,
-  maxLength = 1500,
+  maxLength = 500,
   formData,
   onFormDataChange,
 }) => {
@@ -399,7 +399,7 @@ const CommentsSection = ({ formData, onFormDataChange }) => {
           onChange={handleInputChange}
           placeholder="Enter strengths and next steps for improvement in Quran Studies. You can use the AI button to generate personalized comments based on the student's grades..."
           rows={8}
-          maxLength={1500}
+          maxLength={500}
           formData={formData}
           onFormDataChange={onFormDataChange}
         />
