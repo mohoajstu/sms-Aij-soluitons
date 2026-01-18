@@ -6,7 +6,7 @@ const LearningSection = ({
   formData,
   onFormDataChange,
   commentFieldName,
-  charLimit = 500,
+  charLimit = 750,
   onGenerate,
   isGenerating,
 }) => {
