@@ -666,6 +666,27 @@ LearningSkillsSection.propTypes = {
  * Modern form section for subject area assessments with marks
  */
 const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerating, selectedTerm = 'term1' }) => {
+  // Auto-fill default values for nativeLanguage and other
+  useEffect(() => {
+    const updates = {}
+    
+    // Auto-fill nativeLanguage if empty or undefined
+    if (!formData.nativeLanguage || formData.nativeLanguage.trim() === '') {
+      updates.nativeLanguage = 'Quran and Arabic Studies'
+    }
+    
+    // Auto-fill other if empty or undefined (note: this is the subject name for "Islamic Studies")
+    if (!formData.other || formData.other.trim() === '') {
+      updates.other = 'Islamic Studies'
+    }
+    
+    // Only update if there are changes to make
+    if (Object.keys(updates).length > 0) {
+      onFormDataChange({ ...formData, ...updates })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.nativeLanguage, formData.other]) // Watch for changes to these fields
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
     const newValue = type === 'checkbox' ? checked : value
@@ -745,49 +766,56 @@ const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerat
       key: 'healthEd',
       fields: ['healthEdESL', 'healthEdIEP', 'healthEdFrench'],
       markFields: ['healthMarkReport1', 'healthMarkReport2'],
-      commentField: 'healthEdStrengthAndNextStepsForImprovement',
+      commentField: 'healthAndPEStrengthsAndNextStepsForImprovement',
+      hideCommentField: true, // Hide comment field for this subject, will show on PE
     },
     {
       name: 'Physical Education',
       key: 'pe',
       fields: ['peESL', 'peIEP', 'peFrench'],
       markFields: ['peMarkReport1', 'peMarkReport2'],
-      commentField: 'peStrengthAndNextStepsForImprovement',
+      commentField: 'healthAndPEStrengthsAndNextStepsForImprovement',
+      showCommentFieldLabel: 'Health and Physical Education - Strengths/Next Steps for Improvement',
     },
     {
       name: 'Dance',
       key: 'dance',
       fields: ['danceESL', 'danceIEP', 'danceFrench', 'danceNA'],
       markFields: ['danceMarkReport1', 'danceMarkReport2'],
-      commentField: 'danceStrengthAndNextStepsForImprovement',
+      commentField: 'artsStrengthAndNextStepsForImprovement',
+      hideCommentField: true, // Hide comment field for this subject
     },
     {
       name: 'Drama',
       key: 'drama',
       fields: ['dramaESL', 'dramaIEP', 'dramaFrench', 'dramaNA'],
       markFields: ['dramaMarkReport1', 'dramaMarkReport2'],
-      commentField: 'dramaStrengthAndNextStepsForImprovement',
+      commentField: 'artsStrengthAndNextStepsForImprovement',
+      hideCommentField: true, // Hide comment field for this subject
     },
     {
       name: 'Music',
       key: 'music',
       fields: ['musicESL', 'musicIEP', 'musicFrench', 'musicNA'],
       markFields: ['musicMarkReport1', 'musicMarkReport2'],
-      commentField: 'musicStrengthAndNextStepsForImprovement',
+      commentField: 'artsStrengthAndNextStepsForImprovement',
+      hideCommentField: true, // Hide comment field for this subject
     },
     {
       name: 'Visual Arts',
       key: 'visualArts',
       fields: ['visualArtsESL', 'visualArtsIEP', 'visualArtsFrench', 'visualArtsNA'],
       markFields: ['visualArtsMarkReport1', 'visualArtsMarkReport2'],
-      commentField: 'visualArtsStrengthAndNextStepsForImprovement',
+      commentField: 'artsStrengthAndNextStepsForImprovement',
+      showCommentFieldLabel: 'The Arts (Dance, Drama, Music, Visual Arts) - Strengths/Next Steps for Improvement',
     },
     {
-      name: 'Other',
+      name: 'Islamic Studies',
       key: 'other',
       fields: ['otherESL', 'otherIEP', 'otherFrench', 'otherNA'],
       markFields: ['otherMarkReport1', 'otherMarkReport2'],
       commentField: 'otherStrengthAndNextStepsForImprovement',
+      showSubjectNameInput: true,
     },
   ]
 
@@ -844,6 +872,27 @@ const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerat
                       value={formData.nativeLanguage || ''}
                       onChange={handleInputChange}
                       placeholder="e.g., Spanish, Mandarin, Arabic"
+                    />
+                  </div>
+                </CCol>
+              </CRow>
+            )}
+
+            {/* Islamic Studies/Other Subject Input - only for Other subject */}
+            {subject.key === 'other' && (
+              <CRow className="mb-3">
+                <CCol md={12}>
+                  <div className="mb-3">
+                    <CFormLabel htmlFor="other">
+                      <CIcon icon={cilBook} className="me-2" />
+                      Subject Name
+                    </CFormLabel>
+                    <CFormInput
+                      id="other"
+                      name="other"
+                      value={formData.other || 'Islamic Studies'}
+                      onChange={handleInputChange}
+                      placeholder="Enter subject name"
                     />
                   </div>
                 </CCol>
@@ -1203,13 +1252,13 @@ const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerat
             </CRow>
 
             {/* Subject Comments */}
-            {subject.commentField && (
+            {subject.commentField && !subject.hideCommentField && (
               <CRow className="mt-3">
                 <CCol md={12}>
                   <div className="mb-3">
                     <CFormLabel htmlFor={subject.commentField}>
                       <CIcon icon={cilLightbulb} className="me-2" />
-                      {subject.name} - Strengths and Next Steps
+                      {subject.showCommentFieldLabel || `${subject.name} - Strengths and Next Steps`}
                     </CFormLabel>
                     <AICommentField
                       name={subject.commentField}

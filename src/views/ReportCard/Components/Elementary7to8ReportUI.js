@@ -877,14 +877,16 @@ const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term1
         'healthEdMarkReport2',
         'healthEdMedianReport2',
       ],
-      commentField: 'healthEdStrengthAndNextStepsForImprovement',
+      commentField: 'healthAndPEStrengthsAndNextStepsForImprovement',
+      hideCommentField: true, // Hide comment field for this subject, will show on PE
     },
     {
       name: 'Physical Education',
       key: 'pe',
       fields: ['peESL', 'peIEP', 'peFrench'],
       markFields: ['peMarkReport1', 'peMedianReport1', 'peMarkReport2', 'peMedianReport2'],
-      commentField: 'peStrengthAndNextStepsForImprovement',
+      commentField: 'healthAndPEStrengthsAndNextStepsForImprovement',
+      showCommentFieldLabel: 'Health and Physical Education - Strengths/Next Steps for Improvement',
     },
     {
       name: 'Dance',
@@ -896,7 +898,8 @@ const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term1
         'danceMarkReport2',
         'danceMedianReport2',
       ],
-      commentField: 'danceStrengthAndNextStepsForImprovement',
+      commentField: 'artsStrengthsAndNextStepsForImprovement',
+      hideCommentField: true, // Hide comment field for this subject
     },
     {
       name: 'Drama',
@@ -908,7 +911,8 @@ const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term1
         'dramaMarkReport2',
         'dramaMedianReport2',
       ],
-      commentField: 'dramaStrengthAndNextStepsForImprovement',
+      commentField: 'artsStrengthsAndNextStepsForImprovement',
+      hideCommentField: true, // Hide comment field for this subject
     },
     {
       name: 'Music',
@@ -920,7 +924,8 @@ const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term1
         'musicMarkReport2',
         'musicMedianReport2',
       ],
-      commentField: 'musicStrengthAndNextStepsForImprovement',
+      commentField: 'artsStrengthsAndNextStepsForImprovement',
+      hideCommentField: true, // Hide comment field for this subject
     },
     {
       name: 'Visual Arts',
@@ -932,14 +937,16 @@ const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term1
         'visualArtsMarkReport2',
         'visualArtsMedianReport2',
       ],
-      commentField: 'visualArtsStrengthAndNextStepsForImprovement',
+      commentField: 'artsStrengthsAndNextStepsForImprovement',
+      showCommentFieldLabel: 'The Arts (Dance, Drama, Music, Visual Arts) - Strengths/Next Steps for Improvement',
     },
     {
-      name: 'Other',
+      name: 'Islamic Studies',
       key: 'other',
       fields: ['otherESL', 'otherFrench', 'otherIEP', 'otherNA'],
       markFields: ['otherMarkReport1', 'otherMedianReport2'],
-      commentField: 'otherStrengthAndNextStepsForImprovement',
+      commentField: 'otherStrengthsAndNextStepsForImprovement',
+      showSubjectNameInput: true,
     },
   ]
 
@@ -1394,13 +1401,13 @@ const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term1
             </CRow>
 
             {/* Subject Comments */}
-            {subject.commentField && (
+            {subject.commentField && !subject.hideCommentField && (
               <CRow className="mt-3">
                 <CCol md={12}>
                   <div className="mb-3">
                     <CFormLabel htmlFor={subject.commentField}>
                       <CIcon icon={cilLightbulb} className="me-2" />
-                      {subject.name} - Strengths and Next Steps
+                      {subject.showCommentFieldLabel || `${subject.name} - Strengths and Next Steps`}
                     </CFormLabel>
                     <div className="ai-input-field position-relative">
                       <CFormTextarea
