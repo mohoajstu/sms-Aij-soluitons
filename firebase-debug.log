@@ -1,0 +1,35 @@
+[debug] [2026-01-19T20:16:31.037Z] ----------------------------------------------------------------------
+[debug] [2026-01-19T20:16:31.072Z] Command:       /Users/mohoaj/.nvm/versions/node/v22.21.1/bin/node /Users/mohoaj/.npm-global/bin/firebase deploy --only firestore:rules
+[debug] [2026-01-19T20:16:31.072Z] CLI Version:   15.0.0
+[debug] [2026-01-19T20:16:31.072Z] Platform:      darwin
+[debug] [2026-01-19T20:16:31.072Z] Node Version:  v22.21.1
+[debug] [2026-01-19T20:16:31.072Z] Time:          Mon Jan 19 2026 15:16:31 GMT-0500 (Eastern Standard Time)
+[debug] [2026-01-19T20:16:31.072Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-01-19T20:16:31.073Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-01-19T20:16:31.118Z] Error: EPERM: operation not permitted, open '/Users/mohoaj/.npm-global/lib/node_modules/firebase-tools/node_modules/path-key/index.js'
+    at Object.readFileSync (node:fs:441:20)
+    at defaultLoadImpl (node:internal/modules/cjs/loader:1105:17)
+    at loadSource (node:internal/modules/cjs/loader:1733:20)
+    at Object..js (node:internal/modules/cjs/loader:1832:44)
+    at Module.load (node:internal/modules/cjs/loader:1441:32)
+    at Function._load (node:internal/modules/cjs/loader:1263:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+    at Module.require (node:internal/modules/cjs/loader:1463:12)
+    at require (node:internal/modules/helpers:147:16)
+[error] 
+[error] Error: An unexpected error has occurred.
+[debug] [2026-01-19T20:16:31.384Z] Error: EPERM: operation not permitted, open '/Users/mohoaj/.config/configstore/firebase-tools.json.642785878'
+    at Object.openSync (node:fs:561:18)
+    at Function.writeFileSync [as sync] (/Users/mohoaj/.npm-global/lib/node_modules/firebase-tools/node_modules/write-file-atomic/index.js:205:13)
+    at set all (/Users/mohoaj/.npm-global/lib/node_modules/firebase-tools/node_modules/configstore/index.js:61:20)
+    at Configstore.delete (/Users/mohoaj/.npm-global/lib/node_modules/firebase-tools/node_modules/configstore/index.js:101:12)
+    at process.<anonymous> (/Users/mohoaj/.npm-global/lib/node_modules/firebase-tools/lib/bin/cli.js:65:45)
+    at process.emit (node:events:531:35)
+    at process.exit (node:internal/process/per_thread:240:15)
+    at Timeout._onTimeout (/Users/mohoaj/.npm-global/lib/node_modules/firebase-tools/lib/errorOut.js:20:17)
+    at listOnTimeout (node:internal/timers:588:17)
+    at process.processTimers (node:internal/timers:523:7)
+[error] 
+[error] Error: An unexpected error has occurred.

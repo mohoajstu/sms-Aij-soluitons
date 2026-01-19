@@ -139,14 +139,18 @@ const RegistrationForm = () => {
     e.preventDefault();
     if (isSubmitting) return;
 
+    console.log('🚀 Registration submission started');
+
     // Validate date of birth before submission
     if (formData.dateOfBirth) {
       const validation = validateDateOfBirth(formData.dateOfBirth);
       if (!validation.valid) {
+        console.error('❌ Date of birth validation failed:', validation.error);
         setDobError(validation.error);
         return;
       }
     }
+    console.log('✅ Date of birth validated');
 
     setIsSubmitting(true);
 
@@ -154,14 +158,19 @@ const RegistrationForm = () => {
       // 1. Generate a unique registration ID
       // Try to use counter if available, otherwise generate a timestamp-based ID
       let newRegistrationId;
+      console.log('📝 Attempting to generate registration ID...');
       try {
         const counterRef = doc(firestore, 'counters', 'registrations');
+        console.log('🔢 Accessing counter document...');
         newRegistrationId = await runTransaction(firestore, async (transaction) => {
           const counterDoc = await transaction.get(counterRef);
           
           let newCount = 0;
           if (counterDoc.exists()) {
             newCount = counterDoc.data().currentCount + 1;
+            console.log('✅ Counter exists, incrementing to:', newCount);
+          } else {
+            console.log('⚠️ Counter does not exist, creating new counter');
           }
           
           transaction.set(counterRef, { currentCount: newCount });
@@ -169,15 +178,19 @@ const RegistrationForm = () => {
           // Format the ID to TLRXXXXX
           return `TLR${String(newCount).padStart(5, '0')}`;
         });
+        console.log('✅ Registration ID generated:', newRegistrationId);
       } catch (error) {
         // If transaction fails (e.g., unauthenticated), generate a timestamp-based ID
-        console.warn('Could not use counter, generating timestamp-based ID:', error);
+        console.error('❌ Counter transaction failed:', error);
+        console.log('🔄 Falling back to timestamp-based ID generation');
         const timestamp = Date.now();
         const random = Math.floor(Math.random() * 1000);
         newRegistrationId = `TLR${timestamp}${String(random).padStart(3, '0')}`;
+        console.log('✅ Timestamp-based ID generated:', newRegistrationId);
       }
 
       // 2. Create a list of file upload tasks to run in parallel
+      console.log('📁 Starting file uploads...');
       const uploadPromises = [];
       const uploadedFileUrls = {
         immunization: [],
@@ -186,11 +199,14 @@ const RegistrationForm = () => {
         governmentId: [],
       };
 
+      let totalFiles = 0;
       for (const category in uploadedFiles) {
         const files = uploadedFiles[category];
+        totalFiles += files.length;
         for (const file of files) {
           const filePath = `registrations/${newRegistrationId}/${category}/${file.name}`;
           const storageRef = ref(storage, filePath);
+          console.log(`📤 Uploading ${category}/${file.name}`);
           
           uploadPromises.push(
             uploadBytes(storageRef, file).then(async (snapshot) => {
@@ -199,15 +215,22 @@ const RegistrationForm = () => {
                 name: file.name,
                 url: downloadURL,
               });
+              console.log(`✅ Uploaded ${category}/${file.name}`);
+            }).catch((error) => {
+              console.error(`❌ Failed to upload ${category}/${file.name}:`, error);
+              throw error;
             })
           );
         }
       }
 
+      console.log(`📊 Uploading ${totalFiles} total files...`);
       await Promise.all(uploadPromises);
+      console.log('✅ All files uploaded successfully');
 
 
       // 4. Structure the data
+      console.log('🔧 Structuring registration data...');
       const structuredData = {
         registrationId: newRegistrationId,
         schoolYear: formData.schoolYear,
@@ -255,20 +278,30 @@ const RegistrationForm = () => {
         uploadedFiles: uploadedFileUrls,
         timestamp: serverTimestamp(),
       };
+      console.log('✅ Data structured successfully');
 
       // 5. Save to Firestore using the custom ID
+      console.log('💾 Saving registration to Firestore...');
       const registrationRef = doc(firestore, 'registrations', newRegistrationId);
       await setDoc(registrationRef, structuredData);
+      console.log('✅ Registration saved to Firestore successfully');
 
       // 6. Clean up and navigate
+      console.log('🧹 Cleaning up and navigating to thank you page...');
       localStorage.removeItem('registrationFormData');
+      console.log('🎉 Registration complete! Navigating to thank you page...');
       navigate('/registration/thankYouPage');
 
     } catch (error) {
-      console.error("Error submitting registration:", error);
-      alert("There was an error submitting your application. Please try again.");
+      console.error("❌ ERROR SUBMITTING REGISTRATION:", error);
+      console.error("Error name:", error.name);
+      console.error("Error message:", error.message);
+      console.error("Error code:", error.code);
+      console.error("Full error object:", error);
+      alert(`There was an error submitting your application: ${error.message || 'Unknown error'}. Please check the console for details and try again.`);
     } finally {
       setIsSubmitting(false);
+      console.log('🏁 Submission process completed');
     }
   };
 
@@ -276,6 +309,15 @@ const RegistrationForm = () => {
     const g = (formData.grade || '').toLowerCase();
     if (!g) return false;
     // Not required only for Jr Kindergarten
+    if (g === 'jr kindergarten' || g === 'jk') return false;
+    // Required for Sr Kindergarten and all higher grades
+    return true;
+  })();
+
+  const isOsrRequired = (() => {
+    const g = (formData.grade || '').toLowerCase();
+    if (!g) return true; // Show by default if no grade selected
+    // Not required for Jr Kindergarten
     if (g === 'jr kindergarten' || g === 'jk') return false;
     // Required for Sr Kindergarten and all higher grades
     return true;
@@ -684,15 +726,17 @@ const RegistrationForm = () => {
               files={uploadedFiles.reportCard}
             />
                   </div>
-                  <div className="file-upload-section">
-            <h3 className="file-upload-label">OSR (Ontario Student Record) Permission</h3>
-            <p className="file-upload-description">Please upload the signed permission form for OSR transfer if applicable.</p>
-            <FileUpload 
-              onFileUpload={(newFiles) => handleFileUpload('osrPermission', newFiles)}
-              onFileRemove={(file) => handleFileRemove('osrPermission', file)}
-              files={uploadedFiles.osrPermission}
-            />
-                  </div>
+                  {isOsrRequired && (
+                    <div className="file-upload-section">
+                      <h3 className="file-upload-label">OSR (Ontario Student Record) Permission</h3>
+                      <p className="file-upload-description">Please upload the signed permission form for OSR transfer if applicable. Required for SK to Gr. 8.</p>
+                      <FileUpload 
+                        onFileUpload={(newFiles) => handleFileUpload('osrPermission', newFiles)}
+                        onFileRemove={(file) => handleFileRemove('osrPermission', file)}
+                        files={uploadedFiles.osrPermission}
+                      />
+                    </div>
+                  )}
                   <div className="file-upload-section">
             <h3 className="file-upload-label">Proof of Age & Legal Status</h3>
             <p className="file-upload-description">Upload a Birth Certificate, Passport, or Permanent Resident Card.</p>
