@@ -698,6 +698,59 @@ const ReportCard = ({ presetReportCardId = null }) => {
   }
 
   /**
+   * Map old field names to new field names for backward compatibility
+   * This handles the migration from individual PE/Visual Arts comment fields
+   * to combined Health & PE and Arts comment fields
+   * 
+   * @param {Object} formData - Form data with potentially old field names
+   * @param {string} reportType - Report card type ID to determine correct mapping
+   * @returns {Object} Form data with old field names mapped to new ones
+   */
+  const mapOldFieldNamesToNew = (formData, reportType) => {
+    if (!formData || typeof formData !== 'object') {
+      return formData
+    }
+
+    const mappedData = { ...formData }
+    let hasMappings = false
+
+    // Map old PE field to new combined Health & PE field
+    if (mappedData.peStrengthAndNextStepsForImprovement) {
+      // Only map if the new field doesn't already have a value
+      if (!mappedData.healthAndPEStrengthsAndNextStepsForImprovement) {
+        mappedData.healthAndPEStrengthsAndNextStepsForImprovement = mappedData.peStrengthAndNextStepsForImprovement
+        hasMappings = true
+        console.log('🔄 Mapped old field: peStrengthAndNextStepsForImprovement → healthAndPEStrengthsAndNextStepsForImprovement')
+      }
+      // Remove the old field after mapping
+      delete mappedData.peStrengthAndNextStepsForImprovement
+    }
+
+    // Map old Visual Arts field to new combined Arts field
+    if (mappedData.visualArtsStrengthAndNextStepsForImprovement) {
+      // Determine the correct new field name based on report type
+      const newArtsFieldName = reportType === '7-8-report-card' 
+        ? 'artsStrengthsAndNextStepsForImprovement' 
+        : 'artsStrengthAndNextStepsForImprovement'
+      
+      // Only map if the new field doesn't already have a value
+      if (!mappedData[newArtsFieldName]) {
+        mappedData[newArtsFieldName] = mappedData.visualArtsStrengthAndNextStepsForImprovement
+        hasMappings = true
+        console.log(`🔄 Mapped old field: visualArtsStrengthAndNextStepsForImprovement → ${newArtsFieldName}`)
+      }
+      // Remove the old field after mapping
+      delete mappedData.visualArtsStrengthAndNextStepsForImprovement
+    }
+
+    if (hasMappings) {
+      console.log('✅ Applied field name mappings for backward compatibility')
+    }
+
+    return mappedData
+  }
+
+  /**
    * Load existing draft from Firebase for the given student + report type + term
    * Order of persistence:
    * 1. If draft exists for this student + report type + term, load it
@@ -733,7 +786,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
       if (draftSnap.exists()) {
         const draftData = draftSnap.data()
-        const loadedFormData = draftData.formData || {}
+        let loadedFormData = draftData.formData || {}
         
         console.log('✅ Found existing draft with deterministic ID:', {
           draftId: draftId,
@@ -743,6 +796,9 @@ const ReportCard = ({ presetReportCardId = null }) => {
           fieldCount: Object.keys(loadedFormData).length,
           hasFormData: !!loadedFormData && Object.keys(loadedFormData).length > 0,
         })
+
+        // Map old field names to new field names for backward compatibility
+        loadedFormData = mapOldFieldNamesToNew(loadedFormData, reportType)
 
         // Separate term-specific and shared fields from loaded data
         const { termData: loadedTermData, sharedData: loadedSharedData } = separateTermFields(loadedFormData, term)
@@ -855,7 +911,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
             draftsToConsider.sort((a, b) => b.lastModified - a.lastModified)
             const existingDraft = draftsToConsider[0]
             const draftData = existingDraft.data
-            const loadedFormData = draftData.formData || {}
+            let loadedFormData = draftData.formData || {}
             const effectiveTerm = draftData.term || term
             
             console.log('✅ Found draft from any teacher:', {
@@ -865,6 +921,9 @@ const ReportCard = ({ presetReportCardId = null }) => {
               lastModified: existingDraft.lastModified,
               fieldCount: Object.keys(loadedFormData).length,
             })
+
+            // Map old field names to new field names for backward compatibility
+            loadedFormData = mapOldFieldNamesToNew(loadedFormData, reportType)
 
             // Keep UI term in sync with the draft we loaded
             if (effectiveTerm && effectiveTerm !== term) {
@@ -1016,12 +1075,15 @@ const ReportCard = ({ presetReportCardId = null }) => {
             
             if (term1DraftSnap && term1DraftSnap.exists()) {
               const term1DraftData = term1DraftSnap.data()
-              const term1FormData = term1DraftData.formData || {}
+              let term1FormData = term1DraftData.formData || {}
               
               console.log('📋 Using completed Term 1 draft as base for Term 2', {
                 draftId: term1DraftId,
                 fieldCount: Object.keys(term1FormData).length,
               })
+              
+              // Map old field names to new field names for backward compatibility
+              term1FormData = mapOldFieldNamesToNew(term1FormData, reportType)
               
               // Convert Term 1 fields to Term 2 equivalents
               const term2FormData = copyTerm1ToTerm2(term1FormData)
@@ -1137,7 +1199,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
               })
               
               const latestTerm1Draft = term1Drafts[0]
-              const term1FormData = latestTerm1Draft.data.formData || {}
+              let term1FormData = latestTerm1Draft.data.formData || {}
               
               console.log('📋 Using latest Term 1 draft as base for Term 2:', {
                 draftId: latestTerm1Draft.id,
@@ -1145,6 +1207,9 @@ const ReportCard = ({ presetReportCardId = null }) => {
                 isComplete: latestTerm1Draft.isComplete,
                 fieldCount: Object.keys(term1FormData).length,
               })
+              
+              // Map old field names to new field names for backward compatibility
+              term1FormData = mapOldFieldNamesToNew(term1FormData, reportType)
               
               // Convert Term 1 fields to Term 2 equivalents
               const term2FormData = copyTerm1ToTerm2(term1FormData)
@@ -1592,8 +1657,11 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
     if (editingDraftId && draftFormData && draftStudent && draftReportType) {
       try {
-        const parsedFormData = JSON.parse(draftFormData)
+        let parsedFormData = JSON.parse(draftFormData)
         const parsedStudent = JSON.parse(draftStudent)
+
+        // Map old field names to new field names for backward compatibility
+        parsedFormData = mapOldFieldNamesToNew(parsedFormData, draftReportType)
 
         // ALWAYS refresh attendance data with latest student counts
         const refreshedFormData = {
@@ -1647,12 +1715,17 @@ const ReportCard = ({ presetReportCardId = null }) => {
         : `reportcard_form_${selectedReportCard}` // Fallback for legacy data
       const saved = localStorage.getItem(storageKey)
       if (saved) {
-        const savedData = JSON.parse(saved)
+        let savedData = JSON.parse(saved)
 
         // Validate that the saved data belongs to the current student (if we have a student)
         if (selectedStudent && savedData.studentId && savedData.studentId !== selectedStudent.id) {
           console.warn('Saved form data belongs to a different student, skipping load')
           return
+        }
+
+        // Map old field names to new field names for backward compatibility
+        if (savedData && typeof savedData === 'object') {
+          savedData = mapOldFieldNamesToNew(savedData, selectedReportCard)
         }
 
         // Preserve auto-populated student data when switching report card types
