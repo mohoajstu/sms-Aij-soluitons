@@ -28,6 +28,26 @@ const EMAILJS_PUBLIC_KEY = 'P7ScvinMmyJBD5d6T'
 // Initialize EmailJS with the public key
 emailjs.init(EMAILJS_PUBLIC_KEY)
 
+/**
+ * Check if the current environment is staging
+ * Uses project ID from Firebase config or environment variable
+ * @returns {boolean} True if staging environment
+ */
+function isStaging() {
+  // Check project ID from Firebase config
+  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID
+  if (projectId && projectId.includes('staging')) {
+    return true
+  }
+  
+  // Check environment variable
+  if (import.meta.env.VITE_ENV === 'staging') {
+    return true
+  }
+  
+  return false
+}
+
 const SendAcceptanceEmailModal = ({
   visible,
   onClose,
@@ -107,6 +127,15 @@ const SendAcceptanceEmailModal = ({
       }
 
       console.log('Sending email with these parameters:', templateParams)
+
+      // Check if staging - skip sending email in staging
+      if (isStaging()) {
+        console.log(`🚧 STAGING MODE: Skipping email to ${templateParams.to_email}`)
+        console.log(`   Would have sent acceptance email for ${studentName}`)
+        console.log(`   Generated password: ${generatedPassword}`)
+        setSentCount((prev) => prev + 1)
+        return Promise.resolve()
+      }
 
       return emailjs
         .send(
