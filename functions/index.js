@@ -12,6 +12,27 @@ const twilioNumber = process.env.TWILIO_PHONE_NUMBER || functions.config().twili
 const client = new twilio(accountSid, authToken)
 
 /**
+ * Check if the current environment is staging
+ * Uses Functions config (app.env) or falls back to project ID check
+ * @returns {boolean} True if staging environment
+ */
+function isStaging() {
+  // Method 1: Check Functions config (preferred)
+  const env = functions.config().app?.env
+  if (env === 'staging') {
+    return true
+  }
+  
+  // Method 2: Fallback to project ID check
+  const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT
+  if (projectId && projectId.includes('staging')) {
+    return true
+  }
+  
+  return false
+}
+
+/**
  * Helper function to format phone numbers into E.164 format.
  * @param {string} phoneNumber The phone number to format.
  * @returns {string} The formatted phone number.
@@ -265,13 +286,20 @@ exports.sendScheduledSms = functions
                   courseTitle: studentInfo.issues[0]?.courseTitle || 'class'
                 })
 
-                await client.messages.create({
-                  body: message,
-                  to: formattedPhoneNumber,
-                  from: twilioNumber,
-                })
-                console.log(`✅ SMS sent to ${formattedPhoneNumber} for student ${studentId}`)
-                successCount++
+                // Check if staging - skip sending SMS in staging
+                if (isStaging()) {
+                  console.log(`🚧 STAGING MODE: Skipping SMS to ${formattedPhoneNumber} for student ${studentId}`)
+                  console.log(`   Would have sent: ${message}`)
+                  successCount++ // Count as success for testing purposes
+                } else {
+                  await client.messages.create({
+                    body: message,
+                    to: formattedPhoneNumber,
+                    from: twilioNumber,
+                  })
+                  console.log(`✅ SMS sent to ${formattedPhoneNumber} for student ${studentId}`)
+                  successCount++
+                }
               } else {
                 console.error(`❌ Invalid phone number format for student ${studentId}: ${phoneNumber}`)
                 errorCount++
@@ -330,6 +358,18 @@ exports.sendSmsHttp = functions.region('northamerica-northeast1').https.onReques
     }
 
     try {
+      // Check if staging - skip sending SMS in staging
+      if (isStaging()) {
+        console.log(`🚧 STAGING MODE: Skipping SMS to ${phoneNumber}`)
+        console.log(`   Would have sent: ${message}`)
+        return res.status(200).json({ 
+          success: true, 
+          sid: 'staging-skip',
+          message: 'SMS skipped in staging mode',
+          staging: true
+        })
+      }
+
       const twilioResponse = await client.messages.create({
         body: message,
         to: phoneNumber,
@@ -631,19 +671,33 @@ exports.triggerAttendanceSms = functions
                     courseTitle: studentInfo.issues[0]?.courseTitle || 'class'
                   })
 
-                  const twilioResponse = await client.messages.create({
-                    body: message,
-                    to: formattedPhoneNumber,
-                    from: twilioNumber,
-                  })
+                  // Check if staging - skip sending SMS in staging
+                  if (isStaging()) {
+                    console.log(`🚧 STAGING MODE: Skipping SMS to ${formattedPhoneNumber} for student ${studentId}`)
+                    console.log(`   Would have sent: ${message}`)
+                    results.push({
+                      studentId,
+                      studentName: studentInfo.studentName,
+                      phoneNumber: formattedPhoneNumber,
+                      success: true,
+                      sid: 'staging-skip',
+                      staging: true
+                    })
+                  } else {
+                    const twilioResponse = await client.messages.create({
+                      body: message,
+                      to: formattedPhoneNumber,
+                      from: twilioNumber,
+                    })
 
-                  results.push({
-                    studentId,
-                    studentName: studentInfo.studentName,
-                    phoneNumber: formattedPhoneNumber,
-                    success: true,
-                    sid: twilioResponse.sid
-                  })
+                    results.push({
+                      studentId,
+                      studentName: studentInfo.studentName,
+                      phoneNumber: formattedPhoneNumber,
+                      success: true,
+                      sid: twilioResponse.sid
+                    })
+                  }
                 } else {
                   results.push({
                     studentId,
@@ -693,6 +747,149 @@ exports.triggerAttendanceSms = functions
       } catch (error) {
         console.error('❌ Error in manual SMS trigger:', error)
         return res.status(500).json({ success: false, message: error.message })
+      }
+    })
+  })
+
+/**
+ * Registration endpoint for load testing (k6)
+ * Accepts registration data and saves to Firestore
+ * Automatically adds test tags in staging environment
+ */
+exports.registerStudent = functions
+  .region('northamerica-northeast1')
+  .https.onRequest((req, res) => {
+    // Handle CORS
+    if (req.method === 'OPTIONS') {
+      res.set('Access-Control-Allow-Origin', '*')
+      res.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+      res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+      res.set('Access-Control-Max-Age', '3600')
+      return res.status(204).send('')
+    }
+
+    const corsHandler = cors({ origin: true })
+
+    return corsHandler(req, res, async () => {
+      if (req.method !== 'POST') {
+        console.log(`❌ Method not allowed: ${req.method}`)
+        return res.status(405).json({ success: false, message: 'Only POST allowed' })
+      }
+
+      try {
+        const db = admin.firestore()
+        const registrationData = req.body
+
+        // Log incoming request for debugging
+        console.log('📥 Registration request received')
+        console.log('Request body keys:', Object.keys(registrationData || {}))
+        console.log('Student data:', registrationData?.student ? Object.keys(registrationData.student) : 'missing')
+        console.log('Contact data:', registrationData?.contact ? Object.keys(registrationData.contact) : 'missing')
+
+        // Validate required fields
+        if (!registrationData || typeof registrationData !== 'object') {
+          console.log('❌ Invalid request body')
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Invalid request body',
+            received: typeof registrationData
+          })
+        }
+
+        if (!registrationData.student || !registrationData.student.firstName || !registrationData.student.lastName) {
+          console.log('❌ Missing student fields')
+          console.log('Student object:', registrationData.student)
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Missing required fields: student.firstName and student.lastName',
+            received: {
+              hasStudent: !!registrationData.student,
+              firstName: registrationData.student?.firstName,
+              lastName: registrationData.student?.lastName
+            }
+          })
+        }
+
+        if (!registrationData.contact || !registrationData.contact.primaryEmail) {
+          console.log('❌ Missing contact email')
+          console.log('Contact object:', registrationData.contact)
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Missing required field: contact.primaryEmail',
+            received: {
+              hasContact: !!registrationData.contact,
+              primaryEmail: registrationData.contact?.primaryEmail
+            }
+          })
+        }
+
+        // Generate registration ID
+        let newRegistrationId
+        try {
+          const counterRef = db.collection('counters').doc('registrations')
+          await db.runTransaction(async (transaction) => {
+            const counterDoc = await transaction.get(counterRef)
+            let newCount = 0
+            if (counterDoc.exists()) {
+              newCount = counterDoc.data().currentCount + 1
+            }
+            transaction.set(counterRef, { currentCount: newCount })
+            newRegistrationId = `TLR${String(newCount).padStart(5, '0')}`
+          })
+        } catch (error) {
+          // Fallback to timestamp-based ID
+          console.warn('Counter transaction failed, using timestamp ID:', error)
+          const timestamp = Date.now()
+          const random = Math.floor(Math.random() * 1000)
+          newRegistrationId = `TLR${timestamp}${String(random).padStart(3, '0')}`
+        }
+
+        // Prepare registration document
+        const registrationDoc = {
+          registrationId: newRegistrationId,
+          schoolYear: registrationData.schoolYear || '',
+          grade: registrationData.grade || '',
+          status: 'pending',
+          archived: false,
+          student: registrationData.student || {},
+          contact: registrationData.contact || {},
+          primaryGuardian: registrationData.primaryGuardian || {},
+          secondaryGuardian: registrationData.secondaryGuardian || {},
+          payment: registrationData.payment || {
+            method: 'cash',
+            status: 'pending',
+            amount: 0,
+          },
+          uploadedFiles: registrationData.uploadedFiles || {},
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        }
+
+        // Add test tags if in staging
+        if (isStaging()) {
+          registrationDoc.isTest = true
+          registrationDoc.env = 'staging'
+          console.log(`🚧 STAGING MODE: Adding test tags to registration ${newRegistrationId}`)
+        }
+
+        // Save to Firestore
+        const registrationRef = db.collection('registrations').doc(newRegistrationId)
+        await registrationRef.set(registrationDoc)
+
+        console.log(`✅ Registration ${newRegistrationId} saved successfully`)
+
+        return res.status(200).json({
+          success: true,
+          registrationId: newRegistrationId,
+          message: 'Registration saved successfully',
+          staging: isStaging(),
+        })
+
+      } catch (error) {
+        console.error('❌ Error in registerStudent endpoint:', error)
+        return res.status(500).json({ 
+          success: false, 
+          message: error.message || 'Internal server error' 
+        })
       }
     })
   })

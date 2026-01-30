@@ -1,6 +1,8 @@
 {
   "projects": {
-    "default": "tarbiyah-sms"
+    "default": "tarbiyah-sms",
+    "staging": "tarbiyah-sms-staging",
+    "prod": "tarbiyah-sms"
   },
   "targets": {
     "tarbiyah-sms": {
