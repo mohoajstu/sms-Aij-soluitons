@@ -124,6 +124,29 @@
   margin-bottom: 0.5rem;
 }
 
+/* Red label styling for errors - high specificity */
+.registration-form-container label.form-label.form-label-error,
+.registration-form-container .form-label.form-label-error,
+.registration-form label.form-label-error,
+.registration-form .form-label-error,
+label.form-label.form-label-error,
+label.form-label-error,
+.form-label.form-label-error,
+.form-label-error {
+  color: #dc3545 !important; /* red text and asterisk */
+  font-weight: 600 !important;
+}
+
+/* Ensure asterisk is red when label has error */
+.registration-form-container label.form-label-error *,
+.registration-form-container .form-label-error *,
+.registration-form label.form-label-error *,
+.registration-form .form-label-error *,
+label.form-label-error *,
+.form-label-error * {
+  color: #dc3545 !important;
+}
+
 .form-input,
 .form-select,
 .form-textarea {
@@ -134,6 +157,19 @@
   font-size: 1rem;
 }
 
+.form-input-read-only {
+  width: 100%;
+  border: 1px solid #cbd5e1; /* border-slate-300 */
+  border-radius: 0.375rem; /* rounded-md */
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  background-color: #f8fafc; /* bg-slate-50 */
+  color: #334155; /* text-slate-700 */
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+}
+
 .form-input:focus,
 .form-select:focus,
 .form-textarea:focus {
@@ -141,6 +177,41 @@
   outline-offset: 2px;
   border-color: #64748b; /* focus:border-slate-500 */
   box-shadow: 0 0 0 2px #e2e8f0; /* focus:ring-slate-200 */
+}
+
+.form-input-error,
+.form-select-error,
+.form-textarea-error {
+  border-color: #dc3545 !important; /* red border */
+  border-width: 2px !important;
+  background-color: #fff5f5 !important; /* light red background */
+}
+
+.form-input-error:focus,
+.form-select-error:focus,
+.form-textarea-error:focus {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.25) !important; /* red shadow */
+}
+
+.form-radio-group-error {
+  border: 2px solid #dc3545;
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  background-color: #fff5f5;
+}
+
+.file-upload-section-error {
+  border-color: #dc3545 !important;
+  border-width: 2px !important;
+  background-color: #fff5f5 !important;
+}
+
+.file-upload-error-message {
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  font-weight: 500;
 }
 
 .form-textarea {
@@ -239,6 +310,28 @@
   color: #334155; /* text-slate-700 */
 }
 
+/* Red file upload label styling for errors - high specificity */
+.registration-form-container h3.file-upload-label.file-upload-label-error,
+.registration-form-container .file-upload-label.file-upload-label-error,
+.registration-form h3.file-upload-label-error,
+.registration-form .file-upload-label-error,
+h3.file-upload-label.file-upload-label-error,
+h3.file-upload-label-error,
+.file-upload-label.file-upload-label-error,
+.file-upload-label-error {
+  color: #dc3545 !important; /* red text and asterisk */
+}
+
+/* Ensure asterisk is red when label has error */
+.registration-form-container h3.file-upload-label-error *,
+.registration-form-container .file-upload-label-error *,
+.registration-form h3.file-upload-label-error *,
+.registration-form .file-upload-label-error *,
+h3.file-upload-label-error *,
+.file-upload-label-error * {
+  color: #dc3545 !important;
+}
+
 .file-upload-description {
   font-size: 0.875rem; /* text-sm */
   color: #475569; /* text-slate-600 */
@@ -258,6 +351,12 @@
 .file-upload-dropzone:hover,
 .file-upload-dropzone.active {
   border-color: #007bff;
+}
+
+.file-upload-dropzone.file-upload-error {
+  border-color: #dc3545 !important;
+  border-width: 2px !important;
+  background-color: #fff5f5 !important;
 }
 
 .file-upload-content {
@@ -326,5 +425,71 @@
 .summary-card-header {
   padding-top: 0.5rem !important;
   padding-bottom: 0.5rem !important;
+}
+
+/* Fees Acknowledgement Styles */
+.fees-acknowledgement-section {
+  padding: 1rem 0;
+}
+
+.fees-acknowledgement-section-error {
+  border: 2px solid #dc3545;
+  border-radius: 0.375rem;
+  padding: 1rem;
+  background-color: #fff5f5;
+}
+
+.fees-acknowledgement-text {
+  font-size: 1rem;
+  color: #334155; /* text-slate-700 */
+  font-weight: 500;
+  margin-bottom: 1.5rem;
+}
+
+.fees-details {
+  background-color: #f8fafc; /* bg-slate-50 */
+  border: 1px solid #e2e8f0; /* border-slate-200 */
+  border-radius: 0.5rem; /* rounded-lg */
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.fees-section {
+  margin-bottom: 1.25rem;
+}
+
+.fees-section:last-child {
+  margin-bottom: 0;
+}
+
+.fees-section-title {
+  font-weight: 600;
+  color: #334155; /* text-slate-700 */
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.fees-section-content {
+  color: #475569; /* text-slate-600 */
+  font-size: 0.9375rem;
+  margin-left: 0.5rem;
+}
+
+.fees-list {
+  list-style-position: inside;
+  list-style-type: disc;
+  color: #475569; /* text-slate-600 */
+  font-size: 0.9375rem;
+  margin-left: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-checkbox-group-error {
+  border: 2px solid #dc3545;
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  background-color: #fff5f5;
 }
   

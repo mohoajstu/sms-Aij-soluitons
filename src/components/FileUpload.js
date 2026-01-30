@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { UploadCloud, File as FileIcon, X } from 'lucide-react';
 
-const FileUpload = ({ onFileUpload, onFileRemove, files }) => {
+const FileUpload = ({ onFileUpload, onFileRemove, files, hasError = false }) => {
   const onDrop = useCallback((acceptedFiles) => {
     onFileUpload(acceptedFiles);
   }, [onFileUpload]);
@@ -17,7 +17,7 @@ const FileUpload = ({ onFileUpload, onFileRemove, files }) => {
     <div>
       <div
         {...getRootProps()}
-        className={`file-upload-dropzone ${isDragActive ? 'active' : ''}`}
+        className={`file-upload-dropzone ${isDragActive ? 'active' : ''} ${hasError ? 'file-upload-error' : ''}`}
       >
         <input {...getInputProps()} />
         <div className="file-upload-content">

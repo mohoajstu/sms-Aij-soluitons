@@ -30,6 +30,7 @@ import {
   cilX,
   cilFindInPage,
   cilEnvelopeClosed,
+  cilCopy,
 } from '@coreui/icons'
 import { DataGrid } from '@mui/x-data-grid'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
@@ -131,6 +132,43 @@ const RegistrationProcessingDashboard = () => {
       denied: 'danger',
     }
     return colorMap[status] || 'secondary'
+  }
+
+  const handleCopyEmails = async () => {
+    try {
+      // Collect all unique emails from primary and secondary guardians
+      const emailSet = new Set()
+      
+      applications.forEach((app) => {
+        // Add primary guardian email if it exists
+        if (app.primaryGuardian?.email) {
+          emailSet.add(app.primaryGuardian.email.trim())
+        }
+        
+        // Add secondary guardian email if it exists
+        if (app.secondaryGuardian?.email) {
+          emailSet.add(app.secondaryGuardian.email.trim())
+        }
+      })
+      
+      // Convert to array and sort
+      const emails = Array.from(emailSet).sort()
+      
+      if (emails.length === 0) {
+        alert('No email addresses found in the applications.')
+        return
+      }
+      
+      // Copy to clipboard (comma-separated or newline-separated)
+      const emailString = emails.join(', ')
+      await navigator.clipboard.writeText(emailString)
+      
+      // Show success message
+      alert(`Copied ${emails.length} email address${emails.length !== 1 ? 'es' : ''} to clipboard!`)
+    } catch (error) {
+      console.error('Error copying emails to clipboard:', error)
+      alert('Failed to copy emails to clipboard. Please try again.')
+    }
   }
 
   const generateIds = async (collectionName, count = 1) => {
@@ -803,6 +841,16 @@ const RegistrationProcessingDashboard = () => {
               >
                 <CIcon icon={cilEnvelopeClosed} className="me-2" />
                 Send Acceptance Emails
+              </CButton>
+              <CButton
+                variant="outline"
+                color="secondary"
+                onClick={handleCopyEmails}
+                disabled={loading || applications.length === 0}
+                title="Copy all primary and secondary guardian emails to clipboard"
+              >
+                <CIcon icon={cilCopy} className="me-2" />
+                Copy All Emails
               </CButton>
               <CButton
                 variant="outline"

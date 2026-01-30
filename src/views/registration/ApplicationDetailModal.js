@@ -151,6 +151,43 @@ const ApplicationDetailModal = ({ application, onClose, onStatusChange }) => {
           </div>
         </div>
         
+        {/* Fees Acknowledgement */}
+        {application.feesAcknowledgement !== undefined && (
+          <div className="form-card">
+            <div className="form-card-header">
+              <h2 className="form-card-title">Fees Acknowledgement</h2>
+            </div>
+            <div className="form-card-content">
+              <div className="form-grid md-grid-cols-2">
+                <div>
+                  <label className="form-label">Fees Acknowledgement Status</label>
+                  <div className="form-input-read-only">
+                    {application.feesAcknowledgement ? (
+                      <CBadge color="success" shape="rounded-pill" className="px-3 py-1">
+                        <CIcon icon={cilCheck} className="me-1" />
+                        Acknowledged
+                      </CBadge>
+                    ) : (
+                      <CBadge color="danger" shape="rounded-pill" className="px-3 py-1">
+                        <CIcon icon={cilXCircle} className="me-1" />
+                        Not Acknowledged
+                      </CBadge>
+                    )}
+                  </div>
+                </div>
+                <FormField 
+                  label="Date Acknowledged" 
+                  value={
+                    application.feesAcknowledgement 
+                      ? (application.timestamp?.toDate ? application.timestamp.toDate().toLocaleDateString() : application.applicationDate ? new Date(application.applicationDate).toLocaleDateString() : 'N/A')
+                      : 'N/A'
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Uploaded Files */}
         <div className="form-card">
           <div className="form-card-header">
