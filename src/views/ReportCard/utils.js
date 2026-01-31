@@ -245,6 +245,8 @@ const ReportCard = ({ presetReportCardId = null }) => {
   const [classStudents, setClassStudents] = useState([])
   const [currentStudentIndex, setCurrentStudentIndex] = useState(-1)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  // When admin opens "Edit Report Card" from Admin Review, allow editing even if global disableEditing is on
+  const [allowEditFromReview, setAllowEditFromReview] = useState(false)
 
   // Get current report card configuration
   const getCurrentReportType = () => {
@@ -1657,6 +1659,9 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
     if (editingDraftId && draftFormData && draftStudent && draftReportType) {
       try {
+        // When opening via "Edit Report Card" (Admin Review or Past Reports), allow Next/Previous and Save All
+        setAllowEditFromReview(true)
+
         let parsedFormData = JSON.parse(draftFormData)
         const parsedStudent = JSON.parse(draftStudent)
 
@@ -1840,11 +1845,11 @@ const ReportCard = ({ presetReportCardId = null }) => {
       telephone: ['telephone'],
       boardSpace: ['boardSpace'],
 
-      // Attendance - Using actual PDF field names
+      // Attendance - Using actual PDF field names (7-8 provincial report uses timeLate/totalTimeLate singular)
       daysAbsent: ['daysAbsent'],
       totalDaysAbsent: ['totalDaysAbsent'],
-      timesLate: ['timesLate'],
-      totalTimesLate: ['totalTimesLate'],
+      timesLate: ['timesLate', 'timeLate'],
+      totalTimesLate: ['totalTimesLate', 'totalTimeLate'],
 
       // Learning Skills - Using actual PDF field names
       responsibility1: ['responsibility1'],
@@ -2472,7 +2477,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
                           color="outline-primary"
                           size="sm"
                           onClick={() => handleNavigateStudent('previous')}
-                          disabled={disableEditing || classStudents.length <= 1}
+                          disabled={(!allowEditFromReview && disableEditing) || classStudents.length <= 1}
                           variant="outline"
                         >
                           ← Previous
@@ -2481,7 +2486,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
                           color="outline-primary"
                           size="sm"
                           onClick={() => handleNavigateStudent('next')}
-                          disabled={disableEditing || classStudents.length <= 1}
+                          disabled={(!allowEditFromReview && disableEditing) || classStudents.length <= 1}
                           variant="outline"
                         >
                           Next →
@@ -2576,7 +2581,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
                       color="primary"
                       size="lg"
                       onClick={saveAll}
-                      disabled={isSaving || !selectedStudent || !selectedReportCard || disableEditing}
+                      disabled={isSaving || !selectedStudent || !selectedReportCard || (!allowEditFromReview && disableEditing)}
                       className="d-flex align-items-center justify-content-center gap-2 mx-auto"
                     >
                       {isSaving ? (

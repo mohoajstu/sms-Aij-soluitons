@@ -1047,11 +1047,11 @@ const PDFViewer = React.memo(
         boardInfo: ['boardInfo'],
         boardSpace: ['boardSpace'],
 
-        // Attendance - Using actual PDF field names
+        // Attendance - Using actual PDF field names (7-8 provincial report uses timeLate/totalTimeLate singular)
         daysAbsent: ['daysAbsent'],
         totalDaysAbsent: ['totalDaysAbsent'],
-        timesLate: ['timesLate'],
-        totalTimesLate: ['totalTimesLate'],
+        timesLate: ['timesLate', 'timeLate'],
+        totalTimesLate: ['totalTimesLate', 'totalTimeLate'],
 
         // Learning Skills - Using actual PDF field names
         responsibility1: ['responsibility1', 'responsibiity1'], // Handle typo in PDF

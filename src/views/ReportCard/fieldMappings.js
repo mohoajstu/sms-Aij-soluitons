@@ -65,10 +65,10 @@ export const generateFieldNameVariations = (formKey) => {
     days_absent: ['daysAbsent'], // Form uses days_absent, PDF uses daysAbsent
     totalDaysAbsent: ['totalDaysAbsent'],
     total_days_absent: ['totalDaysAbsent'], // Form uses total_days_absent, PDF uses totalDaysAbsent
-    timesLate: ['timesLate'],
-    times_late: ['timesLate'], // Form uses times_late, PDF uses timesLate
-    totalTimesLate: ['totalTimesLate'],
-    total_times_late: ['totalTimesLate'], // Form uses total_times_late, PDF uses totalTimesLate
+    timesLate: ['timesLate', 'timeLate'], // 7-8 provincial report PDF uses "timeLate" (singular)
+    times_late: ['timesLate', 'timeLate'],
+    totalTimesLate: ['totalTimesLate', 'totalTimeLate'], // 7-8 provincial report PDF uses "totalTimeLate" (singular)
+    total_times_late: ['totalTimesLate', 'totalTimeLate'],
 
     // ============ LEARNING SKILLS ============
     // 1-6 Progress uses numbered fields (responsibility1, responsibility2)
