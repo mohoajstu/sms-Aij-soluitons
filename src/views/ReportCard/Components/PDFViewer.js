@@ -391,7 +391,7 @@ const PDFViewer = React.memo(
           normalizedFormData.teacherSignature = { type: 'typed', value: teacherNameForSig }
           console.log('PDFViewer: ✍️ Auto-added teacherSignature for filling:', normalizedFormData.teacherSignature)
         }
-        const principalNameForSig = normalizedFormData.principalSignature?.value || 'Ghazala Choudary'
+        const principalNameForSig = normalizedFormData.principalSignature?.value || 'Ghazala Choudhary'
         if (!normalizedFormData.principalSignature && principalNameForSig) {
           normalizedFormData.principalSignature = { type: 'typed', value: principalNameForSig }
           console.log('PDFViewer: ✍️ Auto-added principalSignature for filling:', normalizedFormData.principalSignature)

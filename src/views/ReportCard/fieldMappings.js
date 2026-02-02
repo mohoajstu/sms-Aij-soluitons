@@ -17,7 +17,16 @@ export const generateFieldNameVariations = (formKey) => {
     // Common across all report types
     date: ['date', 'Date', 'DATE', 'data'], // Note: some PDFs have typo "data"
     student: ['student'],
-    student_name: ['student', 'Student', 'studentName'], // Form uses student_name, PDF uses student
+    student_name: [
+      'student',
+      'Student',
+      'studentName',
+      'student2',
+      'student_2',
+      'Student_2',
+      'Student 2',
+      'student 2',
+    ], // Form uses student_name, PDF uses student
     grade: ['grade'],
     teacher: ['teacher'],
     teacher_name: ['teacher', 'Teacher', 'teacherName'], // Form uses teacher_name, PDF uses teacher
@@ -402,4 +411,3 @@ export const generateFieldNameVariations = (formKey) => {
   // Remove duplicates and return
   return [...new Set(variations)]
 }
-

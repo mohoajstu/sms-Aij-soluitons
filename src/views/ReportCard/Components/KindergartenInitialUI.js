@@ -375,7 +375,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               name="daysAbsent"
               type="number"
-              value={formData['daysAbsent'] || ''}
+              value={formData['daysAbsent'] ?? ''}
               onChange={handleInputChange}
               placeholder="Enter days absent"
               min="0"
@@ -387,7 +387,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               name="totalDaysAbsent"
               type="number"
-              value={formData['totalDaysAbsent'] || ''}
+              value={formData['totalDaysAbsent'] ?? ''}
               onChange={handleInputChange}
               placeholder="Enter total days absent"
               min="0"
@@ -444,7 +444,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               name="timesLate"
               type="number"
-              value={formData['timesLate'] || ''}
+              value={formData['timesLate'] ?? ''}
               onChange={handleInputChange}
               placeholder="Enter times late"
               min="0"
@@ -456,7 +456,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               name="totalTimesLate"
               type="number"
-              value={formData['totalTimesLate'] || ''}
+              value={formData['totalTimesLate'] ?? ''}
               onChange={handleInputChange}
               placeholder="Enter total times late"
               min="0"

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { separateTermFields } from '../utils/termFieldSeparation'
+import { mergeFormDataWithStudent } from '../utils/mergeFormDataWithStudent'
 
 // Mock Firebase functions
 const mockDoc = vi.fn()
@@ -229,6 +230,124 @@ describe('Firebase Operations', () => {
     })
   })
 
+  describe('Form data normalization', () => {
+    it('overwrites stale student fields before saving', () => {
+      const student = {
+        id: 'student123',
+        fullName: 'Khaled El Husseini',
+        schooling: { oen: 'OEN123' },
+        grade: '2',
+        currentTermAbsenceCount: 2,
+        yearAbsenceCount: 5,
+        currentTermLateCount: 1,
+        yearLateCount: 3,
+      }
+
+      const formData = {
+        student: 'Luna Jarrar',
+        student_name: 'Luna Jarrar',
+        name: 'Luna Jarrar',
+        studentId: 'student999',
+        OEN: 'OEN999',
+        oen: 'OEN999',
+        grade: '3',
+        daysAbsent: 0,
+        totalDaysAbsent: 0,
+        timesLate: 0,
+        totalTimesLate: 0,
+      }
+
+      const merged = mergeFormDataWithStudent(formData, student)
+
+      expect(merged.student).toBe('Khaled El Husseini')
+      expect(merged.student_name).toBe('Khaled El Husseini')
+      expect(merged.name).toBe('Khaled El Husseini')
+      expect(merged.studentId).toBe('student123')
+      expect(merged.OEN).toBe('OEN123')
+      expect(merged.oen).toBe('OEN123')
+      expect(merged.grade).toBe('2')
+      expect(merged.daysAbsent).toBe(2)
+      expect(merged.totalDaysAbsent).toBe(5)
+      expect(merged.timesLate).toBe(1)
+      expect(merged.totalTimesLate).toBe(3)
+    })
+
+    it('normalizes JK/SK grades and keeps other fields intact', () => {
+      const student = {
+        id: 'studentJK',
+        fullName: 'Amina Noor',
+        grade: 'Junior Kindergarten',
+        currentTermAbsenceCount: 0,
+        yearAbsenceCount: 1,
+        currentTermLateCount: 0,
+        yearLateCount: 1,
+      }
+
+      const formData = {
+        teacher: 'Ms. Teacher',
+        customNote: 'Keep this',
+        grade: '5',
+      }
+
+      const merged = mergeFormDataWithStudent(formData, student)
+
+      expect(merged.grade).toBe('JK')
+      expect(merged.teacher).toBe('Ms. Teacher')
+      expect(merged.customNote).toBe('Keep this')
+    })
+
+    it('handles missing student by returning original formData', () => {
+      const formData = {
+        student: 'Luna Jarrar',
+        grade: '2',
+        teacher: 'Ms. Teacher',
+      }
+
+      const merged = mergeFormDataWithStudent(formData, null)
+
+      expect(merged).toEqual(formData)
+    })
+
+    it('preserves zero attendance values from student stats', () => {
+      const student = {
+        id: 'studentZero',
+        fullName: 'Zero Case',
+        grade: '4',
+        currentTermAbsenceCount: 0,
+        yearAbsenceCount: 0,
+        currentTermLateCount: 0,
+        yearLateCount: 0,
+      }
+
+      const merged = mergeFormDataWithStudent({}, student)
+
+      expect(merged.daysAbsent).toBe(0)
+      expect(merged.totalDaysAbsent).toBe(0)
+      expect(merged.timesLate).toBe(0)
+      expect(merged.totalTimesLate).toBe(0)
+    })
+
+    it('falls back to studentId when fullName is missing', () => {
+      const student = {
+        id: 'studentNoName',
+        firstName: 'Khaled',
+        lastName: 'El Husseini',
+        oen: 'OEN555',
+        program: 'Grade 2',
+      }
+
+      const merged = mergeFormDataWithStudent({}, student)
+
+      expect(merged.student).toBe('Khaled El Husseini')
+      expect(merged.student_name).toBe('Khaled El Husseini')
+      expect(merged.name).toBe('Khaled El Husseini')
+      expect(merged.oen).toBe('OEN555')
+      expect(merged.OEN).toBe('OEN555')
+      expect(merged.grade).toBe('2')
+      expect(merged.studentId).toBe('studentNoName')
+    })
+  })
+
   describe('Cross-teacher draft loading', () => {
     it('handles draft from different teacher', () => {
       const mockDraftFromOtherTeacher = {
@@ -256,4 +375,3 @@ describe('Firebase Operations', () => {
     })
   })
 })
-

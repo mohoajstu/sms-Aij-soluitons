@@ -74,6 +74,14 @@ import {
   mergeTermFields,
   copyTerm1ToTerm2,
 } from './utils/termFieldSeparation'
+import { mergeFormDataWithStudent } from './utils/mergeFormDataWithStudent'
+import {
+  normalizeGradeForClassMatch,
+  courseMatchesGrade,
+  pickHomeroomCourseByGrade,
+} from './utils/courseSelection'
+import { mapOldFieldNamesToNew } from './utils/mapOldFieldNamesToNew'
+import { getNextDraftId } from './utils/reviewNavigation'
 
 
 // NOTE: All PDF assets are served from the public folder so we can access them by URL at runtime.
@@ -237,6 +245,10 @@ const ReportCard = ({ presetReportCardId = null }) => {
   const [isLoadingDraft, setIsLoadingDraft] = useState(false)
   const isLoadingDraftRef = useRef(false) // Synchronous guard
   const [currentDraftId, setCurrentDraftId] = useState(null) // Track which draft is loaded
+  const currentDraftIdRef = useRef(null)
+  const [reviewDraftOrder, setReviewDraftOrder] = useState([])
+  const reviewNavTokenRef = useRef(0)
+  const [isReviewNavigating, setIsReviewNavigating] = useState(false)
   // B9: Disable editing setting
   const [disableEditing, setDisableEditing] = useState(false)
   // B3: Hide progress reports setting
@@ -325,9 +337,9 @@ const ReportCard = ({ presetReportCardId = null }) => {
     setFormData({}) // Clear all form data
     // Clear current localStorage entries
     if (selectedReportCard && selectedStudent) {
-      Object.keys(REPORT_CARD_TYPES).forEach((reportType) => {
-        localStorage.removeItem(`reportcard_form_${reportType}`)
-        localStorage.removeItem(`reportcard_form_${reportType}_${selectedStudent.id}`)
+      REPORT_CARD_TYPES.forEach((reportType) => {
+        localStorage.removeItem(`reportcard_form_${reportType.id}`)
+        localStorage.removeItem(`reportcard_form_${reportType.id}_${selectedStudent.id}`)
       })
     }
   }
@@ -341,18 +353,40 @@ const ReportCard = ({ presetReportCardId = null }) => {
     }
 
     try {
-      // Find the student's class/course
       const coursesRef = collection(firestore, 'courses')
-      const coursesQuery = query(
-        coursesRef,
-        where('archived', '==', false),
-        where('enrolledList', 'array-contains', student.id)
-      )
-      const coursesSnapshot = await getDocs(coursesQuery)
+      const normalizedGrade = normalizeGradeForClassMatch(student.grade || student.program || '')
 
-      if (!coursesSnapshot.empty) {
-        // Get the first matching course (assuming student is in one primary class)
-        const courseDoc = coursesSnapshot.docs[0]
+      // Prefer homeroom course by grade (more reliable for class navigation)
+      const homeroomQuery = query(coursesRef, where('archived', '==', false))
+      const homeroomSnapshot = await getDocs(homeroomQuery)
+      const homeroomCourseDoc = pickHomeroomCourseByGrade(homeroomSnapshot.docs, normalizedGrade)
+
+      let courseDoc = homeroomCourseDoc
+
+      // Fallback: find by enrollment (enrolledList, then students)
+      if (!courseDoc) {
+        const coursesQuery = query(
+          coursesRef,
+          where('archived', '==', false),
+          where('enrolledList', 'array-contains', student.id)
+        )
+        const coursesSnapshot = await getDocs(coursesQuery)
+        if (!coursesSnapshot.empty) {
+          courseDoc = coursesSnapshot.docs[0]
+        } else {
+          const legacyQuery = query(
+            coursesRef,
+            where('archived', '==', false),
+            where('students', 'array-contains', student.id)
+          )
+          const legacySnapshot = await getDocs(legacyQuery)
+          if (!legacySnapshot.empty) {
+            courseDoc = legacySnapshot.docs[0]
+          }
+        }
+      }
+
+      if (courseDoc) {
         const courseData = courseDoc.data()
         const enrolledList = courseData.enrolledList || courseData.students || []
 
@@ -437,6 +471,17 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
   // B5: Handle navigation between students
   const handleNavigateStudent = async (direction) => {
+    if (allowEditFromReview && reviewDraftOrder.length > 0 && currentDraftId) {
+      const effectiveDraftId = currentDraftIdRef.current || currentDraftId
+      const nextDraftId = getNextDraftId(reviewDraftOrder, effectiveDraftId, direction)
+      if (!nextDraftId) return
+      if (isReviewNavigating) return
+      setIsReviewNavigating(true)
+      await loadDraftById(nextDraftId)
+      setIsReviewNavigating(false)
+      return
+    }
+
     if (classStudents.length === 0 || currentStudentIndex < 0) return
 
     const newIndex =
@@ -464,6 +509,26 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
   // Handle student selection
   const handleStudentSelect = async (student) => {
+    // Always fetch latest attendance from Firestore so days absent / times late show correctly
+    if (student?.id) {
+      try {
+        const studentSnap = await getDoc(doc(firestore, 'students', student.id))
+        if (studentSnap.exists()) {
+          const data = studentSnap.data()
+          const stats = data.attendanceStats || {}
+          student = {
+            ...student,
+            currentTermAbsenceCount: stats.currentTermAbsenceCount ?? student.currentTermAbsenceCount ?? 0,
+            yearAbsenceCount: stats.yearAbsenceCount ?? student.yearAbsenceCount ?? 0,
+            currentTermLateCount: stats.currentTermLateCount ?? student.currentTermLateCount ?? 0,
+            yearLateCount: stats.yearLateCount ?? student.yearLateCount ?? 0,
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch student attendance for report card:', err)
+      }
+    }
+
     setSelectedStudent(student)
 
     // B5: Load class students for navigation
@@ -588,7 +653,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           school: 'Tarbiyah Learning Academy',
           schoolAddress: '3990 Old Richmond Rd, Nepean, ON K2H 8W3',
           board: 'Private',
-          principal: 'Ghazala Choudary',
+          principal: 'Ghazala Choudhary',
           telephone: '613 421 1700',
           
           // Board Info - Empty by default
@@ -612,7 +677,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           
           // Initialize signatures (will be updated when teacher loads)
           teacherSignature: { type: 'typed', value: '' },
-          principalSignature: { type: 'typed', value: 'Ghazala Choudary' },
+          principalSignature: { type: 'typed', value: 'Ghazala Choudhary' },
       }
       
       // B6: Set homeroom teacher name (async, update after initial set)
@@ -664,7 +729,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
             
             // Auto-fill principal signature if not already set
             if (!prevData.principalSignature?.value || prevData.principalSignature.value.trim() === '') {
-              updatedData.principalSignature = { type: 'typed', value: 'Ghazala Choudary' }
+              updatedData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
               console.log('✅ Set principalSignature:', updatedData.principalSignature)
             }
             
@@ -699,58 +764,84 @@ const ReportCard = ({ presetReportCardId = null }) => {
     }
   }
 
-  /**
-   * Map old field names to new field names for backward compatibility
-   * This handles the migration from individual PE/Visual Arts comment fields
-   * to combined Health & PE and Arts comment fields
-   * 
-   * @param {Object} formData - Form data with potentially old field names
-   * @param {string} reportType - Report card type ID to determine correct mapping
-   * @returns {Object} Form data with old field names mapped to new ones
-   */
-  const mapOldFieldNamesToNew = (formData, reportType) => {
-    if (!formData || typeof formData !== 'object') {
-      return formData
-    }
-
-    const mappedData = { ...formData }
-    let hasMappings = false
-
-    // Map old PE field to new combined Health & PE field
-    if (mappedData.peStrengthAndNextStepsForImprovement) {
-      // Only map if the new field doesn't already have a value
-      if (!mappedData.healthAndPEStrengthsAndNextStepsForImprovement) {
-        mappedData.healthAndPEStrengthsAndNextStepsForImprovement = mappedData.peStrengthAndNextStepsForImprovement
-        hasMappings = true
-        console.log('🔄 Mapped old field: peStrengthAndNextStepsForImprovement → healthAndPEStrengthsAndNextStepsForImprovement')
+  const loadDraftById = async (draftId) => {
+    if (!draftId) return
+    try {
+      reviewNavTokenRef.current += 1
+      const token = reviewNavTokenRef.current
+      setIsLoadingDraft(true)
+      isLoadingDraftRef.current = true
+      setFormData({})
+      setSelectedStudent(null)
+      setSelectedReportCard('')
+      const draftRef = doc(firestore, 'reportCardDrafts', draftId)
+      const draftSnap = await getDoc(draftRef)
+      if (!draftSnap.exists()) {
+        console.warn('Draft not found for navigation:', draftId)
+        return
       }
-      // Remove the old field after mapping
-      delete mappedData.peStrengthAndNextStepsForImprovement
-    }
+      if (token !== reviewNavTokenRef.current) return
+      const draftData = draftSnap.data()
+      let loadedFormData = mapOldFieldNamesToNew(draftData.formData || {}, draftData.reportCardType)
 
-    // Map old Visual Arts field to new combined Arts field
-    if (mappedData.visualArtsStrengthAndNextStepsForImprovement) {
-      // Determine the correct new field name based on report type
-      const newArtsFieldName = reportType === '7-8-report-card' 
-        ? 'artsStrengthsAndNextStepsForImprovement' 
-        : 'artsStrengthAndNextStepsForImprovement'
-      
-      // Only map if the new field doesn't already have a value
-      if (!mappedData[newArtsFieldName]) {
-        mappedData[newArtsFieldName] = mappedData.visualArtsStrengthAndNextStepsForImprovement
-        hasMappings = true
-        console.log(`🔄 Mapped old field: visualArtsStrengthAndNextStepsForImprovement → ${newArtsFieldName}`)
+      let selected = draftData.selectedStudent || {}
+      const studentId = draftData.studentId || selected.id
+      if (studentId) {
+        try {
+          const studentSnap = await getDoc(doc(firestore, 'students', studentId))
+          if (studentSnap.exists()) {
+            const studentData = studentSnap.data()
+            const firstName = studentData.personalInfo?.firstName || studentData.firstName || ''
+            const lastName = studentData.personalInfo?.lastName || studentData.lastName || ''
+            selected = {
+              id: studentSnap.id,
+              fullName: `${firstName} ${lastName}`.trim(),
+              grade: studentData.schooling?.program || studentData.personalInfo?.grade || studentData.grade || '',
+              oen: studentData.schooling?.oen || studentData.personalInfo?.oen || studentData.oen || '',
+              schoolId: studentData.personalInfo?.schoolId || studentData.schoolId || studentData.tarbiyahId || studentSnap.id,
+              currentTermAbsenceCount: studentData.attendanceStats?.currentTermAbsenceCount || 0,
+              currentTermLateCount: studentData.attendanceStats?.currentTermLateCount || 0,
+              yearAbsenceCount: studentData.attendanceStats?.yearAbsenceCount || 0,
+              yearLateCount: studentData.attendanceStats?.yearLateCount || 0,
+            }
+          }
+        } catch (err) {
+          console.warn('Could not refresh student data for draft navigation:', err)
+        }
       }
-      // Remove the old field after mapping
-      delete mappedData.visualArtsStrengthAndNextStepsForImprovement
-    }
 
-    if (hasMappings) {
-      console.log('✅ Applied field name mappings for backward compatibility')
-    }
+      const refreshedFormData = mergeFormDataWithStudent(loadedFormData, selected)
 
-    return mappedData
+      if (token !== reviewNavTokenRef.current) return
+      setSelectedReportCard(draftData.reportCardType || '')
+      setSelectedStudent(selected)
+      setFormData(refreshedFormData)
+      setCurrentDraftId(draftId)
+      currentDraftIdRef.current = draftId
+      setSelectedTerm(draftData.term || 'term1')
+      if (reviewDraftOrder.length > 0) {
+        const idx = reviewDraftOrder.indexOf(draftId)
+        if (idx >= 0) {
+          localStorage.setItem('reviewDraftIndex', String(idx))
+        }
+      }
+
+      // keep allowEditFromReview enabled
+      setAllowEditFromReview(true)
+      localStorage.setItem('editingDraftId', draftId)
+      localStorage.setItem('draftFormData', JSON.stringify(refreshedFormData || {}))
+      localStorage.setItem('draftStudent', JSON.stringify(selected || {}))
+      localStorage.setItem('draftReportType', draftData.reportCardType || '')
+    } catch (error) {
+      console.error('Error loading draft by id:', error)
+    } finally {
+      setTimeout(() => {
+        setIsLoadingDraft(false)
+        isLoadingDraftRef.current = false
+      }, 200)
+    }
   }
+
 
   /**
    * Load existing draft from Firebase for the given student + report type + term
@@ -847,7 +938,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           refreshedFormData.teacherSignature = { type: 'typed', value: refreshedFormData.teacher_name || refreshedFormData.teacher }
         }
         if (!refreshedFormData.principalSignature?.value) {
-          refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudary' }
+          refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
         }
         
         setFormData(refreshedFormData)
@@ -977,7 +1068,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
               refreshedFormData.teacherSignature = { type: 'typed', value: refreshedFormData.teacher_name || refreshedFormData.teacher }
             }
             if (!refreshedFormData.principalSignature?.value) {
-              refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudary' }
+              refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
             }
             
             setFormData(refreshedFormData)
@@ -1144,7 +1235,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
                 refreshedFormData.teacherSignature = { type: 'typed', value: refreshedFormData.teacher_name || refreshedFormData.teacher }
               }
               if (!refreshedFormData.principalSignature?.value) {
-                refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudary' }
+                refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
               }
               
               setFormData(refreshedFormData)
@@ -1246,7 +1337,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           refreshedFormData.teacherSignature = { type: 'typed', value: refreshedFormData.teacher_name }
               }
               if (!refreshedFormData.principalSignature?.value) {
-                refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudary' }
+                refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
               }
               
               setFormData(refreshedFormData)
@@ -1373,7 +1464,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           school: 'Tarbiyah Learning Academy',
           schoolAddress: '3990 Old Richmond Rd, Nepean, ON K2H 8W3',
           board: 'Private',
-          principal: 'Ghazala Choudary',
+          principal: 'Ghazala Choudhary',
           telephone: '613 421 1700',
           
           // Board Info - Empty by default
@@ -1400,7 +1491,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           
           // Initialize signatures (will be updated when teacher loads)
           teacherSignature: { type: 'typed', value: '' },
-          principalSignature: { type: 'typed', value: 'Ghazala Choudary' },
+          principalSignature: { type: 'typed', value: 'Ghazala Choudhary' },
         }
 
         // Auto-fill date from settings (always use current setting to keep dates in sync)
@@ -1417,7 +1508,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           studentData.teacherSignature = { type: 'typed', value: studentData.teacher_name }
         }
         if (!studentData.principalSignature?.value) {
-          studentData.principalSignature = { type: 'typed', value: 'Ghazala Choudary' }
+          studentData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
         }
 
         // Merge with any existing formData to avoid overwriting freshly-set fields (e.g., teacher)
@@ -1434,6 +1525,19 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
     loadDraft()
   }, [selectedStudent, selectedReportCard, selectedTerm, user, reportCardDateSetting]) // B7: Include selectedTerm and reportCardDateSetting in dependencies
+
+  // Keep attendance fields in sync with the latest student stats
+  useEffect(() => {
+    if (!selectedStudent) return
+
+    setFormData((prev) => mergeFormDataWithStudent(prev, selectedStudent))
+  }, [
+    selectedStudent?.id,
+    selectedStudent?.currentTermAbsenceCount,
+    selectedStudent?.yearAbsenceCount,
+    selectedStudent?.currentTermLateCount,
+    selectedStudent?.yearLateCount,
+  ])
 
   // Handle form data changes with improved structure
   const handleFormDataChange = (newFormData) => {
@@ -1482,8 +1586,11 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
       const reportCardType = getCurrentReportType()
 
+      // Ensure student-identifying fields are always in sync before saving
+      const mergedFormData = mergeFormDataWithStudent(formData, selectedStudent)
+
       // Separate term-specific fields from shared fields
-      const { termData, sharedData } = separateTermFields(formData, selectedTerm)
+      const { termData, sharedData } = separateTermFields(mergedFormData, selectedTerm)
       
       // Clean formData to remove undefined values (Firestore doesn't allow undefined)
       const cleanTermData = {}
@@ -1656,53 +1763,79 @@ const ReportCard = ({ presetReportCardId = null }) => {
     const draftFormData = localStorage.getItem('draftFormData')
     const draftStudent = localStorage.getItem('draftStudent')
     const draftReportType = localStorage.getItem('draftReportType')
+    const storedReviewOrder = localStorage.getItem('reviewDraftOrder')
 
     if (editingDraftId && draftFormData && draftStudent && draftReportType) {
-      try {
-        // When opening via "Edit Report Card" (Admin Review or Past Reports), allow Next/Previous and Save All
-        setAllowEditFromReview(true)
+      const loadDraftFromStorage = async () => {
+        try {
+          // When opening via "Edit Report Card" (Admin Review or Past Reports), allow Next/Previous and Save All
+          setAllowEditFromReview(true)
 
-        let parsedFormData = JSON.parse(draftFormData)
-        const parsedStudent = JSON.parse(draftStudent)
+          let parsedFormData = JSON.parse(draftFormData)
+          let parsedStudent = JSON.parse(draftStudent)
 
-        // Map old field names to new field names for backward compatibility
-        parsedFormData = mapOldFieldNamesToNew(parsedFormData, draftReportType)
+          // Fetch latest attendance from Firestore so days absent / times late are correct
+          if (parsedStudent?.id) {
+            try {
+              const studentSnap = await getDoc(doc(firestore, 'students', parsedStudent.id))
+              if (studentSnap.exists()) {
+                const data = studentSnap.data()
+                const stats = data.attendanceStats || {}
+                parsedStudent = {
+                  ...parsedStudent,
+                  currentTermAbsenceCount: stats.currentTermAbsenceCount ?? parsedStudent.currentTermAbsenceCount ?? 0,
+                  yearAbsenceCount: stats.yearAbsenceCount ?? parsedStudent.yearAbsenceCount ?? 0,
+                  currentTermLateCount: stats.currentTermLateCount ?? parsedStudent.currentTermLateCount ?? 0,
+                  yearLateCount: stats.yearLateCount ?? parsedStudent.yearLateCount ?? 0,
+                }
+              }
+            } catch (err) {
+              console.warn('Could not fetch student attendance when loading draft:', err)
+            }
+          }
 
-        // ALWAYS refresh attendance data with latest student counts
-        const refreshedFormData = {
-          ...parsedFormData,
-          daysAbsent: parsedStudent.currentTermAbsenceCount || 0,
-          totalDaysAbsent: parsedStudent.yearAbsenceCount || 0,
-          timesLate: parsedStudent.currentTermLateCount || 0,
-          totalTimesLate: parsedStudent.yearLateCount || 0,
+          // Map old field names to new field names for backward compatibility
+          parsedFormData = mapOldFieldNamesToNew(parsedFormData, draftReportType)
+
+          // Keep student-identifying fields in sync to prevent stale cross-student data
+          const refreshedFormData = mergeFormDataWithStudent(parsedFormData, parsedStudent)
+
+          // Set the report card type first (this overrides any presetReportCardId)
+          setSelectedReportCard(draftReportType)
+          setSelectedStudent(parsedStudent)
+          setFormData(refreshedFormData) // Use refreshed data
+          setCurrentDraftId(editingDraftId) // Track which draft we're editing
+          currentDraftIdRef.current = editingDraftId
+          if (storedReviewOrder) {
+            try {
+              setReviewDraftOrder(JSON.parse(storedReviewOrder))
+            } catch (err) {
+              console.warn('Invalid reviewDraftOrder in storage')
+            }
+          }
+
+          // Clear the draft editing flags
+          localStorage.removeItem('editingDraftId')
+          localStorage.removeItem('draftFormData')
+          localStorage.removeItem('draftStudent')
+          localStorage.removeItem('draftReportType')
+
+          console.log('✅ Loaded draft for editing:', {
+            draftId: editingDraftId,
+            reportType: draftReportType,
+            student: parsedStudent.fullName,
+            formDataKeys: Object.keys(parsedFormData),
+          })
+        } catch (error) {
+          console.error('Error loading draft:', error)
+          // Clear invalid draft data
+          localStorage.removeItem('editingDraftId')
+          localStorage.removeItem('draftFormData')
+          localStorage.removeItem('draftStudent')
+          localStorage.removeItem('draftReportType')
         }
-
-        // Set the report card type first (this overrides any presetReportCardId)
-        setSelectedReportCard(draftReportType)
-        setSelectedStudent(parsedStudent)
-        setFormData(refreshedFormData) // Use refreshed data
-        setCurrentDraftId(editingDraftId) // Track which draft we're editing
-
-        // Clear the draft editing flags
-        localStorage.removeItem('editingDraftId')
-        localStorage.removeItem('draftFormData')
-        localStorage.removeItem('draftStudent')
-        localStorage.removeItem('draftReportType')
-
-        console.log('✅ Loaded draft for editing:', {
-          draftId: editingDraftId,
-          reportType: draftReportType,
-          student: parsedStudent.fullName,
-          formDataKeys: Object.keys(parsedFormData),
-        })
-      } catch (error) {
-        console.error('Error loading draft:', error)
-        // Clear invalid draft data
-        localStorage.removeItem('editingDraftId')
-        localStorage.removeItem('draftFormData')
-        localStorage.removeItem('draftStudent')
-        localStorage.removeItem('draftReportType')
       }
+      loadDraftFromStorage()
     }
   }, []) // Run only once on mount
 
@@ -2471,13 +2604,13 @@ const ReportCard = ({ presetReportCardId = null }) => {
                       Change Student
                     </CButton>
                     {/* B5: Next/Previous navigation */}
-                    {classStudents.length > 0 && currentStudentIndex >= 0 && (
+                    {((classStudents.length > 0 && currentStudentIndex >= 0) || (allowEditFromReview && reviewDraftOrder.length > 0)) && (
                       <div className="d-flex align-items-center gap-2">
                         <CButton
                           color="outline-primary"
                           size="sm"
                           onClick={() => handleNavigateStudent('previous')}
-                          disabled={(!allowEditFromReview && disableEditing) || classStudents.length <= 1}
+                          disabled={isLoadingDraft || isReviewNavigating || (allowEditFromReview && reviewDraftOrder.length <= 1) || (!allowEditFromReview && classStudents.length <= 1)}
                           variant="outline"
                         >
                           ← Previous
@@ -2486,12 +2619,17 @@ const ReportCard = ({ presetReportCardId = null }) => {
                           color="outline-primary"
                           size="sm"
                           onClick={() => handleNavigateStudent('next')}
-                          disabled={(!allowEditFromReview && disableEditing) || classStudents.length <= 1}
+                          disabled={isLoadingDraft || isReviewNavigating || (allowEditFromReview && reviewDraftOrder.length <= 1) || (!allowEditFromReview && classStudents.length <= 1)}
                           variant="outline"
                         >
                           Next →
                         </CButton>
-                        {classStudents.length > 1 && (
+                        {allowEditFromReview && reviewDraftOrder.length > 1 && currentDraftId && (
+                          <small className="text-muted ms-2">
+                            ({reviewDraftOrder.indexOf(currentDraftId) + 1} of {reviewDraftOrder.length})
+                          </small>
+                        )}
+                        {!allowEditFromReview && classStudents.length > 1 && (
                           <small className="text-muted ms-2">
                             ({currentStudentIndex + 1} of {classStudents.length})
                           </small>

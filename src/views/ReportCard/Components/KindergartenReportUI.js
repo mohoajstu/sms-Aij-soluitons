@@ -202,7 +202,7 @@ const KindergartenReportUI = ({
                 type="number"
                 id="daysAbsent"
                 name="daysAbsent"
-                value={formData.daysAbsent || ''}
+                value={formData.daysAbsent ?? ''}
                 onChange={handleInputChange}
                 placeholder="Enter days absent"
               />
@@ -213,7 +213,7 @@ const KindergartenReportUI = ({
                 type="number"
                 id="totalDaysAbsent"
                 name="totalDaysAbsent"
-                value={formData.totalDaysAbsent || ''}
+                value={formData.totalDaysAbsent ?? ''}
                 onChange={handleInputChange}
                 placeholder="Enter total days absent"
               />
@@ -266,7 +266,7 @@ const KindergartenReportUI = ({
                 type="number"
                 id="timesLate"
                 name="timesLate"
-                value={formData.timesLate || ''}
+                value={formData.timesLate ?? ''}
                 onChange={handleInputChange}
                 placeholder="Will be auto-filled"
                 readOnly
@@ -279,7 +279,7 @@ const KindergartenReportUI = ({
                 type="number"
                 id="totalTimesLate"
                 name="totalTimesLate"
-                value={formData.totalTimesLate || ''}
+                value={formData.totalTimesLate ?? ''}
                 onChange={handleInputChange}
                 placeholder="Will be auto-filled"
                 readOnly

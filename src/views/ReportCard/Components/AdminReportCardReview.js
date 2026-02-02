@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   CCard,
   CCardBody,
@@ -28,11 +28,12 @@ import {
   CModalFooter,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilCheck, cilX, cilUser, cilCloudDownload, cilFilter, cilSearch, cilPencil, cilFindInPage, cilReload } from '@coreui/icons'
+import { cilCheck, cilX, cilUser, cilCloudDownload, cilFilter, cilSearch, cilPencil, cilFindInPage, cilReload, cilChevronLeft, cilChevronRight } from '@coreui/icons'
 import { collection, getDocs, query, where, orderBy, updateDoc, doc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore'
 import { firestore, storage } from '../../../Firebase/firebase'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import useAuth from '../../../Firebase/useAuth'
+import { buildReviewOrderPayload } from '../utils/reviewOrder'
 import dayjs from 'dayjs'
 import { exportProgressReport1to6 } from '../exportProgressReport1to6'
 import { exportProgressReport7to8 } from '../exportProgressReport7to8'
@@ -517,6 +518,14 @@ const AdminReportCardReview = () => {
     return matchesSearch && matchesStatus && matchesTeacher && matchesGrade
   })
 
+  // Sort filtered list by lastModified desc (most recent first)
+  const sortedFilteredReportCards = useMemo(() => {
+    return [...filteredReportCards].sort((a, b) => {
+      return (new Date(b.lastModified) || 0) - (new Date(a.lastModified) || 0)
+    })
+  }, [filteredReportCards])
+
+
   // Get approved reports in filtered results
   const getApprovedInFilter = () => {
     return filteredReportCards.filter(rc => rc.status === 'approved')
@@ -589,6 +598,11 @@ const AdminReportCardReview = () => {
     if (!selectedReportCardData) return
 
     try {
+      // Store ordered list for admin review navigation inside editor (freeze current filtered order)
+      const { ids, index } = buildReviewOrderPayload(sortedFilteredReportCards, selectedReportCardData.id)
+      localStorage.setItem('reviewDraftOrder', JSON.stringify(ids))
+      localStorage.setItem('reviewDraftIndex', String(index))
+
       // Store draft data in localStorage for the ReportCard component to pick up
       localStorage.setItem('editingDraftId', selectedReportCardData.id)
       localStorage.setItem('draftFormData', JSON.stringify(selectedReportCardData.formData || {}))
@@ -954,7 +968,7 @@ const AdminReportCardReview = () => {
               </CTableRow>
             </CTableHead>
             <CTableBody>
-              {filteredReportCards.map((reportCard) => {
+              {sortedFilteredReportCards.map((reportCard) => {
                 const isApproving = approvingIds.has(reportCard.id)
                 const isReapproving = reapprovingIds.has(reportCard.id)
                 const isSelected = selectedForReapproval.has(reportCard.id)
@@ -1125,8 +1139,47 @@ const AdminReportCardReview = () => {
         scrollable
       >
         <CModalHeader>
-          <CModalTitle>
-            Report Card: {selectedReportCard?.studentName || 'Loading...'}
+          <CModalTitle className="d-flex align-items-center justify-content-between w-100 flex-wrap gap-2">
+            <span>Report Card: {selectedReportCard?.studentName || 'Loading...'}</span>
+            {selectedReportCard && sortedFilteredReportCards.length > 0 && (() => {
+              const currentIndex = sortedFilteredReportCards.findIndex(rc => rc.id === selectedReportCard.id)
+              const total = sortedFilteredReportCards.length
+              const atStart = currentIndex <= 0
+              const atEnd = currentIndex >= total - 1
+              return (
+                <span className="d-flex align-items-center gap-2 ms-2">
+                  <CButton
+                    color="outline-primary"
+                    size="sm"
+                    onClick={() => {
+                      const prev = sortedFilteredReportCards[currentIndex - 1]
+                      if (prev) handleViewReportCard(prev)
+                    }}
+                    disabled={atStart || loadingPdf}
+                    title="Previous report in list"
+                  >
+                    <CIcon icon={cilChevronLeft} className="me-1" />
+                    Previous
+                  </CButton>
+                  <span className="text-muted small">
+                    {currentIndex >= 0 ? `${currentIndex + 1} of ${total}` : ''}
+                  </span>
+                  <CButton
+                    color="outline-primary"
+                    size="sm"
+                    onClick={() => {
+                      const next = sortedFilteredReportCards[currentIndex + 1]
+                      if (next) handleViewReportCard(next)
+                    }}
+                    disabled={atEnd || loadingPdf}
+                    title="Next report in list"
+                  >
+                    Next
+                    <CIcon icon={cilChevronRight} className="ms-1" />
+                  </CButton>
+                </span>
+              )
+            })()}
           </CModalTitle>
         </CModalHeader>
         <CModalBody>

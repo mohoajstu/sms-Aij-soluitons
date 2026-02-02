@@ -502,7 +502,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               id="daysAbsent"
               name="daysAbsent"
-              value={formData.daysAbsent || ''}
+              value={formData.daysAbsent ?? ''}
               onChange={handleInputChange}
               placeholder="Enter days absent"
               type="number"
@@ -517,7 +517,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               id="totalDaysAbsent"
               name="totalDaysAbsent"
-              value={formData.totalDaysAbsent || ''}
+              value={formData.totalDaysAbsent ?? ''}
               onChange={handleInputChange}
               placeholder="Enter total days absent"
               type="number"
@@ -532,7 +532,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               id="timesLate"
               name="timesLate"
-              value={formData.timesLate || ''}
+              value={formData.timesLate ?? ''}
               onChange={handleInputChange}
               placeholder="Enter times late"
               type="number"
@@ -547,7 +547,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               id="totalTimesLate"
               name="totalTimesLate"
-              value={formData.totalTimesLate || ''}
+              value={formData.totalTimesLate ?? ''}
               onChange={handleInputChange}
               placeholder="Enter total times late"
               type="number"
@@ -1099,14 +1099,14 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange }) => {
     }
   }, [formData.teacher_name, formData.teacher])
 
-  // Auto-fill principal signature with "Ghazala Choudary"
+  // Auto-fill principal signature with "Ghazala Choudhary"
   useEffect(() => {
     if (!formData.principalSignature || 
         !formData.principalSignature.value || 
         formData.principalSignature.value.trim() === '') {
       onFormDataChange({
         ...formData,
-        principalSignature: { type: 'typed', value: 'Ghazala Choudary' },
+        principalSignature: { type: 'typed', value: 'Ghazala Choudhary' },
       })
     }
   }, [formData.principalSignature, onFormDataChange])

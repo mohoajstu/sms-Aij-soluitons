@@ -469,7 +469,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               id="daysAbsent"
               name="daysAbsent"
-              value={formData.daysAbsent || ''}
+              value={formData.daysAbsent ?? ''}
               onChange={handleInputChange}
               placeholder="Enter days absent"
               type="number"
@@ -484,7 +484,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               id="totalDaysAbsent"
               name="totalDaysAbsent"
-              value={formData.totalDaysAbsent || ''}
+              value={formData.totalDaysAbsent ?? ''}
               onChange={handleInputChange}
               placeholder="Enter total days absent"
               type="number"
@@ -499,7 +499,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               id="timesLate"
               name="timesLate"
-              value={formData.timesLate || ''}
+              value={formData.timesLate ?? ''}
               onChange={handleInputChange}
               placeholder="Enter times late"
               type="number"
@@ -514,7 +514,7 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
             <CFormInput
               id="totalTimesLate"
               name="totalTimesLate"
-              value={formData.totalTimesLate || ''}
+              value={formData.totalTimesLate ?? ''}
               onChange={handleInputChange}
               placeholder="Enter total times late"
               type="number"
@@ -760,6 +760,32 @@ const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term1
       ...formData,
       [name]: newValue,
     })
+  }
+
+  const commentFieldFallbacks = {
+    languageStrengthsAndStepsForImprovement: 'languageStrengthsAndNextStepsForImprovement',
+    languageStrengthsAndNextStepsForImprovement: 'languageStrengthsAndStepsForImprovement',
+    nativeLanguageStrengthsAndNextStepsForImprovement: 'nativeLanguageStrengthsAndStepsForImprovement',
+    nativeLanguageStrengthsAndStepsForImprovement: 'nativeLanguageStrengthsAndNextStepsForImprovement',
+  }
+
+  const getCommentValue = (field) => {
+    const fallback = commentFieldFallbacks[field]
+    if (formData[field] !== undefined && formData[field] !== null) return formData[field]
+    if (fallback && formData[fallback] !== undefined && formData[fallback] !== null) return formData[fallback]
+    return ''
+  }
+
+  const handleCommentChange = (field, value) => {
+    const updates = {
+      ...formData,
+      [field]: value,
+    }
+    const fallback = commentFieldFallbacks[field]
+    if (fallback) {
+      updates[fallback] = value
+    }
+    onFormDataChange(updates)
   }
 
   const subjects = [
@@ -1413,8 +1439,8 @@ const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term1
                       <CFormTextarea
                         id={subject.commentField}
                         name={subject.commentField}
-                        value={formData[subject.commentField] || ''}
-                        onChange={handleInputChange}
+                        value={getCommentValue(subject.commentField)}
+                        onChange={(e) => handleCommentChange(subject.commentField, e.target.value)}
                         placeholder={`Provide comments about the student's performance in ${subject.name.toLowerCase()}...`}
                         rows={4}
                         maxLength={500}
@@ -1439,7 +1465,7 @@ const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term1
                           handleChange={(field, value) => {
                             // Map AI output to the actual subject comment field
                             if (field === 'teacher_comments' || field === 'strengths_next_steps') {
-                              onFormDataChange({ ...formData, [subject.commentField]: value })
+                              handleCommentChange(subject.commentField, value)
                             }
                           }}
                           buttonText=""
@@ -1503,17 +1529,17 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange, onGenerate, isG
         }
         // Only update if principal signature is also set or will be set
         if (!updatedFormData.principalSignature?.value) {
-          updatedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudary' }
+          updatedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
         }
         onFormDataChange(updatedFormData)
       }
     }
   }, [formData.teacher_name])
 
-  // Auto-fill principal signature with "Ghazala Choudary"
+  // Auto-fill principal signature with "Ghazala Choudhary"
   useEffect(() => {
     const currentPrincipal = formData.principalSignature?.value || ''
-    const expectedPrincipal = 'Ghazala Choudary'
+    const expectedPrincipal = 'Ghazala Choudhary'
     
     // Always auto-fill if signature is empty or doesn't match
     if (!currentPrincipal || currentPrincipal.trim() === '' || currentPrincipal !== expectedPrincipal) {

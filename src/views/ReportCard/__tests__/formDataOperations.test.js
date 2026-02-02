@@ -35,7 +35,7 @@ describe('Form Data Operations', () => {
         teacher: 'Test Teacher',
         teacher_name: 'Test Teacher',
         school: 'Tarbiyah Learning Academy',
-        principal: 'Ghazala Choudary',
+        principal: 'Ghazala Choudhary',
       }
 
       expect(formData.student).toBe('John Doe')

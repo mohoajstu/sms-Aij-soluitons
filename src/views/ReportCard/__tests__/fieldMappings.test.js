@@ -128,5 +128,14 @@ describe('Field Name Mappings', () => {
       expect(variations.length).toBeGreaterThanOrEqual(1)
     })
   })
-})
 
+  describe('Student field variations', () => {
+    it('includes common second-page student name fields', () => {
+      const variations = generateFieldNameVariations('student_name')
+      expect(variations).toContain('student2')
+      expect(variations).toContain('student_2')
+      expect(variations).toContain('Student_2')
+      expect(variations).toContain('Student 2')
+    })
+  })
+})

@@ -2,10 +2,10 @@ import React from 'react'
 import {
   CCol,
   CRow,
-  CFormCheck,
   CFormInput,
   CFormLabel,
 } from '@coreui/react'
+import { toggleErsOption } from '../utils/ersToggle'
 
 const EarlyReadingScreeningSection = ({ formData, onFormDataChange }) => {
   const handleInputChange = (e) => {
@@ -14,31 +14,41 @@ const EarlyReadingScreeningSection = ({ formData, onFormDataChange }) => {
 
   const handleCheckboxChange = (e) => {
     const { name, checked } = e.target
-    let newFormData = { ...formData, [name]: checked }
-
-    if (checked) {
-      if (name === 'ERSCompletedYes') {
-        newFormData.ERSCompletedNo = false
-        newFormData.ERSCompletedNA = false
-      }
-      if (name === 'ERSCompletedNo') {
-        newFormData.ERSCompletedYes = false
-        newFormData.ERSCompletedNA = false
-      }
-      if (name === 'ERSCompletedNA') {
-        newFormData.ERSCompletedYes = false
-        newFormData.ERSCompletedNo = false
-      }
-      if (name === 'ERSBenchmarkYes') {
-        newFormData.ERSBenchmarkNo = false
-      }
-      if (name === 'ERSBenchmarkNo') {
-        newFormData.ERSBenchmarkYes = false
-      }
-    }
-
+    const newFormData = toggleErsOption(formData, name, checked)
     onFormDataChange(newFormData)
   }
+
+  const checkboxStyle = {
+    width: '22px',
+    height: '22px',
+    marginRight: '10px',
+    accentColor: '#6f42c1',
+  }
+
+  const checkboxLabelStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontSize: '1.1rem',
+    cursor: 'pointer',
+    userSelect: 'none',
+    padding: '6px 8px',
+    borderRadius: '6px',
+  }
+
+  const ERSCheckbox = ({ id, name, label }) => (
+    <label htmlFor={id} style={checkboxLabelStyle}>
+      <input
+        type="checkbox"
+        id={id}
+        name={name}
+        checked={formData[name] || false}
+        onChange={handleCheckboxChange}
+        style={checkboxStyle}
+      />
+      {label}
+    </label>
+  )
 
   return (
     <div className="p-3" style={{ backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
@@ -47,34 +57,10 @@ const EarlyReadingScreeningSection = ({ formData, onFormDataChange }) => {
           <div className="mb-2">
             <CFormLabel className="fw-bold mb-2">ERS completed:</CFormLabel>
           </div>
-          <div className="d-flex gap-3">
-            <CFormCheck
-              type="checkbox"
-              id="ERSCompletedYes"
-              name="ERSCompletedYes"
-              label="Yes"
-              checked={formData.ERSCompletedYes || false}
-              onChange={handleCheckboxChange}
-              className="fs-5"
-            />
-            <CFormCheck
-              type="checkbox"
-              id="ERSCompletedNo"
-              name="ERSCompletedNo"
-              label="No"
-              checked={formData.ERSCompletedNo || false}
-              onChange={handleCheckboxChange}
-              className="fs-5"
-            />
-            <CFormCheck
-              type="checkbox"
-              id="ERSCompletedNA"
-              name="ERSCompletedNA"
-              label="N/A"
-              checked={formData.ERSCompletedNA || false}
-              onChange={handleCheckboxChange}
-              className="fs-5"
-            />
+          <div className="d-flex flex-wrap gap-3">
+            <ERSCheckbox id="ERSCompletedYes" name="ERSCompletedYes" label="Yes" />
+            <ERSCheckbox id="ERSCompletedNo" name="ERSCompletedNo" label="No" />
+            <ERSCheckbox id="ERSCompletedNA" name="ERSCompletedNA" label="N/A" />
           </div>
         </CCol>
 
@@ -123,25 +109,10 @@ const EarlyReadingScreeningSection = ({ formData, onFormDataChange }) => {
           <div className="mb-2">
             <CFormLabel className="fw-bold mb-2">Benchmark met:</CFormLabel>
           </div>
-          <div className="d-flex gap-3">
-            <CFormCheck
-              type="checkbox"
-              id="ERSBenchmarkYes"
-              name="ERSBenchmarkYes"
-              label="Yes"
-              checked={formData.ERSBenchmarkYes || false}
-              onChange={handleCheckboxChange}
-              className="fs-5"
-            />
-            <CFormCheck
-              type="checkbox"
-              id="ERSBenchmarkNo"
-              name="ERSBenchmarkNo"
-              label="No"
-              checked={formData.ERSBenchmarkNo || false}
-              onChange={handleCheckboxChange}
-              className="fs-5"
-            />
+          <div className="d-flex flex-wrap gap-3">
+            <ERSCheckbox id="ERSBenchmarkYes" name="ERSBenchmarkYes" label="Yes" />
+            <ERSCheckbox id="ERSBenchmarkNo" name="ERSBenchmarkNo" label="No" />
+            <ERSCheckbox id="ERSBenchmarkNA" name="ERSBenchmarkNA" label="N/A" />
           </div>
         </CCol>
       </CRow>

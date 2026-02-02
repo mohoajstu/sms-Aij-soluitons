@@ -616,7 +616,7 @@ const DynamicReportCardForm = ({ reportCardType, onFormDataChange }) => {
   // Render individual form field
   const renderField = (field) => {
     const { name, label, inputType, options, size, maxLength } = field;
-    const value = formData[name] || (inputType === 'checkbox' ? false : '');
+    const value = formData[name] ?? (inputType === 'checkbox' ? false : '');
     
     const getColSize = (size) => {
       switch (size) {
