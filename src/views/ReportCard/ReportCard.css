@@ -119,6 +119,29 @@
   color: white;
 }
 
+/* Read-only mode (disable editing visually across all fields) */
+.rc-readonly input,
+.rc-readonly textarea,
+.rc-readonly select,
+.rc-readonly button,
+.rc-readonly .signature-canvas,
+.rc-readonly canvas,
+.rc-readonly .MuiInputBase-root,
+.rc-readonly .MuiButton-root {
+  pointer-events: none;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.rc-readonly .ai-button-minimal {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.rc-readonly-banner {
+  border-left: 4px solid #f1c40f;
+}
+
 .step-indicator:not(.active):not(.completed) .step-number {
   background-color: #e0e0e0;
   color: #9e9e9e;

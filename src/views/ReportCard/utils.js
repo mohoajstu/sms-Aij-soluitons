@@ -1526,6 +1526,15 @@ const ReportCard = ({ presetReportCardId = null }) => {
     loadDraft()
   }, [selectedStudent, selectedReportCard, selectedTerm, user, reportCardDateSetting]) // B7: Include selectedTerm and reportCardDateSetting in dependencies
 
+  // Ensure review-edit override never applies to non-admins
+  useEffect(() => {
+    if (role && role !== 'admin') {
+      setAllowEditFromReview(false)
+      setReviewDraftOrder([])
+      currentDraftIdRef.current = null
+    }
+  }, [role])
+
   // Keep attendance fields in sync with the latest student stats
   useEffect(() => {
     if (!selectedStudent) return
@@ -1541,6 +1550,9 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
   // Handle form data changes with improved structure
   const handleFormDataChange = (newFormData) => {
+    if (disableEditing && role !== 'admin' && !allowEditFromReview) {
+      return
+    }
     // Don't trigger changes while loading draft
     if (isLoadingDraftRef.current) {
       console.log('⏸️ Ignoring form change - still loading draft')
@@ -1765,11 +1777,18 @@ const ReportCard = ({ presetReportCardId = null }) => {
     const draftReportType = localStorage.getItem('draftReportType')
     const storedReviewOrder = localStorage.getItem('reviewDraftOrder')
 
+    if (!editingDraftId) {
+      setAllowEditFromReview(false)
+      setReviewDraftOrder([])
+    }
+
     if (editingDraftId && draftFormData && draftStudent && draftReportType) {
       const loadDraftFromStorage = async () => {
         try {
           // When opening via "Edit Report Card" (Admin Review or Past Reports), allow Next/Previous and Save All
-          setAllowEditFromReview(true)
+          if (role === 'admin') {
+            setAllowEditFromReview(true)
+          }
 
           let parsedFormData = JSON.parse(draftFormData)
           let parsedStudent = JSON.parse(draftStudent)
@@ -2478,8 +2497,10 @@ const ReportCard = ({ presetReportCardId = null }) => {
     }
   }
 
+  const isReadOnlyMode = disableEditing && role !== 'admin' && !allowEditFromReview
+
   return (
-    <CContainer fluid>
+    <CContainer fluid className={isReadOnlyMode ? 'rc-readonly' : ''}>
       <CRow>
         <CCol>
           <h2>
@@ -2487,6 +2508,11 @@ const ReportCard = ({ presetReportCardId = null }) => {
               ? `${getCurrentReportType()?.name || 'Report Card Generator'}`
               : 'Report Card Generator'}
           </h2>
+          {isReadOnlyMode && (
+            <CAlert color="warning" className="mt-2 rc-readonly-banner">
+              Editing is currently disabled by administrators. You can view report cards, but changes are locked.
+            </CAlert>
+          )}
 
           {/* Progress Indicator - Only show when not on individual report card page */}
           {!presetReportCardId && (
