@@ -73,6 +73,7 @@ import {
   separateTermFields,
   mergeTermFields,
   copyTerm1ToTerm2,
+  getFieldTerm,
 } from './utils/termFieldSeparation'
 import { mergeFormDataWithStudent } from './utils/mergeFormDataWithStudent'
 import {
@@ -82,7 +83,31 @@ import {
 } from './utils/courseSelection'
 import { mapOldFieldNamesToNew } from './utils/mapOldFieldNamesToNew'
 import { getNextDraftId } from './utils/reviewNavigation'
+import {
+  appendDraftVersion,
+  getLatestFormData,
+} from './utils/draftVersioning'
 
+const isCommentField = (fieldName) => {
+  if (!fieldName || typeof fieldName !== 'string') return false
+  const lower = fieldName.toLowerCase()
+  if (lower.includes('signature')) return false
+  if (lower.includes('strength') && lower.includes('nextsteps')) return true
+  if (lower.includes('stepsforimprovement')) return true
+  if (lower.endsWith('comments')) return true
+  if (lower === 'teacher_comments' || lower === 'strengths_next_steps') return true
+  return false
+}
+
+const initializeTerm2FromTerm1 = (term1FormData) => {
+  const term2FormData = copyTerm1ToTerm2(term1FormData)
+  Object.keys(term2FormData).forEach((key) => {
+    if (isCommentField(key)) {
+      term2FormData[key] = ''
+    }
+  })
+  return term2FormData
+}
 
 // NOTE: All PDF assets are served from the public folder so we can access them by URL at runtime.
 // The folder name is "ReportCards" (no space).
@@ -782,7 +807,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
       }
       if (token !== reviewNavTokenRef.current) return
       const draftData = draftSnap.data()
-      let loadedFormData = mapOldFieldNamesToNew(draftData.formData || {}, draftData.reportCardType)
+      let loadedFormData = mapOldFieldNamesToNew(getLatestFormData(draftData) || {}, draftData.reportCardType)
 
       let selected = draftData.selectedStudent || {}
       const studentId = draftData.studentId || selected.id
@@ -879,7 +904,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
       if (draftSnap.exists()) {
         const draftData = draftSnap.data()
-        let loadedFormData = draftData.formData || {}
+        let loadedFormData = getLatestFormData(draftData) || {}
         
         console.log('✅ Found existing draft with deterministic ID:', {
           draftId: draftId,
@@ -989,14 +1014,24 @@ const ReportCard = ({ presetReportCardId = null }) => {
           // Get the most recent draft matching the term
           const drafts = allDrafts.filter(draft => draft.data.term === term)
           
-          // If no drafts match the selected term, fall back to the latest draft
-          // to ensure saved work is visible even if term selection was off.
-          const draftsToConsider = drafts.length > 0 ? drafts : allDrafts
+          // If no drafts match the selected term:
+          // - Term 2: don't fall back to Term 1 here; allow Step 3 to copy Term 1 → Term 2
+          // - Term 1: fall back to latest draft so saved work is visible
+          let draftsToConsider = drafts
           if (drafts.length === 0 && allDrafts.length > 0) {
-            console.warn('⚠️ No drafts matched selected term, falling back to latest draft', {
-              requestedTerm: term,
-              latestDraftTerm: allDrafts[0]?.data?.term,
-            })
+            if (term === 'term2') {
+              console.warn('⚠️ No Term 2 drafts found; skipping fallback so Term 2 can initialize', {
+                requestedTerm: term,
+                latestDraftTerm: allDrafts[0]?.data?.term,
+              })
+              draftsToConsider = []
+            } else {
+              console.warn('⚠️ No drafts matched selected term, falling back to latest draft', {
+                requestedTerm: term,
+                latestDraftTerm: allDrafts[0]?.data?.term,
+              })
+              draftsToConsider = allDrafts
+            }
           }
 
           if (draftsToConsider.length > 0) {
@@ -1004,7 +1039,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
             draftsToConsider.sort((a, b) => b.lastModified - a.lastModified)
             const existingDraft = draftsToConsider[0]
             const draftData = existingDraft.data
-            let loadedFormData = draftData.formData || {}
+            let loadedFormData = getLatestFormData(draftData) || {}
             const effectiveTerm = draftData.term || term
             
             console.log('✅ Found draft from any teacher:', {
@@ -1168,7 +1203,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
             
             if (term1DraftSnap && term1DraftSnap.exists()) {
               const term1DraftData = term1DraftSnap.data()
-              let term1FormData = term1DraftData.formData || {}
+              let term1FormData = getLatestFormData(term1DraftData) || {}
               
               console.log('📋 Using completed Term 1 draft as base for Term 2', {
                 draftId: term1DraftId,
@@ -1179,7 +1214,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
               term1FormData = mapOldFieldNamesToNew(term1FormData, reportType)
               
               // Convert Term 1 fields to Term 2 equivalents
-              const term2FormData = copyTerm1ToTerm2(term1FormData)
+              const term2FormData = initializeTerm2FromTerm1(term1FormData)
               
               // C18: Autofill Placement only in Term 2 for KG reports
               if (reportType && (reportType.includes('kg') || reportType.includes('kindergarten'))) {
@@ -1292,7 +1327,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
               })
               
               const latestTerm1Draft = term1Drafts[0]
-              let term1FormData = latestTerm1Draft.data.formData || {}
+              let term1FormData = getLatestFormData(latestTerm1Draft.data) || {}
               
               console.log('📋 Using latest Term 1 draft as base for Term 2:', {
                 draftId: latestTerm1Draft.id,
@@ -1305,7 +1340,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
               term1FormData = mapOldFieldNamesToNew(term1FormData, reportType)
               
               // Convert Term 1 fields to Term 2 equivalents
-              const term2FormData = copyTerm1ToTerm2(term1FormData)
+              const term2FormData = initializeTerm2FromTerm1(term1FormData)
               
               // C18: Autofill Placement only in Term 2 for KG reports
               if (reportType && (reportType.includes('kg') || reportType.includes('kindergarten'))) {
@@ -1571,6 +1606,9 @@ const ReportCard = ({ presetReportCardId = null }) => {
     await saveDraft()
   }
 
+  const MAX_DRAFT_VERSIONS = 10
+
+
   // Save draft report card to Firestore
   const saveDraft = async () => {
     if (!user || !selectedStudent || !selectedReportCard) {
@@ -1680,6 +1718,14 @@ const ReportCard = ({ presetReportCardId = null }) => {
       if (existingDoc.exists()) {
         console.log('📝 Updating existing draft...')
         const existingData = existingDoc.data()
+        const previousFormData = getLatestFormData(existingData)
+        const nextVersions = appendDraftVersion(
+          existingData.versions,
+          draftData,
+          cleanFormData,
+          previousFormData,
+          MAX_DRAFT_VERSIONS,
+        )
         
         // If this draft was previously approved, reset it to pending when edited
         const wasApproved = existingData.adminReviewStatus === 'approved' || existingData.status === 'complete'
@@ -1696,6 +1742,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           originalTeacherId: existingData.originalTeacherId || existingData.uid,
           originalTeacherName: existingData.originalTeacherName || existingData.teacherName,
           lastModified: serverTimestamp(), // Update modification time
+          versions: nextVersions,
           // Reset approval status if it was previously approved
           adminReviewStatus: resetApprovalStatus,
           status: wasApproved ? 'draft' : (existingData.status || 'draft'),
@@ -1717,11 +1764,19 @@ const ReportCard = ({ presetReportCardId = null }) => {
         }
       } else {
         console.log('📄 Creating new draft...')
+        const versions = appendDraftVersion(
+          [],
+          draftData,
+          cleanFormData,
+          {},
+          MAX_DRAFT_VERSIONS,
+        )
         // Create new draft with original creator info
         await setDoc(draftRef, {
           ...draftData,
           originalTeacherId: user.uid,
           originalTeacherName: user.displayName || user.email || 'Unknown Teacher',
+          versions: versions,
         })
         setSaveMessage('Draft saved successfully!')
         setHasUnsavedChanges(false) // B5: Clear unsaved changes flag
@@ -2745,7 +2800,12 @@ const ReportCard = ({ presetReportCardId = null }) => {
                       color="primary"
                       size="lg"
                       onClick={saveAll}
-                      disabled={isSaving || !selectedStudent || !selectedReportCard || (!allowEditFromReview && disableEditing)}
+                      disabled={
+                        isSaving ||
+                        !selectedStudent ||
+                        !selectedReportCard ||
+                        (disableEditing && role !== 'admin' && !allowEditFromReview)
+                      }
                       className="d-flex align-items-center justify-content-center gap-2 mx-auto"
                     >
                       {isSaving ? (

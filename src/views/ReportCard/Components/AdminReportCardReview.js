@@ -33,6 +33,10 @@ import { collection, getDocs, query, where, orderBy, updateDoc, doc, getDoc, add
 import { firestore, storage } from '../../../Firebase/firebase'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import useAuth from '../../../Firebase/useAuth'
+import {
+  appendDraftVersion,
+  getLatestFormData,
+} from '../utils/draftVersioning'
 import { buildReviewOrderPayload } from '../utils/reviewOrder'
 import dayjs from 'dayjs'
 import { exportProgressReport1to6 } from '../exportProgressReport1to6'
@@ -58,6 +62,7 @@ const AdminReportCardReview = () => {
   const [batchApproving, setBatchApproving] = useState(false)
   const [selectedForReapproval, setSelectedForReapproval] = useState(new Set())
   const [reapprovingIds, setReapprovingIds] = useState(new Set())
+  const [versionHistory, setVersionHistory] = useState([])
   const { user, role } = useAuth()
 
   // Load report cards from Firestore
@@ -126,6 +131,7 @@ const AdminReportCardReview = () => {
 
     loadReportCards()
   }, [role])
+
 
   // Update report card status (for needs_revision)
   const updateReportCardStatus = async (reportCardId, newStatus) => {
@@ -573,10 +579,17 @@ const AdminReportCardReview = () => {
       
       if (draftSnap.exists()) {
         const draftData = draftSnap.data()
+        const versions = Array.isArray(draftData.versions) ? draftData.versions : []
+        const sortedVersions = [...versions].sort((a, b) => {
+          const aTime = new Date(a.savedAt || 0).getTime()
+          const bTime = new Date(b.savedAt || 0).getTime()
+          return bTime - aTime
+        })
+        setVersionHistory(sortedVersions.slice(0, 10))
         setSelectedReportCardData({
           ...reportCard,
           finalPdfUrl: draftData.finalPdfUrl || null,
-          formData: draftData.formData || reportCard.formData,
+          formData: getLatestFormData(draftData) || reportCard.formData,
           selectedStudent: draftData.selectedStudent || reportCard.selectedStudent,
           reportCardType: draftData.reportCardType || reportCard.reportCardType,
         })
@@ -623,6 +636,49 @@ const AdminReportCardReview = () => {
     } catch (err) {
       console.error('Error setting up edit:', err)
       alert('Failed to load report card for editing. Please try again.')
+    }
+  }
+
+  const handleRestoreVersion = async (version) => {
+    if (!selectedReportCardData?.id || !version?.formData) return
+    if (!window.confirm('Restore this version? This will overwrite the current draft.')) return
+    try {
+      const draftRef = doc(firestore, 'reportCardDrafts', selectedReportCardData.id)
+      const draftSnap = await getDoc(draftRef)
+      if (!draftSnap.exists()) {
+        alert('Draft not found. Please refresh and try again.')
+        return
+      }
+      const draftData = draftSnap.data()
+      const latestFormData = getLatestFormData(draftData)
+      const nextVersions = appendDraftVersion(
+        draftData.versions,
+        {
+          uid: user?.uid || '',
+          teacherName: user?.displayName || user?.email || 'Admin',
+          term: draftData.term,
+        },
+        version.formData,
+        latestFormData,
+        10
+      )
+      await updateDoc(draftRef, {
+        formData: version.formData,
+        versions: nextVersions,
+        lastModified: serverTimestamp(),
+        adminReviewStatus: 'pending',
+        status: 'draft',
+      })
+
+      setSelectedReportCardData((prev) => ({
+        ...prev,
+        formData: version.formData,
+        status: 'pending',
+      }))
+      setVersionHistory([...nextVersions].sort((a, b) => new Date(b.savedAt || 0) - new Date(a.savedAt || 0)).slice(0, 10))
+    } catch (err) {
+      console.error('Failed to restore version:', err)
+      alert('Failed to restore version. Please try again.')
     }
   }
 
@@ -1234,6 +1290,48 @@ const AdminReportCardReview = () => {
                   You can edit it to generate a finalized PDF.
                 </CAlert>
               )}
+
+              <div className="mt-4">
+                <h5 className="mb-3">Version History</h5>
+                {versionHistory.length === 0 ? (
+                  <CAlert color="light">No previous versions available.</CAlert>
+                ) : (
+                  <CTable responsive hover>
+                    <CTableHead>
+                      <CTableRow>
+                        <CTableHeaderCell>Saved At</CTableHeaderCell>
+                        <CTableHeaderCell>Teacher</CTableHeaderCell>
+                        <CTableHeaderCell>Changes</CTableHeaderCell>
+                        <CTableHeaderCell>Actions</CTableHeaderCell>
+                      </CTableRow>
+                    </CTableHead>
+                    <CTableBody>
+                      {versionHistory.map((version) => (
+                      <CTableRow key={version.id}>
+                        <CTableDataCell>
+                          {version.savedAt ? dayjs(version.savedAt).format('YYYY-MM-DD HH:mm') : '—'}
+                        </CTableDataCell>
+                        <CTableDataCell>{version.teacherName || '—'}</CTableDataCell>
+                        <CTableDataCell>
+                          {Array.isArray(version.changedFields) && version.changedFields.length > 0
+                            ? `${version.changedFields.length} field${version.changedFields.length === 1 ? '' : 's'}`
+                            : '—'}
+                        </CTableDataCell>
+                        <CTableDataCell>
+                          <CButton
+                            color="outline-primary"
+                            size="sm"
+                            onClick={() => handleRestoreVersion(version)}
+                          >
+                            Restore
+                          </CButton>
+                        </CTableDataCell>
+                      </CTableRow>
+                      ))}
+                    </CTableBody>
+                  </CTable>
+                )}
+              </div>
             </div>
           ) : (
             <CAlert color="danger">Failed to load report card data.</CAlert>

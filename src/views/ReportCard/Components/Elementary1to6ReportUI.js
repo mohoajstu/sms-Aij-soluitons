@@ -528,7 +528,7 @@ StudentSchoolInfoSection.propTypes = {
  * Learning Skills & Work Habits Section
  * Modern form section for learning skills assessment
  */
-const LearningSkillsSection = ({ formData, onFormDataChange, onGenerate, isGenerating }) => {
+const LearningSkillsSection = ({ formData, onFormDataChange, onGenerate, isGenerating, selectedTerm = 'term1' }) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target
     onFormDataChange({
@@ -537,7 +537,7 @@ const LearningSkillsSection = ({ formData, onFormDataChange, onGenerate, isGener
     })
   }
 
-  const learningSkills = [
+  const learningSkillsTerm1 = [
     {
       key: 'responsibility1',
       label: 'Responsibility',
@@ -569,6 +569,39 @@ const LearningSkillsSection = ({ formData, onFormDataChange, onGenerate, isGener
       description: 'Sets own individual goals and monitors progress towards achieving them',
     },
   ]
+  const learningSkillsTerm2 = [
+    {
+      key: 'responsibility2',
+      label: 'Responsibility',
+      description: 'Fulfills responsibilities and commitments within the learning environment',
+    },
+    {
+      key: 'organization2',
+      label: 'Organization',
+      description: 'Devises and applies a plan of work to complete projects and tasks',
+    },
+    {
+      key: 'independentWork2',
+      label: 'Independent Work',
+      description: 'Accepts various roles and an equitable share of work in a group',
+    },
+    {
+      key: 'collaboration2',
+      label: 'Collaboration',
+      description: 'Responds positively to the ideas, opinions, values, and traditions of others',
+    },
+    {
+      key: 'initiative2',
+      label: 'Initiative',
+      description: 'Looks for and acts on new ideas and opportunities for learning',
+    },
+    {
+      key: 'selfRegulation2',
+      label: 'Self-Regulation',
+      description: 'Sets own individual goals and monitors progress towards achieving them',
+    },
+  ]
+  const learningSkills = selectedTerm === 'term2' ? learningSkillsTerm2 : learningSkillsTerm1
 
   const getRatingOptions = () => [
     { value: 'E', label: 'Excellent' },
@@ -659,6 +692,7 @@ LearningSkillsSection.propTypes = {
   onFormDataChange: PropTypes.func.isRequired,
   onGenerate: PropTypes.func.isRequired,
   isGenerating: PropTypes.bool,
+  selectedTerm: PropTypes.string,
 }
 
 /**
@@ -1520,12 +1554,13 @@ const Elementary1to6ReportUI = ({
               </div>
             </CAccordionHeader>
             <CAccordionBody>
-              <LearningSkillsSection
-                formData={formData}
-                onFormDataChange={onFormDataChange}
-                onGenerate={handleGenerate}
-                isGenerating={false} // No longer generating here, handled by AIReportCommentInput
-              />
+      <LearningSkillsSection
+        formData={formData}
+        onFormDataChange={onFormDataChange}
+        onGenerate={handleGenerate}
+        isGenerating={false} // No longer generating here, handled by AIReportCommentInput
+        selectedTerm={selectedTerm}
+      />
             </CAccordionBody>
           </CAccordionItem>
 

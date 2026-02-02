@@ -71,6 +71,23 @@ export const mapOldFieldNamesToNew = (formData, reportType) => {
     console.log('🔄 Mapped field: nativeLanguageStrengthsAndNextStepsForImprovement → nativeLanguageStrengthsAndStepsForImprovement')
   }
 
+  // French comment field variations (Strength vs Strengths) across 1-6 vs 7-8 report cards
+  if (reportType === '1-6-report-card') {
+    if (mappedData.frenchStrengthsAndNextStepsForImprovement && !mappedData.frenchStrengthAndNextStepsForImprovement) {
+      mappedData.frenchStrengthAndNextStepsForImprovement = mappedData.frenchStrengthsAndNextStepsForImprovement
+      delete mappedData.frenchStrengthsAndNextStepsForImprovement
+      hasMappings = true
+      console.log('🔄 Mapped field: frenchStrengthsAndNextStepsForImprovement → frenchStrengthAndNextStepsForImprovement')
+    }
+  } else if (reportType === '7-8-report-card') {
+    if (mappedData.frenchStrengthAndNextStepsForImprovement && !mappedData.frenchStrengthsAndNextStepsForImprovement) {
+      mappedData.frenchStrengthsAndNextStepsForImprovement = mappedData.frenchStrengthAndNextStepsForImprovement
+      delete mappedData.frenchStrengthAndNextStepsForImprovement
+      hasMappings = true
+      console.log('🔄 Mapped field: frenchStrengthAndNextStepsForImprovement → frenchStrengthsAndNextStepsForImprovement')
+    }
+  }
+
   // Map old Visual Arts field to new combined Arts field
   if (mappedData.visualArtsStrengthAndNextStepsForImprovement) {
     // Determine the correct new field name based on report type
