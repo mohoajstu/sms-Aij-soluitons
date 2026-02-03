@@ -14,7 +14,7 @@ import {
 import PropTypes from 'prop-types'
 import { debounce } from 'lodash'
 import { generateFieldNameVariations } from '../fieldMappings'
-import { updateAllFieldAppearances } from '../pdfFillingUtils'
+import { updateAllFieldAppearances, stripArabicFromText } from '../pdfFillingUtils'
 
 // Set up the worker for PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
@@ -498,6 +498,8 @@ const PDFViewer = React.memo(
             timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman)
           }
 
+
+
           // Track filling statistics
           let filledCount = 0
           let matchedFields = []
@@ -745,7 +747,9 @@ const PDFViewer = React.memo(
                     console.log(`PDFViewer: 👨‍🏫 TEACHER FIELD - Found PDF field "${fieldName}", attempting to fill with:`, processedValue)
                   }
                   
-                  const success = fillPDFField(field, processedValue, timesRomanFont, 10)
+                  const valueText = processedValue?.toString?.() ?? ''
+                  const safeText = stripArabicFromText(valueText)
+                  const success = fillPDFField(field, safeText, timesRomanFont, 10)
                   if (success) {
                     filledCount++
                     
@@ -803,7 +807,9 @@ const PDFViewer = React.memo(
                   // Check if the field name contains the form key (without special chars)
                   if (pdfFieldNameLower.includes(formKeyLower) || formKeyLower.includes(pdfFieldNameLower)) {
                     console.log(`PDFViewer: 🔍 Found fuzzy match: "${formKey}" -> "${pdfFieldName}"`)
-                    const success = fillPDFField(pdfField, processedValue, timesRomanFont, 10)
+                    const fuzzyValueText = processedValue?.toString?.() ?? ''
+                    const safeFuzzyText = stripArabicFromText(fuzzyValueText)
+                    const success = fillPDFField(pdfField, safeFuzzyText, timesRomanFont, 10)
                     if (success) {
                       filledCount++
                       matchedFields.push({
@@ -1827,19 +1833,27 @@ const PDFViewer = React.memo(
     const shouldBeLeftAligned = (fieldName) => {
       if (!fieldName) return false
       const lowerName = fieldName.toLowerCase()
-      
-      // Fields that should be left-aligned
+
       const leftAlignFields = [
-        'name', 'student', 'studentname',
+        'name',
+        'student',
+        'studentname',
         'grade',
-        'teacher', 'teachernam', 'teachername',
-        'principal', 'principle', 'principalname',
-        'sans', // Comments field
-        'strengths', 'nextsteps', 'improvement',
-        'comments', 'comment',
+        'teacher',
+        'teachernam',
+        'teachername',
+        'principal',
+        'principle',
+        'principalname',
+        'sans',
+        'strengths',
+        'nextsteps',
+        'improvement',
+        'comments',
+        'comment',
       ]
-      
-      return leftAlignFields.some(field => lowerName.includes(field))
+
+      return leftAlignFields.some((field) => lowerName.includes(field))
     }
 
     // Fill a specific PDF field with a value
@@ -1886,7 +1900,8 @@ const PDFViewer = React.memo(
                 // Set text alignment using quadding (Q) property
                 // 0=left, 1=center, 2=right
                 const alignment = shouldBeLeftAligned(fieldName) ? 0 : 1
-                acroField.setDefaultAppearance(`/F1 ${fontSize} Tf 0 g`)
+                const fontName = font?.name || 'F1'
+                acroField.setDefaultAppearance(`/${fontName} ${fontSize} Tf 0 g`)
                 
                 // Set the quadding (Q) property on the field's dictionary
                 // This controls text alignment within the field

@@ -245,4 +245,3 @@ export const exportProgressReport1to6 = async (pdfPath, formData, studentName) =
     throw error
   }
 }
-

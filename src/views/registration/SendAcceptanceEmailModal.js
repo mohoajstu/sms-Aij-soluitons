@@ -165,7 +165,7 @@ const SendAcceptanceEmailModal = ({
   }
 
   const acceptedApplications = applications.filter(
-    (app) => app.status === 'approved',
+    (app) => app.status === 'approved' && !app.archived,
   )
 
   const renderStepOne = () => (

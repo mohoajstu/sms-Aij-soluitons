@@ -121,4 +121,3 @@ export const exportQuranReport = async (pdfPath, formData, studentName) => {
     throw error
   }
 }
-

@@ -140,6 +140,9 @@ const RegistrationProcessingDashboard = () => {
       const emailSet = new Set()
       
       applications.forEach((app) => {
+        if (app.archived) {
+          return
+        }
         // Add primary guardian email if it exists
         if (app.primaryGuardian?.email) {
           emailSet.add(app.primaryGuardian.email.trim())

@@ -6,6 +6,16 @@
 import { PDFDocument, StandardFonts, PDFNumber, PDFName } from 'pdf-lib'
 import { generateFieldNameVariations } from './fieldMappings'
 
+const ARABIC_REGEX_GLOBAL = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+/g
+
+export const stripArabicFromText = (text) => {
+  if (!text) return text
+  return text
+    .replace(ARABIC_REGEX_GLOBAL, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
 /**
  * Update all field appearances to ensure they're visible
  * This is CRITICAL for checkboxes to appear correctly
@@ -16,10 +26,19 @@ import { generateFieldNameVariations } from './fieldMappings'
  */
 export const updateAllFieldAppearances = async (form, pdfDoc, context = 'PDF') => {
   try {
+    const timesRomanFont = await embedTimesRomanFont(pdfDoc)
     // First, update all field appearances using the form method
     if (form.updateFieldAppearances) {
-      form.updateFieldAppearances()
-      console.log(`${context}: ✅ Updated field appearances using form method`)
+      try {
+        if (timesRomanFont) {
+          form.updateFieldAppearances(timesRomanFont)
+        } else {
+          form.updateFieldAppearances()
+        }
+        console.log(`${context}: ✅ Updated field appearances using form method`)
+      } catch (appearanceError) {
+        console.warn(`${context}: ⚠️ Could not update field appearances using form method:`, appearanceError)
+      }
     } else {
       console.warn(`${context}: updateFieldAppearances method not available`)
     }
@@ -63,6 +82,9 @@ export const updateAllFieldAppearances = async (form, pdfDoc, context = 'PDF') =
                 if (fieldValue) {
                   // Force update by setting the text again
                   field.setText(fieldValue)
+                  if (timesRomanFont) {
+                    field.updateAppearances(timesRomanFont)
+                  }
                 }
               }
 
@@ -158,19 +180,27 @@ export const updateAllFieldAppearances = async (form, pdfDoc, context = 'PDF') =
 const shouldBeLeftAligned = (fieldName) => {
   if (!fieldName) return false
   const lowerName = fieldName.toLowerCase()
-  
-  // Fields that should be left-aligned
+
   const leftAlignFields = [
-    'name', 'student', 'studentname',
+    'name',
+    'student',
+    'studentname',
     'grade',
-    'teacher', 'teachernam', 'teachername',
-    'principal', 'principle', 'principalname',
-    'sans', // Comments field
-    'strengths', 'nextsteps', 'improvement',
-    'comments', 'comment',
+    'teacher',
+    'teachernam',
+    'teachername',
+    'principal',
+    'principle',
+    'principalname',
+    'sans',
+    'strengths',
+    'nextsteps',
+    'improvement',
+    'comments',
+    'comment',
   ]
-  
-  return leftAlignFields.some(field => lowerName.includes(field))
+
+  return leftAlignFields.some((field) => lowerName.includes(field))
 }
 
 /**
@@ -213,7 +243,8 @@ export const fillPDFField = (field, value, font = null, fontSize = 10) => {
             // Set text alignment using quadding (Q) property
             // 0=left, 1=center, 2=right
             const alignment = shouldBeLeftAligned(fieldName) ? 0 : 1
-            acroField.setDefaultAppearance(`/F1 ${fontSize} Tf 0 g`)
+            const fontName = font?.name || 'F1'
+            acroField.setDefaultAppearance(`/${fontName} ${fontSize} Tf 0 g`)
             
             // Set the quadding (Q) property on the field's dictionary
             // This controls text alignment within the field
@@ -404,7 +435,8 @@ export const fillPDFField = (field, value, font = null, fontSize = 10) => {
             try {
               const acroField = field.acroField
               // Signature fields should be left-aligned
-              acroField.setDefaultAppearance(`/F1 ${fontSize} Tf 0 g`)
+              const fontName = font?.name || 'F1'
+              acroField.setDefaultAppearance(`/${fontName} ${fontSize} Tf 0 g`)
               
               // Set the quadding (Q) property for left alignment
               try {
@@ -464,7 +496,6 @@ export const fillPDFFormWithData = async (pdfDoc, formData, timesRomanFont, cont
   let filledCount = 0
   const matchedFields = []
   const unmatchedFields = []
-
   // Fill fields based on form data
   for (const [formKey, value] of Object.entries(formData)) {
     // Skip empty values but allow false for checkboxes
@@ -509,7 +540,9 @@ export const fillPDFFormWithData = async (pdfDoc, formData, timesRomanFont, cont
       try {
         const field = form.getFieldMaybe(fieldName)
         if (field) {
-          const success = fillPDFField(field, processedValue, timesRomanFont, 10)
+          const valueText = processedValue?.toString?.() ?? ''
+          const safeText = stripArabicFromText(valueText)
+          const success = fillPDFField(field, safeText, timesRomanFont, 10)
           if (success) {
             filledCount++
             matchedFields.push({ formKey, pdfField: fieldName, value: processedValue.toString() })
@@ -568,4 +601,3 @@ export const embedTimesRomanFont = async (pdfDoc) => {
     return await pdfDoc.embedFont(StandardFonts.TimesRoman)
   }
 }
-

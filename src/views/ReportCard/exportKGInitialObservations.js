@@ -235,4 +235,3 @@ export const exportKGInitialObservations = async (pdfPath, formData, studentName
     throw error
   }
 }
-
