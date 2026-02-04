@@ -4,6 +4,7 @@
  */
 
 import { PDFDocument, StandardFonts, PDFNumber, PDFName, PDFDict, PDFStream, PDFRef } from 'pdf-lib'
+import fontkit from '@pdf-lib/fontkit'
 import { generateFieldNameVariations } from './fieldMappings'
 
 const ARABIC_REGEX_GLOBAL = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+/g
@@ -824,12 +825,20 @@ export const fillPDFFormWithData = async (pdfDoc, formData, timesRomanFont, cont
  */
 export const embedTimesRomanFont = async (pdfDoc) => {
   try {
-    // Try to load Times New Roman from fonts folder, fallback to standard TimesRoman
-    const timesFontBytes = await fetch('/fonts/TimesNewRoman.ttf')
+    // Try to load a Unicode-capable font from public/standard_fonts,
+    // fallback to standard TimesRoman (WinAnsi limited).
+    const baseUrl = import.meta?.env?.BASE_URL || '/'
+    const fontUrl = `${baseUrl.replace(/\/$/, '')}/standard_fonts/LiberationSans-Regular.ttf`
+    const timesFontBytes = await fetch(fontUrl)
       .then((res) => res.arrayBuffer())
       .catch(() => null)
     
     if (timesFontBytes) {
+      try {
+        pdfDoc.registerFontkit(fontkit)
+      } catch (e) {
+        console.warn('Could not register fontkit, falling back to standard font:', e)
+      }
       return await pdfDoc.embedFont(timesFontBytes)
     } else {
       return await pdfDoc.embedFont(StandardFonts.TimesRoman)

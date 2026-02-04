@@ -2,6 +2,7 @@
 import * as pdfjsLib from 'pdfjs-dist'
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min?url'
 import { PDFDocument, rgb, StandardFonts, PDFNumber, PDFName } from 'pdf-lib'
+import fontkit from '@pdf-lib/fontkit'
 import { CButton, CSpinner, CAlert } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import {
@@ -441,6 +442,11 @@ const PDFViewer = React.memo(
 
           const pdfBytes = await response.arrayBuffer()
           const pdfDoc = await PDFDocument.load(pdfBytes)
+          try {
+            pdfDoc.registerFontkit(fontkit)
+          } catch (e) {
+            console.warn('PDFViewer: Could not register fontkit, falling back to standard fonts:', e)
+          }
 
           // Get the form from the PDF
           const form = pdfDoc.getForm()
@@ -484,10 +490,13 @@ const PDFViewer = React.memo(
           // Embed Times Roman font for regular text fields (10pt)
           let timesRomanFont
           try {
-            // Try to load Times New Roman from fonts folder, fallback to standard TimesRoman
-            const timesFontBytes = await fetch('/fonts/TimesNewRoman.ttf').then((res) =>
-              res.arrayBuffer(),
-            ).catch(() => null)
+            // Try to load a Unicode-capable font from public/standard_fonts,
+            // fallback to standard TimesRoman (WinAnsi limited).
+            const baseUrl = import.meta?.env?.BASE_URL || '/'
+            const fontUrl = `${baseUrl.replace(/\/$/, '')}/standard_fonts/LiberationSans-Regular.ttf`
+            const timesFontBytes = await fetch(fontUrl)
+              .then((res) => res.arrayBuffer())
+              .catch(() => null)
             if (timesFontBytes) {
               timesRomanFont = await pdfDoc.embedFont(timesFontBytes)
             } else {
