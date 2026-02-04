@@ -22,7 +22,6 @@ import {
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilDescription, cilCloudDownload, cilHistory, cilSave } from '@coreui/icons'
-import { saveAs } from 'file-saver'
 
 import PDFViewer from './Components/PDFViewer'
 import KindergartenInitialUI from './Components/KindergartenInitialUI'
@@ -42,6 +41,9 @@ import {
   updateAllFieldAppearances,
   embedTimesRomanFont,
   fillPDFField,
+  normalizeSignatureFormData,
+  embedSignaturesIntoPdf,
+  drawTextIntoField,
 } from './pdfFillingUtils'
 // Import separate export functions for each report type
 import { exportProgressReport1to6 } from './exportProgressReport1to6'
@@ -216,6 +218,8 @@ const ReportCard = ({ presetReportCardId = null }) => {
   const [formError, setFormError] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
+  const [finalizeMessage, setFinalizeMessage] = useState('')
+  const finalizeMessageTimeoutRef = useRef(null)
   // B7: Term 1/Term 2 tabs
   const [selectedTerm, setSelectedTerm] = useState('term1') // 'term1' or 'term2'
 
@@ -1570,6 +1574,14 @@ const ReportCard = ({ presetReportCardId = null }) => {
     }
   }, [role])
 
+  useEffect(() => {
+    return () => {
+      if (finalizeMessageTimeoutRef.current) {
+        clearTimeout(finalizeMessageTimeoutRef.current)
+      }
+    }
+  }, [])
+
   // Keep attendance fields in sync with the latest student stats
   useEffect(() => {
     if (!selectedStudent) return
@@ -2367,6 +2379,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
   // Download the filled PDF
   const downloadFilledPDF = async () => {
     setIsGenerating(true)
+    setFinalizeMessage('')
 
     const reportCardType = getCurrentReportType()
     if (!reportCardType?.pdfPath) {
@@ -2419,20 +2432,81 @@ const ReportCard = ({ presetReportCardId = null }) => {
           // Embed Times Roman font for regular text fields (10pt)
           const timesRomanFont = await embedTimesRomanFont(pdfDoc)
 
+          const normalizedFormData = normalizeSignatureFormData(formData)
+          const signatureCount = await embedSignaturesIntoPdf(
+            pdfDoc,
+            form,
+            normalizedFormData,
+            'Download',
+          )
+          if (signatureCount > 0) {
+            console.log(`✅ Signatures embedded: ${signatureCount}`)
+          }
+
           // Fill all form fields using shared utility
-          await fillPDFFormWithData(pdfDoc, formData, timesRomanFont, 'Download')
+          await fillPDFFormWithData(pdfDoc, normalizedFormData, timesRomanFont, 'Download')
 
           // Update field appearances BEFORE flattening
           await updateAllFieldAppearances(form, pdfDoc, 'Download')
 
-          // Flatten the form
-          if (fields.length > 0) {
-            form.flatten()
-            const catalog = pdfDoc.catalog
+          // Force-draw and then flatten known duplicate name fields (KG second-page student name)
+          const forceFlattenNames = new Set(['Full_Name_1', 'Full_name_1', 'full_name_1'])
+          for (const field of fields) {
             try {
-              catalog.delete('AcroForm')
-            } catch (e) {
-              console.warn('Could not remove AcroForm:', e)
+              if (forceFlattenNames.has(field.getName())) {
+                await drawTextIntoField(
+                  pdfDoc,
+                  field,
+                  normalizedFormData.student || normalizedFormData.student_name || '',
+                  timesRomanFont,
+                  10,
+                )
+                field.flatten()
+              }
+            } catch (forceFlattenError) {
+              console.warn(`Could not force-flatten field "${field.getName()}":`, forceFlattenError)
+            }
+          }
+
+          // Flatten the form using the same robust logic as progress exports
+          if (fields.length > 0) {
+            console.log('🔧 Flattening PDF form fields for download...')
+            try {
+              console.log('🎯 FLATTENING: Standard + Fallback approach')
+
+              // METHOD 1: Try standard pdf-lib flattening first
+              console.log('🔧 Step 1: Standard pdf-lib form.flatten()...')
+              try {
+                form.flatten()
+              } catch (flattenError) {
+                console.warn('Flatten failed, retrying after appearance refresh:', flattenError)
+                await updateAllFieldAppearances(form, pdfDoc, 'Download-Retry')
+                try {
+                  form.flatten()
+                } catch (flattenRetryError) {
+                  // If flattening still fails, try per-field flattening
+                  console.warn('⚠️ Retry flatten failed, trying individual field flattening...')
+                  for (const field of fields) {
+                    try {
+                      field.flatten()
+                    } catch (fieldFlattenError) {
+                      console.log(`Skipping field "${field.getName()}" during flatten`)
+                    }
+                  }
+                }
+              }
+
+              // METHOD 2: Remove AcroForm from catalog
+              console.log('🗑️ Step 2: Removing AcroForm from catalog...')
+              const catalog = pdfDoc.catalog
+              try {
+                catalog.delete('AcroForm')
+                console.log('✅ AcroForm removed from catalog')
+              } catch (e) {
+                console.warn('Could not remove AcroForm:', e)
+              }
+            } catch (flattenError) {
+              console.warn('❌ Error during flattening:', flattenError)
             }
           }
 
@@ -2502,9 +2576,14 @@ const ReportCard = ({ presetReportCardId = null }) => {
         console.warn('User not authenticated. Skipping Firebase upload.')
       }
 
-      // Then trigger the local download
-      saveAs(blob, fileName)
-      console.log(`✅ Successfully triggered download for: ${fileName}`)
+      console.log(`✅ Finalized PDF stored in cloud for: ${fileName}`)
+      setFinalizeMessage('Finalized successfully. The completed report is now available for approval.')
+      if (finalizeMessageTimeoutRef.current) {
+        clearTimeout(finalizeMessageTimeoutRef.current)
+      }
+      finalizeMessageTimeoutRef.current = setTimeout(() => {
+        setFinalizeMessage('')
+      }, 4000)
     } catch (error) {
       console.error('Error during PDF processing and download:', error)
       alert('An error occurred while trying to process or download the PDF.')
@@ -2828,13 +2907,13 @@ const ReportCard = ({ presetReportCardId = null }) => {
                   </CCardBody>
                 </CCard>
 
-                {/* Download PDF Button */}
+                {/* Finalize PDF Button */}
                 <CCard className="mt-3">
                   <CCardBody className="text-center">
                     <h6 className="mb-3">Finalize Report Card</h6>
                     <p className="text-muted mb-3">
-                      Ready to complete this report card? Generate the final PDF to convert this
-                      draft to a completed report.
+                      Ready to complete this report card? Finalize the PDF to convert this draft
+                      to a completed report.
                     </p>
                     <CButton
                       color="success"
@@ -2846,15 +2925,20 @@ const ReportCard = ({ presetReportCardId = null }) => {
                       {isGenerating ? (
                         <>
                           <CSpinner size="sm" />
-                          Generating & Flattening PDF...
+                          Finalizing PDF...
                         </>
                       ) : (
                         <>
                           <CIcon icon={cilCloudDownload} />
-                          Download Filled PDF
+                          Finalize Report Card
                         </>
                       )}
                     </CButton>
+                    {finalizeMessage && (
+                      <div className="alert alert-success mt-3">
+                        {finalizeMessage}
+                      </div>
+                    )}
                     {!selectedStudent || !selectedReportCard ? (
                       <small className="text-muted d-block mt-2">
                         Please select a student and fill out the form to enable PDF generation

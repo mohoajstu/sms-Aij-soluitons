@@ -26,8 +26,40 @@ export const generateFieldNameVariations = (formKey) => {
       'Student_2',
       'Student 2',
       'student 2',
+      'Full_Name_1',
+      'Full_name_1',
+      'full_name_1',
+      'Full Name 1',
     ], // Form uses student_name, PDF uses student
-    grade: ['grade'],
+    student: [
+      'student',
+      'Student',
+      'studentName',
+      'student2',
+      'student_2',
+      'Student_2',
+      'Student 2',
+      'student 2',
+      'Full_Name_1',
+      'Full_name_1',
+      'full_name_1',
+      'Full Name 1',
+    ],
+    grade: [
+      'grade',
+      'Grade',
+      'GRADE',
+      'Grade ',
+      'grade ',
+      'Grade:',
+      'Grade :',
+      'grade:',
+      'grade :',
+      'gradeLevel',
+      'GradeLevel',
+      'grade_level',
+      'Grade_Level',
+    ],
     teacher: ['teacher'],
     teacher_name: ['teacher', 'Teacher', 'teacherName'], // Form uses teacher_name, PDF uses teacher
     OEN: ['OEN'],
@@ -283,6 +315,8 @@ export const generateFieldNameVariations = (formKey) => {
       'Teacher Signature',
       'Text_1', // For 1-6 progress report and 7-8 report card
       'Signature_1', // For 7-8 report card (alternate)
+      'Signature1',
+      'Signature 1',
     ],
     principalSignature: [
       'principalSignature',
@@ -290,6 +324,8 @@ export const generateFieldNameVariations = (formKey) => {
       'Principal Signature',
       'Number_1', // For 1-6 progress report
       'principleSignature', // Typo in 7-8 report card
+      'Signature2',
+      'Signature 2',
     ],
 
     // Handle lowercase variations
@@ -299,6 +335,8 @@ export const generateFieldNameVariations = (formKey) => {
       'Teacher Signature',
       'Text_1', // For 1-6 progress report and 7-8 report card
       'Signature_1', // For 7-8 report card (alternate)
+      'Signature1',
+      'Signature 1',
     ],
     principalsignature: [
       'principalSignature',
@@ -306,6 +344,8 @@ export const generateFieldNameVariations = (formKey) => {
       'Principal Signature',
       'Number_1', // For 1-6 progress report
       'principleSignature', // Typo in 7-8 report card
+      'Signature2',
+      'Signature 2',
     ],
 
     // ============ ADDITIONAL MAPPINGS FOR FORM DATA KEYS ============

@@ -3,7 +3,7 @@
  * Ensures preview and download use IDENTICAL logic
  */
 
-import { PDFDocument, StandardFonts, PDFNumber, PDFName } from 'pdf-lib'
+import { PDFDocument, StandardFonts, PDFNumber, PDFName, PDFDict, PDFStream, PDFRef } from 'pdf-lib'
 import { generateFieldNameVariations } from './fieldMappings'
 
 const ARABIC_REGEX_GLOBAL = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+/g
@@ -14,6 +14,208 @@ export const stripArabicFromText = (text) => {
     .replace(ARABIC_REGEX_GLOBAL, '')
     .replace(/\s{2,}/g, ' ')
     .trim()
+}
+
+export const ensureSignatureFont = async () => {
+  try {
+    if (document?.fonts?.ready) {
+      await document.fonts.ready
+    }
+
+    const hasFont =
+      typeof document !== 'undefined' &&
+      document.fonts &&
+      document.fonts.check('48px "Dancing Script"')
+
+    if (!hasFont && typeof FontFace !== 'undefined') {
+      const font = new FontFace(
+        'Dancing Script',
+        'url(https://fonts.gstatic.com/s/dancingscript/v25/If2cXTr6YS-zF4S-kcSWSVi_sxjLh2Gv2lthgSmF2lT2pS1t-g.ttf)',
+      )
+      await font.load()
+      document.fonts.add(font)
+      if (document.fonts.ready) {
+        await document.fonts.ready
+      }
+    }
+  } catch (e) {
+    console.warn('⚠️ Could not load Dancing Script font for signatures, using fallback', e)
+  }
+}
+
+export const convertTextToImage = async (
+  text,
+  font = '48px "Dancing Script"',
+  color = '#000000',
+) => {
+  await ensureSignatureFont()
+
+  const canvas = document.createElement('canvas')
+  const context = canvas.getContext('2d')
+
+  context.font = font
+  const textMetrics = context.measureText(text)
+
+  canvas.width = textMetrics.width + 40
+  canvas.height = 80
+
+  context.font = font
+  context.fillStyle = color
+  context.fillText(text, 20, 50)
+
+  return canvas.toDataURL('image/png')
+}
+
+export const scaleToFit = (imgWidth, imgHeight, boxWidth, boxHeight) => {
+  const widthRatio = boxWidth / imgWidth
+  const heightRatio = boxHeight / imgHeight
+  const scale = Math.min(widthRatio, heightRatio)
+  return {
+    width: imgWidth * scale,
+    height: imgHeight * scale,
+  }
+}
+
+export const normalizeSignatureFormData = (formData) => {
+  const normalized = { ...(formData || {}) }
+  const teacherNameForSig =
+    normalized.teacherSignature?.value || normalized.teacher_name || normalized.teacher
+  if (!normalized.teacherSignature && teacherNameForSig) {
+    normalized.teacherSignature = { type: 'typed', value: teacherNameForSig }
+  }
+  const principalNameForSig =
+    normalized.principalSignature?.value || 'Ghazala Choudhary'
+  if (!normalized.principalSignature && principalNameForSig) {
+    normalized.principalSignature = { type: 'typed', value: principalNameForSig }
+  }
+  return normalized
+}
+
+export const embedSignaturesIntoPdf = async (
+  pdfDoc,
+  form,
+  formData,
+  context = 'PDF',
+) => {
+  let signatureCount = 0
+  for (const [formKey, value] of Object.entries(formData || {})) {
+    if (
+      (formKey === 'teacherSignature' ||
+        formKey === 'principalSignature' ||
+        formKey === 'teachersignature' ||
+        formKey === 'principalsignature') &&
+      value &&
+      value.type &&
+      value.value
+    ) {
+      const possibleNames = generateFieldNameVariations(formKey)
+      let sigField = null
+
+      for (const name of possibleNames) {
+        sigField = form.getFieldMaybe(name)
+        if (sigField) break
+      }
+
+      if (!sigField) {
+        console.warn(
+          `${context}: ⚠️ Could not find signature field for "${formKey}". Tried:`,
+          possibleNames,
+        )
+        continue
+      }
+
+      // For typed signatures, also try filling as text (some signature fields support text)
+      if (value.type === 'typed' && sigField.setText) {
+        try {
+          sigField.setText(value.value)
+        } catch (textError) {
+          console.warn(`${context}: Could not fill signature field as text:`, textError)
+        }
+      }
+
+      try {
+        let signatureImageBytes
+        if (value.type === 'typed') {
+          const dataUrl = await convertTextToImage(value.value)
+          signatureImageBytes = await fetch(dataUrl).then((res) => res.arrayBuffer())
+        } else {
+          signatureImageBytes = await fetch(value.value).then((res) => res.arrayBuffer())
+        }
+
+        const signatureImage = await pdfDoc.embedPng(signatureImageBytes)
+        const widgets = sigField.acroField.getWidgets()
+
+        if (widgets.length > 0) {
+          const rect = widgets[0].getRectangle()
+          const pageRef = widgets[0].P()
+          const page = pdfDoc.getPages().find((p) => p.ref === pageRef)
+
+          if (page) {
+            const { width, height } = scaleToFit(
+              signatureImage.width,
+              signatureImage.height,
+              rect.width,
+              rect.height - 5,
+            )
+            const x = rect.x + (rect.width - width) / 2
+            const y = rect.y + (rect.height - height) / 2
+            page.drawImage(signatureImage, { x, y, width, height })
+            signatureCount++
+          }
+        }
+
+        try {
+          sigField.flatten()
+        } catch (flattenError) {
+          console.warn(
+            `${context}: Could not flatten signature field "${sigField.getName()}".`,
+            flattenError,
+          )
+        }
+      } catch (e) {
+        console.error(`${context}: Failed to process signature for ${formKey}:`, e)
+      }
+    }
+  }
+
+  return signatureCount
+}
+
+export const drawTextIntoField = async (
+  pdfDoc,
+  field,
+  text,
+  font,
+  fontSize = 10,
+) => {
+  if (!field || !text) return false
+  try {
+    const widgets = field.acroField.getWidgets()
+    if (!widgets || widgets.length === 0) return false
+
+    for (const widget of widgets) {
+      const rect = widget.getRectangle()
+      const pageRef = widget.P()
+      const page = pdfDoc.getPages().find((p) => p.ref === pageRef)
+      if (!page) continue
+
+      const safeText = stripArabicFromText(text.toString())
+      const padding = 2
+      const x = rect.x + padding
+      const y = rect.y + Math.max(0, (rect.height - fontSize) / 2)
+      page.drawText(safeText, {
+        x,
+        y,
+        size: fontSize,
+        font,
+        maxWidth: Math.max(0, rect.width - padding * 2),
+      })
+    }
+    return true
+  } catch (e) {
+    console.warn('Could not draw text into field:', e)
+    return false
+  }
 }
 
 /**
@@ -27,6 +229,35 @@ export const stripArabicFromText = (text) => {
 export const updateAllFieldAppearances = async (form, pdfDoc, context = 'PDF') => {
   try {
     const timesRomanFont = await embedTimesRomanFont(pdfDoc)
+    const ensureWidgetNormalAppearance = (field, widget, fieldName) => {
+      try {
+        const ap = widget.getAP?.()
+        const normalAppearance = ap ? ap.get(PDFName.of('N')) : undefined
+        const isValidAppearance =
+          normalAppearance instanceof PDFDict ||
+          normalAppearance instanceof PDFStream ||
+          normalAppearance instanceof PDFRef
+        if (!isValidAppearance) {
+          if (typeof field.createAppearanceStream === 'function') {
+            const emptyAppearance = field.createAppearanceStream(
+              widget,
+              [],
+              timesRomanFont || undefined,
+            )
+            widget.setNormalAppearance(emptyAppearance)
+            console.log(
+              `${context}: 🧩 Added missing widget appearance for field "${fieldName}"`,
+            )
+          }
+        }
+      } catch (appearanceError) {
+        console.warn(
+          `${context}: ⚠️ Could not ensure widget appearance for "${fieldName}":`,
+          appearanceError,
+        )
+      }
+    }
+
     // First, update all field appearances using the form method
     if (form.updateFieldAppearances) {
       try {
@@ -79,12 +310,13 @@ export const updateAllFieldAppearances = async (form, pdfDoc, context = 'PDF') =
               // For text fields, ensure the text is visible
               if (fieldType === 'PDFTextField' || fieldType === 'PDFTextField2') {
                 const fieldValue = field.getText()
-                if (fieldValue) {
-                  // Force update by setting the text again
-                  field.setText(fieldValue)
-                  if (timesRomanFont) {
-                    field.updateAppearances(timesRomanFont)
-                  }
+                const safeValue = fieldValue ?? ''
+                // Force update by setting the text again (even if empty)
+                field.setText(safeValue)
+                if (timesRomanFont) {
+                  field.updateAppearances(timesRomanFont)
+                } else if (field.updateAppearances) {
+                  field.updateAppearances()
                 }
               }
 
@@ -155,6 +387,9 @@ export const updateAllFieldAppearances = async (form, pdfDoc, context = 'PDF') =
                   console.warn(`${context}: ⚠️ Error updating checkbox appearance for "${fieldName}":`, checkboxError)
                 }
               }
+
+              // Ensure widget has a normal appearance to prevent flatten errors
+              ensureWidgetNormalAppearance(field, widget, fieldName)
             } catch (widgetError) {
               // Silently continue if widget update fails
             }
@@ -536,6 +771,7 @@ export const fillPDFFormWithData = async (pdfDoc, formData, timesRomanFont, cont
     }
 
     let fieldFilled = false
+    const allowMultipleMatches = ['student', 'student_name', 'name'].includes(formKey)
     for (const fieldName of possibleFieldNames) {
       try {
         const field = form.getFieldMaybe(fieldName)
@@ -552,7 +788,9 @@ export const fillPDFFormWithData = async (pdfDoc, formData, timesRomanFont, cont
             if (formKey === 'teacher' || formKey === 'teacher_name') {
               console.log(`${context}: ✅ Successfully filled teacher field "${formKey}" → PDF field "${fieldName}" with value:`, processedValue)
             }
-            break
+            if (!allowMultipleMatches) {
+              break
+            }
           }
         }
       } catch (error) {

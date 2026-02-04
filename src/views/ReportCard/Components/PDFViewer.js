@@ -716,6 +716,7 @@ const PDFViewer = React.memo(
             }
 
             let fieldFilled = false
+            const allowMultipleMatches = ['student', 'student_name', 'name'].includes(formKey)
 
             // Try to find matching PDF field by various name patterns
             const possibleFieldNames = generateFieldNameVariations(formKey)
@@ -785,7 +786,9 @@ const PDFViewer = React.memo(
                     })
                     fieldFilled = true
                     console.log(`PDFViewer: ✅ Successfully filled "${formKey}" -> "${fieldName}"`)
-                    break
+                    if (!allowMultipleMatches) {
+                      break
+                    }
                   } else {
                     console.warn(`PDFViewer: ⚠️ Field "${fieldName}" found but fillPDFField returned false for "${formKey}"`)
                   }
