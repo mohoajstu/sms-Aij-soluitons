@@ -62,6 +62,9 @@ const AdminReportCardReview = () => {
   const [statusFilter, setStatusFilter] = useState('all')
   const [teacherFilter, setTeacherFilter] = useState('all')
   const [gradeFilter, setGradeFilter] = useState('all')
+  const [reportTypeFilter, setReportTypeFilter] = useState('all')
+  const [dateFromFilter, setDateFromFilter] = useState('')
+  const [dateToFilter, setDateToFilter] = useState('')
   const [teachers, setTeachers] = useState([])
   const [grades, setGrades] = useState([])
   const [viewModalVisible, setViewModalVisible] = useState(false)
@@ -700,8 +703,8 @@ const AdminReportCardReview = () => {
     }
 
     const confirmed = window.confirm(
-      `Are you sure you want to re-approve ${reportsToReapprove.length} selected report card(s)? ` +
-      `This will regenerate the PDFs without the logo overlay and update the existing records.`
+      `Re-approve ${reportsToReapprove.length} selected report card(s)? ` +
+      `This will regenerate PDFs with updated formatting and refresh parent-facing copies.`
     )
 
     if (!confirmed) return
@@ -773,7 +776,7 @@ const AdminReportCardReview = () => {
 
   // Batch approve all reports for a specific grade
   const batchApproveByGrade = async (grade) => {
-    const reportsToApprove = reportCards.filter(
+    const reportsToApprove = filteredReportCards.filter(
       rc => rc.grade === grade && rc.status === 'pending'
     )
 
@@ -818,8 +821,33 @@ const AdminReportCardReview = () => {
     const matchesStatus = statusFilter === 'all' || rc.status === statusFilter
     const matchesTeacher = teacherFilter === 'all' || rc.teacherName === teacherFilter
     const matchesGrade = gradeFilter === 'all' || rc.grade === gradeFilter
+    const matchesReportType = reportTypeFilter === 'all' || rc.reportCardType === reportTypeFilter
 
-    return matchesSearch && matchesStatus && matchesTeacher && matchesGrade
+    let matchesDate = true
+    if (dateFromFilter || dateToFilter) {
+      const lastModified = dayjs(rc.lastModified)
+      if (!lastModified.isValid()) {
+        matchesDate = false
+      } else {
+        if (dateFromFilter) {
+          const fromDate = dayjs(dateFromFilter, 'YYYY-MM-DD').startOf('day')
+          matchesDate = matchesDate && !lastModified.isBefore(fromDate)
+        }
+        if (dateToFilter) {
+          const toDate = dayjs(dateToFilter, 'YYYY-MM-DD').endOf('day')
+          matchesDate = matchesDate && !lastModified.isAfter(toDate)
+        }
+      }
+    }
+
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesTeacher &&
+      matchesGrade &&
+      matchesReportType &&
+      matchesDate
+    )
   })
 
   // Sort filtered list by lastModified desc (most recent first)
@@ -1084,6 +1112,37 @@ const AdminReportCardReview = () => {
               </CFormSelect>
             </CCol>
             <CCol md={2}>
+              <CFormSelect
+                value={reportTypeFilter}
+                onChange={(e) => setReportTypeFilter(e.target.value)}
+              >
+                <option value="all">All Report Types</option>
+                {REPORT_CARD_TYPES.map(type => (
+                  <option key={type.id} value={type.id}>
+                    {type.name}
+                  </option>
+                ))}
+              </CFormSelect>
+            </CCol>
+          </CRow>
+          <CRow className="mb-3">
+            <CCol md={3}>
+              <CFormInput
+                type="date"
+                value={dateFromFilter}
+                onChange={(e) => setDateFromFilter(e.target.value)}
+                placeholder="From date"
+              />
+            </CCol>
+            <CCol md={3}>
+              <CFormInput
+                type="date"
+                value={dateToFilter}
+                onChange={(e) => setDateToFilter(e.target.value)}
+                placeholder="To date"
+              />
+            </CCol>
+            <CCol md={2}>
               <CButton
                 color="outline-secondary"
                 onClick={() => {
@@ -1091,6 +1150,9 @@ const AdminReportCardReview = () => {
                   setStatusFilter('all')
                   setTeacherFilter('all')
                   setGradeFilter('all')
+                  setReportTypeFilter('all')
+                  setDateFromFilter('')
+                  setDateToFilter('')
                 }}
                 className="w-100"
               >
@@ -1098,6 +1160,7 @@ const AdminReportCardReview = () => {
                 Clear
               </CButton>
             </CCol>
+            <CCol md={4}></CCol>
           </CRow>
 
           {/* Re-approve Section - Show only when status filter is set to "approved" */}
@@ -1478,7 +1541,13 @@ const AdminReportCardReview = () => {
               <CIcon icon={cilUser} size="3xl" className="text-muted mb-3" />
               <h5 className="text-muted">No report cards found</h5>
               <p className="text-muted">
-                {searchTerm || statusFilter !== 'all' || teacherFilter !== 'all'
+                {searchTerm ||
+                statusFilter !== 'all' ||
+                teacherFilter !== 'all' ||
+                gradeFilter !== 'all' ||
+                reportTypeFilter !== 'all' ||
+                dateFromFilter ||
+                dateToFilter
                   ? 'Try adjusting your filters to see more results.'
                   : 'No report cards have been submitted for review yet.'
                 }
