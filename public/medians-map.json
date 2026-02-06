@@ -1,0 +1,95 @@
+{
+  "defaults": {
+    "term": "Term 1"
+  },
+  "entries": [
+    {
+      "grade": 8,
+      "course": "French",
+      "strand": "Listening",
+      "fieldName": "frenchListeningMedianReport1",
+      "median": 77,
+      "term": "Term 1"
+    },
+    {
+      "grade": 8,
+      "course": "French",
+      "strand": "Speaking",
+      "fieldName": "frenchSpeakingMedianReport1",
+      "median": 78,
+      "term": "Term 1"
+    },
+    {
+      "grade": 8,
+      "course": "French",
+      "strand": "Reading",
+      "fieldName": "frenchReadingMedianReport1",
+      "median": 78,
+      "term": "Term 1"
+    },
+    {
+      "grade": 8,
+      "course": "French",
+      "strand": "Writing",
+      "fieldName": "frenchWritingMedianReport1",
+      "median": 78,
+      "term": "Term 1"
+    },
+    {
+      "grade": 8,
+      "course": "Language Arts",
+      "fieldName": "languageMedianReport1",
+      "median": 70,
+      "term": "Term 1"
+    },
+    {
+      "grade": 8,
+      "course": "Arabic",
+      "fieldName": "nativeLanguageMedianReport1",
+      "median": 61,
+      "term": "Term 1"
+    },
+    {
+      "grade": 8,
+      "course": "Math",
+      "fieldName": "mathMedianReport1",
+      "median": 72,
+      "term": "Term 1"
+    },
+    {
+      "grade": 8,
+      "course": "Science",
+      "fieldName": "scienceMedianReport1",
+      "median": 77,
+      "term": "Term 1"
+    },
+    {
+      "grade": 8,
+      "course": "History",
+      "fieldName": "historyMedianReport1",
+      "median": 80,
+      "term": "Term 1"
+    },
+    {
+      "grade": 8,
+      "course": "Health",
+      "fieldName": "healthEdMedianReport1",
+      "median": 82,
+      "term": "Term 1"
+    },
+    {
+      "grade": 8,
+      "course": "PE",
+      "fieldName": "peMedianReport1",
+      "median": 86,
+      "term": "Term 1"
+    },
+    {
+      "grade": 8,
+      "course": "Art",
+      "fieldName": "visualArtsMedianReport1",
+      "median": 71,
+      "term": "Term 1"
+    }
+  ]
+}

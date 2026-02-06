@@ -490,18 +490,7 @@ const PDFViewer = React.memo(
           // Embed Times Roman font for regular text fields (10pt)
           let timesRomanFont
           try {
-            // Try to load a Unicode-capable font from public/standard_fonts,
-            // fallback to standard TimesRoman (WinAnsi limited).
-            const baseUrl = import.meta?.env?.BASE_URL || '/'
-            const fontUrl = `${baseUrl.replace(/\/$/, '')}/standard_fonts/LiberationSans-Regular.ttf`
-            const timesFontBytes = await fetch(fontUrl)
-              .then((res) => res.arrayBuffer())
-              .catch(() => null)
-            if (timesFontBytes) {
-              timesRomanFont = await pdfDoc.embedFont(timesFontBytes)
-            } else {
-              timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman)
-            }
+            timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman)
           } catch (e) {
             // Fallback to standard TimesRoman font
             timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman)

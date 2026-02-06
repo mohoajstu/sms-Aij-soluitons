@@ -825,24 +825,7 @@ export const fillPDFFormWithData = async (pdfDoc, formData, timesRomanFont, cont
  */
 export const embedTimesRomanFont = async (pdfDoc) => {
   try {
-    // Try to load a Unicode-capable font from public/standard_fonts,
-    // fallback to standard TimesRoman (WinAnsi limited).
-    const baseUrl = import.meta?.env?.BASE_URL || '/'
-    const fontUrl = `${baseUrl.replace(/\/$/, '')}/standard_fonts/LiberationSans-Regular.ttf`
-    const timesFontBytes = await fetch(fontUrl)
-      .then((res) => res.arrayBuffer())
-      .catch(() => null)
-    
-    if (timesFontBytes) {
-      try {
-        pdfDoc.registerFontkit(fontkit)
-      } catch (e) {
-        console.warn('Could not register fontkit, falling back to standard font:', e)
-      }
-      return await pdfDoc.embedFont(timesFontBytes)
-    } else {
-      return await pdfDoc.embedFont(StandardFonts.TimesRoman)
-    }
+    return await pdfDoc.embedFont(StandardFonts.TimesRoman)
   } catch (e) {
     // Fallback to standard TimesRoman font
     return await pdfDoc.embedFont(StandardFonts.TimesRoman)

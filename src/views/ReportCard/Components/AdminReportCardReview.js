@@ -85,6 +85,100 @@ const AdminReportCardReview = () => {
     }
   }, [])
 
+  const MEDIANS_MAP_URL = '/medians-map.json'
+  let mediansMapCache = null
+  let mediansMapPromise = null
+
+  const loadMediansMap = async () => {
+    if (mediansMapCache) return mediansMapCache
+    if (!mediansMapPromise) {
+      mediansMapPromise = fetch(MEDIANS_MAP_URL)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`Failed to load medians map (${res.status})`)
+          }
+          return res.json()
+        })
+        .then((data) => {
+          mediansMapCache = data
+          return data
+        })
+        .catch((error) => {
+          console.error('Error loading medians map:', error)
+          mediansMapCache = null
+          throw error
+        })
+    }
+    return mediansMapPromise
+  }
+
+  const getGradeNumber = (gradeValue) => {
+    const match = `${gradeValue || ''}`.match(/\d+/)
+    if (!match) return null
+    const parsed = parseInt(match[0], 10)
+    return Number.isNaN(parsed) ? null : parsed
+  }
+
+  const getTermLabel = (termKey) => (termKey === 'term2' ? 'Term 2' : 'Term 1')
+
+  const applyMedianMappings = async (
+    formData,
+    { grade, termKey, overwriteMismatches = false },
+  ) => {
+    const gradeNumber = getGradeNumber(grade)
+    if (!gradeNumber) return { updated: formData, changed: false, mismatches: [] }
+
+    let mediansMap
+    try {
+      mediansMap = await loadMediansMap()
+    } catch (error) {
+      return { updated: formData, changed: false, mismatches: [] }
+    }
+
+    const entries = Array.isArray(mediansMap?.entries) ? mediansMap.entries : []
+    if (entries.length === 0) return { updated: formData, changed: false, mismatches: [] }
+
+    const termLabel = getTermLabel(termKey)
+    const updated = { ...formData }
+    let changed = false
+    const mismatches = []
+
+    entries.forEach((entry) => {
+      if (!entry || entry.grade !== gradeNumber) return
+      if (entry.term && entry.term !== termLabel) return
+      const fieldName = entry.fieldName
+      if (!fieldName) return
+
+      const existing = updated[fieldName]
+      const hasValue =
+        existing !== undefined &&
+        existing !== null &&
+        `${existing}`.toString().trim() !== ''
+
+      if (hasValue) {
+        const existingNormalized = `${existing}`.trim()
+        const mappedNormalized = `${entry.median}`.trim()
+        if (existingNormalized !== mappedNormalized) {
+          mismatches.push({
+            fieldName,
+            existing: existing,
+            mapped: entry.median,
+          })
+          if (!overwriteMismatches) {
+            return
+          }
+        } else {
+          return
+        }
+      }
+
+      updated[fieldName] = entry.median
+      changed = true
+    })
+
+    return { updated: changed ? updated : formData, changed, mismatches }
+  }
+
   const getMergedFormDataForReport = async (reportCard) => {
     let latestStudent = reportCard.selectedStudent || null
     const studentId = reportCard.studentId || reportCard.selectedStudent?.id || ''
@@ -221,6 +315,7 @@ const AdminReportCardReview = () => {
             tarbiyahId: data.tarbiyahId || data.selectedStudent?.schoolId || data.selectedStudent?.id || '',
             adminReviewedAt: data.adminReviewedAt?.toDate?.() || null,
             finalPdfUrl: data.finalPdfUrl || null,
+            term: data.term || null,
           })
         })
 
@@ -290,7 +385,37 @@ const AdminReportCardReview = () => {
         throw new Error('Report card type configuration not found')
       }
 
-      const mergedFormData = await getMergedFormDataForReport(reportCard)
+      let mergedFormData = await getMergedFormDataForReport(reportCard)
+      let mediansChanged = false
+
+      if (reportCard.reportCardType === '7-8-report-card' && (reportCard.term || 'term1') === 'term1') {
+        const initialResult = await applyMedianMappings(mergedFormData, {
+          grade: mergedFormData.grade || reportCard.grade,
+          termKey: reportCard.term || 'term1',
+          overwriteMismatches: false,
+        })
+
+        let finalResult = initialResult
+
+        if (initialResult.mismatches.length > 0) {
+          const mismatchLines = initialResult.mismatches
+            .map((item) => `${item.fieldName}: ${item.existing} → ${item.mapped}`)
+            .join('\n')
+          const shouldOverwrite = window.confirm(
+            `Some median fields already have values that do not match the official medians:\n\n${mismatchLines}\n\nReplace them with the official medians?`,
+          )
+          if (shouldOverwrite) {
+            finalResult = await applyMedianMappings(mergedFormData, {
+              grade: mergedFormData.grade || reportCard.grade,
+              termKey: reportCard.term || 'term1',
+              overwriteMismatches: true,
+            })
+          }
+        }
+
+        mergedFormData = finalResult.updated
+        mediansChanged = finalResult.changed
+      }
 
       // Generate PDF based on report type
       const studentName = (mergedFormData.student || reportCard.studentName || 'student').replace(/\s+/g, '-')
@@ -360,6 +485,7 @@ const AdminReportCardReview = () => {
         finalPdfUrl: downloadURL,
         finalPdfPath: filePath,
         publishedToParents: true,
+        ...(mediansChanged ? { formData: mergedFormData } : {}),
       })
 
       console.log('✅ Draft updated with approval status')
@@ -400,7 +526,38 @@ const AdminReportCardReview = () => {
         throw new Error('Report card type configuration not found')
       }
 
-      const mergedFormData = await getMergedFormDataForReport(reportCard)
+      let mergedFormData = await getMergedFormDataForReport(reportCard)
+      let mediansChanged = false
+
+      if (reportCard.reportCardType === '7-8-report-card' && (reportCard.term || 'term1') === 'term1') {
+        const initialResult = await applyMedianMappings(mergedFormData, {
+          grade: mergedFormData.grade || reportCard.grade,
+          termKey: reportCard.term || 'term1',
+          overwriteMismatches: false,
+        })
+
+        let finalResult = initialResult
+
+        if (initialResult.mismatches.length > 0) {
+          const mismatchLines = initialResult.mismatches
+            .map((item) => `${item.fieldName}: ${item.existing} → ${item.mapped}`)
+            .join('\n')
+          const shouldOverwrite = window.confirm(
+            `Some median fields already have values that do not match the official medians:\n\n${mismatchLines}\n\nReplace them with the official medians?`,
+          )
+          if (shouldOverwrite) {
+            finalResult = await applyMedianMappings(mergedFormData, {
+              grade: mergedFormData.grade || reportCard.grade,
+              termKey: reportCard.term || 'term1',
+              overwriteMismatches: true,
+            })
+          }
+        }
+
+        mergedFormData = finalResult.updated
+        mediansChanged = finalResult.changed
+      }
+
       // Generate PDF based on report type (without logo now)
       const studentName = (mergedFormData.student || reportCard.studentName || 'student').replace(/\s+/g, '-')
       let finalPdfBytes
@@ -495,6 +652,7 @@ const AdminReportCardReview = () => {
         finalPdfPath: filePath,
         reapprovedAt: serverTimestamp(),
         reapprovedBy: user.uid,
+        ...(mediansChanged ? { formData: mergedFormData } : {}),
       })
 
       console.log('✅ Draft updated with new PDF URL')
@@ -717,8 +875,8 @@ const AdminReportCardReview = () => {
       const draftRef = doc(firestore, 'reportCardDrafts', reportCard.id)
       const draftSnap = await getDoc(draftRef)
       
-      if (draftSnap.exists()) {
-        const draftData = draftSnap.data()
+        if (draftSnap.exists()) {
+          const draftData = draftSnap.data()
         const versions = Array.isArray(draftData.versions) ? draftData.versions : []
         const sortedVersions = [...versions].sort((a, b) => {
           const aTime = new Date(a.savedAt || 0).getTime()
@@ -732,6 +890,7 @@ const AdminReportCardReview = () => {
           formData: getLatestFormData(draftData) || reportCard.formData,
           selectedStudent: draftData.selectedStudent || reportCard.selectedStudent,
           reportCardType: draftData.reportCardType || reportCard.reportCardType,
+          term: draftData.term || reportCard.term || null,
         })
       } else {
         setSelectedReportCardData(reportCard)

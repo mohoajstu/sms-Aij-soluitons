@@ -90,6 +90,104 @@ import {
   getLatestFormData,
 } from './utils/draftVersioning'
 
+const MEDIANS_MAP_URL = '/medians-map.json'
+let mediansMapCache = null
+let mediansMapPromise = null
+
+const loadMediansMap = async () => {
+  if (mediansMapCache) return mediansMapCache
+  if (!mediansMapPromise) {
+    mediansMapPromise = fetch(MEDIANS_MAP_URL)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Failed to load medians map (${res.status})`)
+        }
+        return res.json()
+      })
+      .then((data) => {
+        mediansMapCache = data
+        return data
+      })
+      .catch((error) => {
+        console.error('Error loading medians map:', error)
+        mediansMapCache = null
+        throw error
+      })
+  }
+  return mediansMapPromise
+}
+
+const getGradeNumber = (gradeValue) => {
+  const match = `${gradeValue || ''}`.match(/\d+/)
+  if (!match) return null
+  const parsed = parseInt(match[0], 10)
+  return Number.isNaN(parsed) ? null : parsed
+}
+
+const getTermLabel = (termKey) => (termKey === 'term2' ? 'Term 2' : 'Term 1')
+
+const applyMedianMappings = async (
+  formData,
+  { selectedStudent, selectedTerm, overwriteMismatches = false },
+) => {
+  const gradeNumber = getGradeNumber(selectedStudent?.grade || selectedStudent?.program)
+  if (!gradeNumber) return { updated: formData, changed: false, mismatches: [] }
+
+  let mediansMap
+  try {
+    mediansMap = await loadMediansMap()
+  } catch (error) {
+    return { updated: formData, changed: false, mismatches: [] }
+  }
+
+  const entries = Array.isArray(mediansMap?.entries) ? mediansMap.entries : []
+  if (entries.length === 0) return { updated: formData, changed: false, mismatches: [] }
+
+  const termLabel = getTermLabel(selectedTerm)
+  const updated = { ...formData }
+  let changed = false
+  const mismatches = []
+
+  entries.forEach((entry) => {
+    if (!entry || entry.grade !== gradeNumber) return
+    if (entry.term && entry.term !== termLabel) return
+    const fieldName = entry.fieldName
+    if (!fieldName) return
+
+    const existing = updated[fieldName]
+    const hasValue =
+      existing !== undefined &&
+      existing !== null &&
+      `${existing}`.toString().trim() !== ''
+
+    if (hasValue) {
+      const existingNormalized = `${existing}`.trim()
+      const mappedNormalized = `${entry.median}`.trim()
+      if (existingNormalized !== mappedNormalized) {
+        mismatches.push({
+          fieldName,
+          existing: existing,
+          mapped: entry.median,
+        })
+        if (!overwriteMismatches) {
+          return
+        }
+      } else {
+        return
+      }
+    }
+
+    updated[fieldName] = entry.median
+    changed = true
+  })
+
+  if (!changed) {
+    return { updated: formData, changed: false, mismatches }
+  }
+
+  return { updated, changed: true, mismatches }
+}
+
 const isCommentField = (fieldName) => {
   if (!fieldName || typeof fieldName !== 'string') return false
   const lower = fieldName.toLowerCase()
@@ -2391,7 +2489,79 @@ const ReportCard = ({ presetReportCardId = null }) => {
     try {
       console.log(`🔧 Generating PDF for report type: ${reportCardType.id}`)
 
-      const studentName = (formData.student_name || formData.student || 'student').replace(
+      let effectiveFormData = formData
+      if (reportCardType.id === '7-8-report-card' && selectedTerm === 'term1') {
+        const initialResult = await applyMedianMappings(formData, {
+          selectedStudent,
+          selectedTerm,
+          overwriteMismatches: false,
+        })
+
+        let finalResult = initialResult
+
+        if (initialResult.mismatches.length > 0) {
+          const mismatchLines = initialResult.mismatches
+            .map((item) => `${item.fieldName}: ${item.existing} → ${item.mapped}`)
+            .join('\n')
+          const shouldOverwrite = window.confirm(
+            `Some median fields already have values that do not match the official medians:\n\n${mismatchLines}\n\nReplace them with the official medians?`,
+          )
+          if (shouldOverwrite) {
+            finalResult = await applyMedianMappings(formData, {
+              selectedStudent,
+              selectedTerm,
+              overwriteMismatches: true,
+            })
+          }
+        }
+
+        effectiveFormData = finalResult.updated
+        if (finalResult.changed) {
+          setFormData(effectiveFormData)
+        }
+      }
+
+      const effectiveDraftId =
+        currentDraftId || `${user.uid}_${selectedStudent.id}_${selectedReportCard}_${selectedTerm}`
+
+      // Persist any auto-filled medians into the draft for Grade 8 before finalizing
+      if (
+        reportCardType.id === '7-8-report-card' &&
+        effectiveFormData !== formData &&
+        user &&
+        selectedStudent
+      ) {
+        const { termData, sharedData } = separateTermFields(effectiveFormData, selectedTerm)
+        const cleanTermData = {}
+        Object.keys(termData).forEach((key) => {
+          const value = termData[key]
+          if (value !== undefined && value !== null) {
+            cleanTermData[key] = value === '' ? '' : value
+          }
+        })
+        const cleanSharedData = {}
+        Object.keys(sharedData).forEach((key) => {
+          const value = sharedData[key]
+          if (value !== undefined && value !== null) {
+            cleanSharedData[key] = value === '' ? '' : value
+          }
+        })
+        const cleanFormData = {
+          ...cleanSharedData,
+          ...cleanTermData,
+        }
+
+        try {
+          await updateDoc(doc(firestore, 'reportCardDrafts', effectiveDraftId), {
+            formData: cleanFormData,
+            lastModified: serverTimestamp(),
+          })
+        } catch (error) {
+          console.error('Failed to write back median autofill to draft:', error)
+        }
+      }
+
+      const studentName = (effectiveFormData.student_name || effectiveFormData.student || 'student').replace(
         /\s+/g,
         '-',
       )
@@ -2400,16 +2570,16 @@ const ReportCard = ({ presetReportCardId = null }) => {
       let finalPdfBytes
       switch (reportCardType.id) {
         case '1-6-progress':
-          finalPdfBytes = await exportProgressReport1to6(reportCardType.pdfPath, formData, studentName)
+          finalPdfBytes = await exportProgressReport1to6(reportCardType.pdfPath, effectiveFormData, studentName)
           break
         case '7-8-progress':
-          finalPdfBytes = await exportProgressReport7to8(reportCardType.pdfPath, formData, studentName)
+          finalPdfBytes = await exportProgressReport7to8(reportCardType.pdfPath, effectiveFormData, studentName)
           break
         case 'kg-initial-observations':
-          finalPdfBytes = await exportKGInitialObservations(reportCardType.pdfPath, formData, studentName)
+          finalPdfBytes = await exportKGInitialObservations(reportCardType.pdfPath, effectiveFormData, studentName)
           break
         case 'quran-report':
-          finalPdfBytes = await exportQuranReport(reportCardType.pdfPath, formData, studentName)
+          finalPdfBytes = await exportQuranReport(reportCardType.pdfPath, effectiveFormData, studentName)
           break
         default:
           // For other report types, use the generic approach (can be extended later)
@@ -2432,7 +2602,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           // Embed Times Roman font for regular text fields (10pt)
           const timesRomanFont = await embedTimesRomanFont(pdfDoc)
 
-          const normalizedFormData = normalizeSignatureFormData(formData)
+          const normalizedFormData = normalizeSignatureFormData(effectiveFormData)
           const signatureCount = await embedSignaturesIntoPdf(
             pdfDoc,
             form,
@@ -2547,10 +2717,9 @@ const ReportCard = ({ presetReportCardId = null }) => {
           // Convert draft to completed status instead of deleting
           // B7: Include term in draft ID
           if (selectedStudent) {
-            const draftId = `${user.uid}_${selectedStudent.id}_${selectedReportCard}_${selectedTerm}`
             try {
               // Update the draft to mark it as completed
-              const draftRef = doc(firestore, 'reportCardDrafts', draftId)
+              const draftRef = doc(firestore, 'reportCardDrafts', effectiveDraftId)
               await updateDoc(draftRef, {
                 status: 'complete',
                 completedAt: serverTimestamp(),
