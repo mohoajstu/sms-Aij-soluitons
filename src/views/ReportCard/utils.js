@@ -2325,7 +2325,8 @@ const ReportCard = ({ presetReportCardId = null }) => {
               // Set text alignment using quadding (Q) property
               // 0=left, 1=center, 2=right
               const alignment = shouldBeLeftAligned(fieldName) ? 0 : 1
-              acroField.setDefaultAppearance(`/F1 ${fontSize} Tf 0 g`)
+              const fontName = font?.name || 'F1'
+              acroField.setDefaultAppearance(`/${fontName} ${fontSize} Tf 0 g`)
               
               // Set the quadding (Q) property on the field's dictionary
               // This controls text alignment within the field

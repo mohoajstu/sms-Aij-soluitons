@@ -1,0 +1,5246 @@
+{
+  "count": 255,
+  "results": [
+    {
+      "id": "1JFKQ0TebKg9L3tqF8INSG0euwp2_TS946237_1-6-report-card_term1",
+      "studentName": "Khaled El Husseini",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health Education: Khaled uses Canada’s Food Guide well to pick healthy foods. He understands why healthy eating is important for energy. \n\nPE: Khaled shows self-control, cooperates, follows rules, pla"
+        }
+      ]
+    },
+    {
+      "id": "2CDOLWkTUWRdjYO3fc5BloytITx1_TLS977681_1-6-report-card_term1",
+      "studentName": "Bishr Jarrar",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "mathStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Bishr displays a positive approach towards problem-solving tasks in math. Bishr consistently shows perseverance in solving challenging problems and doesn't give up easily.  Bishr has made progress in "
+        }
+      ]
+    },
+    {
+      "id": "2CDOLWkTUWRdjYO3fc5BloytITx1_TS166500_1-6-report-card_term1",
+      "studentName": "Aden Fournier",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "mathStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Aden has a true enthusiasm for math. His effort is reflected in his high grades. He is also an excellent classmate, as he frequently assists other students with concepts.\nAden has shown great understa"
+        }
+      ]
+    },
+    {
+      "id": "2CDOLWkTUWRdjYO3fc5BloytITx1_TS196339_1-6-report-card_term1",
+      "studentName": "Alia Ahmadzai",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "mathStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Alia has a true enthusiasm for math. Her effort is reflected in her high grades. She is also an excellent classmate, as she frequently assists other students with concepts. Alia has shown great unders"
+        }
+      ]
+    },
+    {
+      "id": "2CDOLWkTUWRdjYO3fc5BloytITx1_TS226407_1-6-report-card_term1",
+      "studentName": "Inaya Saad Ghouri",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "mathStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Inaya has a true enthusiasm and gift for math. She often helps teach math concepts and keeps trying when math topics are challenging. Inaya has shown great understanding of this semester’s math concep"
+        }
+      ]
+    },
+    {
+      "id": "2CDOLWkTUWRdjYO3fc5BloytITx1_TS246313_1-6-report-card_term1",
+      "studentName": "Ahmad Alaoui",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "mathStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Ahmad has a true enthusiasm and gift for math. His effort is reflected in his high grades. He is also an excellent classmate, as he frequently assists other students with concepts. Ahmad has shown gre"
+        }
+      ]
+    },
+    {
+      "id": "2CDOLWkTUWRdjYO3fc5BloytITx1_TS356324_1-6-report-card_term1",
+      "studentName": "Esma Vurgun",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "otherStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Esma shows a good understanding of Islamic beliefs and practices, including Tawhid, obedience to Allah (swt) and His Messenger, and respect for halal and haram guidelines. She can explain lessons from"
+        },
+        {
+          "field": "mathStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Esma works hard on problem-solving tasks in math. Esma consistently shows perseverance in solving challenging problems and doesn't give up easily. Esma has made progress in understanding this semester"
+        }
+      ]
+    },
+    {
+      "id": "2CDOLWkTUWRdjYO3fc5BloytITx1_TS386703_1-6-report-card_term1",
+      "studentName": "Aasiyah Abdunnur",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "mathStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Aasiyah displays a positive approach towards problem-solving tasks in math.\nAasiyah consistently shows perseverance in solving challenging problems and doesn't give up easily.  Aasiyah has made progre"
+        },
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Aasiyah demonstrates a good understanding of the concepts in Strand A of the Ontario Social Studies curriculum, which focuses on Heritage and Identity. She is developing growing skills in analyzing ho"
+        }
+      ]
+    },
+    {
+      "id": "2CDOLWkTUWRdjYO3fc5BloytITx1_TS936317_1-6-report-card_term1",
+      "studentName": "Amr Youssef",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "mathStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Amr consistently shows perseverance in solving challenging math problems. Amr has made progress in understanding this semester’s math concepts, including long division and constructing angles using a "
+        }
+      ]
+    },
+    {
+      "id": "2CDOLWkTUWRdjYO3fc5BloytITx1_TS946167_1-6-report-card_term1",
+      "studentName": "Hamza Islam",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "mathStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Hamza displays a positive approach towards problem-solving tasks in math. Hamza consistently shows perseverance in solving challenging problems and doesn't give up easily. Hamza has made progress in u"
+        }
+      ]
+    },
+    {
+      "id": "XcPRKwqTi8UMjO7BgeUXGiYZoZW2_TS028746_kg-report_term1",
+      "studentName": "Zakaria Hassan",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "BeloningAndContributingComments",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Zakaria is a gentle and kind member of our Junior Kindergarten class. He is demonstrating a growing trust in the educators and a willingness to participate in circle time activities. Zakaria doesn’t r"
+        }
+      ]
+    },
+    {
+      "id": "XcPRKwqTi8UMjO7BgeUXGiYZoZW2_TS138826_kg-report_term1",
+      "studentName": "Inabah Kabir",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "BeloningAndContributingComments",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Inabah demonstrates a good sense of belonging and enters dramatic play with creative ideas. While her confidence is a strength, Inabah is approaching expectations in contributing to a welcoming enviro"
+        }
+      ]
+    },
+    {
+      "id": "XcPRKwqTi8UMjO7BgeUXGiYZoZW2_TS141844_kg-report_term1",
+      "studentName": "Nadia Greda",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "BeloningAndContributingComments",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Nadia demonstrates a good sense of belonging and enters dramatic play with creative ideas. While her confidence is a strength, Nadia is approaching expectations in contributing to a welcoming environm"
+        }
+      ]
+    },
+    {
+      "id": "XcPRKwqTi8UMjO7BgeUXGiYZoZW2_TS552530_kg-report_term1",
+      "studentName": "Sarah Ali",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "BeloningAndContributingComments",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Sarah is a sweet and capable student who clearly understands classroom routines and concepts. She is approaching expectations in Belonging and Contributing.  She knows routine very well,  but sometime"
+        }
+      ]
+    },
+    {
+      "id": "XcPRKwqTi8UMjO7BgeUXGiYZoZW2_TS861904_kg-report_term1",
+      "studentName": "Ismail Mobeen",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "problemSolvingAndInnovatingComments",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Ismail follows the flow of the classroom confidently and is currently approaching expectations in active problem-solving. He is very quiet during play and sometimes struggles to generate ideas on his "
+        }
+      ]
+    },
+    {
+      "id": "Xj9tg29peSYm42EOHBCxzDNJLHi1_TLS704074_quran-report_term1",
+      "studentName": "Yaseen  Sheibani",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Strengths: \nYaseen demonstrates good memorization skills and can recite assigned Qur’anic verses with reasonable accuracy, showing effort and consistency in his Hifdh, while beginning to develop an un"
+        }
+      ]
+    },
+    {
+      "id": "Xj9tg29peSYm42EOHBCxzDNJLHi1_TLS711201_quran-report_term1",
+      "studentName": "Zoya  Bilal",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Strengths:\nZoya is beginning to develop her understanding of Qur’anic meanings and can identify basic ideas with guidance, showing willingness to participate and learn during Qur’an lessons.\n\nNext Ste"
+        }
+      ]
+    },
+    {
+      "id": "Xj9tg29peSYm42EOHBCxzDNJLHi1_TLS858347_quran-report_term1",
+      "studentName": "Tasneem  Farah",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Strengths:\nTasneem demonstrates outstanding memorization with accurate and confident recitation, strong understanding of Qur’anic meanings, and very good application of Tajweed rules, reflecting dedic"
+        }
+      ]
+    },
+    {
+      "id": "Xj9tg29peSYm42EOHBCxzDNJLHi1_TLS977681_quran-report_term1",
+      "studentName": "Bishr Jarrar",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Strengths:\nBishr demonstrates good memorization skills and recites Qur’anic verses with reasonable accuracy, while beginning to develop an understanding of the meanings and applying Tajweed rules.\n\nNe"
+        }
+      ]
+    },
+    {
+      "id": "Xj9tg29peSYm42EOHBCxzDNJLHi1_TS196339_quran-report_term1",
+      "studentName": "Alia Ahmadzai",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Strengths:\nAlia demonstrates good memorization skills and recites Qur’anic verses accurately, with a developing understanding of the meanings and proper application of Tajweed rules.\n\nNext Steps:\nShe "
+        }
+      ]
+    },
+    {
+      "id": "Xj9tg29peSYm42EOHBCxzDNJLHi1_TS196679_quran-report_term1",
+      "studentName": "Nusaybah Soltani",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Strengths:\nNusaybah shows a strong understanding of Qur’anic meanings and can explain key ideas clearly, demonstrating thoughtful engagement with the verses.\n\nNext Steps:\nNusaybah is not yet meeting t"
+        }
+      ]
+    },
+    {
+      "id": "Xj9tg29peSYm42EOHBCxzDNJLHi1_TS226407_quran-report_term1",
+      "studentName": "Inaya Saad Ghouri",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Strengths:\nInaya demonstrates excellent memorization skills and recites Qur’anic verses accurately with correct Tajweed, showing a good understanding of the meanings of the verses.\n\nNext Steps:\nShe is"
+        }
+      ]
+    },
+    {
+      "id": "Xj9tg29peSYm42EOHBCxzDNJLHi1_TS386703_quran-report_term1",
+      "studentName": "Aasiyah Abdunnur",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Strengths:\nAasiyah demonstrates good memorization skills, reciting Qur’anic verses with accuracy and effort, and is beginning to develop her understanding of the meanings of the verses.\n\nNext Steps:\nS"
+        }
+      ]
+    },
+    {
+      "id": "Xj9tg29peSYm42EOHBCxzDNJLHi1_TS435778_quran-report_term1",
+      "studentName": "Mohammad Wahid",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Strengths:\nUmar is making steady progress in memorization and can recite Qur’anic verses with some accuracy, beginning to apply Tajweed rules and develop an understanding of meanings.\n\nNext Steps:\nHe "
+        }
+      ]
+    },
+    {
+      "id": "Xj9tg29peSYm42EOHBCxzDNJLHi1_TS446226_quran-report_term1",
+      "studentName": "Malik Amro",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Strengths:\nMalik demonstrates excellent memorization skills, reciting Qur’anic verses accurately and confidently, with very good Tajweed and a strong understanding of the meanings of the verses.\n\nNext"
+        }
+      ]
+    },
+    {
+      "id": "Xj9tg29peSYm42EOHBCxzDNJLHi1_TS706300_quran-report_term1",
+      "studentName": "Omar Amin",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Strengths:\nOmar demonstrates excellent memorization skills, reciting Qur’anic verses accurately with very good Tajweed, and shows a solid understanding of the meanings of the verses.\n\nNext Steps:\nHe i"
+        }
+      ]
+    },
+    {
+      "id": "Xj9tg29peSYm42EOHBCxzDNJLHi1_TS925156_kg-report_term1",
+      "studentName": "Hashim Zahid",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "problemSolvingAndInnovatingComments",
+          "offenders": [
+            {
+              "ch": "—",
+              "codePoint": "U+2014"
+            }
+          ],
+          "sample": "Hashim is a kind student who navigates the classroom with quiet independence. He treats his friends with great respect. Hashim is working to meet expectations in sustaining his inquiries. When he face"
+        }
+      ]
+    },
+    {
+      "id": "Xj9tg29peSYm42EOHBCxzDNJLHi1_TS936317_quran-report_term1",
+      "studentName": "Amr Youssef",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Strengths:\nAmr demonstrates strong memorization skills, reciting Qur’anic verses accurately with good Tajweed, and shows a solid understanding of the meanings of the verses.\n\nNext Steps:\nHe is encoura"
+        }
+      ]
+    },
+    {
+      "id": "Xj9tg29peSYm42EOHBCxzDNJLHi1_TS946167_quran-report_term1",
+      "studentName": "Hamza Islam",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Strengths:\nHamza demonstrates good memorization skills, reciting Qur’anic verses accurately, and is developing an understanding of the meanings while applying Tajweed rules with reasonable accuracy.\n\n"
+        }
+      ]
+    },
+    {
+      "id": "Xj9tg29peSYm42EOHBCxzDNJLHi1_TS953746_kg-report_term1",
+      "studentName": "Yusuf Kamran",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "BeloningAndContributingComments",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Yusuf is a gentle and kind member of our class. He demonstrates a growing trust in the educators and a willingness to participate in circle time activities. Yusuf doesn’t rely on adult support for per"
+        }
+      ]
+    },
+    {
+      "id": "Xj9tg29peSYm42EOHBCxzDNJLHi1_TS956118_quran-report_term1",
+      "studentName": "Aicha Damergi",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Strengths:\nAicha is beginning to understand the meanings of Qur’anic verses and shows interest in participating during lessons, demonstrating a willingness to learn.\n\nNext Steps:\nAicha is not yet meet"
+        }
+      ]
+    },
+    {
+      "id": "ZgDuLJtTNqVyunzP77Qh57PRNPN2_TLS325519_quran-report_term1",
+      "studentName": "Tahaa  Zaigham",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Tahaa demonstrates strong memorization skills and is able to recall the assigned ayat (Surah al Mursalat) accurately and confidently. However, he continues to develop his understanding of the meanings"
+        }
+      ]
+    },
+    {
+      "id": "ZgDuLJtTNqVyunzP77Qh57PRNPN2_TLS587813_quran-report_term1",
+      "studentName": "Zakariya  Ismail",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Zakariya demonstrates strong memorization skills and is able to recall the assigned ayat  (Surah al Mursalat) accurately and confidently. However, he continues to develop his understanding of the mean"
+        }
+      ]
+    },
+    {
+      "id": "ZgDuLJtTNqVyunzP77Qh57PRNPN2_TS106556_quran-report_term1",
+      "studentName": "Mohamed Fahd Dinouri",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Fahd demonstrates strong memorization skills and is able to recall the assigned ayat (Surah al Mursalat) accurately. He also shows a good understanding of the meanings and key messages of the ayat, re"
+        }
+      ]
+    },
+    {
+      "id": "ZgDuLJtTNqVyunzP77Qh57PRNPN2_TS156687_quran-report_term1",
+      "studentName": "Raahim Waheed",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Raahim demonstrates excellent memorization skills and is able to recall the assigned ayat (Surah al Mursalat) accurately and confidently. However, he continues to struggle with understanding the meani"
+        }
+      ]
+    },
+    {
+      "id": "ZgDuLJtTNqVyunzP77Qh57PRNPN2_TS186133_quran-report_term1",
+      "studentName": "Aiza Mirza",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\nAiza is beginning to develop her memorization skills; however, she continues to struggle with recalling the assigned ayat (Surah al Mursalat) accurately. She also finds it challenging to understand t"
+        }
+      ]
+    },
+    {
+      "id": "ZgDuLJtTNqVyunzP77Qh57PRNPN2_TS215658_quran-report_term1",
+      "studentName": "Jana Akram Bin Sediq",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Jana demonstrates strong memorization skills and is able to recall the assigned ayat (Surah al Mursalat) accurately. She also shows a good understanding of the meanings and key messages of the ayat, r"
+        }
+      ]
+    },
+    {
+      "id": "ZgDuLJtTNqVyunzP77Qh57PRNPN2_TS215766_quran-report_term1",
+      "studentName": "Aariz Qureshi",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nAariz has shown good effort in memorizing the assigned ayat (Surah al Mursalat) and can recall them accurately. However, he continues to struggle with understanding the meanings and key messages "
+        }
+      ]
+    },
+    {
+      "id": "ZgDuLJtTNqVyunzP77Qh57PRNPN2_TS266193_quran-report_term1",
+      "studentName": "Mariam Chaudhary",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Mariam demonstrates excellent memorization skills and is able to recall the assigned ayat (Surah al Mursalat) accurately and confidently. However, she continues to struggle with understanding the mean"
+        }
+      ]
+    },
+    {
+      "id": "ZgDuLJtTNqVyunzP77Qh57PRNPN2_TS446117_quran-report_term1",
+      "studentName": "Khalil Damergi",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Kahlil is beginning to develop his memorization skills; however, he continues to struggle with recalling the assigned ayat (Surah al Mursalat) accurately. He is showing progress in understanding the m"
+        }
+      ]
+    },
+    {
+      "id": "ZgDuLJtTNqVyunzP77Qh57PRNPN2_TS485790_quran-report_term1",
+      "studentName": "Hamza Yaqub",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Hamza demonstrates strong memorization skills and is able to recall the assigned ayat (Surah al Mursalat) accurately and confidently. However, he continues to struggle with understanding the meanings "
+        }
+      ]
+    },
+    {
+      "id": "ZgDuLJtTNqVyunzP77Qh57PRNPN2_TS496182_quran-report_term1",
+      "studentName": "Sabeen Siddiqui",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Sabeen demonstrates strong memorization skills and is able to recall the assigned ayat (Surah al Mursalat) accurately. She also shows a good understanding of the meanings and key messages of the ayat,"
+        }
+      ]
+    },
+    {
+      "id": "ZgDuLJtTNqVyunzP77Qh57PRNPN2_TS555723_quran-report_term1",
+      "studentName": "Jennah Harris",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Jennah has shown good effort in memorizing the assigned ayat (Surah al Mursalat) and is able to recall them accurately. However, she continues to struggle with understanding the meanings and key messa"
+        }
+      ]
+    },
+    {
+      "id": "ZgDuLJtTNqVyunzP77Qh57PRNPN2_TS576495_quran-report_term1",
+      "studentName": "Muntaha Hasan",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Muntaha demonstrates strong memorization skills and is able to recall the assigned ayat (Surah al Mursalat) accurately. He also shows a good understanding of the meanings and key messages of the ayat,"
+        }
+      ]
+    },
+    {
+      "id": "ZgDuLJtTNqVyunzP77Qh57PRNPN2_TS725725_quran-report_term1",
+      "studentName": "Firdaus Harris",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Firdaus demonstrates strong memorization skills and is able to recall the assigned ayat (Surah al Mursalat) accurately. She also shows a good understanding of the meanings and key messages of the ayat"
+        }
+      ]
+    },
+    {
+      "id": "ZgDuLJtTNqVyunzP77Qh57PRNPN2_TS896431_quran-report_term1",
+      "studentName": "Jad Shahruj",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Jad demonstrates strong memorization skills and is able to recall the assigned ayat (Surah al Mursalat) accurately and confidently. However, he continues to develop his understanding of the meanings a"
+        }
+      ]
+    },
+    {
+      "id": "ZgDuLJtTNqVyunzP77Qh57PRNPN2_TS975947_quran-report_term1",
+      "studentName": "Inara Usmani",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Inara demonstrates strong memorization skills and is able to recall the assigned ayat (Surah al Mursalat) accurately and confidently. However, she continues to develop her understanding of the meaning"
+        }
+      ]
+    },
+    {
+      "id": "afvd0lb6T9NmWBD73mALgctnOvz1_TS186133_1-6-report-card_term1",
+      "studentName": "Aiza Mirza",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "strengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Aiza consistently demonstrates responsibility by taking care of her learning and meeting deadlines. She follows class and school rules and shows maturity by admitting mistakes and learning from them. "
+        }
+      ]
+    },
+    {
+      "id": "afvd0lb6T9NmWBD73mALgctnOvz1_TS215766_1-6-report-card_term1",
+      "studentName": "Aariz Qureshi",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "strengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Aariz is a capable and confident learner who demonstrates strong independence. He is able to establish priorities, manage his time effectively, and use appropriate materials and tools to complete task"
+        }
+      ]
+    },
+    {
+      "id": "bBEIjUqB42Rcjcqgg3I9Jn4QxCf1_TLS161260_7-8-report-card_term1",
+      "studentName": "Zoya  Hasan",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Kiran Elahi",
+      "failures": [
+        {
+          "field": "artsStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "In Art class this term, Zoya has demonstrated a good understanding of the elements of design through one-point perspective street views, bird’s-eye views, and Islamic calligraphy using the 99 Names of"
+        }
+      ]
+    },
+    {
+      "id": "bBEIjUqB42Rcjcqgg3I9Jn4QxCf1_TLS309132_1-6-report-card_term1",
+      "studentName": "Khaled  Abdo",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Khaled sometimes uses the social studies inquiry process to investigate some issues and challenges associated with balancing human needs/wants and activities with environmental stewardship in one or m"
+        }
+      ]
+    },
+    {
+      "id": "bBEIjUqB42Rcjcqgg3I9Jn4QxCf1_TS186403_7-8-report-card_term1",
+      "studentName": "Rymane Moumen",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Kiran Elahi",
+      "failures": [
+        {
+          "field": "historyStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "This term, Rymane has demonstrated a strong understanding of the historical topics studied, including Indigenous cultures, colonial conflict, the Seven Years’ War, and Loyalist experiences in North Am"
+        }
+      ]
+    },
+    {
+      "id": "bBEIjUqB42Rcjcqgg3I9Jn4QxCf1_TS205610_7-8-report-card_term1",
+      "studentName": "Safira Farooqi",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Kiran Elahi",
+      "failures": [
+        {
+          "field": "historyStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "This term, Safira has demonstrated a strong understanding of the historical topics studied, including Indigenous cultures, colonial conflict, the Seven Years’ War, and Loyalist experiences and contrib"
+        }
+      ]
+    },
+    {
+      "id": "bBEIjUqB42Rcjcqgg3I9Jn4QxCf1_TS335862_7-8-report-card_term1",
+      "studentName": "Ayleen Rabaiah",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Kiran Elahi",
+      "failures": [
+        {
+          "field": "historyStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Ayleen demonstrates a strong understanding of historical topics studied this term, including Indigenous cultures, colonial conflict, the Seven Years’ War, and Loyalist experiences in North America. Sh"
+        }
+      ]
+    },
+    {
+      "id": "bBEIjUqB42Rcjcqgg3I9Jn4QxCf1_TS565930_1-6-report-card_term1",
+      "studentName": "Abdullah Zaman",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Abdullah uses the social studies inquiry process to investigate some issues and challenges associated with balancing human needs/wants and activities with environmental stewardship in one or more of t"
+        }
+      ]
+    },
+    {
+      "id": "bBEIjUqB42Rcjcqgg3I9Jn4QxCf1_TS615851_7-8-report-card_term1",
+      "studentName": "Ilwaad Heibeh",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Kiran Elahi",
+      "failures": [
+        {
+          "field": "historyStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "This term, Ilwaad has demonstrated a strong understanding of the historical topics studied, including Indigenous cultures, colonial conflict, the Seven Years’ War, and Loyalist experiences and contrib"
+        }
+      ]
+    },
+    {
+      "id": "bBEIjUqB42Rcjcqgg3I9Jn4QxCf1_TS806030_7-8-report-card_term1",
+      "studentName": "Imaan Mirza",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Kiran Elahi",
+      "failures": [
+        {
+          "field": "historyStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Imaan demonstrates a strong understanding of historical topics studied this term, including Indigenous cultures, colonial conflict, the Seven Years’ War, and Loyalist experiences in North America. She"
+        }
+      ]
+    },
+    {
+      "id": "bBEIjUqB42Rcjcqgg3I9Jn4QxCf1_TS876527_7-8-report-card_term1",
+      "studentName": "Lana Ismail",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Kiran Elahi",
+      "failures": [
+        {
+          "field": "historyStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "This term, Lana has demonstrated a strong understanding of the historical topics studied, including Indigenous cultures, colonial conflict, the Seven Years’ War, and Loyalist experiences in North Amer"
+        }
+      ]
+    },
+    {
+      "id": "bBEIjUqB42Rcjcqgg3I9Jn4QxCf1_TS926092_7-8-report-card_term1",
+      "studentName": "Bahar Tas",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Kiran Elahi",
+      "failures": [
+        {
+          "field": "historyStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "This term, Bahar has demonstrated a strong understanding of the historical topics studied, including Indigenous cultures, colonial conflict, the Seven Years’ War, and Loyalist experiences in North Ame"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TLS133104_1-6-report-card_term1",
+      "studentName": "Zayn  Jaffery",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "scienceAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Zayn can identify the needs of living things and the properties of common liquids, solids, and gases. He shows a respectful appreciation for Allah’s creations and is beginning to make connections betw"
+        },
+        {
+          "field": "strengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Zayn is making steady progress in all areas of his learning and is showing a growing interest in his schoolwork. He is very responsible with his homework, ensuring it is often completed and returned o"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TLS207485_1-6-report-card_term1",
+      "studentName": "Yonis  Moussa Mohamed",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Yonis shows a good understanding of Canadian communities (1780-1850). He identified why settlers chose sites near waterways and fertile soil. He can describe the differing perspectives on land and tre"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TLS215683_1-6-report-card_term1",
+      "studentName": "Mus'aab  Zahran Munir",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "nativeLanguageStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Mus’aab has demonstrated a very good understanding of the comprehension lessons and grammar rules, including subject pronouns, past and present tense, and vocabulary related to the seasons. He has mad"
+        },
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health: Mus’aab demonstrates a thorough understanding of the Grade 3 mental health unit. He identified strategies for managing emotions and coping with challenges. Next step: practice the skills learn"
+        },
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            },
+            {
+              "ch": "–",
+              "codePoint": "U+2013"
+            }
+          ],
+          "sample": "Mus’aab consistently demonstrates a strong understanding of the diverse communities in Canada (1780–1850). He analyzed the severe impacts of colonial policies, such as forced relocation and the introd"
+        },
+        {
+          "field": "mathStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Mus’aab has a strong grasp of the units covered. He successfully extends growing patterns and uses place value to compare three-digit numbers. Mus’aab is proficient in mental math and understands mult"
+        },
+        {
+          "field": "strengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Mus’aab is a responsible and organized student who consistently completes his work with his best efforts. He is highly independent, manages his materials with care, and works well with his peers durin"
+        },
+        {
+          "field": "scienceAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Mus’aab has a solid grasp of the soil unit, successfully identifying soil particles (sand, silt, clay) and the causes of erosion. In the Forces and Motion unit, he confidently described gravity and fr"
+        },
+        {
+          "field": "languageStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Mus’aab is an insightful writer who consistently produces well-structured paragraphs and compelling, persuasive letters. He applies complex spelling patterns and punctuation with precision across all "
+        },
+        {
+          "field": "artsStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Mus’aab has shown very good progress in his art projects this term. His name design, Islamic geometric design, and leaf patterns were well done, and his forest collage demonstrated improvement and cre"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TLS303796_1-6-report-card_term1",
+      "studentName": "Yousra  Mohamed",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Yousra sometimes uses the social studies inquiry process to investigate some issues and challenges associated with balancing human needs/wants and activities with environmental stewardship in one or m"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TLS309132_1-6-report-card_term1",
+      "studentName": "Lianne  Hamad",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Lianne uses the social studies inquiry process to investigate some issues and challenges associated with balancing human needs/wants and activities with environmental stewardship in one or more of the"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TLS318589_1-6-report-card_term1",
+      "studentName": "Zayna  Abbas",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Zayna uses the social studies inquiry process to investigate some issues and challenges associated with balancing human needs/wants and activities with environmental stewardship in one or more of the "
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TLS318589_quran-report_term1",
+      "studentName": "Zayna  Abbas",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nZayna is beginning to develop her memorization skills and has recited some of the assigned surah with limited accuracy. She is making an effort to understand the meanings and key messages of the "
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TLS428564_1-6-report-card_term1",
+      "studentName": "Huda  Alsbini",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "scienceAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Huda has a good grasp of the human body and how living things adapt to their environment. She recognizes the beauty in Allah’s creations and connects weather changes to everyday life. Huda is an activ"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TLS515692_1-6-report-card_term1",
+      "studentName": "Zainab  Bint Zabir",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health Education: Zainab uses Canada’s Food Guide well to pick healthy foods. She understands why healthy eating is important for energy.\n\nPhysical Education: Zainab shows self-control, cooperates, fo"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TLS563290_1-6-report-card_term1",
+      "studentName": "Nida  Zohal Zazai",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Nur Al Huda",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health Education: Nida uses Canada’s Food Guide well to pick healthy foods. She understands why healthy eating is important for energy.\n\nPhysical Education: Nida shows self-control, cooperates, follow"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TLS565147_1-6-report-card_term1",
+      "studentName": "Khadija  Mostafa",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Khadija sometimes uses the social studies inquiry process to investigate some issues and challenges associated with balancing human needs/wants and activities with environmental stewardship in one or "
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TLS575926_1-6-report-card_term1",
+      "studentName": "Rayan Moalimishak",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Rayan sometimes uses the social studies inquiry process to investigate some issues and challenges associated with balancing human needs/wants and activities with environmental stewardship in one or mo"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TLS575926_quran-report_term1",
+      "studentName": "Rayan Moalimishak",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nRayan has not yet participated consistently in the assigned memorization or recitation tasks and is still developing an understanding of the ayat. \nWith more regular engagement, starting with sho"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TLS603502_1-6-report-card_term1",
+      "studentName": "Abdelrahman  Anouz",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Abdelrahman uses the social studies inquiry process to investigate some issues and challenges associated with balancing human needs/wants and activities with environmental stewardship in one or more o"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TLS626566_1-6-report-card_term1",
+      "studentName": "Summaya  Islam",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Summaya uses the social studies inquiry process to investigate some issues and challenges associated with balancing human needs/wants and activities with environmental stewardship in one or more of th"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TLS745673_1-6-report-card_term1",
+      "studentName": "Imaan  Ghouri",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "scienceAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Imaan demonstrates a good understanding of the human body and the three states of matter (solid, liquid and gas). She shows critical thinking by connecting Allah’s design to how living things migrate "
+        },
+        {
+          "field": "strengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Imaan is a bright and responsible student who consistently demonstrates a strong commitment to her studies. She manages her time exceptionally well, takes feedback with a positive mindset, and is alwa"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TLS772566_1-6-report-card_term1",
+      "studentName": "Yasmina  Hernandez Abdali",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "scienceAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Yasmina understands the basic functions of the human body and the properties of matter. She can identify how living things adapt to seasonal changes as part of Allah’s design. Yasmina is beginning to "
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TLS825995_1-6-report-card_term1",
+      "studentName": "Salman  Tanim",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health Education: Salman uses Canada’s Food Guide well to pick healthy foods. He understands why healthy eating is important for energy.\n\nPhysical Education: Salman shows self-control, cooperates, fol"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TLS879119_1-6-report-card_term1",
+      "studentName": "Zainab Asad",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "scienceAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Zainab shows a good grasp of how living things survive seasonal changes. She can describe how some of our internal organs work together and identify properties of solids, liquids, and gases in our env"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TLS945925_1-6-report-card_term1",
+      "studentName": "Elisa Farooqi",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Elisa uses the social studies inquiry process to investigate some issues and challenges associated with balancing human needs/wants and activities with environmental stewardship in one or more of the "
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TLS992612_1-6-report-card_term1",
+      "studentName": "Soraya Danish",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "scienceAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Soraya has a good grasp of the human body and how living things adapt to their environment. She recognizes the beauty in Allah’s creations and connects changes in the weather to animals' adaptation. S"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TLS992617_1-6-report-card_term1",
+      "studentName": "Ahmed Salah",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Nur Al Huda",
+      "failures": [
+        {
+          "field": "scienceAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Ahmed is developing a steady understanding of the human body and can identify common states of matter. He understands how living things adapt to seasonal changes as part of Allah’s design. Ahmed is be"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS106034_1-6-report-card_term1",
+      "studentName": "Aslan Alkhwarizmi Daniel",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Aslan has a solid grasp of the early Canadian Communities. He can identify how colonial governments’ actions, such as land appropriation for farms and the establishment of smaller reserves, limited In"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS106157_1-6-report-card_term1",
+      "studentName": "Hamza Mohammad",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "–",
+              "codePoint": "U+2013"
+            }
+          ],
+          "sample": "Hamza consistently demonstrates a good understanding of the diverse communities in Canada (1780–1850). He analyzed the severe impacts of colonial policies, such as forced relocation and the introducti"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS126440_1-6-report-card_term1",
+      "studentName": "Mahir Ghaznavi",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "–",
+              "codePoint": "U+2013"
+            }
+          ],
+          "sample": "Mahir shows an insightful understanding of Canadian communities (1780–1850). He analyzed the severe impacts of colonial policies on Indigenous peoples, including forced relocation and the introduction"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS156268_1-6-report-card_term1",
+      "studentName": "Ibrahim Ali",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health Education: Ibrahim uses Canada’s Food Guide well to pick healthy foods. He understands why healthy eating is important for energy.\n\nPhysical Education: Ibrahim shows self-control, cooperates, f"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS206367_1-6-report-card_term1",
+      "studentName": "Ibrahim Yasir",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health Education: Ibrahim uses Canada’s Food Guide well to pick healthy foods. He understands why healthy eating is important for energy.\n\nPhysical Education: Ibrahim shows self-control, cooperates, f"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS216230_1-6-report-card_term1",
+      "studentName": "Noora Khan",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Noora sometimes uses the social studies inquiry process to investigate some issues and challenges associated with balancing human needs/wants and activities with environmental stewardship in one or mo"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS276249_1-6-report-card_term1",
+      "studentName": "Naba Jahan Saber",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health Education: Naba uses Canada’s Food Guide well to pick healthy foods. She understands why healthy eating is important for energy. \n\nPhysical Education: Naba participates in a manner that demonst"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS296281_1-6-report-card_term1",
+      "studentName": "Owse Shahruj",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Owse sometimes uses the social studies inquiry process to investigate some issues and challenges associated with balancing human needs/wants and activities with environmental stewardship in one or mor"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS296281_quran-report_term1",
+      "studentName": "Owse Shahruj",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nOwse has memorized most of the assigned surah with some accuracy. He is still developing his understanding of the meanings and key messages. \n\nNext Step: He is encouraged to focus on key vocabula"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS306373_1-6-report-card_term1",
+      "studentName": "Nadia Sheibani",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Nadia uses the social studies inquiry process to investigate some issues and challenges associated with balancing human needs/wants and activities with environmental stewardship in one or more of the "
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS306519_1-6-report-card_term1",
+      "studentName": "Inaya Gavrish",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "scienceAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Inaya has a good understanding of body part functions and how solids, liquids, and gases differ. She accurately describes how some animals adapt to the seasons, and recognizes the wisdom in Allah’s cr"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS325933_1-6-report-card_term1",
+      "studentName": "Hana Jafari",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Hana uses the social studies inquiry process to investigate some issues and challenges associated with balancing human needs/wants and activities with environmental stewardship in one or more of the p"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS336246_1-6-report-card_term1",
+      "studentName": "Malak Ebrahim",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health Education: Malak uses Canada’s Food Guide well to pick healthy foods. She understands why healthy eating is important for energy.\n\nPhysical Education: Malak shows self-control, cooperates, foll"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS346451_1-6-report-card_term1",
+      "studentName": "Amanah Zafar",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health Education: Amanah uses Canada’s Food Guide well to pick healthy foods. She understands why healthy eating is important for energy. \n\nPhysical Education: Amanah shows self-control, cooperates, f"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS396521_1-6-report-card_term1",
+      "studentName": "Noura Sheibani",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "scienceAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Noura demonstrates a consistent understanding of the human body and states of matter. She makes thoughtful observations about how animals find shelter as part of Allah’s design for survival. Noura is "
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS406304_1-6-report-card_term1",
+      "studentName": "Bayian Ali",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health Education: Bayian uses Canada’s Food Guide well to pick healthy foods. She understands why healthy eating is important for energy. \n\nPhysical Education: Bayian shows self-control, cooperates, f"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS406520_1-6-report-card_term1",
+      "studentName": "Abdurrahman Zaman",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "strengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Abdurrahman is a kind, social, and well-liked member of our class who enjoys building positive relationships with his peers. He shows a sincere desire to succeed and has demonstrated steady improvemen"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS436024_1-6-report-card_term1",
+      "studentName": "Ibrahim Jalil Jalil",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "–",
+              "codePoint": "U+2013"
+            }
+          ],
+          "sample": "Ibrahim shows an insightful understanding of Canadian communities (1780–1850). He analyzed the severe impacts of colonial policies on Indigenous peoples, including forced relocation and the introducti"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS436153_1-6-report-card_term1",
+      "studentName": "Maleyka Salah Toubeh",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Maleyka sometimes uses the social studies inquiry process to investigate some issues and challenges associated with balancing human needs/wants and activities with environmental stewardship in one or "
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS476229_1-6-report-card_term1",
+      "studentName": "Asiya Khan",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Asiya uses the social studies inquiry process to investigate some issues and challenges associated with balancing human needs/wants and activities with environmental stewardship in one or more of the "
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS486239_1-6-report-card_term1",
+      "studentName": "Chahayaa Setijoso",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health Education: Chahayaa uses Canada’s Food Guide well to pick healthy foods. She understands why healthy eating is important for energy.\n\nPhysical Education: Chahayaa shows self-control, cooperates"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS516196_1-6-report-card_term1",
+      "studentName": "Ayah Louati",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "–",
+              "codePoint": "U+2013"
+            }
+          ],
+          "sample": "Ayah consistently demonstrates an in-depth and insightful understanding of the diverse communities in Canada (1780–1850). She analyzed the severe impacts of colonial policies, such as forced relocatio"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS536277_1-6-report-card_term1",
+      "studentName": "Adam Abdelghani",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health Education: Adam can pick healthy foods using Canada’s Food Guide. He is learning about safety rules for home and play. Adam is encouraged to practice explaining how to stay safe in different pl"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS536301_1-6-report-card_term1",
+      "studentName": "Aminah Amin",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Aminah uses the social studies inquiry process to investigate some issues and challenges associated with balancing human needs/wants and activities with environmental stewardship in one or more of the"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS576107_1-6-report-card_term1",
+      "studentName": "Daniyal Ghazi",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "–",
+              "codePoint": "U+2013"
+            }
+          ],
+          "sample": "Daniyal consistently demonstrates a strong understanding of the diverse communities in Canada (1780–1850). He analyzed the severe impacts of colonial policies, such as forced relocation and the introd"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS576434_1-6-report-card_term1",
+      "studentName": "Moussa Elleithy",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "–",
+              "codePoint": "U+2013"
+            }
+          ],
+          "sample": "Moussa shows an insightful understanding of Canadian communities (1780–1850). He analyzed the severe impacts of colonial policies on Indigenous peoples, including forced relocation and the introductio"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS586410_1-6-report-card_term1",
+      "studentName": "Maryam Salah",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health Education: Maryam uses Canada’s Food Guide well to pick healthy foods. She understands why healthy eating is important for energy. \n\nPhysical Education: Maryam shows self-control, cooperates, f"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS646043_1-6-report-card_term1",
+      "studentName": "Areej Ezzadeen",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "–",
+              "codePoint": "U+2013"
+            }
+          ],
+          "sample": "Areej consistently demonstrates an in-depth and insightful understanding of the diverse communities in Canada (1780–1850). She analyzed the severe impacts of colonial policies, such as forced relocati"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS656524_1-6-report-card_term1",
+      "studentName": "Jennah Berge",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "scienceAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Jennah shows a clear understanding of the properties of matter and how winter affects the growth of plants. She is learning to view science through the lens of Allah’s creation and shares ideas enthus"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS706053_1-6-report-card_term1",
+      "studentName": "Rayan Alkherayf",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Rayan uses the social studies inquiry process to investigate some issues and challenges associated with balancing human needs/wants and activities with environmental stewardship in one or more of the "
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS726241_1-6-report-card_term1",
+      "studentName": "Ahmed Marwan Damergi",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health Education: With help, Marwan can pick healthy foods using Canada’s Food Guide. He is learning about safety rules for home and play. Marwan is encouraged to practice explaining how to stay safe "
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS726370_1-6-report-card_term1",
+      "studentName": "Nadir El Manoug",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health Education: Nadir uses Canada’s Food Guide well to pick healthy foods. He understands why healthy eating is important for energy.\n\nPhysical Education: Nadir shows self-control, cooperates, follo"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS726447_1-6-report-card_term1",
+      "studentName": "Noor Hayat Jaffery",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "–",
+              "codePoint": "U+2013"
+            }
+          ],
+          "sample": "Hayat consistently demonstrates an in-depth and insightful understanding of the diverse communities in Canada (1780–1850). She analyzed the severe impacts of colonial policies, such as forced relocati"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS726692_1-6-report-card_term1",
+      "studentName": "Rashid Alnakeeb",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Rashid uses the social studies inquiry process to investigate some issues and challenges associated with balancing human needs/wants and activities with environmental stewardship in one or more of the"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS756465_1-6-report-card_term1",
+      "studentName": "Joshua Farooqi",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "scienceAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Joshua shows a solid grasp of how living things adapt to stay alive during the changing of the seasons. He identifies different states of matter correctly and connects these concepts to Allah’s wisdom"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS766478_1-6-report-card_term1",
+      "studentName": "Ilias Harmak",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "scienceAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Ilias can identify the needs of living things and the properties of common liquids, solids and gas. He shows a respectful appreciation for Allah’s creations and is beginning to make connections betwee"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS796242_1-6-report-card_term1",
+      "studentName": "Mohamed Jafari",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health Education: Mohamed uses Canada’s Food Guide well to pick healthy foods. He understands why healthy eating is important for energy.\n\nPhysical Education: Mohamed participates in a manner that dem"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS806112_1-6-report-card_term1",
+      "studentName": "Ilyaas Heibeh",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Ilyaas uses the social studies inquiry process to investigate some issues and challenges associated with balancing human needs/wants and activities with environmental stewardship in one or more of the"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS826480_1-6-report-card_term1",
+      "studentName": "Isaac Moumen",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "strengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "—",
+              "codePoint": "U+2014"
+            }
+          ],
+          "sample": "Issac is a sweet student with a bright mind and a wonderful sense of humor. To reach his full potential, he is encouraged to show more consistent initiative by participating in lessons and completing "
+        },
+        {
+          "field": "scienceAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Isaac understands the basic functions of the human body and can identify solids and liquids in the classroom. He can describe how living things adapt to seasonal changes, like birds flying south, as p"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS855941_1-6-report-card_term1",
+      "studentName": "Maya Aggour",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Maya uses the social studies inquiry process to investigate some issues and challenges associated with balancing human needs/wants and activities with environmental stewardship in one or more of the p"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS876139_1-6-report-card_term1",
+      "studentName": "Ibrahim Alsmadi",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "–",
+              "codePoint": "U+2013"
+            }
+          ],
+          "sample": "Ibrahim consistently demonstrates a strong understanding of the diverse communities in Canada (1780–1850). He analyzed the severe impacts of colonial policies, such as forced relocation and the introd"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS896661_1-6-report-card_term1",
+      "studentName": "Aleena Usmani",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health Education: Aleena uses Canada’s Food Guide well to pick healthy foods. She understands why healthy eating is important for energy. \n\nPhysical Education: Aleena shows self-control, cooperates, f"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS915927_1-6-report-card_term1",
+      "studentName": "Maryam Ebrahim",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Maryam uses the social studies inquiry process to investigate some issues and challenges associated with balancing human needs/wants and activities with environmental stewardship in one or more of the"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS936391_1-6-report-card_term1",
+      "studentName": "Safiyyah Siddiqui",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health Education: Safiyyah uses Canada’s Food Guide well to pick healthy foods. She understands why healthy eating is important for energy.\n\nPhysical Education: Safiyyah shows self-control, cooperates"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS946237_1-6-report-card_term1",
+      "studentName": "Luna Jarrar",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health Education: Luna uses Canada’s Food Guide well to pick healthy foods. She understands why healthy eating is important for energy. \n\nPhysical Education: Luna shows self-control, cooperates, follo"
+        }
+      ]
+    },
+    {
+      "id": "d6nkeSWUhIepLyyfRE76O5QU8Ef1_TS966336_1-6-report-card_term1",
+      "studentName": "Harmayn Shaikh",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health Education: Harmayn uses Canada’s Food Guide well to pick healthy foods. She understands why healthy eating is important for energy.\n\nPhysical Education: Harmayn shows self-control, cooperates, "
+        }
+      ]
+    },
+    {
+      "id": "f9gZwJnXMTYjqMNRGtLqEpSTbE83_TLS566390_quran-report_term1",
+      "studentName": "Zohaa  Zaigham",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nZohaa recites the Qur’an fluently with accurate pronunciation.\n\nZohaa recites clearly and confidently during class. She demonstrates excellent articulation of Arabic letters. \n\nZoha shows a good "
+        }
+      ]
+    },
+    {
+      "id": "f9gZwJnXMTYjqMNRGtLqEpSTbE83_TS156268_quran-report_term1",
+      "studentName": "Ibrahim Ali",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nIbrahim recites the Qur’an fluently with accurate pronunciation. He recites clearly and confidently during class.\n \nIbrahim demonstrates excellent articulation of Arabic letters. He is encouraged"
+        }
+      ]
+    },
+    {
+      "id": "f9gZwJnXMTYjqMNRGtLqEpSTbE83_TS276249_quran-report_term1",
+      "studentName": "Naba Jahan Saber",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nNaba consistently demonstrates excellent behavior in class. She recites the Qur’an fluently with accurate pronunciation. \n\nNaba recites clearly and confidently during class. She demonstrates exce"
+        }
+      ]
+    },
+    {
+      "id": "f9gZwJnXMTYjqMNRGtLqEpSTbE83_TS336246_quran-report_term1",
+      "studentName": "Malak Ebrahim",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nMalak recites the Qur’an fluently with accurate pronunciation. She recites clearly and confidently during class.\n\nMalak demonstrates excellent articulation of Arabic letters. She is encouraged to"
+        }
+      ]
+    },
+    {
+      "id": "f9gZwJnXMTYjqMNRGtLqEpSTbE83_TS406304_quran-report_term1",
+      "studentName": "Bayian Ali",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nBayian recites the Qur’an fluently with accurate pronunciation. She recites clearly and confidently during class.\n\nBayian demonstrates excellent articulation of Arabic letters. She is encouraged "
+        }
+      ]
+    },
+    {
+      "id": "f9gZwJnXMTYjqMNRGtLqEpSTbE83_TS486239_quran-report_term1",
+      "studentName": "Chahayaa Setijoso",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nChahayaa recites the Qur’an fluently with accurate pronunciation. She recites clearly and confidently during class.\n\nChahayaa demonstrates excellent articulation of Arabic letters. She is encoura"
+        }
+      ]
+    },
+    {
+      "id": "f9gZwJnXMTYjqMNRGtLqEpSTbE83_TS536277_quran-report_term1",
+      "studentName": "Adam Abdelghani",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\nAdam recites the Qur’an fluently with accurate pronunciation. He recites clearly and confidently during class. \n\nAdam demonstrates excellent articulation of Arabic letters. He is encouraged to con"
+        }
+      ]
+    },
+    {
+      "id": "f9gZwJnXMTYjqMNRGtLqEpSTbE83_TS586410_quran-report_term1",
+      "studentName": "Maryam Salah",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nMaryam consistently demonstrates excellent focus in class. She recites the Qur’an fluently with accurate pronunciation.\n\nMaryam recites clearly and confidently during class. She demonstrates exce"
+        }
+      ]
+    },
+    {
+      "id": "f9gZwJnXMTYjqMNRGtLqEpSTbE83_TS796242_quran-report_term1",
+      "studentName": "Mohamed Jafari",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nMohamed recites the Qur’an fluently with accurate pronunciation. He recites clearly and confidently during class. \n\nMohmed demonstrates excellent articulation of Arabic letters. He is encouraged "
+        }
+      ]
+    },
+    {
+      "id": "f9gZwJnXMTYjqMNRGtLqEpSTbE83_TS906265_quran-report_term1",
+      "studentName": "Luna Jarrar",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nLuna recites the Qur’an fluently. She recites clearly and confidently during class.\n\nLuna demonstrates a satisfactory articulation of Arabic letters. She is encouraged to continue her efforts.\n\nL"
+        }
+      ]
+    },
+    {
+      "id": "f9gZwJnXMTYjqMNRGtLqEpSTbE83_TS946237_quran-report_term1",
+      "studentName": "Khaled El Husseini",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nKhaled recites the Qur’an fluently with accurate pronunciation. He recites clearly and confidently during class. \n\nKhaled demonstrates excellent articulation of Arabic letters. He is encouraged t"
+        }
+      ]
+    },
+    {
+      "id": "f9gZwJnXMTYjqMNRGtLqEpSTbE83_TS966336_quran-report_term1",
+      "studentName": "Harmayn Shaikh",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nHarmayn recites the Qur’an fluently with accurate pronunciation. She recites clearly and confidently during class. \n\nHarmayn demonstrates excellent articulation of Arabic letters. She is encourag"
+        }
+      ]
+    },
+    {
+      "id": "m6N2MCEkGUZlusXjmnSLde9gjpx2_TLS133104_quran-report_term1",
+      "studentName": "Zayn  Jaffery",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nZayn exhibits a very positive outlook and attitude in the classroom and shows commitment to Quran memorization. He is quite methodical in his\napproach to the Quran. \nZayn can always learn the ass"
+        }
+      ]
+    },
+    {
+      "id": "m6N2MCEkGUZlusXjmnSLde9gjpx2_TLS225132_quran-report_term1",
+      "studentName": "Yahia Amin",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\nYahia exhibits a very positive outlook and attitude in the classroom and shows commitment to Quran memorization. He is quite methodical in his\napproach to the Quran. \nHe can always learn the assig"
+        }
+      ]
+    },
+    {
+      "id": "m6N2MCEkGUZlusXjmnSLde9gjpx2_TLS263371_quran-report_term1",
+      "studentName": "Zidaan  Munir",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nZidaan exhibits a very positive outlook and attitude in\nthe classroom and has shown commitment to Quran\nmemorization. He is quite methodical in his\napproach to the Quran. \nZidaan can always learn"
+        }
+      ]
+    },
+    {
+      "id": "m6N2MCEkGUZlusXjmnSLde9gjpx2_TLS428564_quran-report_term1",
+      "studentName": "Huda  Alsbini",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\nHuda exhibits a very positive outlook and attitude\nin the classroom and shown commitment to Quran\nmemorization. She is quite methodical in her\napproach to the Quran. \nHuda’s pronunciation of the l"
+        }
+      ]
+    },
+    {
+      "id": "m6N2MCEkGUZlusXjmnSLde9gjpx2_TLS582132_quran-report_term1",
+      "studentName": "Yusuf  Jalil",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\nYusuf exhibits a very positive outlook and attitude\nin the classroom and shows commitment to Quran\nmemorization. He is quite methodical in his\napproach to the Quran. \n\nYusuf’s pronunciation of the"
+        }
+      ]
+    },
+    {
+      "id": "m6N2MCEkGUZlusXjmnSLde9gjpx2_TLS745673_quran-report_term1",
+      "studentName": "Imaan  Ghouri",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\nImaan exhibits a very positive outlook and attitude in the classroom and shows commitment to Quran memorization. She is quite methodical in her approach to the Quran. She can always learn the assi"
+        }
+      ]
+    },
+    {
+      "id": "m6N2MCEkGUZlusXjmnSLde9gjpx2_TLS747723_quran-report_term1",
+      "studentName": "Zaid  Soliman",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\nZaid exhibits a very positive outlook and attitude in the classroom and shows commitment to Quran memorization. He is quite methodical in his approach to the Quran. \nZaid’s pronunciation of the le"
+        }
+      ]
+    },
+    {
+      "id": "m6N2MCEkGUZlusXjmnSLde9gjpx2_TLS772566_quran-report_term1",
+      "studentName": "Yasmina  Hernandez Abdali",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\nYasmina exhibits a very positive outlook and attitude in\nthe classroom and has shown commitment to Quran\nmemorization. She is quite methodical in her\napproach to the Quran. \n\nYasmina can always le"
+        }
+      ]
+    },
+    {
+      "id": "m6N2MCEkGUZlusXjmnSLde9gjpx2_TLS879119_quran-report_term1",
+      "studentName": "Zainab Asad",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\nZainab exhibits a very positive outlook and attitude in\nthe classroom and has shown commitment to Quran\nmemorization. She is quite methodical in her\napproach to the Quran. \nZainab can always learn"
+        }
+      ]
+    },
+    {
+      "id": "m6N2MCEkGUZlusXjmnSLde9gjpx2_TLS992612_quran-report_term1",
+      "studentName": "Soraya Danish",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\nSoraya exhibits a very positive outlook and attitude in\nthe classroom and shown commitment to Quran\nmemorization. She is quite methodical in her\napproach to the Quran. \nSoraya can always learn the"
+        }
+      ]
+    },
+    {
+      "id": "m6N2MCEkGUZlusXjmnSLde9gjpx2_TS306519_quran-report_term1",
+      "studentName": "Inaya Gavrish",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\nInaya exhibits a very positive outlook and attitude in\nthe classroom and has shown commitment to Quran\nmemorization. She is quite methodical in her\napproach to the Quran. \nInaya can always learn t"
+        }
+      ]
+    },
+    {
+      "id": "m6N2MCEkGUZlusXjmnSLde9gjpx2_TS316471_quran-report_term1",
+      "studentName": "Ahmed Salah",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\nAhmed exhibits a very positive outlook and attitude in\nthe classroom and shown commitment to Quran\nmemorization. He is quite methodical in his\napproach to the Quran. Ahmed can always learn the\nass"
+        }
+      ]
+    },
+    {
+      "id": "m6N2MCEkGUZlusXjmnSLde9gjpx2_TS396521_quran-report_term1",
+      "studentName": "Noura Sheibani",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\nNoura exhibits a very positive outlook and attitude in the classroom and shows commitment to Quran memorization. She is quite methodical in her approach to the Quran. \nNoura can always learn the a"
+        }
+      ]
+    },
+    {
+      "id": "m6N2MCEkGUZlusXjmnSLde9gjpx2_TS406520_quran-report_term1",
+      "studentName": "Abdurrahman Zaman",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\nAbdurrahman exhibits a very positive outlook and attitude in the classroom and shows commitment to Quran memorization. He is quite methodical in his\napproach to the Quran. He can always learn the "
+        }
+      ]
+    },
+    {
+      "id": "m6N2MCEkGUZlusXjmnSLde9gjpx2_TS476467_quran-report_term1",
+      "studentName": "Loujain Bin Sediq",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\nLoujain exhibits a very positive outlook and attitude in the classroom and shows commitment to Quran memorization. She is quite methodical in her approach to the Quran. She can always learn the as"
+        }
+      ]
+    },
+    {
+      "id": "m6N2MCEkGUZlusXjmnSLde9gjpx2_TS496477_quran-report_term1",
+      "studentName": "Mariam Louati",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\nMariam exhibits a very positive outlook and attitude in the classroom and shows commitment to Quran memorization. She is quite methodical in her approach to the Quran. \nShe can always learn the as"
+        }
+      ]
+    },
+    {
+      "id": "m6N2MCEkGUZlusXjmnSLde9gjpx2_TS656524_quran-report_term1",
+      "studentName": "Jennah Berge",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\nJennah exhibits a very positive outlook and attitude in\nthe classroom and has shown commitment to Quran\nmemorization. She is quite methodical in her\napproach to the Quran. \nJennah can always learn"
+        }
+      ]
+    },
+    {
+      "id": "m6N2MCEkGUZlusXjmnSLde9gjpx2_TS756465_quran-report_term1",
+      "studentName": "Joshua Farooqi",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\nJoshua exhibits a very positive outlook and attitude in\nthe classroom and has shown commitment to Quran\nmemorization. He is quite methodical in his\napproach to the Quran. \nJoshua can always memori"
+        }
+      ]
+    },
+    {
+      "id": "m6N2MCEkGUZlusXjmnSLde9gjpx2_TS766478_quran-report_term1",
+      "studentName": "Ilias Harmak",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\nIlias exhibits a very positive outlook and attitude in\nthe classroom and shown commitment to Quran\nmemorization. He is quite methodical in his\napproach to the Quran. \nIlias can always learn the as"
+        }
+      ]
+    },
+    {
+      "id": "m6N2MCEkGUZlusXjmnSLde9gjpx2_TS796469_quran-report_term1",
+      "studentName": "Baraa Ali",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\nBaraa exhibits a very positive outlook and attitude\nin the classroom and has shown commitment to Quran\nmemorization. He is methodical in his\napproach to the Quran. Baraa’s pronunciation of the\nlet"
+        }
+      ]
+    },
+    {
+      "id": "m6N2MCEkGUZlusXjmnSLde9gjpx2_TS806466_quran-report_term1",
+      "studentName": "Emaan Ali",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\nEmaan exhibits a very positive outlook and attitude\nin the classroom and shown commitment to Quran\nmemorization. She is quite methodical in her\napproach to the Quran. \nEmaan’s pronunciation of the"
+        }
+      ]
+    },
+    {
+      "id": "m6N2MCEkGUZlusXjmnSLde9gjpx2_TS826480_quran-report_term1",
+      "studentName": "Isaac Moumen",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\nIsaac exhibits a very positive outlook and attitude in\nthe classroom and shown commitment to Quran\nmemorization. He is quite methodical in his\napproach to the Quran. \nIsaac can always learn the as"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TLS125960_7-8-report-card_term1",
+      "studentName": "Rumaisa  Abdunnur",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "historyStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "–",
+              "codePoint": "U+2013"
+            }
+          ],
+          "sample": "Rumaisa demonstrates a developing understanding of key events, concepts, and themes related to Creating Canada, 1850–1890. She can describe historical information and make basic connections between ev"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TLS125960_quran-report_term1",
+      "studentName": "Rumaisa  Abdunnur",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "ā",
+              "codePoint": "U+0101"
+            }
+          ],
+          "sample": "Rumaisa has not yet memorized the assigned ayat of Surah Qāf. She can read the text, but needs to work on applying Tajweed rules correctly. She also struggles with understanding the meanings and Tafse"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TLS171128_quran-report_term1",
+      "studentName": "Salma  Bezreh",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nSalma has memorized Surah An-Naba and the assigned ayat of Surah An-Nazi’at with a very good recitation and pronunciation. She confidently explains the meanings of vocabulary and understands the "
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TLS207485_quran-report_term1",
+      "studentName": "Yonis  Moussa Mohamed",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nYonis has memorized Surah An-Naba and the assigned ayat of Surah An-Naze’at with a very good recitation and pronunciation. He demonstrates some understanding of the vocabulary and Tafseer of the "
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TLS215683_quran-report_term1",
+      "studentName": "Mus'aab  Zahran Munir",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nMus’aab has memorized Surah An-Naba and the assigned ayat of Surah An-Naze’at with a very good recitation and pronunciation. He demonstrates a very good understanding of the vocabulary and Tafsee"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TLS352156_quran-report_term1",
+      "studentName": "Yusuf  Naddaf",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "ā",
+              "codePoint": "U+0101"
+            }
+          ],
+          "sample": "Yusuf has successfully memorized all the assigned pages of Surah Qāf this term. His recitation is clear and accurate, reflecting good pronunciation; however, he needs to pay more attention to applying"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TLS417661_7-8-report-card_term1",
+      "studentName": "Sarah  Alkherayf",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "historyStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Sarah demonstrates a strong and insightful understanding of Canada’s development between 1850 and 1890, including key events, perspectives, and themes. She can analyze historical evidence thoughtfully"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TLS419477_quran-report_term1",
+      "studentName": "Zaynab  Siddiqui",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "ā",
+              "codePoint": "U+0101"
+            }
+          ],
+          "sample": "Zaynab has not yet memorized the assigned ayat of Surah Qāf. She can read the text, but needs to work on applying Tajweed rules correctly. She also struggles with understanding the meanings and Tafsee"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TLS601233_quran-report_term1",
+      "studentName": "Sofia  Elemam",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\n\nSofia has memorized Surah An-Naba and the assigned ayat of Surah An-Nazi’at with good recitation and pronunciation. She confidently explains the meanings of vocabulary and understands the tafsee"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TLS686247_quran-report_term1",
+      "studentName": "Sami  Hernandez Abdali",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nSami has memorized Surah An-Naba and the assigned ayat of Surah An-Naze’at with a very good recitation and pronunciation. He demonstrates a good understanding of the vocabulary and Tafseer of the"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TLS734034_quran-report_term1",
+      "studentName": "Sarah  Ibrahim",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nSarah has memorized Surah An-Naba and the assigned ayat of Surah An-Nazi’at with a very good recitation and pronunciation. She confidently explains the meanings of vocabulary and understands the "
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TLS892076_7-8-report-card_term1",
+      "studentName": "Zahra  Raihana Ghaznavi",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "historyStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Zahra demonstrates a strong and insightful understanding of Canada’s development between 1850 and 1890, including key events, perspectives, and themes. She can analyze historical evidence thoughtfully"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TS106034_1-6-report-card_term1",
+      "studentName": "Aslan Alkhwarizmi Daniel",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "socialStudiesStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Aslan has a solid grasp of the early Canadian Communities. He can identify how colonial governments’ actions, such as land appropriation for farms and the establishment of smaller reserves, limited In"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TS106034_quran-report_term1",
+      "studentName": "Aslan Alkhwarizmi Daniel",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nAslan has memorized Surah An-Naba and the assigned ayat of Surah An-Naze’at with a very good recitation and pronunciation. He demonstrates an excellent understanding of the vocabulary and Tafseer"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TS106157_quran-report_term1",
+      "studentName": "Hamza Mohammad",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nHamza has memorized Surah An-Naba and the assigned ayat of Surah An-Naze’at with a very good recitation and pronunciation. He demonstrates a very good understanding of the vocabulary and Tafseer "
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TS116289_quran-report_term1",
+      "studentName": "Maria Harmak",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\n\nMaria has memorized Surah An-Naba and the assigned ayat of Surah An-Nazi’at with a very good recitation and pronunciation. She can explain the meanings of vocabulary and has a good understanding"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TS436024_quran-report_term1",
+      "studentName": "Ibrahim Jalil Jalil",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nIbrahim has memorized Surah An-Naba and the assigned ayat of Surah An-Naze’at with an excellent recitation and pronunciation. He demonstrates an excellent understanding of the vocabulary and Tafs"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TS476218_quran-report_term1",
+      "studentName": "Aaima Siddiqui",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "ā",
+              "codePoint": "U+0101"
+            }
+          ],
+          "sample": "Aaima has not yet memorized the assigned ayat of Surah Qāf. While she can read the text, she struggles with recitation fluency and the correct application of Tajweed rules. She is also working on unde"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TS516196_quran-report_term1",
+      "studentName": "Ayah Louati",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            },
+            {
+              "ch": "‘",
+              "codePoint": "U+2018"
+            }
+          ],
+          "sample": "\n\n\nAyah has memorized Surah An-Naba’ and the assigned ayat from Surah An-Nazi‘at with very good recitation and pronunciation. She confidently explains the meanings of the vocabulary and demonstrates a"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TS576107_quran-report_term1",
+      "studentName": "Daniyal Ghazi",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nDaniyal has memorized Surah An-Naba and the assigned ayat of Surah An-Naze’at with a very good recitation and pronunciation. He demonstrates some understanding of the vocabulary and Tafseer of th"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TS576434_quran-report_term1",
+      "studentName": "Moussa Elleithy",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nMoussa has memorized Surah An-Naba and part of the assigned ayat of Surah An-Nazi’at with good recitation and pronunciation, though he reads at a slow pace. He demonstrates a very good understand"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TS626017_quran-report_term1",
+      "studentName": "Maryam Ali",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nMaryam has memorized Surah An-Naba and the assigned ayat of Surah An-Nazi’at with excellent recitation and pronunciation. She confidently explains the meanings of vocabulary and understands the t"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TS626044_quran-report_term1",
+      "studentName": "Alaya Yasin",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nAlaya has memorized Surah An-Naba and the assigned ayat of Surah An-Naze’at with good recitation and improved pronunciation. She demonstrates a good understanding of the vocabulary and tafseer of"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TS646043_quran-report_term1",
+      "studentName": "Areej Ezzadeen",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nAreej has memorized Surah An-Naba and the assigned ayat of Surah An-Nazi’at with excellent recitation and pronunciation. She confidently explains the meanings of vocabulary and understands the ta"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TS715661_quran-report_term1",
+      "studentName": "Ritaj Hashim",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "ā",
+              "codePoint": "U+0101"
+            }
+          ],
+          "sample": "Ritaj has not yet memorized the assigned ayat of Surah Qāf. She can read the text, but needs to work on applying Tajweed rules correctly. She also struggles with understanding the meanings and Tafseer"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TS726447_quran-report_term1",
+      "studentName": "Noor Hayat Jaffery",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nHayat has memorized Surah An-Naba and the assigned ayat of Surah An-Nazi’at with excellent recitation and pronunciation. She confidently explains the meanings of vocabulary and understands the ta"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TS755869_7-8-report-card_term1",
+      "studentName": "Rashad Moalimishak",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "mathStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Rashad demonstrates a good understanding of the Grade 8 curriculum. He shows some degree of effectiveness when simplifying algebraic expressions and applying the order of operations to multi-step prob"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TS816020_7-8-report-card_term1",
+      "studentName": "Nadia Elsobky",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "historyStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Nadia demonstrates a strong and insightful understanding of Canada’s development between 1850 and 1890, including key events, perspectives, and themes. She can analyze historical evidence thoughtfully"
+        },
+        {
+          "field": "mathStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Nadia demonstrates a good understanding of the Grade 8 curriculum. She shows some degree of effectiveness when simplifying algebraic expressions and applying the order of operations to multi-step prob"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TS846499_quran-report_term1",
+      "studentName": "Dean Fournier",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "ā",
+              "codePoint": "U+0101"
+            }
+          ],
+          "sample": "Dean has not yet memorized the assigned ayat of Surah Qāf. He can read the text, but needs to work on applying Tajweed rules correctly. He also struggles with understanding the meanings and Tafseer of"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TS846670_quran-report_term1",
+      "studentName": "Motasem Almassri",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "ā",
+              "codePoint": "U+0101"
+            }
+          ],
+          "sample": "Motasem has successfully memorized all the assigned pages of Surah Qāf this term. His recitation is clear and accurate, reflecting good pronunciation; however, he needs to pay more attention to applyi"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TS876139_quran-report_term1",
+      "studentName": "Ibrahim Alsmadi",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "ā",
+              "codePoint": "U+0101"
+            },
+            {
+              "ch": "‘",
+              "codePoint": "U+2018"
+            }
+          ],
+          "sample": "\n\n\n\nIbrahim has memorized Surah An-Naba and the assigned ayat of Surah An-Nāzi‘āt with very good recitation and clear pronunciation. He demonstrates an excellent understanding of the vocabulary and Ta"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TS876320_quran-report_term1",
+      "studentName": "Maria Nour",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "\n\n\n\n\nMaria has memorized Surah An-Naba and the assigned ayat of Surah An-Nazi’at with good recitation and pronunciation. She can explain the meanings of vocabulary and has a good understanding of the "
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TS916457_quran-report_term1",
+      "studentName": "Fatima Katawazi",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "ā",
+              "codePoint": "U+0101"
+            }
+          ],
+          "sample": "Fatima has not yet memorized the assigned ayat of Surah Qāf. She can read the text at a slow pace but needs to work on applying Tajweed rules correctly. She also struggles with understanding the meani"
+        }
+      ]
+    },
+    {
+      "id": "mPWfShDuZzUjMCcFbhL4fTVmovw1_TS965749_quran-report_term1",
+      "studentName": "Lojayn Ebrahim",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "ā",
+              "codePoint": "U+0101"
+            }
+          ],
+          "sample": "Lojayn has successfully memorized Surah Qāf and one-third of Surah Al-Kahf. Her recitation is clear and accurate, reflecting excellent pronunciation and proper application of Tajweed rules. She demons"
+        }
+      ]
+    },
+    {
+      "id": "pSPIcZ4ydWerHfeXVz0aOd2Iqa32_TLS992613_1-6-report-card_term1",
+      "studentName": "test Abdul Jabbar",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Nur Al Huda",
+      "failures": [
+        {
+          "field": "boardInfo",
+          "offenders": [
+            {
+              "ch": "—",
+              "codePoint": "U+2014"
+            }
+          ],
+          "sample": "At the Advancement of Muslim Families Institute (AMFI), our mission is to nurture strong, spiritually grounded Muslim families like trees deeply rooted in faith. We cultivate these roots through holis"
+        }
+      ]
+    },
+    {
+      "id": "pSPIcZ4ydWerHfeXVz0aOd2Iqa32_TLS992613_kg-report_term1",
+      "studentName": "test Abdul Jabbar",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Nur Al Huda",
+      "failures": [
+        {
+          "field": "boardInfo",
+          "offenders": [
+            {
+              "ch": "—",
+              "codePoint": "U+2014"
+            }
+          ],
+          "sample": "At the Advancement of Muslim Families Institute (AMFI), our mission is to nurture strong, spiritually grounded Muslim families like trees deeply rooted in faith. We cultivate these roots through holis"
+        }
+      ]
+    },
+    {
+      "id": "pSPIcZ4ydWerHfeXVz0aOd2Iqa32_TS315964_7-8-report-card_term1",
+      "studentName": "Aasiyah Yaqub",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Kiran Elahi",
+      "failures": [
+        {
+          "field": "boardInfo",
+          "offenders": [
+            {
+              "ch": "—",
+              "codePoint": "U+2014"
+            }
+          ],
+          "sample": "At the Advancement of Muslim Families Institute (AMFI), our mission is to nurture strong, spiritually grounded Muslim families like trees deeply rooted in faith. We cultivate these roots through holis"
+        },
+        {
+          "field": "artsStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "In Art class this term, Aasiyah demonstrated a good understanding of the elements of design through one-point perspective street views, bird’s-eye views, and Islamic calligraphy using the 99 Names of "
+        },
+        {
+          "field": "historyStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Aasiyah demonstrates a developing understanding of historical inquiry and early Canadian history, including Indigenous cultures, the Seven Years’ War, and the experiences of the Loyalists. She can ide"
+        }
+      ]
+    },
+    {
+      "id": "pSPIcZ4ydWerHfeXVz0aOd2Iqa32_TS476218_7-8-report-card",
+      "studentName": "Aaima Siddiqui",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "boardInfo",
+          "offenders": [
+            {
+              "ch": "–",
+              "codePoint": "U+2013"
+            }
+          ],
+          "sample": "Tarbiyah Learning recognizes that each child is unique – that all children are creative and need to succeed. Thus, Tarbiyah Learning respects the individual needs of children and fosters a caring and "
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TLS167162_kg-report_term1",
+      "studentName": "Sumayyah  Ahmed",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "BeloningAndContributingComments",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "The Art Building Centre is one of Sumayyah’s favourite places to work and experiment, and she can often be found there working with care and focus. She is artistic and enjoys using materials thoughtfu"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TLS341625_7-8-report-card_term1",
+      "studentName": "Yousuf  Ahmed",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Kiran Elahi",
+      "failures": [
+        {
+          "field": "historyStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "This term, Yousuf has demonstrated a strong understanding of the historical topics studied, including Indigenous cultures, colonial conflict, the Seven Years’ War, and Loyalist contributions and exper"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TLS481146_kg-report_term1",
+      "studentName": "Yahyaa  Zafar",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "demonstratingLiteracyandMathComments",
+          "offenders": [
+            {
+              "ch": "–",
+              "codePoint": "U+2013"
+            }
+          ],
+          "sample": "Yahyaa demonstrates a good understanding of letter–sound relationships and can read sight and word family words. He uses pictures, sounds, and familiar words to support reading and enjoys exploring le"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TLS604885_kg-report_term1",
+      "studentName": "Umair Shahzaib  Rahman",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "BeloningAndContributingComments",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "The Art and Building/Construction Centre are Shahzaib’s favourite places to explore and experiment, and he can often be found working there. He communicates his ideas well through visual art and enjoy"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TLS630991_kg-report_term1",
+      "studentName": "Zayn  Elemam",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "BeloningAndContributingComments",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Zayn enjoys spending time in the Art-Building Centre, where he loves to explore. He joins friends during play, such as building puzzles, making artwork, or working in the Construction Centre. Zayn lis"
+        },
+        {
+          "field": "problemSolvingAndInnovatingComments",
+          "offenders": [
+            {
+              "ch": "“",
+              "codePoint": "U+201C"
+            },
+            {
+              "ch": "”",
+              "codePoint": "U+201D"
+            }
+          ],
+          "sample": "Zayn enjoys writing and often chooses to spend time at the Writing Centre on his own. He likes copying words from the word wall and writing familiar words he knows, such as “I like,” “I see,” and simp"
+        },
+        {
+          "field": "selfRegulationAndWellBeingComments",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Zayn is a self-motivated learner who enjoys trying new activities and learning centres. He works independently and makes thoughtful choices throughout the day. Zayn shows responsibility by taking care"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TLS676141_kg-report_term1",
+      "studentName": "Zeenat  Yaqub",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "demonstratingLiteracyandMathComments",
+          "offenders": [
+            {
+              "ch": "–",
+              "codePoint": "U+2013"
+            }
+          ],
+          "sample": "Zeenat enjoys read-alouds, exploring books, and looking at illustrations. She is beginning to choose books independently and is developing foundational reading skills, including recognizing letters, s"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TLS871337_kg-report_term1",
+      "studentName": "Sameen  Shurehbeel",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "BeloningAndContributingComments",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Sameen enjoys working and experimenting in the Art Building and Dramatic Centre, where she often communicates her ideas through visual arts. She is welcoming to peers who join her activities and consi"
+        },
+        {
+          "field": "problemSolvingAndInnovatingComments",
+          "offenders": [
+            {
+              "ch": "“",
+              "codePoint": "U+201C"
+            },
+            {
+              "ch": "”",
+              "codePoint": "U+201D"
+            }
+          ],
+          "sample": "Sameen likes to write. She will independently choose to spend time at the Writing Centre. There, she will copy words from the word wall, write high-frequency/family words that she has memorized such a"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TLS992615_kg-report_term1",
+      "studentName": "Taha Akhlaghi",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "selfRegulationAndWellBeingComments",
+          "offenders": [
+            {
+              "ch": "​",
+              "codePoint": "U+200B"
+            }
+          ],
+          "sample": "​Taha adapts well to different settings, like gym and field trips, and takes great care of his personal belongings. We are pleased to see his fine motor skills improving as he practices zipping his ja"
+        },
+        {
+          "field": "demonstratingLiteracyandMathComments",
+          "offenders": [
+            {
+              "ch": "​",
+              "codePoint": "U+200B"
+            }
+          ],
+          "sample": "Taha is progressing well with the alphabet. He knows his letters but sometimes swaps b and d. With help, he blends sounds to read simple words and sight words, often using magnetic letters and flash c"
+        },
+        {
+          "field": "BeloningAndContributingComments",
+          "offenders": [
+            {
+              "ch": "​",
+              "codePoint": "U+200B"
+            }
+          ],
+          "sample": "​​Taha is a friendly member of our class who enjoys exploring all our learning centres. He is very inclusive, often welcoming peers into his play or confidently joining others. While Taha is happy wor"
+        },
+        {
+          "field": "problemSolvingAndInnovatingComments",
+          "offenders": [
+            {
+              "ch": "​",
+              "codePoint": "U+200B"
+            }
+          ],
+          "sample": "Taha shows a great interest in using creative tools for writing. He especially enjoys using colorful dry-erase markers and mini-whiteboards in our learning centres. With teacher support, Taha is makin"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TS126383_7-8-report-card_term1",
+      "studentName": "Ibrahim Mostafa",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Kiran Elahi",
+      "failures": [
+        {
+          "field": "historyStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Ibrahim demonstrates a developing understanding of historical inquiry and early Canadian history, including Indigenous cultures, the Seven Years’ War, and the experiences and contributions of the Loya"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TS156176_7-8-report-card_term1",
+      "studentName": "Aisha Agzamova",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "mathStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Aisha demonstrates a good understanding of the Grade 8 curriculum. She shows some degree of effectiveness when simplifying algebraic expressions and applying the order of operations to multi-step prob"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TS166500_quran-report_term1",
+      "studentName": "Aden Fournier",
+      "reportCardType": "quran-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "sans",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Comments:\nAden shows a developing understanding of Qur’anic meanings and applies them in discussions, and is making progress with memorization and recitation through consistent effort.\n\nNext Steps:\nHe"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TS166605_kg-report_term1",
+      "studentName": "Ruqayya Moalimishak",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "problemSolvingAndInnovatingComments",
+          "offenders": [
+            {
+              "ch": "“",
+              "codePoint": "U+201C"
+            },
+            {
+              "ch": "”",
+              "codePoint": "U+201D"
+            }
+          ],
+          "sample": "Ruqayya enjoys writing and often chooses to spend time at the Writing Centre. She is developing her writing stamina and is encouraged to stay focused during writing activities. She copies words from t"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TS195845_7-8-report-card_term1",
+      "studentName": "Amaar Batta",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "historyStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Amaar demonstrates a strong and insightful understanding of Canada’s development between 1850 and 1890, including key events, perspectives, and themes. He analyzes historical evidence thoughtfully, ex"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TS206589_kg-report_term1",
+      "studentName": "Ashar Ahmed",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "BeloningAndContributingComments",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "The Building Centre is one of Ashar’s favorite places to explore and create. He enjoys planning and building with Lego and blocks, often sharing in detail what he has made with teachers and peers. Ash"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TS286100_7-8-report-card_term1",
+      "studentName": "Rayyaan Haq",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Kiran Elahi",
+      "failures": [
+        {
+          "field": "historyStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "This term, Rayyaan has demonstrated a strong understanding of the historical topics studied, including Indigenous cultures, colonial conflict, the Seven Years’ War, and Loyalist experiences in North A"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TS315683_7-8-report-card_term1",
+      "studentName": "Nuuh Setijoso",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Kiran Elahi",
+      "failures": [
+        {
+          "field": "historyStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "This term, Nuuh has demonstrated a strong understanding of the historical topics studied, including Indigenous cultures, colonial conflict, the Seven Years’ War, and Loyalist experiences in North Amer"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TS336645_kg-report_term1",
+      "studentName": "Miraal Arslan",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "BeloningAndContributingComments",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "The Art Building Centre is one of Miraal’s favourite places to explore. She enjoys expressing her ideas through drawing and play dough, which shows a strong awareness of her interests. Miraal confiden"
+        },
+        {
+          "field": "problemSolvingAndInnovatingComments",
+          "offenders": [
+            {
+              "ch": "“",
+              "codePoint": "U+201C"
+            },
+            {
+              "ch": "”",
+              "codePoint": "U+201D"
+            }
+          ],
+          "sample": "Miraal likes to write. She will independently choose to spend time at the Writing Centre. There, she will copy words from the word wall, write high-frequency/family words that she has learned in class"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TS436642_kg-report_term1",
+      "studentName": "Nayel Ud Din",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "problemSolvingAndInnovatingComments",
+          "offenders": [
+            {
+              "ch": "​",
+              "codePoint": "U+200B"
+            }
+          ],
+          "sample": "​Nayel is a curious learner who loves to explore new ways to share his ideas. He shows great initiative by choosing to visit the Writing Centre, where he uses tools like the word wall and sentence sta"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TS476674_kg-report_term1",
+      "studentName": "Nosaiba Syed",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "problemSolvingAndInnovatingComments",
+          "offenders": [
+            {
+              "ch": "“",
+              "codePoint": "U+201C"
+            },
+            {
+              "ch": "”",
+              "codePoint": "U+201D"
+            }
+          ],
+          "sample": "Nosaiba participates in Shared Writing and can use sentence starters to write simple sentences, such as “I see a cat.”\nNosaiba enjoys writing and often chooses to spend time at the Writing Centre. She"
+        },
+        {
+          "field": "selfRegulationAndWellBeingComments",
+          "offenders": [
+            {
+              "ch": "‑",
+              "codePoint": "U+2011"
+            }
+          ],
+          "sample": "Nosaiba independently manages emotions, follows rules, and maintains focus during learning activities. She demonstrates strong self-regulation skills and adapts well to changes in routine. She shows i"
+        },
+        {
+          "field": "BeloningAndContributingComments",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Nosaiba is developing a strong sense of belonging in our classroom and enjoys participating in daily activities and learning centres. She takes care of classroom materials and helps create a supportiv"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TS506599_kg-report_term1",
+      "studentName": "Kiyan Gavrish",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "problemSolvingAndInnovatingComments",
+          "offenders": [
+            {
+              "ch": "“",
+              "codePoint": "U+201C"
+            },
+            {
+              "ch": "”",
+              "codePoint": "U+201D"
+            }
+          ],
+          "sample": "Kiyan shows strong interest and confidence in writing and often chooses to spend time independently at the Writing Centre. He copies words from the word wall and writes familiar high-frequency and fam"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TS566597_kg-report_term1",
+      "studentName": "Fatimah Bint Mohammad",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "problemSolvingAndInnovatingComments",
+          "offenders": [
+            {
+              "ch": "“",
+              "codePoint": "U+201C"
+            },
+            {
+              "ch": "”",
+              "codePoint": "U+201D"
+            }
+          ],
+          "sample": "Fatima enjoys writing and independently chooses the Writing Centre to practice. She copies words from the word wall, writes high-frequency/family words, and composes simple sentences using sentence st"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TS566600_kg-report_term1",
+      "studentName": "Ashar Batta",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "problemSolvingAndInnovatingComments",
+          "offenders": [
+            {
+              "ch": "“",
+              "codePoint": "U+201C"
+            },
+            {
+              "ch": "”",
+              "codePoint": "U+201D"
+            }
+          ],
+          "sample": "Ashar enjoys writing and often chooses to spend time at the Writing Centre. He copies words from the word wall and writes high-frequency words he has memorized, such as “I like,” “I see,” and simple C"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TS626606_kg-report_term1",
+      "studentName": "Elias Nour",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "problemSolvingAndInnovatingComments",
+          "offenders": [
+            {
+              "ch": "“",
+              "codePoint": "U+201C"
+            },
+            {
+              "ch": "”",
+              "codePoint": "U+201D"
+            }
+          ],
+          "sample": "Elias enjoys writing and often chooses to spend time at the Writing Centre on his own. He likes copying words from the word wall and writing high-frequency or familiar words he knows, such as “I like,"
+        },
+        {
+          "field": "BeloningAndContributingComments",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "The Art and Building Centre is one of Elias’ favourite places to explore. He enjoys communicating his ideas through drawing, building, and other hands-on activities, and often shares his work with the"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TS626689_kg-report_term1",
+      "studentName": "Omar Salah",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "BeloningAndContributingComments",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "The Art Building Centre is one of Omar’s favourite places to explore. He enjoys expressing his ideas through drawing and playdough and confidently joins others in play, welcoming peers to join. Omar s"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TS696657_kg-report_term1",
+      "studentName": "Misk Bensalam",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "problemSolvingAndInnovatingComments",
+          "offenders": [
+            {
+              "ch": "“",
+              "codePoint": "U+201C"
+            },
+            {
+              "ch": "”",
+              "codePoint": "U+201D"
+            }
+          ],
+          "sample": "Misk enjoys writing and often chooses to spend time at the Writing Centre. She copies words from the word wall and writes high-frequency or “family” words she has memorized, such as “I like” or “I see"
+        },
+        {
+          "field": "BeloningAndContributingComments",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "The Art Building Centre is one of Misk’s favourite places to work and experiment, and she can often be found there creating with enthusiasm. She enjoys sharing her artwork with the class and is eager "
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TS846499_7-8-report-card_term1",
+      "studentName": "Dean Fournier",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "custodyDetails",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "<ul><li>Primary guardian: Father.</li><li>Child lives with: Father.</li><li>Mother legal custody: NA.</li><li>Father legal custody: Full Custody.</li></ul><p><br></p><p>Special considerations:</p><p>N"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TS956609_kg-report_term1",
+      "studentName": "Ameera Amjed",
+      "reportCardType": "kg-report",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "problemSolvingAndInnovatingComments",
+          "offenders": [
+            {
+              "ch": "“",
+              "codePoint": "U+201C"
+            },
+            {
+              "ch": "”",
+              "codePoint": "U+201D"
+            }
+          ],
+          "sample": "Ameera enjoys writing and often chooses to spend time at the Writing Centre. She copies words from the word wall, writes high-frequency words, and uses different tools like colored markers and whitebo"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TS965749_7-8-report-card_term1",
+      "studentName": "Lojayn Ebrahim",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "historyStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Lojayn demonstrates a strong and insightful understanding of Canada’s development between 1850 and 1890, including key events, perspectives, and themes. She can analyze historical evidence thoughtfull"
+        }
+      ]
+    },
+    {
+      "id": "usvrWOHKbsd1J9jPRUnW2mYJKOx1_TS986404_7-8-report-card_term1",
+      "studentName": "Ibrahim Elleithy",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Kiran Elahi",
+      "failures": [
+        {
+          "field": "historyStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Ibrahim demonstrates a developing understanding of historical inquiry and early Canadian history, including Indigenous cultures, the Seven Years’ War, and the experiences and contributions of the Loya"
+        }
+      ]
+    },
+    {
+      "id": "x969H6LyEubqYdYyZGhkcxubj2z1_TLS325519_1-6-report-card_term1",
+      "studentName": "Tahaa  Zaigham",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "strengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Tahaa is a dependable and engaged learner. He listens carefully during instruction, understands expectations, and completes his work with care while meeting deadlines and fulfilling his classroom resp"
+        }
+      ]
+    },
+    {
+      "id": "x969H6LyEubqYdYyZGhkcxubj2z1_TLS587813_1-6-report-card_term1",
+      "studentName": "Zakariya  Ismail",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "strengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Zakariya is a positive and capable learner. He listens carefully to instructions, understands expectations, and uses class time effectively when working independently. He approaches new tasks with ent"
+        }
+      ]
+    },
+    {
+      "id": "x969H6LyEubqYdYyZGhkcxubj2z1_TLS805941_1-6-report-card_term1",
+      "studentName": "Yahya  El Manoug",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "strengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Yahya is a respectful and thoughtful learner. He completes his work with care, meets most deadlines, and shows responsibility in his approach to learning. He works well independently, uses class time "
+        }
+      ]
+    },
+    {
+      "id": "x969H6LyEubqYdYyZGhkcxubj2z1_TS106556_1-6-report-card_term1",
+      "studentName": "Mohamed Fahd Dinouri",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "strengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Fahd is a dedicated learner who demonstrates strong responsibility and independence. He listens attentively during instruction, follows expectations with minimal reminders, and completes all work with"
+        }
+      ]
+    },
+    {
+      "id": "x969H6LyEubqYdYyZGhkcxubj2z1_TS156687_1-6-report-card_term1",
+      "studentName": "Raahim Waheed",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "strengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Raahim generally completes his work on time and always follows through with his classroom responsibilities, including his daily class job. He works independently, remains on task, and is sometimes abl"
+        }
+      ]
+    },
+    {
+      "id": "x969H6LyEubqYdYyZGhkcxubj2z1_TS215658_1-6-report-card_term1",
+      "studentName": "Jana Akram Bin Sediq",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "strengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Jana is a motivated learner who brings a positive attitude to the classroom each day. She listens carefully during lessons, follows instructions, and remains focused during work periods, completing ta"
+        }
+      ]
+    },
+    {
+      "id": "x969H6LyEubqYdYyZGhkcxubj2z1_TS266193_1-6-report-card_term1",
+      "studentName": "Mariam Chaudhary",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "notes",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Returning for 2023. Mariam will be returning insha’allah. Indicated acceptance of payment and enrollment regulations."
+        }
+      ]
+    },
+    {
+      "id": "x969H6LyEubqYdYyZGhkcxubj2z1_TS446117_1-6-report-card_term1",
+      "studentName": "Khalil Damergi",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "strengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Khalil is a hardworking student who is respectful and works well with his peers. He willingly takes on any role during group activities and shows respect for others’ ideas. Khalil approaches both acad"
+        }
+      ]
+    },
+    {
+      "id": "x969H6LyEubqYdYyZGhkcxubj2z1_TS485790_1-6-report-card_term1",
+      "studentName": "Hamza Yaqub",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "strengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Hamza is an enthusiastic learner who enjoys being in the classroom. He is confident in asking for help when he needs it and takes responsibility for catching up on missed work. Hamza is kind and helpf"
+        }
+      ]
+    },
+    {
+      "id": "x969H6LyEubqYdYyZGhkcxubj2z1_TS496182_1-6-report-card_term1",
+      "studentName": "Sabeen Siddiqui",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "strengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Sabeen is a responsible and enthusiastic learner. She completes her work with care, reflects on her progress, and looks for ways to improve, showing a clear interest in growing as a learner. She liste"
+        }
+      ]
+    },
+    {
+      "id": "x969H6LyEubqYdYyZGhkcxubj2z1_TS555723_1-6-report-card_term1",
+      "studentName": "Jennah Harris",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "strengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Jennah is a hardworking and thoughtful learner who uses class time effectively. She listens carefully during lessons and is able to work independently with focus and confidence. Jennah takes initiativ"
+        }
+      ]
+    },
+    {
+      "id": "x969H6LyEubqYdYyZGhkcxubj2z1_TS576495_1-6-report-card_term1",
+      "studentName": "Muntaha Hasan",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "nativeLanguageStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "–",
+              "codePoint": "U+2013"
+            }
+          ],
+          "sample": "Muntaha reads fluently but needs to focus on her writing accuracy. While she recognizes new words, she has difficulty applying them correctly in sentences. She also finds pronouns and verbal sentence "
+        },
+        {
+          "field": "strengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Muntaha approaches her learning with confidence and care. She uses her agenda effectively, completes her work thoughtfully, and meets deadlines without reminders. Muntaha uses class time well by plann"
+        }
+      ]
+    },
+    {
+      "id": "x969H6LyEubqYdYyZGhkcxubj2z1_TS885859_1-6-report-card_term1",
+      "studentName": "Nisreen Al-Mdallal",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "strengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Nisreen approaches her learning with effort and a willingness to grow. She uses class time effectively and is able to organize her time to complete tasks independently with minimal support. She advoca"
+        }
+      ]
+    },
+    {
+      "id": "x969H6LyEubqYdYyZGhkcxubj2z1_TS896431_1-6-report-card_term1",
+      "studentName": "Jad Shahruj",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "strengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Jad is an eager learner who enjoys participating in class and helping others. He is reliable with his class job and consistently meets assignment deadlines with minimal reminders.  Jad is happy to hel"
+        }
+      ]
+    },
+    {
+      "id": "zYrxJy8xOTYwHyloofxDuv34knG3_TLS418233_7-8-report-card_term1",
+      "studentName": "Sara  Abd El Qader Edris",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Kiran Elahi",
+      "failures": [
+        {
+          "field": "artsStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "In Art class this term, Sara demonstrated a good understanding of the elements of design through one-point perspective street views, bird’s-eye views, and Islamic calligraphy using the 99 Names of All"
+        }
+      ]
+    },
+    {
+      "id": "zYrxJy8xOTYwHyloofxDuv34knG3_TLS558952_1-6-report-card_term1",
+      "studentName": "Yahya  Muhammad Ghori",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "mathStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Yahya displays a positive approach towards problem-solving tasks in math. Yahya consistently shows perseverance in solving challenging problems and doesn't give up easily. Yahya has made progress in u"
+        }
+      ]
+    },
+    {
+      "id": "zYrxJy8xOTYwHyloofxDuv34knG3_TLS704074_1-6-report-card_term1",
+      "studentName": "Yaseen  Sheibani",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "mathStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Yaseen has a true enthusiasm for math. He is also an excellent classmate, as he often assists other students with concepts. Yaseen has shown great understanding of this semester’s math concepts, inclu"
+        }
+      ]
+    },
+    {
+      "id": "zYrxJy8xOTYwHyloofxDuv34knG3_TLS711201_1-6-report-card_term1",
+      "studentName": "Zoya  Bilal",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "otherStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Zoya shows a good understanding of Islamic beliefs and practices, including Tawhid, obedience to Allah (swt) and His Messenger, and respect for halal and haram guidelines. She can explain lessons from"
+        }
+      ]
+    },
+    {
+      "id": "zYrxJy8xOTYwHyloofxDuv34knG3_TLS992614_7-8-report-card_term1",
+      "studentName": "Elyas Obaidullah",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Kiran Elahi",
+      "failures": [
+        {
+          "field": "artsStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "In Art class this term, Elyas demonstrated a good understanding of the elements of design through one-point perspective street views, bird’s-eye views, and Islamic calligraphy using the 99 Names of Al"
+        }
+      ]
+    },
+    {
+      "id": "zYrxJy8xOTYwHyloofxDuv34knG3_TS155707_7-8-report-card_term1",
+      "studentName": "Ebraheem Ezzadeen",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Kiran Elahi",
+      "failures": [
+        {
+          "field": "historyStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "This term, Ebraheem has demonstrated a strong understanding of the historical topics studied, including Indigenous cultures, colonial conflict, the Seven Years’ War, and Loyalist experiences in North "
+        },
+        {
+          "field": "artsStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "In Art class this term, Ebraheem demonstrated a good understanding of the elements of design through one-point perspective street views, bird’s-eye views, and Islamic calligraphy using the 99 Names of"
+        }
+      ]
+    },
+    {
+      "id": "zYrxJy8xOTYwHyloofxDuv34knG3_TS196679_1-6-report-card_term1",
+      "studentName": "Nusaybah Soltani",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "mathStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Nusaybah displays a positive approach towards problem-solving tasks in math. Nusaybah consistently shows perseverance in solving challenging problems and doesn't give up easily.  Nusaybah has made pro"
+        }
+      ]
+    },
+    {
+      "id": "zYrxJy8xOTYwHyloofxDuv34knG3_TS426243_7-8-report-card_term1",
+      "studentName": "Hamza Khan",
+      "reportCardType": "7-8-report-card",
+      "term": "term1",
+      "teacherName": "Kiran Elahi",
+      "failures": [
+        {
+          "field": "artsStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "In Art class this term, Hamza has demonstrated a good understanding of the elements of design through one-point perspective street views, bird’s-eye views, and Islamic calligraphy using the 99 Names o"
+        }
+      ]
+    },
+    {
+      "id": "zYrxJy8xOTYwHyloofxDuv34knG3_TS435778_1-6-report-card_term1",
+      "studentName": "Mohammad Wahid",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health: Umar has reflected on his own Eating Habits and Choices, considering what influences our eating and drinking choices. Taking care of next term’s tasks will benefit him.\n\nPhysical Education: Um"
+        },
+        {
+          "field": "otherStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Umar shows a good understanding of Islamic beliefs and practices, including Tawhid, obedience to Allah (swt) and His Messenger, and respect for halal and haram guidelines. He can explain lessons from "
+        },
+        {
+          "field": "mathStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Umar has a true enthusiasm and gift for math. He is also an excellent classmate, as he often assists other students with concepts. Umar has shown great understanding of this semester’s math concepts, "
+        }
+      ]
+    },
+    {
+      "id": "zYrxJy8xOTYwHyloofxDuv34knG3_TS446226_1-6-report-card_term1",
+      "studentName": "Malik Amro",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health: Malik knows what’s expected with Mindful Eating, Islamic Manners of Eating and Drinking.  He has reflected deeply on his own Eating Habits and Choices, considering what influences our eating a"
+        },
+        {
+          "field": "mathStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Malik has a true enthusiasm and gift for math. He is also an excellent classmate, as he often assists other students with concepts. Malik has shown great understanding of this semester’s math concepts"
+        }
+      ]
+    },
+    {
+      "id": "zYrxJy8xOTYwHyloofxDuv34knG3_TS706300_1-6-report-card_term1",
+      "studentName": "Omar Amin",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health: Omar can understand Mindful Eating and tries to implement Islamic Manners of Eating and Drinking. He has reflected on his own Eating Habits and Choices, considering what influences our eating "
+        },
+        {
+          "field": "mathStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Omar displays a positive approach towards problem-solving tasks in math. Omar consistently shows perseverance in solving challenging word problems.  Omar has made progress in understanding this semest"
+        }
+      ]
+    },
+    {
+      "id": "zYrxJy8xOTYwHyloofxDuv34knG3_TS885961_1-6-report-card_term1",
+      "studentName": "Muhammad Salah",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "mathStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Muhammad displays a positive approach towards problem-solving tasks in math. Muhammad has made progress in understanding this semester’s math concepts, including long division and constructing angles "
+        },
+        {
+          "field": "otherStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Muhammad shows a good understanding of Islamic beliefs and practices, including Tawhid, obedience to Allah (swt) and His Messenger, and respect for halal and haram guidelines. He can explain lessons f"
+        },
+        {
+          "field": "healthAndPEStrengthsAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Health: Muhammad has reflected on his own Eating Habits and Choices, considering what influences our eating and drinking choices. Taking care of next term’s tasks will benefit him.\n\nPhysical Education"
+        }
+      ]
+    },
+    {
+      "id": "zYrxJy8xOTYwHyloofxDuv34knG3_TS916166_1-6-report-card_term1",
+      "studentName": "Mujahid Syed",
+      "reportCardType": "1-6-report-card",
+      "term": "term1",
+      "teacherName": "Ghazala Choudhary",
+      "failures": [
+        {
+          "field": "mathStrengthAndNextStepsForImprovement",
+          "offenders": [
+            {
+              "ch": "’",
+              "codePoint": "U+2019"
+            }
+          ],
+          "sample": "Mujahid displays a positive approach towards problem-solving tasks in math. Mujahid consistently shows perseverance in solving challenging problems and doesn't give up easily.  Mujahid has made progre"
+        }
+      ]
+    }
+  ]
+}

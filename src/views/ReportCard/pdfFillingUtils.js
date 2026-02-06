@@ -11,10 +11,73 @@ const ARABIC_REGEX_GLOBAL = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFD
 
 export const stripArabicFromText = (text) => {
   if (!text) return text
-  return text
+  const stripped = text
     .replace(ARABIC_REGEX_GLOBAL, '')
     .replace(/\s{2,}/g, ' ')
     .trim()
+  // Also sanitize any non-WinAnsi characters (ā, zero-width spaces, etc.)
+  // so StandardFonts.TimesRoman never encounters chars it can't encode.
+  return sanitizeForWinAnsi(stripped)
+}
+
+/**
+ * All Unicode code points encodable by WinAnsi (Windows-1252).
+ * Characters NOT in this set crash pdf-lib's StandardFont encoder.
+ *
+ * Note: smart quotes (' ' " "), en/em dashes (– —), ellipsis (…) etc.
+ * ARE in WinAnsi and pass through fine. Only characters like ā (U+0101),
+ * zero-width space (U+200B), non-breaking hyphen (U+2011) are NOT.
+ */
+const WINANSI_CODEPOINTS = new Set([
+  // 0x00-0x7F: ASCII
+  ...Array.from({ length: 128 }, (_, i) => i),
+  // 0xA0-0xFF: Latin-1 Supplement (same as Unicode U+00A0-U+00FF)
+  ...Array.from({ length: 96 }, (_, i) => 0xA0 + i),
+  // 0x80-0x9F: Windows-1252 extras (mapped to their Unicode code points)
+  0x20AC, 0x201A, 0x0192, 0x201E, 0x2026, 0x2020, 0x2021, 0x02C6,
+  0x2030, 0x0160, 0x2039, 0x0152, 0x017D, 0x2018, 0x2019, 0x201C,
+  0x201D, 0x2022, 0x2013, 0x2014, 0x02DC, 0x2122, 0x0161, 0x203A,
+  0x0153, 0x017E, 0x0178,
+])
+
+/**
+ * Replace only the characters that WinAnsi cannot encode with safe equivalents.
+ *
+ * - Smart quotes, dashes, ellipsis, and standard accented chars (é, ñ, ü, etc.)
+ *   are all valid WinAnsi and pass through UNCHANGED.
+ * - Only truly unsupported chars are touched:
+ *     ā (U+0101) → a   (NFD decomposition strips the macron)
+ *     ​ (U+200B) → ""  (zero-width space removed)
+ *     ‑ (U+2011) → -   (non-breaking hyphen → regular hyphen)
+ */
+export const sanitizeForWinAnsi = (text) => {
+  if (!text) return text
+  let result = ''
+  for (const ch of text) {
+    const cp = ch.codePointAt(0)
+    if (WINANSI_CODEPOINTS.has(cp)) {
+      // Character is valid WinAnsi — keep it exactly as-is
+      result += ch
+    } else if (cp === 0x200B || cp === 0xFEFF) {
+      // Zero-width space / BOM — silently remove
+    } else if (cp === 0x2011) {
+      // Non-breaking hyphen → regular hyphen
+      result += '-'
+    } else {
+      // Try NFD decomposition: ā → a + combining macron → keep base, strip mark
+      const decomposed = ch.normalize('NFD')
+      let base = ''
+      for (const dch of decomposed) {
+        const dcp = dch.codePointAt(0)
+        if (WINANSI_CODEPOINTS.has(dcp)) {
+          base += dch
+        }
+        // Combining marks (U+0300-U+036F) and other non-WinAnsi chars are dropped
+      }
+      result += base
+    }
+  }
+  return result
 }
 
 export const ensureSignatureFont = async () => {
@@ -311,7 +374,7 @@ export const updateAllFieldAppearances = async (form, pdfDoc, context = 'PDF') =
               // For text fields, ensure the text is visible
               if (fieldType === 'PDFTextField' || fieldType === 'PDFTextField2') {
                 const fieldValue = field.getText()
-                const safeValue = fieldValue ?? ''
+                const safeValue = sanitizeForWinAnsi(fieldValue ?? '')
                 // Force update by setting the text again (even if empty)
                 field.setText(safeValue)
                 if (timesRomanFont) {

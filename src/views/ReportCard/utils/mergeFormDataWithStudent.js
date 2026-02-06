@@ -25,7 +25,9 @@ export const mergeFormDataWithStudent = (formData, student) => {
     studentId: student.id || student.studentId || '',
     OEN: oen,
     oen: oen,
-    grade: normalizedGrade,
+    // Only overwrite grade if the student record has a value;
+    // otherwise keep whatever the formData already has.
+    grade: normalizedGrade || formData?.grade || '',
     daysAbsent: student.currentTermAbsenceCount ?? formData?.daysAbsent ?? 0,
     totalDaysAbsent: student.yearAbsenceCount ?? formData?.totalDaysAbsent ?? 0,
     timesLate: student.currentTermLateCount ?? formData?.timesLate ?? 0,
