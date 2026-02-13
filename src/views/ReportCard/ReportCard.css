@@ -119,21 +119,22 @@
   color: white;
 }
 
-/* Read-only mode (disable editing visually across all fields) */
-.rc-readonly input,
-.rc-readonly textarea,
-.rc-readonly select,
-.rc-readonly button,
-.rc-readonly .signature-canvas,
-.rc-readonly canvas,
-.rc-readonly .MuiInputBase-root,
-.rc-readonly .MuiButton-root {
+/* Read-only mode:
+   Keep report/student selection navigable, but lock the editable form panel. */
+.rc-readonly .form-section input,
+.rc-readonly .form-section textarea,
+.rc-readonly .form-section select,
+.rc-readonly .form-section button,
+.rc-readonly .form-section .signature-canvas,
+.rc-readonly .form-section canvas,
+.rc-readonly .form-section .MuiInputBase-root,
+.rc-readonly .form-section .MuiButton-root {
   pointer-events: none;
   opacity: 0.7;
   cursor: not-allowed;
 }
 
-.rc-readonly .ai-button-minimal {
+.rc-readonly .form-section .ai-button-minimal {
   pointer-events: none;
   opacity: 0.5;
 }
