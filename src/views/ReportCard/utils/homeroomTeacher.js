@@ -250,14 +250,7 @@ export const getHomeroomTeacherName = async (student, reportType = null) => {
       return ''
     }
 
-    // PRIMARY: Use official grade-to-teacher mapping FIRST
-    const teacherFromMap = getTeacherForGrade(grade)
-    if (teacherFromMap) {
-      console.log(`✅ Using official grade-to-teacher mapping for ${student.fullName} (${grade}): ${teacherFromMap}`)
-      return teacherFromMap
-    }
-
-    // Normalize grade for matching (for course lookup fallback)
+    // Normalize grade for matching
     const normalizedGrade = normalizeGradeForMatching(grade)
     console.log(`📊 Grade normalized: "${grade}" → "${normalizedGrade}"`)
     
@@ -359,7 +352,7 @@ export const getHomeroomTeacherName = async (student, reportType = null) => {
       console.warn(`⚠️ No homeroom course found for grade: ${grade} (normalized: ${normalizedGrade})`)
     }
 
-    // Fallback to hardcoded mapping if course lookup failed or no teacher in course
+    // Last resort: hardcoded map (used only when Firestore course lookup returns nothing)
     console.log(`🔄 Attempting hardcoded fallback for normalized grade: "${normalizedGrade}"`)
     const fallbackTeacher = HARDCODED_TEACHER_MAP[normalizedGrade.toLowerCase()]
     if (fallbackTeacher) {

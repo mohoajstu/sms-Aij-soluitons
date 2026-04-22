@@ -32,7 +32,8 @@
     "courses:create": "node src/scripts/createCoursesFromCSV.js",
     "courses:test": "node src/scripts/test-csv-parsing.js",
     "courses:test-single": "node src/scripts/test-single-course.js",
-    "courses:test-admin": "node src/scripts/test-single-course-admin.js"
+    "courses:test-admin": "node src/scripts/test-single-course-admin.js",
+    "pdf:fields": "node scripts/identify-pdf-fields.js"
   },
   "dependencies": {
     "@coreui/chartjs": "^4.1.0",

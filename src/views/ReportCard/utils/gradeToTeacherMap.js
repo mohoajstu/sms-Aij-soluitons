@@ -14,7 +14,7 @@ export const GRADE_TO_TEACHER_MAP = {
   '4': 'Saima Qureshi',
   '5': 'Sara Sultan',
   '6': 'Saba Alvi',
-  '7': 'Hasna Charanek',
+  '7': 'Houda Ismaili',
   '8': 'Saba Alvi',
 }
 
