@@ -2,7 +2,8 @@ import React from 'react'
 import CIcon from '@coreui/icons-react'
 import { cilHome, cilList, cilNotes, cilSpeedometer, cilCalendar, cilClock, cilUserPlus, cilUser, cilPeople, cilStar } from '@coreui/icons'
 import BeenhereOutlinedIcon from '@mui/icons-material/BeenhereOutlined'
-import { CNavItem } from '@coreui/react'
+import { CNavItem, CNavTitle } from '@coreui/react'
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
 import AutoStoriesOutlinedIcon from '@mui/icons-material/AutoStoriesOutlined'
 
 const _nav = [
@@ -98,6 +99,25 @@ const _nav = [
     name: 'SMS Settings',
     to: '/admin/sms-settings',
     icon: <CIcon icon={cilSpeedometer} customClassName="nav-icon" />,
+    hideFor: ['parent', 'student', 'teacher', 'faculty'],
+  },
+  {
+    component: CNavTitle,
+    name: 'Timekeeping',
+    hideFor: ['parent', 'student'],
+  },
+  {
+    component: CNavItem,
+    name: 'Check In',
+    to: '/checkin',
+    icon: <LocationOnOutlinedIcon className="nav-icon" />,
+    hideFor: ['parent', 'student'],
+  },
+  {
+    component: CNavItem,
+    name: 'Staff Check-Ins',
+    to: '/admin/staff-checkins',
+    icon: <CIcon icon={cilClock} customClassName="nav-icon" />,
     hideFor: ['parent', 'student', 'teacher', 'faculty'],
   },
 ]
