@@ -565,7 +565,7 @@ const LearningSkillsSection = ({ formData, onFormDataChange }) => {
 
   const learningSkills = [
     {
-      key: 'responsibiity1',
+      key: 'responsibility1',
       label: 'Responsibility',
       description: 'Fulfills responsibilities and commitments within the learning environment',
       sansField: 'sansResponsibility',

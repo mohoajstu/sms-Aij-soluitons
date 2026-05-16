@@ -1004,10 +1004,17 @@ const ReportCard = ({ presetReportCardId = null }) => {
       const draftRef = doc(firestore, 'reportCardDrafts', draftId)
       const draftSnap = await getDoc(draftRef)
 
+      // Report types that store term-specific (Report1/Report2) fields
+      const reportTypesWithTermFields = ['1-6-report-card', '7-8-report-card', 'quran-report']
+      const isStaleT2Draft = (formData) =>
+        term === 'term2' &&
+        reportTypesWithTermFields.includes(reportType) &&
+        !Object.keys(formData).some((k) => getFieldTerm(k) === 'term1')
+
       if (draftSnap.exists()) {
         const draftData = draftSnap.data()
         let loadedFormData = getLatestFormData(draftData) || {}
-        
+
         console.log('✅ Found existing draft with deterministic ID:', {
           draftId: draftId,
           term: term,
@@ -1020,11 +1027,17 @@ const ReportCard = ({ presetReportCardId = null }) => {
         // Map old field names to new field names for backward compatibility
         loadedFormData = mapOldFieldNamesToNew(loadedFormData, reportType)
 
+        // Skip stale T2 drafts created before the T1-carryover fix (they have no Report1 fields)
+        if (isStaleT2Draft(loadedFormData)) {
+          console.warn('⚠️ Step 1: Stale T2 draft detected (no T1 fields) — skipping, will copy from T1 instead:', draftId)
+          // fall through to Step 2/3
+        } else {
+
         // Separate term-specific and shared fields from loaded data
-        const { termData: loadedTermData, sharedData: loadedSharedData } = separateTermFields(loadedFormData, term)
-        
-        // Merge term-specific and shared fields
-        const mergedFormData = mergeTermFields(loadedTermData, loadedSharedData, {})
+        const { termData: loadedTermData, sharedData: loadedSharedData, otherTermData: loadedOtherTermData } = separateTermFields(loadedFormData, term)
+
+        // Merge all buckets so the other term's fields (e.g. Report1 on a Term 2 load) are preserved
+        const mergedFormData = mergeTermFields(loadedTermData, loadedSharedData, loadedOtherTermData)
         
         // ALWAYS refresh attendance with latest student data
         // Also ensure date and teacher are set
@@ -1079,6 +1092,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
         })
 
         return draftData
+        }
       } else {
         console.log('❌ Draft not found with deterministic ID:', draftId)
       }
@@ -1136,6 +1150,16 @@ const ReportCard = ({ presetReportCardId = null }) => {
             }
           }
 
+          // Drop stale T2 drafts (no T1 fields) so Step 3 can carry forward from T1
+          draftsToConsider = draftsToConsider.filter((d) => {
+            const fd = getLatestFormData(d.data) || {}
+            const stale = isStaleT2Draft(fd)
+            if (stale) {
+              console.warn('⚠️ Step 2: Stale T2 draft detected (no T1 fields) — skipping:', d.id)
+            }
+            return !stale
+          })
+
           if (draftsToConsider.length > 0) {
             // Sort by lastModified descending
             draftsToConsider.sort((a, b) => b.lastModified - a.lastModified)
@@ -1161,10 +1185,10 @@ const ReportCard = ({ presetReportCardId = null }) => {
             }
 
             // Separate term-specific and shared fields
-            const { termData: loadedTermData, sharedData: loadedSharedData } = separateTermFields(loadedFormData, effectiveTerm)
-            
-            // Merge term-specific and shared fields
-            const mergedFormData = mergeTermFields(loadedTermData, loadedSharedData, {})
+            const { termData: loadedTermData, sharedData: loadedSharedData, otherTermData: loadedOtherTermData } = separateTermFields(loadedFormData, effectiveTerm)
+
+            // Merge all buckets so the other term's fields are preserved
+            const mergedFormData = mergeTermFields(loadedTermData, loadedSharedData, loadedOtherTermData)
             
             // ALWAYS refresh attendance with latest student data
             // Also ensure date and teacher are set
@@ -1225,8 +1249,10 @@ const ReportCard = ({ presetReportCardId = null }) => {
         // Continue to next step
       }
 
-      // Step 3: For Term 2, try to load from final Term 1 form or latest Term 1 draft
-      if (term === 'term2') {
+      // Step 3: For Term 2, try to load from final Term 1 form or latest Term 1 draft.
+      // KG reports (kg-initial, kg-report) skip this entirely — Term 2 is a fresh form.
+      const isKGReport = reportType && (reportType.includes('kg') || reportType.includes('kindergarten'))
+      if (term === 'term2' && !isKGReport) {
         console.log('🔍 Step 3: Term 2 - Looking for final Term 1 form or latest Term 1 draft...')
         
         // First, try to find completed Term 1 report in reportCards collection
@@ -1750,28 +1776,28 @@ const ReportCard = ({ presetReportCardId = null }) => {
       const mergedFormData = mergeFormDataWithStudent(formData, selectedStudent)
 
       // Separate term-specific fields from shared fields
-      const { termData, sharedData } = separateTermFields(mergedFormData, selectedTerm)
-      
-      // Clean formData to remove undefined values (Firestore doesn't allow undefined)
-      const cleanTermData = {}
-      Object.keys(termData).forEach((key) => {
-        const value = termData[key]
-        if (value !== undefined && value !== null) {
-          cleanTermData[key] = value === '' ? '' : value
-        }
-      })
-      
-      const cleanSharedData = {}
-      Object.keys(sharedData).forEach((key) => {
-        const value = sharedData[key]
-        if (value !== undefined && value !== null) {
-          cleanSharedData[key] = value === '' ? '' : value
-        }
-      })
-      
-      // Merge term-specific and shared data for storage
+      const { termData, sharedData, otherTermData } = separateTermFields(mergedFormData, selectedTerm)
+
+      const cleanBucket = (bucket) => {
+        const out = {}
+        Object.keys(bucket).forEach((key) => {
+          const value = bucket[key]
+          if (value !== undefined && value !== null) {
+            out[key] = value === '' ? '' : value
+          }
+        })
+        return out
+      }
+
+      const cleanTermData = cleanBucket(termData)
+      const cleanSharedData = cleanBucket(sharedData)
+      // Preserve the other term's fields so the PDF shows both columns correctly
+      const cleanOtherTermData = cleanBucket(otherTermData)
+
+      // Merge: shared → other-term (read-only) → current-term (editable, wins)
       const cleanFormData = {
         ...cleanSharedData,
+        ...cleanOtherTermData,
         ...cleanTermData,
       }
 
@@ -1779,6 +1805,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
         term: selectedTerm,
         termSpecificFields: Object.keys(cleanTermData).length,
         sharedFields: Object.keys(cleanSharedData).length,
+        otherTermFields: Object.keys(cleanOtherTermData).length,
         totalFields: Object.keys(cleanFormData).length,
       })
 
@@ -2532,24 +2559,19 @@ const ReportCard = ({ presetReportCardId = null }) => {
         user &&
         selectedStudent
       ) {
-        const { termData, sharedData } = separateTermFields(effectiveFormData, selectedTerm)
-        const cleanTermData = {}
-        Object.keys(termData).forEach((key) => {
-          const value = termData[key]
-          if (value !== undefined && value !== null) {
-            cleanTermData[key] = value === '' ? '' : value
-          }
-        })
-        const cleanSharedData = {}
-        Object.keys(sharedData).forEach((key) => {
-          const value = sharedData[key]
-          if (value !== undefined && value !== null) {
-            cleanSharedData[key] = value === '' ? '' : value
-          }
-        })
+        const { termData, sharedData, otherTermData } = separateTermFields(effectiveFormData, selectedTerm)
+        const cleanBucketFn = (bucket) => {
+          const out = {}
+          Object.keys(bucket).forEach((key) => {
+            const value = bucket[key]
+            if (value !== undefined && value !== null) out[key] = value === '' ? '' : value
+          })
+          return out
+        }
         const cleanFormData = {
-          ...cleanSharedData,
-          ...cleanTermData,
+          ...cleanBucketFn(sharedData),
+          ...cleanBucketFn(otherTermData),
+          ...cleanBucketFn(termData),
         }
 
         try {

@@ -548,7 +548,7 @@ const LearningSkillsSection = ({ formData, onFormDataChange, selectedTerm = 'ter
   // Learning skills with term variants
   const learningSkillsTerm1 = [
     {
-      key: 'reponsibility1',
+      key: 'responsibility1',
       label: 'Responsibility',
       description: 'Fulfills responsibilities and commitments within the learning environment',
     },
@@ -568,7 +568,7 @@ const LearningSkillsSection = ({ formData, onFormDataChange, selectedTerm = 'ter
       description: 'Responds positively to the ideas, opinions, values, and traditions of others',
     },
     {
-      key: 'initiative',
+      key: 'initiative1',
       label: 'Initiative',
       description: 'Looks for and acts on new ideas and opportunities for learning',
     },
@@ -970,7 +970,7 @@ const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term1
       name: 'Islamic Studies',
       key: 'other',
       fields: ['otherESL', 'otherFrench', 'otherIEP', 'otherNA'],
-      markFields: ['otherMarkReport1', 'otherMedianReport2'],
+      markFields: ['otherMarkReport1', 'otherMarkReport2'],
       commentField: 'otherStrengthsAndNextStepsForImprovement',
       showSubjectNameInput: true,
     },

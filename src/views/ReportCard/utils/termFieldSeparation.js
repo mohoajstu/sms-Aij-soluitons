@@ -43,30 +43,33 @@ export const getFieldTerm = (fieldName) => {
  * Separate form data into term-specific and shared fields
  * @param {Object} formData - The complete form data object
  * @param {string} term - 'term1' or 'term2'
- * @returns {Object} - Object with termData (term-specific) and sharedData (shared fields)
+ * @returns {Object} - Object with termData (current term), sharedData (shared), otherTermData (other term)
  */
 export const separateTermFields = (formData, term) => {
   if (!formData || typeof formData !== 'object') {
-    return { termData: {}, sharedData: {} }
+    return { termData: {}, sharedData: {}, otherTermData: {} }
   }
-  
+
   const termData = {}
   const sharedData = {}
-  
+  const otherTermData = {}
+
   Object.keys(formData).forEach((key) => {
     const fieldTerm = getFieldTerm(key)
-    
+
     if (fieldTerm === term) {
       // This field belongs to the current term
       termData[key] = formData[key]
     } else if (fieldTerm === null) {
       // This is a shared field (not term-specific)
       sharedData[key] = formData[key]
+    } else {
+      // Belongs to the other term — preserve so the PDF still shows both columns
+      otherTermData[key] = formData[key]
     }
-    // If fieldTerm is the other term, we don't include it in termData
   })
-  
-  return { termData, sharedData }
+
+  return { termData, sharedData, otherTermData }
 }
 
 /**
@@ -101,29 +104,54 @@ const replaceWithMatchingCase = (match, replacement) => {
   return replacement.charAt(0).toUpperCase() + replacement.slice(1).toLowerCase()
 }
 
+// Learning skill field bases that use a numeric 1/2 suffix (not report1/report2)
+const LEARNING_SKILL_BASES = [
+  'responsibility',
+  'organization',
+  'independentWork',
+  'collaboration',
+  'initiative',
+  'selfRegulation',
+]
+
 export const copyTerm1ToTerm2 = (term1FormData) => {
   if (!term1FormData || typeof term1FormData !== 'object') {
     return {}
   }
-  
+
   const term2Data = {}
-  
+
   Object.keys(term1FormData).forEach((key) => {
     const fieldTerm = getFieldTerm(key)
-    
+
     if (fieldTerm === 'term1') {
-      // Convert Term 1 field to Term 2 equivalent
+      // Keep the Term 1 field so the Term 1 column stays filled in the PDF.
+      term2Data[key] = term1FormData[key]
+
+      // Add the Term 2 equivalent as empty — teacher fills it fresh.
+      // (comment fields are also cleared by initializeTerm2FromTerm1 after this)
       let term2Key = key
       term2Key = term2Key.replace(/report1/gi, (match) => replaceWithMatchingCase(match, 'report2'))
       term2Key = term2Key.replace(/term1/gi, (match) => replaceWithMatchingCase(match, 'term2'))
-      term2Data[term2Key] = term1FormData[key]
+      if (term2Key !== key) {
+        term2Data[term2Key] = ''
+      }
     } else if (fieldTerm === null) {
-      // Shared field - copy as is
-      term2Data[key] = term1FormData[key]
+      // Check if this is a learning-skill field using a bare numeric suffix (e.g. responsibility1)
+      const lsBase = LEARNING_SKILL_BASES.find((base) => key === base + '1')
+      if (lsBase) {
+        // Keep Term 1 value so the Term 1 column stays filled in the PDF.
+        term2Data[key] = term1FormData[key]
+        // Term 2 rating starts empty — teacher fills it fresh.
+        term2Data[lsBase + '2'] = ''
+      } else {
+        // Shared field — copy as-is
+        term2Data[key] = term1FormData[key]
+      }
     }
     // Don't copy Term 2 fields from Term 1 (shouldn't exist, but just in case)
   })
-  
+
   return term2Data
 }
 
