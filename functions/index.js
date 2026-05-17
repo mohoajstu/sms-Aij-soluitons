@@ -33,7 +33,9 @@ function isStaging() {
 }
 
 /**
- * Helper function to format phone numbers into E.164 format.
+ * Helper function to format North American phone numbers into E.164 format.
+ * Supports raw fields that contain multiple numbers separated by commas,
+ * slashes, ampersands, or words like "and".
  * @param {string} phoneNumber The phone number to format.
  * @returns {string} The formatted phone number.
  */
@@ -41,25 +43,144 @@ function formatPhoneNumber(phoneNumber) {
   if (!phoneNumber || typeof phoneNumber !== 'string') {
     return null
   }
-  // If multiple numbers are provided (comma-separated), take the first one only
-  const firstPhone = phoneNumber.split(',')[0].trim()
-  if (!firstPhone) return null
 
-  // Remove any non-digit characters
-  let cleaned = firstPhone.replace(/\D/g, '')
+  const candidates = getPhoneNumberCandidates(phoneNumber)
+  for (const candidate of candidates) {
+    const formattedPhone = formatSingleNanpPhoneNumber(candidate)
+    if (formattedPhone) {
+      return formattedPhone
+    }
+  }
+
+  return null
+}
+
+function getPhoneNumberCandidates(phoneNumber) {
+  const value = phoneNumber.trim()
+  if (!value) return []
+
+  const candidates = value
+    .split(/\s*(?:,|;|\/|\\|\||&|\band\b|\bor\b)\s*/i)
+    .map((candidate) => candidate.trim())
+    .filter(Boolean)
+
+  if (candidates.length === 0) {
+    candidates.push(value)
+  }
+
+  const expandedCandidates = [...candidates]
+
+  for (const candidate of candidates) {
+    const digits = candidate.replace(/\D/g, '')
+    if (digits.length > 11) {
+      const possibleNanpNumbers = digits.match(/1?[2-9]\d{2}[2-9]\d{6}/g) || []
+      expandedCandidates.push(...possibleNanpNumbers)
+    }
+  }
+
+  return expandedCandidates
+}
+
+function formatSingleNanpPhoneNumber(phoneNumber) {
+  let cleaned = String(phoneNumber).replace(/\D/g, '')
   if (!cleaned) return null
 
-  // If the number is 10 digits and doesn't start with 1, assume it's a US/Canada number and add +1
-  if (cleaned.length === 10 && cleaned.charAt(0) !== '1') {
-    cleaned = '1' + cleaned
+  if (cleaned.length === 11 && cleaned.startsWith('1')) {
+    cleaned = cleaned.slice(1)
   }
 
-  // Add the + prefix if it's missing
-  if (!cleaned.startsWith('+')) {
-    cleaned = '+' + cleaned
+  if (cleaned.length !== 10) {
+    return null
   }
 
-  return cleaned
+  if (!/^[2-9]\d{2}[2-9]\d{6}$/.test(cleaned)) {
+    return null
+  }
+
+  return `+1${cleaned}`
+}
+
+function maskPhoneForLog(phoneNumber) {
+  const digits = String(phoneNumber || '').replace(/\D/g, '')
+  if (!digits) return ''
+  if (digits.length <= 4) return '*'.repeat(digits.length)
+  return `${'*'.repeat(Math.max(0, digits.length - 4))}${digits.slice(-4)}`
+}
+
+function collectContactPhoneAttempts(contact, source) {
+  if (!contact) return []
+
+  return ['phone1', 'phone2', 'emergencyPhone']
+    .map((field) => ({
+      source: `${source}.${field}`,
+      rawPhoneNumber: contact[field],
+      phoneNumber: formatPhoneNumber(contact[field]),
+    }))
+    .filter((attempt) => attempt.rawPhoneNumber)
+}
+
+async function resolveStudentSmsContact(db, studentId, studentData) {
+  const attempts = []
+  const parentRefs = studentData.parents || {}
+
+  for (const [relationship, parentInfo] of Object.entries(parentRefs)) {
+    const parentId = parentInfo?.tarbiyahId
+    if (!parentId) continue
+
+    try {
+      const parentDoc = await db.collection('parents').doc(parentId).get()
+      if (!parentDoc.exists) {
+        attempts.push({
+          source: `parents.${relationship}`,
+          parentId,
+          error: 'Parent document not found',
+        })
+        continue
+      }
+
+      const parentData = parentDoc.data()
+      attempts.push(
+        ...collectContactPhoneAttempts(
+          parentData.contact,
+          `parents.${relationship}.${parentId}.contact`,
+        ),
+      )
+    } catch (error) {
+      attempts.push({
+        source: `parents.${relationship}`,
+        parentId,
+        error: error.message,
+      })
+    }
+  }
+
+  attempts.push(...collectContactPhoneAttempts(studentData.contact, 'students.contact'))
+
+  const validAttempt = attempts.find((attempt) => attempt.phoneNumber)
+  if (validAttempt) {
+    return {
+      phoneNumber: validAttempt.phoneNumber,
+      source: validAttempt.source,
+      rawPhoneNumber: validAttempt.rawPhoneNumber,
+      attempts,
+    }
+  }
+
+  return {
+    phoneNumber: null,
+    attempts,
+  }
+}
+
+function summarizePhoneAttemptsForLog(attempts) {
+  return attempts.map((attempt) => ({
+    source: attempt.source,
+    parentId: attempt.parentId,
+    hasRawPhoneNumber: Boolean(attempt.rawPhoneNumber),
+    maskedPhoneNumber: maskPhoneForLog(attempt.rawPhoneNumber),
+    normalized: attempt.phoneNumber || null,
+    error: attempt.error,
+  }))
 }
 
 /**
@@ -265,47 +386,48 @@ exports.sendScheduledSms = functions
 
           if (studentDoc.exists) {
             const studentData = studentDoc.data()
-            const phoneNumber = studentData.contact?.phone1
+            const smsContact = await resolveStudentSmsContact(db, studentId, studentData)
 
-            if (phoneNumber) {
-              const formattedPhoneNumber = formatPhoneNumber(phoneNumber)
-              if (formattedPhoneNumber) {
-                const studentInfo = notifications[studentId]
-                const issuesString = studentInfo.issues.map((issue) => issue.status).join(', ')
-                const formattedDate = today.toLocaleDateString('en-US', {
-                  month: 'long',
-                  day: 'numeric',
-                  year: 'numeric',
-                })
+            if (smsContact.phoneNumber) {
+              const studentInfo = notifications[studentId]
+              const issuesString = studentInfo.issues.map((issue) => issue.status).join(', ')
+              const formattedDate = today.toLocaleDateString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+              })
 
-                // Use admin message template
-                const message = formatMessage(messageTemplate, {
-                  date: formattedDate,
-                  studentName: studentInfo.studentName,
-                  status: issuesString,
-                  courseTitle: studentInfo.issues[0]?.courseTitle || 'class'
-                })
+              // Use admin message template
+              const message = formatMessage(messageTemplate, {
+                date: formattedDate,
+                studentName: studentInfo.studentName,
+                status: issuesString,
+                courseTitle: studentInfo.issues[0]?.courseTitle || 'class',
+              })
 
-                // Check if staging - skip sending SMS in staging
-                if (isStaging()) {
-                  console.log(`🚧 STAGING MODE: Skipping SMS to ${formattedPhoneNumber} for student ${studentId}`)
-                  console.log(`   Would have sent: ${message}`)
-                  successCount++ // Count as success for testing purposes
-                } else {
-                  await client.messages.create({
-                    body: message,
-                    to: formattedPhoneNumber,
-                    from: twilioNumber,
-                  })
-                  console.log(`✅ SMS sent to ${formattedPhoneNumber} for student ${studentId}`)
-                  successCount++
-                }
+              // Check if staging - skip sending SMS in staging
+              if (isStaging()) {
+                console.log(
+                  `🚧 STAGING MODE: Skipping SMS to ${smsContact.phoneNumber} for student ${studentId} from ${smsContact.source}`,
+                )
+                console.log(`   Would have sent: ${message}`)
+                successCount++ // Count as success for testing purposes
               } else {
-                console.error(`❌ Invalid phone number format for student ${studentId}: ${phoneNumber}`)
-                errorCount++
+                await client.messages.create({
+                  body: message,
+                  to: smsContact.phoneNumber,
+                  from: twilioNumber,
+                })
+                console.log(
+                  `✅ SMS sent to ${smsContact.phoneNumber} for student ${studentId} from ${smsContact.source}`,
+                )
+                successCount++
               }
             } else {
-              console.error(`❌ No phone1 found for student ${studentId}`)
+              console.error(
+                `❌ No valid parent contact phone found for student ${studentId} (${notifications[studentId].studentName})`,
+                summarizePhoneAttemptsForLog(smsContact.attempts),
+              )
               errorCount++
             }
           } else {
@@ -350,29 +472,32 @@ exports.sendSmsHttp = functions.region('northamerica-northeast1').https.onReques
       return res.status(400).json({ success: false, message: 'Missing phone number or message' })
     }
 
-    const e164Regex = /^\+?[1-9]\d{1,14}$/
-    if (!e164Regex.test(phoneNumber)) {
+    const formattedPhoneNumber = formatPhoneNumber(phoneNumber)
+    if (!formattedPhoneNumber) {
       return res
         .status(400)
-        .json({ success: false, message: 'Invalid phone number format (E.164 required)' })
+        .json({
+          success: false,
+          message: 'Invalid phone number format. A valid US/Canada number is required.',
+        })
     }
 
     try {
       // Check if staging - skip sending SMS in staging
       if (isStaging()) {
-        console.log(`🚧 STAGING MODE: Skipping SMS to ${phoneNumber}`)
+        console.log(`🚧 STAGING MODE: Skipping SMS to ${formattedPhoneNumber}`)
         console.log(`   Would have sent: ${message}`)
-        return res.status(200).json({ 
-          success: true, 
+        return res.status(200).json({
+          success: true,
           sid: 'staging-skip',
           message: 'SMS skipped in staging mode',
-          staging: true
+          staging: true,
         })
       }
 
       const twilioResponse = await client.messages.create({
         body: message,
-        to: phoneNumber,
+        to: formattedPhoneNumber,
         from: twilioNumber,
       })
 
@@ -651,68 +776,67 @@ exports.triggerAttendanceSms = functions
 
             if (studentDoc.exists) {
               const studentData = studentDoc.data()
-              const phoneNumber = studentData.contact?.phone1
+              const smsContact = await resolveStudentSmsContact(db, studentId, studentData)
 
-              if (phoneNumber) {
-                const formattedPhoneNumber = formatPhoneNumber(phoneNumber)
-                if (formattedPhoneNumber) {
-                  const studentInfo = notifications[studentId]
-                  const issuesString = studentInfo.issues.map((issue) => issue.status).join(', ')
-                  const formattedDate = today.toLocaleDateString('en-US', {
-                    month: 'long',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })
+              if (smsContact.phoneNumber) {
+                const studentInfo = notifications[studentId]
+                const issuesString = studentInfo.issues.map((issue) => issue.status).join(', ')
+                const formattedDate = today.toLocaleDateString('en-US', {
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric',
+                })
 
-                  const message = formatMessage(messageTemplate, {
-                    date: formattedDate,
-                    studentName: studentInfo.studentName,
-                    status: issuesString,
-                    courseTitle: studentInfo.issues[0]?.courseTitle || 'class'
-                  })
+                const message = formatMessage(messageTemplate, {
+                  date: formattedDate,
+                  studentName: studentInfo.studentName,
+                  status: issuesString,
+                  courseTitle: studentInfo.issues[0]?.courseTitle || 'class',
+                })
 
-                  // Check if staging - skip sending SMS in staging
-                  if (isStaging()) {
-                    console.log(`🚧 STAGING MODE: Skipping SMS to ${formattedPhoneNumber} for student ${studentId}`)
-                    console.log(`   Would have sent: ${message}`)
-                    results.push({
-                      studentId,
-                      studentName: studentInfo.studentName,
-                      phoneNumber: formattedPhoneNumber,
-                      success: true,
-                      sid: 'staging-skip',
-                      staging: true
-                    })
-                  } else {
-                    const twilioResponse = await client.messages.create({
-                      body: message,
-                      to: formattedPhoneNumber,
-                      from: twilioNumber,
-                    })
-
-                    results.push({
-                      studentId,
-                      studentName: studentInfo.studentName,
-                      phoneNumber: formattedPhoneNumber,
-                      success: true,
-                      sid: twilioResponse.sid
-                    })
-                  }
-                } else {
+                // Check if staging - skip sending SMS in staging
+                if (isStaging()) {
+                  console.log(
+                    `🚧 STAGING MODE: Skipping SMS to ${smsContact.phoneNumber} for student ${studentId} from ${smsContact.source}`,
+                  )
+                  console.log(`   Would have sent: ${message}`)
                   results.push({
                     studentId,
-                    studentName: notifications[studentId].studentName,
-                    phoneNumber,
-                    success: false,
-                    error: 'Invalid phone number format'
+                    studentName: studentInfo.studentName,
+                    phoneNumber: smsContact.phoneNumber,
+                    phoneSource: smsContact.source,
+                    success: true,
+                    sid: 'staging-skip',
+                    staging: true,
+                  })
+                } else {
+                  const twilioResponse = await client.messages.create({
+                    body: message,
+                    to: smsContact.phoneNumber,
+                    from: twilioNumber,
+                  })
+
+                  results.push({
+                    studentId,
+                    studentName: studentInfo.studentName,
+                    phoneNumber: smsContact.phoneNumber,
+                    phoneSource: smsContact.source,
+                    success: true,
+                    sid: twilioResponse.sid,
                   })
                 }
               } else {
+                const phoneAttempts = summarizePhoneAttemptsForLog(smsContact.attempts)
+                console.error(
+                  `❌ No valid parent contact phone found for student ${studentId} (${notifications[studentId].studentName})`,
+                  phoneAttempts,
+                )
                 results.push({
                   studentId,
                   studentName: notifications[studentId].studentName,
+                  phoneAttempts,
                   success: false,
-                  error: 'No phone number found'
+                  error: 'No valid parent contact phone found',
                 })
               }
             } else {
