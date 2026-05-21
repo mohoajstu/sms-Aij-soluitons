@@ -295,6 +295,8 @@ export const generateFieldNameVariations = (formKey) => {
     otherIEP: ['otherIEP', 'Other Iep'],
     otherFrench: ['otherFrench', 'Other French'],
     otherNA: ['otherNA', 'Other Na'],
+    otherMarkReport2: ['otherMarkReport2', 'otherMedianReport2'],
+    otherMedianReport2: ['otherMedianReport2'],
     sans2Other: ['sans2Other', 'sans2other'],
 
     // ============ QURAN REPORT FIELDS ============

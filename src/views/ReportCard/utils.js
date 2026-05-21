@@ -89,6 +89,12 @@ import {
   appendDraftVersion,
   getLatestFormData,
 } from './utils/draftVersioning'
+import {
+  applyDefaultReportDate,
+  applyKindergartenDefaultsForGrade,
+  getDefaultReportDate,
+  usesFixedFormalReportDate,
+} from './utils/reportDefaults'
 
 const MEDIANS_MAP_URL = '/medians-map.json'
 let mediansMapCache = null
@@ -125,6 +131,7 @@ const getGradeNumber = (gradeValue) => {
 }
 
 const getTermLabel = (termKey) => (termKey === 'term2' ? 'Term 2' : 'Term 1')
+const getTodayDateString = () => new Date().toLocaleDateString('en-CA')
 
 const applyMedianMappings = async (
   formData,
@@ -192,6 +199,7 @@ const isCommentField = (fieldName) => {
   if (!fieldName || typeof fieldName !== 'string') return false
   const lower = fieldName.toLowerCase()
   if (lower.includes('signature')) return false
+  if (lower === 'sans') return true
   if (lower.includes('strength') && lower.includes('nextsteps')) return true
   if (lower.includes('stepsforimprovement')) return true
   if (lower.endsWith('comments')) return true
@@ -319,7 +327,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
   const [finalizeMessage, setFinalizeMessage] = useState('')
   const finalizeMessageTimeoutRef = useRef(null)
   // B7: Term 1/Term 2 tabs
-  const [selectedTerm, setSelectedTerm] = useState('term1') // 'term1' or 'term2'
+  const [selectedTerm, setSelectedTerm] = useState('term2') // 'term1' or 'term2'
 
   // Current authenticated user (needed for storage path)
   const { user, role } = useAuth()
@@ -346,27 +354,38 @@ const ReportCard = ({ presetReportCardId = null }) => {
     loadSettings()
   }, [])
 
-  // Auto-fill date field from settings whenever it changes or formData is updated
+  // Auto-fill date field from settings or fixed formal-report defaults.
   useEffect(() => {
-    if (selectedStudent && reportCardDateSetting) {
-      // Only update if date is empty or not set
-      if (!formData.date || formData.date.trim() === '') {
-        setFormData((prevData) => ({
-          ...prevData,
-          date: reportCardDateSetting,
-        }))
+    if (!selectedStudent || !selectedReportCard) return
+
+    const defaultDate = getDefaultReportDate(
+      selectedReportCard,
+      reportCardDateSetting,
+      getTodayDateString(),
+    )
+
+    setFormData((prevData) => {
+      if (usesFixedFormalReportDate(selectedReportCard) && prevData.date !== defaultDate) {
+        return { ...prevData, date: defaultDate }
       }
-    } else if (selectedStudent && !reportCardDateSetting) {
-      // If no setting, use today's date if date is empty
-      if (!formData.date || formData.date.trim() === '') {
-        const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD format
-        setFormData((prevData) => ({
-          ...prevData,
-          date: today,
-        }))
+
+      if (!usesFixedFormalReportDate(selectedReportCard) && (!prevData.date || `${prevData.date}`.trim() === '')) {
+        return { ...prevData, date: defaultDate }
       }
-    }
-  }, [reportCardDateSetting, selectedStudent])
+
+      return prevData
+    })
+  }, [reportCardDateSetting, selectedStudent, selectedReportCard])
+
+  useEffect(() => {
+    if (selectedReportCard !== 'quran-report' || selectedTerm !== 'term2') return
+    if (!formData.sans) return
+
+    setFormData((prevData) => {
+      if (!prevData.sans) return prevData
+      return { ...prevData, sans: '' }
+    })
+  }, [selectedReportCard, selectedTerm, formData.sans])
 
   // Draft loading state
   const [isLoadingDraft, setIsLoadingDraft] = useState(false)
@@ -676,25 +695,25 @@ const ReportCard = ({ presetReportCardId = null }) => {
       const homeroomTeacherPromise = getHomeroomTeacherName(student, selectedReportCard)
       
       // B10: Autofill date (from settings or today's date)
-      let dateString = ''
+      let dateSetting = ''
       try {
         const settingsDoc = await getDoc(doc(firestore, 'systemSettings', 'reportCardSms'))
         if (settingsDoc.exists()) {
           const settingsData = settingsDoc.data()
-          dateString = settingsData.reportCardDate || ''
+          dateSetting = settingsData.reportCardDate || ''
         }
       } catch (error) {
         console.warn('Error loading report card date setting:', error)
       }
-      
-      // If no setting or empty, use today's date
-      if (!dateString) {
-        const today = new Date()
-        dateString = today.toLocaleDateString('en-CA') // YYYY-MM-DD format
-      }
+
+      const dateString = getDefaultReportDate(
+        selectedReportCard,
+        dateSetting,
+        getTodayDateString(),
+      )
       
       // Clear previous form data but preserve teacher information
-      const newFormData = {
+      let newFormData = {
         // Only preserve teacher data from previous form if not empty
         teacher: formData.teacher || '',
         teacher_name: formData.teacher_name || '',
@@ -806,6 +825,13 @@ const ReportCard = ({ presetReportCardId = null }) => {
           teacherSignature: { type: 'typed', value: '' },
           principalSignature: { type: 'typed', value: 'Ghazala Choudhary' },
       }
+
+      if (selectedReportCard === 'kg-initial-observations' || selectedReportCard === 'kg-report') {
+        newFormData = applyKindergartenDefaultsForGrade(newFormData, {
+          includePlacement: selectedReportCard === 'kg-report',
+          overwrite: true,
+        })
+      }
       
       // B6: Set homeroom teacher name (async, update after initial set)
       // Also get ECE for kindergarten reports
@@ -891,6 +917,28 @@ const ReportCard = ({ presetReportCardId = null }) => {
     }
   }
 
+  const applyReportFormDefaults = (data, reportTypeId = selectedReportCard, termKey = selectedTerm) => {
+    let nextData = applyDefaultReportDate(
+      data,
+      reportTypeId,
+      reportCardDateSetting,
+      getTodayDateString(),
+    )
+
+    if (reportTypeId === 'kg-initial-observations' || reportTypeId === 'kg-report') {
+      nextData = applyKindergartenDefaultsForGrade(nextData, {
+        includePlacement: reportTypeId === 'kg-report',
+        overwrite: true,
+      })
+    }
+
+    if (reportTypeId === 'quran-report' && termKey === 'term2' && nextData.sans) {
+      nextData = { ...nextData, sans: '' }
+    }
+
+    return nextData
+  }
+
   const loadDraftById = async (draftId) => {
     if (!draftId) return
     try {
@@ -937,7 +985,12 @@ const ReportCard = ({ presetReportCardId = null }) => {
         }
       }
 
-      const refreshedFormData = mergeFormDataWithStudent(loadedFormData, selected)
+      const draftTerm = draftData.term || 'term2'
+      const refreshedFormData = applyReportFormDefaults(
+        mergeFormDataWithStudent(loadedFormData, selected),
+        draftData.reportCardType || '',
+        draftTerm,
+      )
 
       if (token !== reviewNavTokenRef.current) return
       setSelectedReportCard(draftData.reportCardType || '')
@@ -945,7 +998,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
       setFormData(refreshedFormData)
       setCurrentDraftId(draftId)
       currentDraftIdRef.current = draftId
-      setSelectedTerm(draftData.term || 'term1')
+      setSelectedTerm(draftTerm)
       if (reviewDraftOrder.length > 0) {
         const idx = reviewDraftOrder.indexOf(draftId)
         if (idx >= 0) {
@@ -1081,7 +1134,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
         }
         
-        setFormData(refreshedFormData)
+        setFormData(applyReportFormDefaults(refreshedFormData, reportType, term))
         setCurrentDraftId(draftId)
 
         console.log('📊 Loaded draft data:', {
@@ -1232,7 +1285,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
               refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
             }
             
-            setFormData(refreshedFormData)
+            setFormData(applyReportFormDefaults(refreshedFormData, reportType, effectiveTerm))
             setCurrentDraftId(existingDraft.id)
 
             console.log('📊 Loaded cross-teacher draft:', {
@@ -1401,7 +1454,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
                 refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
               }
               
-              setFormData(refreshedFormData)
+              setFormData(applyReportFormDefaults(refreshedFormData, reportType, 'term2'))
               setCurrentDraftId(null) // Will create new Term 2 draft
               
               console.log('📊 Loaded Term 1 completed form as base for Term 2')
@@ -1503,7 +1556,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
                 refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
               }
               
-              setFormData(refreshedFormData)
+              setFormData(applyReportFormDefaults(refreshedFormData, reportType, 'term2'))
               setCurrentDraftId(null) // Will create new Term 2 draft
               
               console.log('📊 Loaded Term 1 draft as base for Term 2')
@@ -1559,7 +1612,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
       // If no draft found, populate with student basics
       if (!existingDraft) {
         console.log('📝 No draft found - populating with student data')
-        const studentData = {
+        let studentData = {
           // Basic student info
           student: selectedStudent.fullName,
           student_name: selectedStudent.fullName,
@@ -1657,13 +1710,18 @@ const ReportCard = ({ presetReportCardId = null }) => {
           principalSignature: { type: 'typed', value: 'Ghazala Choudhary' },
         }
 
-        // Auto-fill date from settings (always use current setting to keep dates in sync)
-        if (reportCardDateSetting) {
-          studentData.date = reportCardDateSetting
-        } else if (!studentData.date || studentData.date.trim() === '') {
-          // Only use today's date if no setting and no existing date
-          const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD format
-          studentData.date = today
+        studentData = applyDefaultReportDate(
+          studentData,
+          selectedReportCard,
+          reportCardDateSetting,
+          getTodayDateString(),
+        )
+
+        if (selectedReportCard === 'kg-initial-observations' || selectedReportCard === 'kg-report') {
+          studentData = applyKindergartenDefaultsForGrade(studentData, {
+            includePlacement: selectedReportCard === 'kg-report',
+            overwrite: true,
+          })
         }
 
         // Auto-fill signatures if not already set
@@ -1795,11 +1853,12 @@ const ReportCard = ({ presetReportCardId = null }) => {
       const cleanOtherTermData = cleanBucket(otherTermData)
 
       // Merge: shared → other-term (read-only) → current-term (editable, wins)
-      const cleanFormData = {
+      let cleanFormData = {
         ...cleanSharedData,
         ...cleanOtherTermData,
         ...cleanTermData,
       }
+      cleanFormData = applyReportFormDefaults(cleanFormData, selectedReportCard, selectedTerm)
 
       console.log('🧹 Separated and cleaned form data:', {
         term: selectedTerm,
@@ -2008,8 +2067,18 @@ const ReportCard = ({ presetReportCardId = null }) => {
           // Map old field names to new field names for backward compatibility
           parsedFormData = mapOldFieldNamesToNew(parsedFormData, draftReportType)
 
+          const storedDraftTerm = editingDraftId.endsWith('_term1')
+            ? 'term1'
+            : editingDraftId.endsWith('_term2')
+              ? 'term2'
+              : selectedTerm
+
           // Keep student-identifying fields in sync to prevent stale cross-student data
-          const refreshedFormData = mergeFormDataWithStudent(parsedFormData, parsedStudent)
+          const refreshedFormData = applyReportFormDefaults(
+            mergeFormDataWithStudent(parsedFormData, parsedStudent),
+            draftReportType,
+            storedDraftTerm,
+          )
 
           // Set the report card type first (this overrides any presetReportCardId)
           setSelectedReportCard(draftReportType)
@@ -2017,6 +2086,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           setFormData(refreshedFormData) // Use refreshed data
           setCurrentDraftId(editingDraftId) // Track which draft we're editing
           currentDraftIdRef.current = editingDraftId
+          setSelectedTerm(storedDraftTerm)
           if (storedReviewOrder) {
             try {
               setReviewDraftOrder(JSON.parse(storedReviewOrder))
@@ -2129,12 +2199,13 @@ const ReportCard = ({ presetReportCardId = null }) => {
         }
 
         // Merge saved data with current student data, prioritizing student data
-        const mergedData = { ...savedData, ...currentStudentData }
+        let mergedData = { ...savedData, ...currentStudentData }
         // Ensure boardSpace is always blank for 1-6 progress report
         if (selectedReportCard === '1-6-progress') {
           mergedData.boardSpace = ''
           mergedData.boardspace = ''
         }
+        mergedData = applyReportFormDefaults(mergedData, selectedReportCard, selectedTerm)
         setFormData(mergedData)
       } else {
         setFormData({})
@@ -2517,9 +2588,9 @@ const ReportCard = ({ presetReportCardId = null }) => {
     try {
       console.log(`🔧 Generating PDF for report type: ${reportCardType.id}`)
 
-      let effectiveFormData = formData
+      let effectiveFormData = applyReportFormDefaults(formData, reportCardType.id, selectedTerm)
       if (reportCardType.id === '7-8-report-card' && selectedTerm === 'term1') {
-        const initialResult = await applyMedianMappings(formData, {
+        const initialResult = await applyMedianMappings(effectiveFormData, {
           selectedStudent,
           selectedTerm,
           overwriteMismatches: false,
@@ -2535,7 +2606,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
             `Some median fields already have values that do not match the official medians:\n\n${mismatchLines}\n\nReplace them with the official medians?`,
           )
           if (shouldOverwrite) {
-            finalResult = await applyMedianMappings(formData, {
+            finalResult = await applyMedianMappings(effectiveFormData, {
               selectedStudent,
               selectedTerm,
               overwriteMismatches: true,

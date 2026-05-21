@@ -241,7 +241,7 @@ StudentInfoSection.propTypes = {
  * Shows only the relevant term based on selectedTerm prop
  * Uses letter grades (E, G, S, N) for grades 1-6 and percentages for grades 7-8
  */
-const QuranAssessmentSection = ({ formData, onFormDataChange, selectedTerm = 'term1' }) => {
+const QuranAssessmentSection = ({ formData, onFormDataChange, selectedTerm = 'term2' }) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target
     onFormDataChange({
@@ -426,17 +426,24 @@ const QuranReportUI = ({
   saveMessage,
   selectedStudent,
   selectedReportCard,
-  selectedTerm = 'term1',
+  selectedTerm = 'term2',
 }) => {
+  const showComments = selectedTerm !== 'term2'
   const [activeAccordion, setActiveAccordion] = useState([
     'student-info',
     'assessment',
-    'comments',
+    ...(showComments ? ['comments'] : []),
   ])
 
   const handleAccordionChange = (newActive) => {
     setActiveAccordion(newActive)
   }
+
+  useEffect(() => {
+    if (!showComments) {
+      setActiveAccordion((current) => current.filter((itemKey) => itemKey !== 'comments'))
+    }
+  }, [showComments])
 
   if (loading) {
     return (
@@ -547,27 +554,29 @@ const QuranReportUI = ({
             </CAccordionBody>
           </CAccordionItem>
 
-          <CAccordionItem itemKey="comments">
-            <CAccordionHeader>
-              <div className="d-flex justify-content-between align-items-center w-100 me-3">
-                <span>
-                  <CIcon icon={cilNotes} className="me-2" />
-                  Strengths/Next Steps for Improvement
-                </span>
-                <SaveButton
-                  onSave={onSaveDraft}
-                  isSaving={isSaving}
-                  saveMessage={saveMessage}
-                  disabled={!selectedStudent || !selectedReportCard}
-                  className="ms-auto"
-                  asLink={true}
-                />
-              </div>
-            </CAccordionHeader>
-            <CAccordionBody>
-              <CommentsSection formData={formData} onFormDataChange={onFormDataChange} />
-            </CAccordionBody>
-          </CAccordionItem>
+          {showComments && (
+            <CAccordionItem itemKey="comments">
+              <CAccordionHeader>
+                <div className="d-flex justify-content-between align-items-center w-100 me-3">
+                  <span>
+                    <CIcon icon={cilNotes} className="me-2" />
+                    Strengths/Next Steps for Improvement
+                  </span>
+                  <SaveButton
+                    onSave={onSaveDraft}
+                    isSaving={isSaving}
+                    saveMessage={saveMessage}
+                    disabled={!selectedStudent || !selectedReportCard}
+                    className="ms-auto"
+                    asLink={true}
+                  />
+                </div>
+              </CAccordionHeader>
+              <CAccordionBody>
+                <CommentsSection formData={formData} onFormDataChange={onFormDataChange} />
+              </CAccordionBody>
+            </CAccordionItem>
+          )}
         </CAccordion>
       </CForm>
     </div>
@@ -588,4 +597,3 @@ QuranReportUI.propTypes = {
 }
 
 export default QuranReportUI
-

@@ -36,6 +36,7 @@ import {
 import SignatureCanvas from 'react-signature-canvas'
 import AIReportCommentInput from '../../../components/AIReportCommentInput'
 import { getCharacterLimit } from '../utils/characterLimits'
+import { applyKindergartenDefaultsForGrade } from '../utils/reportDefaults'
 
 /**
  * AI-Enhanced Text Area
@@ -283,33 +284,15 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
     }
   }, [])
 
-  // Auto-populate grade level based on student's grade
-  // JK (Junior Kindergarten) → Year 1, SK (Senior Kindergarten) → Year 2
+  // Auto-populate grade level based on student's grade.
   React.useEffect(() => {
-    if (formData.grade && !formData.year1 && !formData.year2) {
-      const grade = formData.grade.toLowerCase()
-      let newFormData = { ...formData }
+    if (formData.grade) {
+      const newFormData = applyKindergartenDefaultsForGrade(formData, {
+        includePlacement: false,
+        overwrite: true,
+      })
 
-      // JK (Junior Kindergarten) → Year 1
-      if (grade.includes('jk') || grade === 'junior kindergarten') {
-        newFormData.year1 = true
-        newFormData.year2 = false
-      } 
-      // SK (Senior Kindergarten) → Year 2
-      else if (grade.includes('sk') || grade === 'senior kindergarten') {
-        newFormData.year1 = false
-        newFormData.year2 = true
-      }
-      // Fallback: check for year 1/2 or grade 1/2 patterns
-      else if (grade.includes('1') || grade.includes('year 1') || grade.includes('grade 1')) {
-        newFormData.year1 = true
-        newFormData.year2 = false
-      } else if (grade.includes('2') || grade.includes('year 2') || grade.includes('grade 2')) {
-        newFormData.year1 = false
-        newFormData.year2 = true
-      }
-
-      if (newFormData.year1 !== formData.year1 || newFormData.year2 !== formData.year2) {
+      if (JSON.stringify(newFormData) !== JSON.stringify(formData)) {
         onFormDataChange(newFormData)
       }
     }

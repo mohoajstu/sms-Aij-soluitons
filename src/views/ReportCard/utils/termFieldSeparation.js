@@ -133,6 +133,11 @@ export const copyTerm1ToTerm2 = (term1FormData) => {
       let term2Key = key
       term2Key = term2Key.replace(/report1/gi, (match) => replaceWithMatchingCase(match, 'report2'))
       term2Key = term2Key.replace(/term1/gi, (match) => replaceWithMatchingCase(match, 'term2'))
+      // The Grade 7-8 provincial PDF names the Islamic Studies Term 2 mark field
+      // "otherMedianReport2", even though it is the editable Term 2 mark slot.
+      if (term2Key === 'otherMarkReport2') {
+        term2Key = 'otherMedianReport2'
+      }
       if (term2Key !== key) {
         term2Data[term2Key] = ''
       }
@@ -187,4 +192,3 @@ export const getSharedFields = (formData) => {
     return fieldTerm === null
   })
 }
-

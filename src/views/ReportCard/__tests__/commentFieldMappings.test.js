@@ -264,6 +264,12 @@ describe('Comment Field Mappings - Regression Prevention', () => {
       expect(grade7to8ReportFields).toHaveProperty('peMedianReport1')
       expect(grade7to8ReportFields).toHaveProperty('peMarkReport2')
       expect(grade7to8ReportFields).toHaveProperty('peMedianReport2')
+
+      // Islamic Studies only has two mark boxes in the PDF. The Term 2 box is
+      // named otherMedianReport2 in the source PDF.
+      expect(grade7to8ReportFields).toHaveProperty('otherMarkReport1')
+      expect(grade7to8ReportFields).toHaveProperty('otherMedianReport2')
+      expect(grade7to8ReportFields).not.toHaveProperty('otherMarkReport2')
     })
   })
 })
@@ -343,4 +349,3 @@ describe('UI Component Field Mapping Integration', () => {
     })
   })
 })
-

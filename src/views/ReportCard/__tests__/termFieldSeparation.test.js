@@ -35,6 +35,7 @@ describe('termFieldSeparation', () => {
   it('detects term-specific field names for Report and Quran formats', () => {
     expect(getFieldTerm('languageMarkReport1')).toBe('term1')
     expect(getFieldTerm('languageMarkReport2')).toBe('term2')
+    expect(getFieldTerm('otherMedianReport2')).toBe('term2')
     expect(getFieldTerm('hifdhTerm1')).toBe('term1')
     expect(getFieldTerm('hifdhterm2')).toBe('term2')
     expect(getFieldTerm('teacher')).toBe(null)
@@ -64,7 +65,7 @@ describe('termFieldSeparation', () => {
     expect(term2.sharedData).toEqual({ student: 'Jane Doe' })
   })
 
-  it('copies Term 1 data into Term 2 keys while preserving case', () => {
+  it('preserves Term 1 data and initializes matching Term 2 keys while preserving case', () => {
     const result = copyTerm1ToTerm2({
       languageMarkReport1: 'A',
       languagemarkreport1: 'B',
@@ -73,11 +74,26 @@ describe('termFieldSeparation', () => {
       student: 'Jane Doe',
     })
 
-    expect(result.languageMarkReport2).toBe('A')
-    expect(result.languagemarkreport2).toBe('B')
-    expect(result.hifdhTerm2).toBe('Excellent')
-    expect(result.hifdhterm2).toBe('Good')
+    expect(result.languageMarkReport1).toBe('A')
+    expect(result.languagemarkreport1).toBe('B')
+    expect(result.hifdhTerm1).toBe('Excellent')
+    expect(result.hifdhterm1).toBe('Good')
+    expect(result.languageMarkReport2).toBe('')
+    expect(result.languagemarkreport2).toBe('')
+    expect(result.hifdhTerm2).toBe('')
+    expect(result.hifdhterm2).toBe('')
     expect(result.student).toBe('Jane Doe')
+  })
+
+  it('copies Grade 7-8 Islamic Studies Term 1 mark into the actual Term 2 PDF key', () => {
+    const result = copyTerm1ToTerm2({
+      otherMarkReport1: 'A',
+      student: 'Jane Doe',
+    })
+
+    expect(result.otherMarkReport1).toBe('A')
+    expect(result.otherMedianReport2).toBe('')
+    expect(result).not.toHaveProperty('otherMarkReport2')
   })
 
   it('matches term-specific fields declared in each report field set', () => {
@@ -106,4 +122,3 @@ describe('termFieldSeparation', () => {
     }
   })
 })
-

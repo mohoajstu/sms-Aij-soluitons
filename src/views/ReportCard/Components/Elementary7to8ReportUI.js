@@ -536,7 +536,7 @@ StudentSchoolInfoSection.propTypes = {
  * Learning Skills & Work Habits Section
  * Modern form section for learning skills assessment
  */
-const LearningSkillsSection = ({ formData, onFormDataChange, selectedTerm = 'term1' }) => {
+const LearningSkillsSection = ({ formData, onFormDataChange, selectedTerm = 'term2' }) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target
     onFormDataChange({
@@ -731,7 +731,7 @@ LearningSkillsSection.propTypes = {
  * Subject Areas Section with Marks
  * Modern form section for subject area assessments with marks
  */
-const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term1' }) => {
+const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term2' }) => {
   // Auto-fill default values for nativeLanguage and other
   useEffect(() => {
     const updates = {}
@@ -970,8 +970,11 @@ const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term1
       name: 'Islamic Studies',
       key: 'other',
       fields: ['otherESL', 'otherFrench', 'otherIEP', 'otherNA'],
-      markFields: ['otherMarkReport1', 'otherMarkReport2'],
+      markFields: ['otherMarkReport1', 'otherMedianReport2'],
       commentField: 'otherStrengthsAndNextStepsForImprovement',
+      markFieldLabels: {
+        otherMedianReport2: 'Islamic Studies Mark',
+      },
       showSubjectNameInput: true,
     },
   ]
@@ -1402,6 +1405,10 @@ const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term1
                         if (fieldLabel === 'Mark' || fieldLabel === 'Median') {
                           fieldLabel = `${subject.name} ${fieldLabel}`
                         }
+
+                        if (subject.markFieldLabels?.[field]) {
+                          fieldLabel = subject.markFieldLabels[field]
+                        }
                         
                         return (
                           <div key={field} className="mb-2" style={{ minWidth: '180px' }}>
@@ -1619,7 +1626,7 @@ const Elementary7to8ReportUI = ({
   saveMessage,
   selectedStudent,
   selectedReportCard,
-  selectedTerm = 'term1', // B7: Default to term1 if not provided
+  selectedTerm = 'term2', // B7: Default to term2 if not provided
 }) => {
   const [activeAccordion, setActiveAccordion] = useState([
     'student-info',

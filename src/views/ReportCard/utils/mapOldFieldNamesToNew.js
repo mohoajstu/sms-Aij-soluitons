@@ -86,6 +86,17 @@ export const mapOldFieldNamesToNew = (formData, reportType) => {
       hasMappings = true
       console.log('🔄 Mapped field: frenchStrengthAndNextStepsForImprovement → frenchStrengthsAndNextStepsForImprovement')
     }
+
+    // The Grade 7-8 PDF's Islamic Studies Term 2 mark slot is named
+    // otherMedianReport2 in the PDF, while older UI code saved otherMarkReport2.
+    if (mappedData.otherMarkReport2 !== undefined) {
+      if (mappedData.otherMedianReport2 === undefined || mappedData.otherMedianReport2 === '') {
+        mappedData.otherMedianReport2 = mappedData.otherMarkReport2
+      }
+      delete mappedData.otherMarkReport2
+      hasMappings = true
+      console.log('🔄 Mapped field: otherMarkReport2 → otherMedianReport2')
+    }
   }
 
   // Map old Visual Arts field to new combined Arts field

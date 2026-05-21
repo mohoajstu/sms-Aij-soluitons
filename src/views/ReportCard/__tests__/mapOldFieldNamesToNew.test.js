@@ -31,4 +31,16 @@ describe('mapOldFieldNamesToNew', () => {
     expect(mapped.timesLate).toBe(1)
     expect(mapped.totalTimesLate).toBe(2)
   })
+
+  it('maps old Grade 7-8 Islamic Studies Term 2 mark key to the PDF field key', () => {
+    const mapped = mapOldFieldNamesToNew(
+      {
+        otherMarkReport2: 'A',
+      },
+      '7-8-report-card',
+    )
+
+    expect(mapped.otherMedianReport2).toBe('A')
+    expect(mapped).not.toHaveProperty('otherMarkReport2')
+  })
 })

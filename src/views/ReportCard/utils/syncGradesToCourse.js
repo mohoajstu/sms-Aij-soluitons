@@ -39,6 +39,9 @@ const SUBJECT_MAPPING = {
   'musicMarkReport2': 'Music',
   'visualArtsMarkReport1': 'Visual Arts',
   'visualArtsMarkReport2': 'Visual Arts',
+  'otherMarkReport1': 'Islamic Studies',
+  // The Grade 7-8 PDF uses this name for the Islamic Studies Term 2 mark slot.
+  'otherMedianReport2': 'Islamic Studies',
 }
 
 /**
@@ -178,4 +181,3 @@ export const syncGradesToCourse = async (reportCardData, studentId, term, report
     console.error('Error syncing grades to course:', error)
   }
 }
-

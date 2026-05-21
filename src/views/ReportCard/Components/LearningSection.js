@@ -6,7 +6,7 @@ const LearningSection = ({
   formData,
   onFormDataChange,
   commentFieldName,
-  charLimit = 750,
+  charLimit = 1000,
   onGenerate,
   isGenerating,
 }) => {
@@ -34,6 +34,7 @@ const LearningSection = ({
             onChange={(e) => handleCommentChange(e.target.value)}
             placeholder="Enter comments here or use the AI generator."
             rows={4}
+            maxLength={charLimit}
           />
           <div className="text-end text-muted mt-1" style={{ fontSize: '0.8rem' }}>
             {commentValue.length} / {charLimit}
@@ -51,7 +52,7 @@ const LearningSection = ({
               handleChange={(field, aiValue) => {
                 // Map AI output directly to the comment field
                 if (field === 'teacher_comments' || field === 'strengths_next_steps') {
-                  onFormDataChange({ ...formData, [commentFieldName]: aiValue })
+                  onFormDataChange({ ...formData, [commentFieldName]: aiValue.slice(0, charLimit) })
                 }
               }}
               buttonText="Generate with AI"
@@ -64,4 +65,4 @@ const LearningSection = ({
   )
 }
 
-export default LearningSection 
+export default LearningSection

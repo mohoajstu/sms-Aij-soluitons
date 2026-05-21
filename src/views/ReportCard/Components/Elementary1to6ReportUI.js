@@ -528,7 +528,7 @@ StudentSchoolInfoSection.propTypes = {
  * Learning Skills & Work Habits Section
  * Modern form section for learning skills assessment
  */
-const LearningSkillsSection = ({ formData, onFormDataChange, onGenerate, isGenerating, selectedTerm = 'term1' }) => {
+const LearningSkillsSection = ({ formData, onFormDataChange, onGenerate, isGenerating, selectedTerm = 'term2' }) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target
     onFormDataChange({
@@ -699,7 +699,7 @@ LearningSkillsSection.propTypes = {
  * Subject Areas Section with Marks
  * Modern form section for subject area assessments with marks
  */
-const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerating, selectedTerm = 'term1' }) => {
+const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerating, selectedTerm = 'term2' }) => {
   // Auto-fill default values for nativeLanguage and other
   useEffect(() => {
     const updates = {}
@@ -1441,7 +1441,7 @@ const Elementary1to6ReportUI = ({
   saveMessage,
   selectedStudent,
   selectedReportCard,
-  selectedTerm = 'term1', // B7: Default to term1 if not provided
+  selectedTerm = 'term2', // B7: Default to term2 if not provided
 }) => {
   const [activeAccordion, setActiveAccordion] = useState([
     'student-info',
