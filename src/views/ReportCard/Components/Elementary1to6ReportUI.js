@@ -1302,7 +1302,7 @@ const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerat
                       rows={3}
                       isGenerating={isGenerating}
                       onGenerate={onGenerate}
-                      maxLength={subject.key === 'other' ? 500 : 750}
+                      maxLength={subject.key === 'other' ? 400 : 750}
                       formData={formData}
                       onFormDataChange={onFormDataChange}
                     />

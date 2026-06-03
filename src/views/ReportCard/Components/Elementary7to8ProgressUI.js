@@ -1059,7 +1059,7 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                       isGenerating={false}
                       onGenerate={() => {}}
                       maxLength={
-                        ['other', 'history', 'geography'].includes(subject.key) ? 500 : 750
+                        ['other', 'history', 'geography'].includes(subject.key) ? 400 : 750
                       }
                       formData={formData}
                       onFormDataChange={onFormDataChange}

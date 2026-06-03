@@ -1452,7 +1452,7 @@ const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term2
                         placeholder={`Provide comments about the student's performance in ${subject.name.toLowerCase()}...`}
                         rows={4}
                         maxLength={
-                          ['other', 'history', 'geography'].includes(subject.key) ? 500 : 750
+                          ['other', 'history', 'geography'].includes(subject.key) ? 400 : 750
                         }
                         style={{
                           resize: 'vertical',
@@ -1491,13 +1491,13 @@ const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term2
                           fontSize: '0.8rem',
                           color:
                             (formData[subject.commentField]?.length || 0) >
-                            (['other', 'history', 'geography'].includes(subject.key) ? 500 : 750)
+                            (['other', 'history', 'geography'].includes(subject.key) ? 400 : 750)
                               ? '#dc3545'
                               : '#6c757d',
                         }}
                       >
                         {formData[subject.commentField]?.length || 0}/
-                        {['other', 'history', 'geography'].includes(subject.key) ? 500 : 750}
+                        {['other', 'history', 'geography'].includes(subject.key) ? 400 : 750}
                       </div>
                     </div>
                   </div>
