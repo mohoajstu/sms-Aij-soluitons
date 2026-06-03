@@ -498,6 +498,7 @@ const KindergartenReportUI = ({
               iepFieldName={section.iepFieldName}
               onGenerate={handleAIGenerate}
               isGenerating={false}
+              charLimit={2000}
             />
           </CAccordionBody>
         </CAccordionItem>

@@ -665,7 +665,7 @@ const LearningSkillsSection = ({ formData, onFormDataChange }) => {
                       rows={3}
                       isGenerating={false}
                       onGenerate={() => {}}
-                      maxLength={500}
+                      maxLength={1500}
                       formData={formData}
                       onFormDataChange={onFormDataChange}
                     />
@@ -1034,7 +1034,9 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                       rows={3}
                       isGenerating={false}
                       onGenerate={() => {}}
-                      maxLength={500}
+                      maxLength={
+                        ['other', 'history', 'geography'].includes(subject.key) ? 500 : 750
+                      }
                       formData={formData}
                       onFormDataChange={onFormDataChange}
                     />

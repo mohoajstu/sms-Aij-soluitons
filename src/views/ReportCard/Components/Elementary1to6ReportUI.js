@@ -672,7 +672,7 @@ const LearningSkillsSection = ({ formData, onFormDataChange, onGenerate, isGener
               rows={6}
               isGenerating={isGenerating}
               onGenerate={onGenerate}
-              maxLength={1000}
+              maxLength={1500}
               formData={formData}
               onFormDataChange={onFormDataChange}
             />
@@ -1302,7 +1302,7 @@ const SubjectAreasSection = ({ formData, onFormDataChange, onGenerate, isGenerat
                       rows={3}
                       isGenerating={isGenerating}
                       onGenerate={onGenerate}
-                      maxLength={500}
+                      maxLength={subject.key === 'other' ? 500 : 750}
                       formData={formData}
                       onFormDataChange={onFormDataChange}
                     />

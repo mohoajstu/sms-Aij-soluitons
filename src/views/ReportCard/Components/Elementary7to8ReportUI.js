@@ -688,13 +688,14 @@ const LearningSkillsSection = ({ formData, onFormDataChange, selectedTerm = 'ter
               onChange={handleInputChange}
               placeholder="Describe the student's strengths in learning skills and work habits, and identify specific next steps for improvement..."
               rows={6}
+              maxLength={1500}
             />
             <div className="form-text">
               Provide specific, constructive feedback on the student's learning skills and work
-              habits. Maximum 1000 characters.
+              habits. Maximum 1500 characters.
             </div>
             <small className="text-muted">
-              {(formData.strengthsAndNextStepsForImprovment || '').length} / 1000 characters
+              {(formData.strengthsAndNextStepsForImprovment || '').length} / 1500 characters
             </small>
           </div>
 
@@ -1450,7 +1451,9 @@ const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term2
                         onChange={(e) => handleCommentChange(subject.commentField, e.target.value)}
                         placeholder={`Provide comments about the student's performance in ${subject.name.toLowerCase()}...`}
                         rows={4}
-                        maxLength={500}
+                        maxLength={
+                          ['other', 'history', 'geography'].includes(subject.key) ? 500 : 750
+                        }
                         style={{
                           resize: 'vertical',
                           paddingRight: '50px',
@@ -1486,10 +1489,15 @@ const SubjectAreasSection = ({ formData, onFormDataChange, selectedTerm = 'term2
                           bottom: '8px',
                           right: '15px',
                           fontSize: '0.8rem',
-                          color: (formData[subject.commentField]?.length || 0) > 500 ? '#dc3545' : '#6c757d',
+                          color:
+                            (formData[subject.commentField]?.length || 0) >
+                            (['other', 'history', 'geography'].includes(subject.key) ? 500 : 750)
+                              ? '#dc3545'
+                              : '#6c757d',
                         }}
                       >
-                        {formData[subject.commentField]?.length || 0}/500
+                        {formData[subject.commentField]?.length || 0}/
+                        {['other', 'history', 'geography'].includes(subject.key) ? 500 : 750}
                       </div>
                     </div>
                   </div>
