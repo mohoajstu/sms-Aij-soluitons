@@ -127,13 +127,15 @@ describe('Form Data Operations', () => {
 
       expect(term2Data.student).toBe('John Doe') // Shared field preserved
       expect(term2Data.teacher).toBe('Ms. Teacher') // Shared field preserved
-      expect(term2Data.languageMarkReport2).toBe('A')
-      expect(term2Data.mathMarkReport2).toBe('85')
-      expect(term2Data.scienceMarkReport2).toBe('B+')
-      
-      // Term 1 fields should not exist in Term 2 data
-      expect(term2Data.languageMarkReport1).toBeUndefined()
-      expect(term2Data.mathMarkReport1).toBeUndefined()
+
+      // Term 2 mark fields are created but start blank — teacher fills them fresh
+      expect(term2Data.languageMarkReport2).toBe('')
+      expect(term2Data.mathMarkReport2).toBe('')
+      expect(term2Data.scienceMarkReport2).toBe('')
+
+      // Term 1 fields are preserved so the Term 1 column still prints in the PDF
+      expect(term2Data.languageMarkReport1).toBe('A')
+      expect(term2Data.mathMarkReport1).toBe('85')
     })
 
     it('preserves case when converting Term 1 to Term 2', () => {
@@ -146,10 +148,11 @@ describe('Form Data Operations', () => {
 
       const term2Data = copyTerm1ToTerm2(term1Data)
 
-      expect(term2Data.languageMarkReport2).toBe('A')
-      expect(term2Data.LanguageMarkReport2).toBe('B')
-      expect(term2Data.hifdhTerm2).toBe('Excellent')
-      expect(term2Data.hifdhterm2).toBe('Good')
+      // Term 2 keys are created with the correct case but start blank
+      expect(term2Data.languageMarkReport2).toBe('')
+      expect(term2Data.LanguageMarkReport2).toBe('')
+      expect(term2Data.hifdhTerm2).toBe('')
+      expect(term2Data.hifdhterm2).toBe('')
     })
   })
 
