@@ -428,7 +428,7 @@ const QuranReportUI = ({
   selectedReportCard,
   selectedTerm = 'term2',
 }) => {
-  const showComments = selectedTerm !== 'term2'
+  const showComments = true // Quran Strengths/Next Steps shown in both terms
   const [activeAccordion, setActiveAccordion] = useState([
     'student-info',
     'assessment',

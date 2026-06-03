@@ -377,16 +377,6 @@ const ReportCard = ({ presetReportCardId = null }) => {
     })
   }, [reportCardDateSetting, selectedStudent, selectedReportCard])
 
-  useEffect(() => {
-    if (selectedReportCard !== 'quran-report' || selectedTerm !== 'term2') return
-    if (!formData.sans) return
-
-    setFormData((prevData) => {
-      if (!prevData.sans) return prevData
-      return { ...prevData, sans: '' }
-    })
-  }, [selectedReportCard, selectedTerm, formData.sans])
-
   // Draft loading state
   const [isLoadingDraft, setIsLoadingDraft] = useState(false)
   const isLoadingDraftRef = useRef(false) // Synchronous guard
@@ -930,10 +920,6 @@ const ReportCard = ({ presetReportCardId = null }) => {
         includePlacement: reportTypeId === 'kg-report',
         overwrite: true,
       })
-    }
-
-    if (reportTypeId === 'quran-report' && termKey === 'term2' && nextData.sans) {
-      nextData = { ...nextData, sans: '' }
     }
 
     return nextData
