@@ -75,9 +75,10 @@ import {
   separateTermFields,
   mergeTermFields,
   copyTerm1ToTerm2,
-  getFieldTerm,
 } from './utils/termFieldSeparation'
 import { mergeFormDataWithStudent } from './utils/mergeFormDataWithStudent'
+import { resolveDraftTerm } from './utils/resolveDraftTerm'
+import { isStaleTerm2Draft, REPORT_TYPES_WITH_TERM_FIELDS } from './utils/staleTermDraft'
 import {
   normalizeGradeForClassMatch,
   courseMatchesGrade,
@@ -86,7 +87,9 @@ import {
 import { mapOldFieldNamesToNew } from './utils/mapOldFieldNamesToNew'
 import { getNextDraftId } from './utils/reviewNavigation'
 import {
+  appendDraftBaselineVersion,
   appendDraftVersion,
+  consolidateDraftVersionHistories,
   getLatestFormData,
 } from './utils/draftVersioning'
 import {
@@ -382,6 +385,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
   const isLoadingDraftRef = useRef(false) // Synchronous guard
   const [currentDraftId, setCurrentDraftId] = useState(null) // Track which draft is loaded
   const currentDraftIdRef = useRef(null)
+  const pendingDraftConsolidationRef = useRef(null)
   const [reviewDraftOrder, setReviewDraftOrder] = useState([])
   const reviewNavTokenRef = useRef(0)
   const [isReviewNavigating, setIsReviewNavigating] = useState(false)
@@ -998,6 +1002,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
       localStorage.setItem('draftFormData', JSON.stringify(refreshedFormData || {}))
       localStorage.setItem('draftStudent', JSON.stringify(selected || {}))
       localStorage.setItem('draftReportType', draftData.reportCardType || '')
+      localStorage.setItem('draftTerm', draftData.term || '')
     } catch (error) {
       console.error('Error loading draft by id:', error)
     } finally {
@@ -1008,6 +1013,191 @@ const ReportCard = ({ presetReportCardId = null }) => {
     }
   }
 
+  /**
+   * Determine whether a student has any Term 1 data for this report type — a
+   * Term 1 draft or a completed/approved Term 1 report. Used to decide whether a
+   * Term 2 draft lacking Report1 fields is a stale pre-carryover leftover (Term 1
+   * exists) or a legitimate Term-2-only student (no Term 1 anywhere).
+   * On query failure it returns false so we err toward KEEPING the draft.
+   */
+  const checkStudentHasTerm1 = async (studentId, reportType) => {
+    if (!studentId || !reportType) return false
+    try {
+      const term1DraftsSnap = await getDocs(
+        query(
+          collection(firestore, 'reportCardDrafts'),
+          where('studentId', '==', studentId),
+          where('reportCardType', '==', reportType),
+          where('term', '==', 'term1'),
+        ),
+      )
+      if (!term1DraftsSnap.empty) return true
+
+      const term1ReportsSnap = await getDocs(
+        query(
+          collection(firestore, 'reportCards'),
+          where('studentId', '==', studentId),
+          where('type', '==', reportType),
+          where('term', '==', 'term1'),
+        ),
+      )
+      return !term1ReportsSnap.empty
+    } catch (error) {
+      console.warn('Could not determine Term 1 presence; keeping draft:', error)
+      return false
+    }
+  }
+
+  const mapDraftRecordFieldNames = (draftRecord, reportType) => {
+    const draftData = draftRecord.data || {}
+    return {
+      ...draftRecord,
+      data: {
+        ...draftData,
+        formData: mapOldFieldNamesToNew(draftData.formData || {}, reportType),
+        versions: Array.isArray(draftData.versions)
+          ? draftData.versions.map((version) => ({
+              ...version,
+              formData: version.formData
+                ? mapOldFieldNamesToNew(version.formData, reportType)
+                : version.formData,
+            }))
+          : draftData.versions,
+      },
+    }
+  }
+
+  const prepareLoadedDraftFormData = async (loadedFormData, student, reportType, term) => {
+    const {
+      termData: loadedTermData,
+      sharedData: loadedSharedData,
+      otherTermData: loadedOtherTermData,
+    } = separateTermFields(loadedFormData, term)
+
+    const mergedFormData = mergeTermFields(loadedTermData, loadedSharedData, loadedOtherTermData)
+
+    const refreshedFormData = {
+      ...mergedFormData,
+      daysAbsent: student.currentTermAbsenceCount || 0,
+      totalDaysAbsent: student.yearAbsenceCount || 0,
+      timesLate: student.currentTermLateCount || 0,
+      totalTimesLate: student.yearLateCount || 0,
+    }
+
+    if (!refreshedFormData.date) {
+      try {
+        const settingsDoc = await getDoc(doc(firestore, 'systemSettings', 'reportCardSms'))
+        if (settingsDoc.exists()) {
+          const settingsData = settingsDoc.data()
+          refreshedFormData.date = settingsData.reportCardDate || new Date().toLocaleDateString('en-CA')
+        } else {
+          refreshedFormData.date = new Date().toLocaleDateString('en-CA')
+        }
+      } catch (error) {
+        refreshedFormData.date = new Date().toLocaleDateString('en-CA')
+      }
+    }
+
+    if (!refreshedFormData.teacher && !refreshedFormData.teacher_name) {
+      const teacherName = await getHomeroomTeacherName(student, reportType)
+      if (teacherName) {
+        refreshedFormData.teacher = teacherName
+        refreshedFormData.teacher_name = teacherName
+      }
+    }
+
+    if (!refreshedFormData.teacherSignature?.value && (refreshedFormData.teacher_name || refreshedFormData.teacher)) {
+      refreshedFormData.teacherSignature = {
+        type: 'typed',
+        value: refreshedFormData.teacher_name || refreshedFormData.teacher,
+      }
+    }
+    if (!refreshedFormData.principalSignature?.value) {
+      refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
+    }
+
+    return {
+      formData: applyReportFormDefaults(refreshedFormData, reportType, term),
+      loadedTermData,
+      loadedSharedData,
+      loadedOtherTermData,
+    }
+  }
+
+  const loadDraftRecordIntoForm = async ({
+    draftRecord,
+    loadedFormData,
+    student,
+    reportType,
+    term,
+    consolidation = null,
+    logLabel = 'draft',
+  }) => {
+    const effectiveTerm = draftRecord.data.term || term
+    const prepared = await prepareLoadedDraftFormData(loadedFormData, student, reportType, effectiveTerm)
+
+    if (effectiveTerm && effectiveTerm !== term) {
+      setSelectedTerm(effectiveTerm)
+    }
+
+    setFormData(prepared.formData)
+    setCurrentDraftId(draftRecord.id)
+    currentDraftIdRef.current = draftRecord.id
+
+    if (consolidation) {
+      pendingDraftConsolidationRef.current = {
+        draftId: draftRecord.id,
+        formData: prepared.formData,
+        versions: consolidation.versions,
+        sourceDraftIds: consolidation.sourceDraftIds,
+      }
+    } else {
+      pendingDraftConsolidationRef.current = null
+    }
+
+    console.log(`📊 Loaded ${logLabel}:`, {
+      draftId: draftRecord.id,
+      term: effectiveTerm,
+      termSpecificFields: Object.keys(prepared.loadedTermData).length,
+      sharedFields: Object.keys(prepared.loadedSharedData).length,
+      otherTermFields: Object.keys(prepared.loadedOtherTermData).length,
+      totalFields: Object.keys(prepared.formData).length,
+      sourceDraftIds: consolidation?.sourceDraftIds,
+    })
+
+    return {
+      ...draftRecord.data,
+      formData: prepared.formData,
+      versions: consolidation?.versions || draftRecord.data.versions,
+      isConsolidated: !!consolidation,
+    }
+  }
+
+  const loadConsolidatedDraftRecords = async (draftRecords, student, reportType, term) => {
+    const sortedRecords = [...draftRecords].sort((a, b) => b.lastModified - a.lastModified)
+    const canonicalDraft = sortedRecords[0]
+    const mappedRecords = sortedRecords.map((draftRecord) =>
+      mapDraftRecordFieldNames(draftRecord, reportType),
+    )
+    const consolidation = consolidateDraftVersionHistories(mappedRecords)
+
+    console.warn('🔀 Fragmented draft histories detected; rendering consolidated latest fields:', {
+      canonicalDraftId: canonicalDraft.id,
+      sourceDraftIds: consolidation.sourceDraftIds,
+      fieldCount: Object.keys(consolidation.formData).length,
+      versionCount: consolidation.versions.length,
+    })
+
+    return loadDraftRecordIntoForm({
+      draftRecord: mapDraftRecordFieldNames(canonicalDraft, reportType),
+      loadedFormData: consolidation.formData,
+      student,
+      reportType,
+      term,
+      consolidation,
+      logLabel: 'consolidated fragmented drafts',
+    })
+  }
 
   /**
    * Load existing draft from Firebase for the given student + report type + term
@@ -1015,7 +1205,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
    * 1. If draft exists for this student + report type + term, load it
    * 2. For Term 2: If no Term 2 draft, use final Term 1 form, or latest Term 1 draft
    * 3. If nothing found, return null (will create new draft)
-   * 
+   *
    * @param {Object} student - Selected student object
    * @param {string} reportType - Report card type ID
    * @param {string} term - Term identifier ('term1' or 'term2')
@@ -1043,15 +1233,24 @@ const ReportCard = ({ presetReportCardId = null }) => {
       const draftRef = doc(firestore, 'reportCardDrafts', draftId)
       const draftSnap = await getDoc(draftRef)
 
-      // Report types that store term-specific (Report1/Report2) fields
-      const reportTypesWithTermFields = ['1-6-report-card', '7-8-report-card', 'quran-report']
+      // A Term 2 draft only counts as "stale" (a pre-carryover leftover to
+      // discard) if the student actually has Term 1 data to re-seed from.
+      // Students who joined in Term 2 have no Term 1 anywhere, so their Term 2
+      // drafts are legitimate and must be kept + consolidated across teachers.
+      let studentHasTerm1Data = false
+      if (term === 'term2' && REPORT_TYPES_WITH_TERM_FIELDS.includes(reportType)) {
+        studentHasTerm1Data = await checkStudentHasTerm1(student.id, reportType)
+      }
       const isStaleT2Draft = (formData) =>
-        term === 'term2' &&
-        reportTypesWithTermFields.includes(reportType) &&
-        !Object.keys(formData).some((k) => getFieldTerm(k) === 'term1')
+        isStaleTerm2Draft({ term, reportType, formData, studentHasTerm1: studentHasTerm1Data })
 
       if (draftSnap.exists()) {
         const draftData = draftSnap.data()
+        const draftRecord = {
+          id: draftId,
+          data: draftData,
+          lastModified: draftData.lastModified?.toDate?.() || draftData.createdAt?.toDate?.() || new Date(0),
+        }
         let loadedFormData = getLatestFormData(draftData) || {}
 
         console.log('✅ Found existing draft with deterministic ID:', {
@@ -1071,66 +1270,44 @@ const ReportCard = ({ presetReportCardId = null }) => {
           console.warn('⚠️ Step 1: Stale T2 draft detected (no T1 fields) — skipping, will copy from T1 instead:', draftId)
           // fall through to Step 2/3
         } else {
-
-        // Separate term-specific and shared fields from loaded data
-        const { termData: loadedTermData, sharedData: loadedSharedData, otherTermData: loadedOtherTermData } = separateTermFields(loadedFormData, term)
-
-        // Merge all buckets so the other term's fields (e.g. Report1 on a Term 2 load) are preserved
-        const mergedFormData = mergeTermFields(loadedTermData, loadedSharedData, loadedOtherTermData)
-        
-        // ALWAYS refresh attendance with latest student data
-        // Also ensure date and teacher are set
-        const refreshedFormData = {
-          ...mergedFormData,
-          daysAbsent: student.currentTermAbsenceCount || 0,
-          totalDaysAbsent: student.yearAbsenceCount || 0,
-          timesLate: student.currentTermLateCount || 0,
-          totalTimesLate: student.yearLateCount || 0,
-        }
-        
-        // Auto-fill date from settings if not already set
-        if (!refreshedFormData.date) {
           try {
-            const settingsDoc = await getDoc(doc(firestore, 'systemSettings', 'reportCardSms'))
-            if (settingsDoc.exists()) {
-              const settingsData = settingsDoc.data()
-              refreshedFormData.date = settingsData.reportCardDate || new Date().toLocaleDateString('en-CA')
-            } else {
-              refreshedFormData.date = new Date().toLocaleDateString('en-CA')
+            const sameTermDraftsQuery = query(
+              collection(firestore, 'reportCardDrafts'),
+              where('studentId', '==', student.id),
+              where('reportCardType', '==', reportType),
+              where('term', '==', term),
+            )
+            const sameTermSnapshot = await getDocs(sameTermDraftsQuery)
+            const sameTermDrafts = sameTermSnapshot.docs
+              .map(doc => ({
+                id: doc.id,
+                data: doc.data(),
+                lastModified: doc.data().lastModified?.toDate?.() || doc.data().createdAt?.toDate?.() || new Date(0),
+              }))
+              .filter((draft) => {
+                const fd = mapOldFieldNamesToNew(getLatestFormData(draft.data) || {}, reportType)
+                const stale = isStaleT2Draft(fd)
+                if (stale) {
+                  console.warn('⚠️ Step 1: Stale same-term T2 draft detected - excluding from consolidation:', draft.id)
+                }
+                return !stale
+              })
+
+            if (sameTermDrafts.length > 1) {
+              return await loadConsolidatedDraftRecords(sameTermDrafts, student, reportType, term)
             }
-          } catch (error) {
-            refreshedFormData.date = new Date().toLocaleDateString('en-CA')
+          } catch (sameTermError) {
+            console.warn('⚠️ Could not check for fragmented same-term drafts:', sameTermError)
           }
-        }
-        
-        // Auto-fill teacher if not already set
-        if (!refreshedFormData.teacher && !refreshedFormData.teacher_name) {
-          const teacherName = await getHomeroomTeacherName(student, selectedReportCard)
-          if (teacherName) {
-            refreshedFormData.teacher = teacherName
-            refreshedFormData.teacher_name = teacherName
-          }
-        }
-        
-        // Auto-fill signatures if not already set
-        if (!refreshedFormData.teacherSignature?.value && (refreshedFormData.teacher_name || refreshedFormData.teacher)) {
-          refreshedFormData.teacherSignature = { type: 'typed', value: refreshedFormData.teacher_name || refreshedFormData.teacher }
-        }
-        if (!refreshedFormData.principalSignature?.value) {
-          refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
-        }
-        
-        setFormData(applyReportFormDefaults(refreshedFormData, reportType, term))
-        setCurrentDraftId(draftId)
 
-        console.log('📊 Loaded draft data:', {
-          term: term,
-          termSpecificFields: Object.keys(loadedTermData).length,
-          sharedFields: Object.keys(loadedSharedData).length,
-          totalFields: Object.keys(refreshedFormData).length,
-        })
-
-        return draftData
+          return await loadDraftRecordIntoForm({
+            draftRecord: mapDraftRecordFieldNames(draftRecord, reportType),
+            loadedFormData,
+            student,
+            reportType,
+            term,
+            logLabel: 'draft data',
+          })
         }
       } else {
         console.log('❌ Draft not found with deterministic ID:', draftId)
@@ -1191,7 +1368,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
           // Drop stale T2 drafts (no T1 fields) so Step 3 can carry forward from T1
           draftsToConsider = draftsToConsider.filter((d) => {
-            const fd = getLatestFormData(d.data) || {}
+            const fd = mapOldFieldNamesToNew(getLatestFormData(d.data) || {}, reportType)
             const stale = isStaleT2Draft(fd)
             if (stale) {
               console.warn('⚠️ Step 2: Stale T2 draft detected (no T1 fields) — skipping:', d.id)
@@ -1200,6 +1377,10 @@ const ReportCard = ({ presetReportCardId = null }) => {
           })
 
           if (draftsToConsider.length > 0) {
+            if (draftsToConsider.length > 1) {
+              return await loadConsolidatedDraftRecords(draftsToConsider, student, reportType, term)
+            }
+
             // Sort by lastModified descending
             draftsToConsider.sort((a, b) => b.lastModified - a.lastModified)
             const existingDraft = draftsToConsider[0]
@@ -1218,69 +1399,14 @@ const ReportCard = ({ presetReportCardId = null }) => {
             // Map old field names to new field names for backward compatibility
             loadedFormData = mapOldFieldNamesToNew(loadedFormData, reportType)
 
-            // Keep UI term in sync with the draft we loaded
-            if (effectiveTerm && effectiveTerm !== term) {
-              setSelectedTerm(effectiveTerm)
-            }
-
-            // Separate term-specific and shared fields
-            const { termData: loadedTermData, sharedData: loadedSharedData, otherTermData: loadedOtherTermData } = separateTermFields(loadedFormData, effectiveTerm)
-
-            // Merge all buckets so the other term's fields are preserved
-            const mergedFormData = mergeTermFields(loadedTermData, loadedSharedData, loadedOtherTermData)
-            
-            // ALWAYS refresh attendance with latest student data
-            // Also ensure date and teacher are set
-            const refreshedFormData = {
-              ...mergedFormData,
-              daysAbsent: student.currentTermAbsenceCount || 0,
-              totalDaysAbsent: student.yearAbsenceCount || 0,
-              timesLate: student.currentTermLateCount || 0,
-              totalTimesLate: student.yearLateCount || 0,
-            }
-            
-            // Auto-fill date from settings if not already set
-            if (!refreshedFormData.date) {
-              try {
-                const settingsDoc = await getDoc(doc(firestore, 'systemSettings', 'reportCardSms'))
-                if (settingsDoc.exists()) {
-                  const settingsData = settingsDoc.data()
-                  refreshedFormData.date = settingsData.reportCardDate || new Date().toLocaleDateString('en-CA')
-                } else {
-                  refreshedFormData.date = new Date().toLocaleDateString('en-CA')
-                }
-              } catch (error) {
-                refreshedFormData.date = new Date().toLocaleDateString('en-CA')
-              }
-            }
-            
-            // Auto-fill teacher if not already set
-            if (!refreshedFormData.teacher && !refreshedFormData.teacher_name) {
-              const teacherName = await getHomeroomTeacherName(student, selectedReportCard)
-              if (teacherName) {
-                refreshedFormData.teacher = teacherName
-                refreshedFormData.teacher_name = teacherName
-              }
-            }
-            
-            // Auto-fill signatures if not already set
-            if (!refreshedFormData.teacherSignature?.value && (refreshedFormData.teacher_name || refreshedFormData.teacher)) {
-              refreshedFormData.teacherSignature = { type: 'typed', value: refreshedFormData.teacher_name || refreshedFormData.teacher }
-            }
-            if (!refreshedFormData.principalSignature?.value) {
-              refreshedFormData.principalSignature = { type: 'typed', value: 'Ghazala Choudhary' }
-            }
-            
-            setFormData(applyReportFormDefaults(refreshedFormData, reportType, effectiveTerm))
-            setCurrentDraftId(existingDraft.id)
-
-            console.log('📊 Loaded cross-teacher draft:', {
+            return await loadDraftRecordIntoForm({
+              draftRecord: mapDraftRecordFieldNames(existingDraft, reportType),
+              loadedFormData,
+              student,
+              reportType,
               term: effectiveTerm,
-              termSpecificFields: Object.keys(loadedTermData).length,
-              sharedFields: Object.keys(loadedSharedData).length,
+              logLabel: 'cross-teacher draft',
             })
-
-            return draftData
           }
         }
       } catch (queryError) {
@@ -1442,6 +1568,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
               
               setFormData(applyReportFormDefaults(refreshedFormData, reportType, 'term2'))
               setCurrentDraftId(null) // Will create new Term 2 draft
+              pendingDraftConsolidationRef.current = null
               
               console.log('📊 Loaded Term 1 completed form as base for Term 2')
               return { formData: term2FormData, isFromTerm1: true }
@@ -1544,6 +1671,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
               
               setFormData(applyReportFormDefaults(refreshedFormData, reportType, 'term2'))
               setCurrentDraftId(null) // Will create new Term 2 draft
+              pendingDraftConsolidationRef.current = null
               
               console.log('📊 Loaded Term 1 draft as base for Term 2')
               return { formData: term2FormData, isFromTerm1: true }
@@ -1557,6 +1685,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
       // Step 4: No draft found - return null (form will use auto-populated student data)
       console.log('📝 No existing draft found - will create new draft')
       setCurrentDraftId(null)
+      pendingDraftConsolidationRef.current = null
       return null
 
     } catch (error) {
@@ -1900,14 +2029,18 @@ const ReportCard = ({ presetReportCardId = null }) => {
       if (existingDoc.exists()) {
         console.log('📝 Updating existing draft...')
         const existingData = existingDoc.data()
-        const previousFormData = getLatestFormData(existingData)
-        const nextVersions = appendDraftVersion(
-          existingData.versions,
-          draftData,
-          cleanFormData,
-          previousFormData,
-          MAX_DRAFT_VERSIONS,
-        )
+        const pendingConsolidation =
+          pendingDraftConsolidationRef.current?.draftId === draftId
+            ? pendingDraftConsolidationRef.current
+            : null
+        const baseVersions = pendingConsolidation?.versions || existingData.versions
+        const previousFormData = pendingConsolidation?.formData || getLatestFormData(existingData)
+        const maxVersions = pendingConsolidation
+          ? Math.max(MAX_DRAFT_VERSIONS, (baseVersions || []).length + 1)
+          : MAX_DRAFT_VERSIONS
+        const nextVersions = pendingConsolidation
+          ? appendDraftBaselineVersion(baseVersions, draftData, cleanFormData, maxVersions)
+          : appendDraftVersion(baseVersions, draftData, cleanFormData, previousFormData, maxVersions)
         
         // If this draft was previously approved, reset it to pending when edited
         const wasApproved = existingData.adminReviewStatus === 'approved' || existingData.status === 'complete'
@@ -1925,6 +2058,10 @@ const ReportCard = ({ presetReportCardId = null }) => {
           originalTeacherName: existingData.originalTeacherName || existingData.teacherName,
           lastModified: serverTimestamp(), // Update modification time
           versions: nextVersions,
+          ...(pendingConsolidation && {
+            consolidatedDraftIds: pendingConsolidation.sourceDraftIds,
+            consolidatedAt: serverTimestamp(),
+          }),
           // Reset approval status if it was previously approved
           adminReviewStatus: resetApprovalStatus,
           status: wasApproved ? 'draft' : (existingData.status || 'draft'),
@@ -1937,6 +2074,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
         })
         setSaveMessage(wasApproved ? 'Draft updated successfully - requires re-approval!' : 'Draft updated successfully!')
         setHasUnsavedChanges(false) // B5: Clear unsaved changes flag
+        pendingDraftConsolidationRef.current = null
         console.log('✅ Draft updated successfully', wasApproved ? '(reset to pending)' : '')
         
         // Sync grades to course if this is a report card (not progress report)
@@ -1946,22 +2084,32 @@ const ReportCard = ({ presetReportCardId = null }) => {
         }
       } else {
         console.log('📄 Creating new draft...')
-        const versions = appendDraftVersion(
-          [],
-          draftData,
-          cleanFormData,
-          {},
-          MAX_DRAFT_VERSIONS,
-        )
+        const pendingConsolidation =
+          pendingDraftConsolidationRef.current?.draftId === draftId
+            ? pendingDraftConsolidationRef.current
+            : null
+        const baseVersions = pendingConsolidation?.versions || []
+        const previousFormData = pendingConsolidation?.formData || {}
+        const maxVersions = pendingConsolidation
+          ? Math.max(MAX_DRAFT_VERSIONS, baseVersions.length + 1)
+          : MAX_DRAFT_VERSIONS
+        const versions = pendingConsolidation
+          ? appendDraftBaselineVersion(baseVersions, draftData, cleanFormData, maxVersions)
+          : appendDraftVersion(baseVersions, draftData, cleanFormData, previousFormData, maxVersions)
         // Create new draft with original creator info
         await setDoc(draftRef, {
           ...draftData,
           originalTeacherId: user.uid,
           originalTeacherName: user.displayName || user.email || 'Unknown Teacher',
           versions: versions,
+          ...(pendingConsolidation && {
+            consolidatedDraftIds: pendingConsolidation.sourceDraftIds,
+            consolidatedAt: serverTimestamp(),
+          }),
         })
         setSaveMessage('Draft saved successfully!')
         setHasUnsavedChanges(false) // B5: Clear unsaved changes flag
+        pendingDraftConsolidationRef.current = null
         console.log('✅ New draft created successfully')
         
         // Sync grades to course if this is a report card (not progress report)
@@ -1973,6 +2121,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
       // Update currentDraftId after save
       setCurrentDraftId(draftId)
+      currentDraftIdRef.current = draftId
 
       console.log('✅ Report card draft saved to Firestore')
 
@@ -2012,6 +2161,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
     const draftFormData = localStorage.getItem('draftFormData')
     const draftStudent = localStorage.getItem('draftStudent')
     const draftReportType = localStorage.getItem('draftReportType')
+    const draftTerm = localStorage.getItem('draftTerm')
     const storedReviewOrder = localStorage.getItem('reviewDraftOrder')
 
     if (!editingDraftId) {
@@ -2069,6 +2219,11 @@ const ReportCard = ({ presetReportCardId = null }) => {
           // Set the report card type first (this overrides any presetReportCardId)
           setSelectedReportCard(draftReportType)
           setSelectedStudent(parsedStudent)
+          // Restore the term the draft was saved for. Without this the editor
+          // defaults to Term 1, and for students who joined in Term 2 (no Term 1
+          // draft) loadExistingDraft re-initializes the form blank, hiding the
+          // saved Term 2 work even though it still exists in the Term 2 draft.
+          setSelectedTerm(resolveDraftTerm(draftTerm, editingDraftId))
           setFormData(refreshedFormData) // Use refreshed data
           setCurrentDraftId(editingDraftId) // Track which draft we're editing
           currentDraftIdRef.current = editingDraftId
@@ -2086,6 +2241,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           localStorage.removeItem('draftFormData')
           localStorage.removeItem('draftStudent')
           localStorage.removeItem('draftReportType')
+          localStorage.removeItem('draftTerm')
 
           console.log('✅ Loaded draft for editing:', {
             draftId: editingDraftId,
@@ -2100,6 +2256,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           localStorage.removeItem('draftFormData')
           localStorage.removeItem('draftStudent')
           localStorage.removeItem('draftReportType')
+          localStorage.removeItem('draftTerm')
         }
       }
       loadDraftFromStorage()

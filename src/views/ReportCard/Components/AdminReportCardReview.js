@@ -948,6 +948,7 @@ const AdminReportCardReview = () => {
       localStorage.setItem('draftFormData', JSON.stringify(selectedReportCardData.formData || {}))
       localStorage.setItem('draftStudent', JSON.stringify(selectedReportCardData.selectedStudent || {}))
       localStorage.setItem('draftReportType', selectedReportCardData.reportCardType || '')
+      localStorage.setItem('draftTerm', selectedReportCardData.term || '')
 
       // Close modal first
       setViewModalVisible(false)

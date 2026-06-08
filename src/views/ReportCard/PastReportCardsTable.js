@@ -118,6 +118,7 @@ const PastReportCardsTable = ({ onEditDraft: onEditDraftCallback }) => {
                   formData: data.formData,
                   selectedStudent: data.selectedStudent,
                   reportCardTypeName: data.reportCardTypeName,
+                  term: data.term,
                 })
               }
             })
@@ -163,6 +164,7 @@ const PastReportCardsTable = ({ onEditDraft: onEditDraftCallback }) => {
     localStorage.setItem('draftFormData', JSON.stringify(draft.formData))
     localStorage.setItem('draftStudent', JSON.stringify(draft.selectedStudent))
     localStorage.setItem('draftReportType', draft.type)
+    localStorage.setItem('draftTerm', draft.term || '')
 
     // Switch to the Create Report Card tab
     if (onEditDraftCallback) {

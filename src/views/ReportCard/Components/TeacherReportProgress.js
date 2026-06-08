@@ -420,6 +420,7 @@ const TeacherReportProgress = () => {
                             localStorage.setItem('draftFormData', JSON.stringify(draftData.formData || {}))
                             localStorage.setItem('draftStudent', JSON.stringify(draftData.selectedStudent))
                             localStorage.setItem('draftReportType', draftData.reportCardType)
+                            localStorage.setItem('draftTerm', draftData.term || '')
                             
                             // Navigate to report card creation tab
                             const event = new CustomEvent('navigateToReportCard', { 
