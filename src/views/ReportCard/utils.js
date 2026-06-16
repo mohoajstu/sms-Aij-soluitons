@@ -926,6 +926,23 @@ const ReportCard = ({ presetReportCardId = null }) => {
       })
     }
 
+    // Auto-populate "Grade in September" (nextGrade) for term 2 provincial report cards only
+    if (
+      (reportTypeId === '1-6-report-card' || reportTypeId === '7-8-report-card') &&
+      termKey === 'term2' &&
+      (!nextData.nextGrade || nextData.nextGrade.toString().trim() === '')
+    ) {
+      const gradeStr = (nextData.grade || '').toString().trim().toLowerCase()
+      const gradeNum = gradeStr.match(/\d+/)
+      if (gradeNum) {
+        nextData = { ...nextData, nextGrade: String(Number(gradeNum[0]) + 1) }
+      } else if (gradeStr === 'jk') {
+        nextData = { ...nextData, nextGrade: 'SK' }
+      } else if (gradeStr === 'sk') {
+        nextData = { ...nextData, nextGrade: '1' }
+      }
+    }
+
     return nextData
   }
 
@@ -1825,19 +1842,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           principalSignature: { type: 'typed', value: 'Ghazala Choudhary' },
         }
 
-        studentData = applyDefaultReportDate(
-          studentData,
-          selectedReportCard,
-          reportCardDateSetting,
-          getTodayDateString(),
-        )
-
-        if (selectedReportCard === 'kg-initial-observations' || selectedReportCard === 'kg-report') {
-          studentData = applyKindergartenDefaultsForGrade(studentData, {
-            includePlacement: selectedReportCard === 'kg-report',
-            overwrite: true,
-          })
-        }
+        studentData = applyReportFormDefaults(studentData, selectedReportCard, selectedTerm)
 
         // Auto-fill signatures if not already set
         if (!studentData.teacherSignature?.value && studentData.teacher_name) {
