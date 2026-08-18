@@ -156,11 +156,11 @@ service cloud.firestore {
     
     // Allow faculty to read courses and students
     match /courses/{courseId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
     }
     
     match /students/{studentId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
     }
     
     // Allow users to read their own user document
@@ -175,18 +175,41 @@ service cloud.firestore {
     
     // Allow admins to read and write all documents
     match /admins/{adminId} {
-      allow read, write: if true;
+      allow read, write: if isAuthenticated();
     }
     
     // Announcements: anyone can read, only admins can write
     match /announcements/{docId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAuthenticated();
     }
     
-    // Default rule - allow all for now (we can tighten this later)
+    // Staff geographic check-ins (timekeeping)
+    match /staffCheckins/{checkInId} {
+      // Staff create their own check-ins (uid must match auth)
+      allow create: if isAuthenticated() &&
+                       request.resource.data.uid == request.auth.uid &&
+                       (isAdmin() || isFaculty());
+      // Admin can read all, users can read their own
+      allow read: if isAdmin() ||
+                     (isAuthenticated() && resource.data.uid == request.auth.uid);
+      // Only admin can edit/delete (e.g., to correct or void records)
+      allow update, delete: if isAdmin();
+    }
+
+    // Default rule: require sign-in.
+    //
+    // This was `allow read, write: if true`, which granted the anonymous public
+    // internet full read AND write on every document. Firestore rules are OR-ed,
+    // not first-match, so it overrode every role check above it.
+    //
+    // SCOPE OF THIS FIX: it stops unauthenticated access only. Any signed-in
+    // user can still read and write everything via this rule. Because /register
+    // is open to the public, an attacker can still self-serve an account and get
+    // back in. Per-collection rules are the actual fix; this is the stopgap that
+    // closes the drive-by path today.
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if isAuthenticated();
     }
   }
 }

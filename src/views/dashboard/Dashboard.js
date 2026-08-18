@@ -37,6 +37,7 @@ import {
 import './Dashboard.css'
 import '../Announcements/AllAnnouncements.css'
 import sygnet from '../../assets/brand/TLA_logo_simple.svg'
+import StaffCheckInCard from '../../components/StaffCheckInCard'
 
 const Dashboard = () => {
   const navigate = useNavigate()
@@ -307,6 +308,13 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Staff Timekeeping - admin and faculty */}
+      {['admin', 'faculty', 'teacher'].includes(userRole?.toLowerCase()) && (
+        <div className="mt-3">
+          <StaffCheckInCard />
+        </div>
+      )}
 
       {/* Stats Row - Only show for Admin users */}
       {userRole?.toLowerCase() === 'admin' && (

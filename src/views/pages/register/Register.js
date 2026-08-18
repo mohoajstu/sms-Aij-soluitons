@@ -125,7 +125,10 @@ const Register = () => {
         lastName: formData.lastName,
         email: formData.email,
         phone: formData.phone,
-        role: formData.role,
+        // Never trust a client-supplied role. Self-registration creates parents
+        // only; staff roles are granted by an admin. Firestore rules enforce
+        // this independently — this line is defense in depth.
+        role: 'parent',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         lastLogin: serverTimestamp(),
@@ -312,12 +315,11 @@ const Register = () => {
               >
                 <option value="">Select Role</option>
                 <option value="parent">Parent</option>
-                <option value="teacher">Teacher</option>
-                <option value="admin">Admin</option>
               </CFormSelect>
             </CInputGroup>
             <small className="text-muted d-block mb-3">
-              Choose your primary role in the institution
+              Staff accounts are provisioned by a school administrator and cannot be
+              self-registered.
             </small>
           </>
         )
