@@ -18,7 +18,11 @@ import {
   CInputGroup,
   CInputGroupText,
 } from '@coreui/react'
-import coursesData from '../../Data/coursesData.json'
+import {
+  mapCourseDocToFormData,
+  buildCourseUpdatePayload,
+  staffListChanged,
+} from './utils/courseFormMapping'
 import './CourseForm.css'
 import { auth, firestore } from '../../firebase'
 import { collection, getDocs, addDoc, doc, getDoc, updateDoc, writeBatch, serverTimestamp, runTransaction } from 'firebase/firestore'
@@ -94,6 +98,7 @@ const CourseForm = () => {
     isActive: true,
   })
 
+  const [originalDoc, setOriginalDoc] = useState(null)
   const [newStaffMember, setNewStaffMember] = useState('')
   const [newStudent, setNewStudent] = useState('')
   const [error, setError] = useState('')
@@ -136,37 +141,30 @@ const CourseForm = () => {
     fetchFaculty()
   }, [])
 
-  // If in edit mode, load existing course data
+  // If in edit mode, load the existing course from Firestore
   useEffect(() => {
-    if (isEditMode) {
-      const courseId = Number(id)
-      const course = coursesData.find((c) => c.id === courseId)
-
-      if (course) {
-        setFormData({
-          ...course,
-          // Convert staff and students to strings if they're arrays
-          staff: Array.isArray(course.staff) ? course.staff : [course.staff],
-          students: Array.isArray(course.students) ? course.students : [course.students],
-          schedule: course.schedule || {
-            sessions: {
-              Monday: { enabled: false, startTime: '08:00', endTime: '09:00', room: '' },
-              Tuesday: { enabled: false, startTime: '08:00', endTime: '09:00', room: '' },
-              Wednesday: { enabled: false, startTime: '08:00', endTime: '09:00', room: '' },
-              Thursday: { enabled: false, startTime: '08:00', endTime: '09:00', room: '' },
-              Friday: { enabled: false, startTime: '08:00', endTime: '09:00', room: '' },
-              Saturday: { enabled: false, startTime: '08:00', endTime: '09:00', room: '' },
-              Sunday: { enabled: false, startTime: '08:00', endTime: '09:00', room: '' },
-            }
-          },
-          materials: course.materials || [],
-          addToCalendar: false,
-          isActive: true,
-        })
+    if (!isEditMode) return
+    let cancelled = false
+    const loadCourse = async () => {
+      try {
+        const snap = await getDoc(doc(firestore, 'courses', id))
+        if (cancelled) return
+        if (!snap.exists()) {
+          setError('Course not found')
+          return
+        }
+        const data = snap.data()
+        setOriginalDoc(data)
+        setFormData(mapCourseDocToFormData(id, data))
         setIsCreating(false)
-      } else {
-        setError('Course not found')
+      } catch (err) {
+        console.error('Failed to load course for editing:', err)
+        if (!cancelled) setError('Failed to load course. Please try again.')
       }
+    }
+    loadCourse()
+    return () => {
+      cancelled = true
     }
   }, [id, isEditMode])
 
@@ -381,6 +379,32 @@ const CourseForm = () => {
     }
   }
 
+  // Resolve each instructor's linked Tarbiyah ID for the stored teacher records
+  const buildEnhancedStaffData = (staffList) =>
+    Promise.all(
+      staffList.map(async (instructor) => {
+        let tarbiyahId = instructor.id
+        try {
+          const instructorUserDoc = await getDoc(doc(firestore, 'users', instructor.id))
+          if (instructorUserDoc.exists()) {
+            const instructorUserData = instructorUserDoc.data()
+            const linkedTarbiyahId = instructorUserData.tarbiyahId || instructorUserData.schoolId
+            if (linkedTarbiyahId && linkedTarbiyahId !== instructor.id) {
+              tarbiyahId = linkedTarbiyahId
+            }
+          }
+        } catch (error) {
+          console.log(`⚠️ Could not check Tarbiyah ID for ${instructor.id}`)
+        }
+        return {
+          name: instructor.name,
+          authUID: instructor.id,
+          tarbiyahId: tarbiyahId,
+          schoolId: tarbiyahId, // Legacy compatibility
+        }
+      })
+    )
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -388,8 +412,13 @@ const CourseForm = () => {
     setSuccess('')
 
     try {
-      // Validate required fields
-      if (!formData.title || !formData.subject || !formData.grade || !formData.description) {
+      // Validate required fields. Edit mode only requires a title: imported
+      // courses can hold subject/grade values that predate the dropdown options,
+      // and a rename must not force the admin to fix those first.
+      if (!formData.title) {
+        throw new Error('Course title is required')
+      }
+      if (!isEditMode && (!formData.subject || !formData.grade || !formData.description)) {
         throw new Error('Please fill in all required fields')
       }
 
@@ -397,7 +426,7 @@ const CourseForm = () => {
       const enabledDays = Object.keys(formData.schedule.sessions).filter(
         day => formData.schedule.sessions[day].enabled
       )
-      if (enabledDays.length === 0) {
+      if (!isEditMode && enabledDays.length === 0) {
         throw new Error('Please enable at least one class day')
       }
 
@@ -428,7 +457,7 @@ const CourseForm = () => {
         userRole = userData.personalInfo?.role || userData.role || null
         
         // If current user is faculty and not already in the staff list, add them
-        if (userRole?.toLowerCase() === 'faculty') {
+        if (!isEditMode && userRole?.toLowerCase() === 'faculty') {
           const isCurrentUserInStaff = formData.staff.some(instructor => instructor.id === currentUser.uid)
           if (!isCurrentUserInStaff) {
             // Get current user's name from faculty collection
@@ -449,36 +478,39 @@ const CourseForm = () => {
         }
       }
 
+      if (isEditMode) {
+        // Only rewrite teacher lookup fields when the staff list actually
+        // changed; a rename must not disturb them.
+        const enhancedStaffData = staffListChanged(originalDoc, formData.staff)
+          ? await buildEnhancedStaffData(formData.staff)
+          : null
+        const payload = buildCourseUpdatePayload({
+          original: originalDoc,
+          formData,
+          enabledDays,
+          enhancedStaffData,
+        })
+        if (Object.keys(payload).length === 0) {
+          setSuccess('No changes to save.')
+          return
+        }
+        await updateDoc(doc(firestore, 'courses', id), {
+          ...payload,
+          updatedAt: serverTimestamp(),
+          'timestamps.updatedAt': new Date(),
+        })
+        setSuccess('Course updated successfully!')
+        setTimeout(() => {
+          navigate('/courses')
+        }, 1500)
+        return
+      }
+
       const courseId = await generateCourseId()
       const now = new Date()
 
       // Prepare enhanced teacher data with both UIDs and Tarbiyah IDs
-      const enhancedStaffData = await Promise.all(
-        formData.staff.map(async (instructor) => {
-          let tarbiyahId = instructor.id
-          
-          // Check if this instructor has a linked Tarbiyah ID
-          try {
-            const instructorUserDoc = await getDoc(doc(firestore, 'users', instructor.id))
-            if (instructorUserDoc.exists()) {
-              const instructorUserData = instructorUserDoc.data()
-              const linkedTarbiyahId = instructorUserData.tarbiyahId || instructorUserData.schoolId
-              if (linkedTarbiyahId && linkedTarbiyahId !== instructor.id) {
-                tarbiyahId = linkedTarbiyahId
-              }
-            }
-          } catch (error) {
-            console.log(`⚠️ Could not check Tarbiyah ID for ${instructor.id}`)
-          }
-          
-          return {
-            name: instructor.name,
-            authUID: instructor.id,
-            tarbiyahId: tarbiyahId,
-            schoolId: tarbiyahId, // Legacy compatibility
-          }
-        })
-      )
+      const enhancedStaffData = await buildEnhancedStaffData(formData.staff)
       
       // Create comprehensive teacher ID arrays for better lookup
       const allTeacherIds = enhancedStaffData.reduce((acc, staff) => {
@@ -755,7 +787,7 @@ const CourseForm = () => {
                   name="subject"
                   value={formData.subject}
                   onChange={handleChange}
-                  required
+                  required={!isEditMode}
                 >
                   <option value="">Select subject</option>
                   {SUBJECTS.map((subject) => (
@@ -773,7 +805,7 @@ const CourseForm = () => {
                   name="grade"
                   value={formData.grade}
                   onChange={handleChange}
-                  required
+                  required={!isEditMode}
                 >
                   <option value="">Select grade</option>
                   {GRADES.map((grade) => (
@@ -795,7 +827,7 @@ const CourseForm = () => {
                   onChange={handleChange}
                   placeholder="Enter course description"
                   rows={3}
-                  required
+                  required={!isEditMode}
                 />
               </CCol>
             </CRow>
