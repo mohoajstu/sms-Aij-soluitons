@@ -262,7 +262,6 @@ const TimekeepingSettings = () => {
             <CTableHead>
               <CTableRow>
                 <CTableHeaderCell>Name</CTableHeaderCell>
-                <CTableHeaderCell>Email</CTableHeaderCell>
                 <CTableHeaderCell>Check-in</CTableHeaderCell>
                 <CTableHeaderCell>Check-out</CTableHeaderCell>
                 <CTableHeaderCell>Grace (min)</CTableHeaderCell>
@@ -274,9 +273,6 @@ const TimekeepingSettings = () => {
                 return (
                   <CTableRow key={member.id}>
                     <CTableDataCell>{member.name}</CTableDataCell>
-                    <CTableDataCell>
-                      {member.email || <em className="text-muted">no email on file</em>}
-                    </CTableDataCell>
                     <CTableDataCell>
                       <CFormInput
                         type="time"
