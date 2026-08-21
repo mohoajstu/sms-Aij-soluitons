@@ -12,11 +12,21 @@ import {
   CButton,
   CAlert,
   CSpinner,
+  CTable,
+  CTableHead,
+  CTableBody,
+  CTableRow,
+  CTableHeaderCell,
+  CTableDataCell,
 } from '@coreui/react'
+import { collection, getDocs } from 'firebase/firestore'
+import { firestore } from '../../firebase'
 import {
   getTimekeepingSettings,
   updateTimekeepingSettings,
   defaultTimekeepingSettings,
+  saveStaffOverrides,
+  normalizeStaffEmail,
 } from '../../services/timekeepingSettings'
 
 const TimekeepingSettings = () => {
@@ -24,13 +34,50 @@ const TimekeepingSettings = () => {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
+  const [staff, setStaff] = useState([])
+  const [overrides, setOverrides] = useState({})
+  const [savingStaff, setSavingStaff] = useState(false)
+  const [staffMessage, setStaffMessage] = useState(null)
 
   useEffect(() => {
     let cancelled = false
     getTimekeepingSettings({ forceRefresh: true })
-      .then((s) => !cancelled && setForm(s))
+      .then((s) => {
+        if (cancelled) return
+        setForm(s)
+        setOverrides(s.staffOverrides || {})
+      })
       .catch(() => !cancelled && setForm(defaultTimekeepingSettings()))
       .finally(() => !cancelled && setLoading(false))
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    getDocs(collection(firestore, 'faculty'))
+      .then((snap) => {
+        if (cancelled) return
+        const rows = snap.docs.map((d) => {
+          const data = d.data()
+          const p = data.personalInfo || {}
+          const firstName = p.firstName || data.firstName || ''
+          const lastName = p.lastName || data.lastName || ''
+          return {
+            id: d.id,
+            name: `${firstName} ${lastName}`.trim() || 'Unnamed staff',
+            email: normalizeStaffEmail(p.email || data.email),
+          }
+        })
+        rows.sort((a, b) => a.name.localeCompare(b.name))
+        setStaff(rows)
+      })
+      .catch((err) => {
+        console.error('Failed to load faculty list:', err)
+        !cancelled &&
+          setStaffMessage({ tone: 'danger', text: 'Could not load the staff list.' })
+      })
     return () => {
       cancelled = true
     }
@@ -65,6 +112,39 @@ const TimekeepingSettings = () => {
     }
   }
 
+  const updateOverride = (email, field, value) =>
+    setOverrides((prev) => ({
+      ...prev,
+      [email]: { ...(prev[email] || {}), [field]: value },
+    }))
+
+  const handleSaveStaff = async () => {
+    setSavingStaff(true)
+    setStaffMessage(null)
+    try {
+      const cleaned = {}
+      for (const [email, entry] of Object.entries(overrides)) {
+        if (!email || !entry) continue
+        const out = {}
+        if (entry.expectedCheckInTime) out.expectedCheckInTime = entry.expectedCheckInTime
+        if (entry.expectedCheckOutTime) out.expectedCheckOutTime = entry.expectedCheckOutTime
+        if (entry.graceMinutes !== '' && entry.graceMinutes != null) {
+          const grace = Number(entry.graceMinutes)
+          if (Number.isFinite(grace) && grace >= 0) out.graceMinutes = grace
+        }
+        if (Object.keys(out).length > 0) cleaned[email] = out
+      }
+      await saveStaffOverrides(cleaned)
+      setOverrides(cleaned)
+      setStaffMessage({ tone: 'success', text: 'Staff schedules saved.' })
+    } catch (err) {
+      console.error('Failed to save staff schedules:', err)
+      setStaffMessage({ tone: 'danger', text: err.message || 'Failed to save staff schedules.' })
+    } finally {
+      setSavingStaff(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="text-center py-4">
@@ -74,6 +154,7 @@ const TimekeepingSettings = () => {
   }
 
   return (
+    <>
     <CCard>
       <CCardHeader>Timekeeping Rules</CCardHeader>
       <CCardBody>
@@ -164,6 +245,94 @@ const TimekeepingSettings = () => {
         </CForm>
       </CCardBody>
     </CCard>
+
+    <CCard className="mt-4">
+      <CCardHeader>Staff Schedules</CCardHeader>
+      <CCardBody>
+        <p className="text-muted">
+          Set custom hours for part-time or alternate-schedule staff. Blank fields use the school
+          defaults above ({form.expectedCheckInTime}–{form.expectedCheckOutTime},{' '}
+          {form.graceMinutes}-min grace).
+        </p>
+
+        {staff.length === 0 ? (
+          <p className="text-muted mb-0">No staff found in the faculty list.</p>
+        ) : (
+          <CTable small responsive align="middle">
+            <CTableHead>
+              <CTableRow>
+                <CTableHeaderCell>Name</CTableHeaderCell>
+                <CTableHeaderCell>Email</CTableHeaderCell>
+                <CTableHeaderCell>Check-in</CTableHeaderCell>
+                <CTableHeaderCell>Check-out</CTableHeaderCell>
+                <CTableHeaderCell>Grace (min)</CTableHeaderCell>
+              </CTableRow>
+            </CTableHead>
+            <CTableBody>
+              {staff.map((member) => {
+                const entry = (member.email && overrides[member.email]) || {}
+                return (
+                  <CTableRow key={member.id}>
+                    <CTableDataCell>{member.name}</CTableDataCell>
+                    <CTableDataCell>
+                      {member.email || <em className="text-muted">no email on file</em>}
+                    </CTableDataCell>
+                    <CTableDataCell>
+                      <CFormInput
+                        type="time"
+                        size="sm"
+                        disabled={!member.email}
+                        value={entry.expectedCheckInTime || ''}
+                        onChange={(e) =>
+                          updateOverride(member.email, 'expectedCheckInTime', e.target.value)
+                        }
+                      />
+                    </CTableDataCell>
+                    <CTableDataCell>
+                      <CFormInput
+                        type="time"
+                        size="sm"
+                        disabled={!member.email}
+                        value={entry.expectedCheckOutTime || ''}
+                        onChange={(e) =>
+                          updateOverride(member.email, 'expectedCheckOutTime', e.target.value)
+                        }
+                      />
+                    </CTableDataCell>
+                    <CTableDataCell>
+                      <CFormInput
+                        type="number"
+                        size="sm"
+                        min="0"
+                        step="1"
+                        placeholder={String(form.graceMinutes ?? '')}
+                        disabled={!member.email}
+                        value={entry.graceMinutes ?? ''}
+                        onChange={(e) =>
+                          updateOverride(member.email, 'graceMinutes', e.target.value)
+                        }
+                      />
+                    </CTableDataCell>
+                  </CTableRow>
+                )
+              })}
+            </CTableBody>
+          </CTable>
+        )}
+
+        {staffMessage && <CAlert color={staffMessage.tone}>{staffMessage.text}</CAlert>}
+
+        <CButton
+          color="primary"
+          disabled={savingStaff || staff.length === 0}
+          onClick={handleSaveStaff}
+        >
+          {savingStaff ? <CSpinner size="sm" className="me-2" /> : null}
+          Save Staff Schedules
+        </CButton>
+      </CCardBody>
+    </CCard>
+    </>
   )
 }
 

@@ -43,6 +43,35 @@ export const updateTimekeepingSettings = async (updates) => {
   cache = null
 }
 
+// Replaces the whole staffOverrides field. A deep merge would treat the dots in
+// email keys as field paths and could never clear a removed override.
+export const saveStaffOverrides = async (staffOverrides) => {
+  await setDoc(
+    doc(firestore, SETTINGS_DOC),
+    { staffOverrides, lastUpdated: serverTimestamp() },
+    { mergeFields: ['staffOverrides', 'lastUpdated'] },
+  )
+  cache = null
+}
+
+export const normalizeStaffEmail = (email) =>
+  typeof email === 'string' ? email.trim().toLowerCase() : ''
+
+export const resolveStaffSettings = (settings, email) => {
+  const base = settings || defaultTimekeepingSettings()
+  const key = normalizeStaffEmail(email)
+  const override = (key && base.staffOverrides && base.staffOverrides[key]) || null
+  if (!override) return base
+  const resolved = { ...base }
+  if (override.expectedCheckInTime) resolved.expectedCheckInTime = override.expectedCheckInTime
+  if (override.expectedCheckOutTime) resolved.expectedCheckOutTime = override.expectedCheckOutTime
+  const grace = Number(override.graceMinutes)
+  if (override.graceMinutes !== '' && override.graceMinutes != null && Number.isFinite(grace)) {
+    resolved.graceMinutes = grace
+  }
+  return resolved
+}
+
 export const computeStatus = ({ type, when, settings }) => {
   const s = settings || defaultTimekeepingSettings()
   const moment = when instanceof Date ? when : new Date(when)

@@ -13,6 +13,7 @@ import {
   getTimekeepingSettings,
   computeStatus,
   defaultTimekeepingSettings,
+  resolveStaffSettings,
 } from './timekeepingSettings'
 
 const COLLECTION = 'staffCheckins'
@@ -33,7 +34,8 @@ export const createStaffCheckIn = async ({ user, role, location, type, notes }) 
   if (!user?.uid || !location) throw new Error('Missing required check-in data.')
   if (type !== 'in' && type !== 'out') throw new Error('Invalid check-in type.')
 
-  const settings = (await getTimekeepingSettings()) || defaultTimekeepingSettings()
+  const globalSettings = (await getTimekeepingSettings()) || defaultTimekeepingSettings()
+  const settings = resolveStaffSettings(globalSettings, user.email)
   const distanceMeters = calculateDistanceInMeters(
     location.latitude,
     location.longitude,

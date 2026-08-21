@@ -19,6 +19,7 @@ import {
 import {
   getTimekeepingSettings,
   defaultTimekeepingSettings,
+  resolveStaffSettings,
 } from '../services/timekeepingSettings'
 import './StaffCheckInCard.css'
 
@@ -117,8 +118,9 @@ const StaffCheckInCard = ({ onAfterCheckIn }) => {
       window.location.hostname === '127.0.0.1')
 
   const expectedText = useMemo(() => {
-    return `Expected hours: ${settings.expectedCheckInTime} – ${settings.expectedCheckOutTime} (${settings.graceMinutes}-min grace)`
-  }, [settings])
+    const s = resolveStaffSettings(settings, user?.email)
+    return `Expected hours: ${s.expectedCheckInTime} – ${s.expectedCheckOutTime} (${s.graceMinutes}-min grace)`
+  }, [settings, user?.email])
 
   const handleCheck = async (type) => {
     if (!user) {
