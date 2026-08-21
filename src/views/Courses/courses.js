@@ -1,6 +1,6 @@
 // CoursesPage.jsx (updated for new schedule structure and faculty integration)
 import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { auth, firestore } from '../../firebase'
 import { collection, getDocs, doc, getDoc, query, where, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
@@ -10,6 +10,7 @@ import { CButton, CButtonGroup, CCard, CCardBody, CCardHeader, CCol, CRow, CNav,
 
 function CoursesPage() {
   console.log('CoursesPage rendered');
+  const navigate = useNavigate()
   const [courses, setCourses] = useState([])
   const [archivedCourses, setArchivedCourses] = useState([])
   const [loading, setLoading] = useState(true)
@@ -614,6 +615,24 @@ function CoursesPage() {
                           </div>
                           
                           <div className="course-tile-footer" style={{ position: 'relative', zIndex: 1 }}>
+                            <CButton
+                              color="light"
+                              size="sm"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                navigate(`/courses/edit/${course.id}`)
+                              }}
+                              style={{
+                                backgroundColor: 'rgba(255,255,255,0.2)',
+                                border: '1px solid rgba(255,255,255,0.3)',
+                                color: textColor,
+                                marginRight: '8px'
+                              }}
+                            >
+                              ✏️ Edit
+                            </CButton>
+
                             {/* Admin-only archive button */}
                             <CButton
                               color="warning"
@@ -782,6 +801,24 @@ function CoursesPage() {
                         </div>
                         
                         <div className="course-tile-footer" style={{ position: 'relative', zIndex: 1 }}>
+                          <CButton
+                            color="light"
+                            size="sm"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              navigate(`/courses/edit/${course.id}`)
+                            }}
+                            style={{
+                              backgroundColor: 'rgba(255,255,255,0.2)',
+                              border: '1px solid rgba(255,255,255,0.3)',
+                              color: textColor,
+                              marginRight: '8px'
+                            }}
+                          >
+                            ✏️ Edit
+                          </CButton>
+
                           <CButton
                             color="success"
                             size="sm"

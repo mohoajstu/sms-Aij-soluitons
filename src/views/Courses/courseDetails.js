@@ -269,6 +269,20 @@ function CourseDetailPage() {
       <div className="course-header" style={{ backgroundColor: courseColor, color: textColor }}>
         <h1>{course.title}</h1>
         <p>{course.description}</p>
+        {userRole === 'admin' && (
+          <CButton
+            color="light"
+            size="sm"
+            onClick={() => navigate(`/courses/edit/${id}`)}
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              color: textColor,
+            }}
+          >
+            ✏️ Edit Course
+          </CButton>
+        )}
       </div>
 
       <div className="section-navigation mt-4">
