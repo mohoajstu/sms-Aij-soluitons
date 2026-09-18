@@ -94,7 +94,7 @@ describe('computeStatus with a resolved part-time schedule', () => {
     expect(status).toBe('late')
   })
 
-  it('marks a check-out before the personal end time as early departure', () => {
+  it('marks a check-out well before the personal end time as early departure', () => {
     const status = computeStatus({
       type: 'out',
       when: new Date('2026-08-21T15:00:00'),
@@ -110,5 +110,39 @@ describe('computeStatus with a resolved part-time schedule', () => {
       settings: resolved(),
     })
     expect(status).toBe('on-time')
+  })
+
+  it('marks a check-out inside the grace window on-time', () => {
+    const status = computeStatus({
+      type: 'out',
+      when: new Date('2026-08-21T15:21:00'),
+      settings: resolved(),
+    })
+    expect(status).toBe('on-time')
+  })
+
+  it('marks a check-out just outside the grace window as early departure', () => {
+    const status = computeStatus({
+      type: 'out',
+      when: new Date('2026-08-21T15:19:00'),
+      settings: resolved(),
+    })
+    expect(status).toBe('early-departure')
+  })
+})
+
+describe('computeStatus grace boundaries with a zero-grace schedule', () => {
+  const strict = () => resolveStaffSettings(baseSettings(), 'strict@school.ca')
+
+  it('flags a check-in one minute past the start time', () => {
+    expect(
+      computeStatus({ type: 'in', when: new Date('2026-08-21T08:01:00'), settings: strict() }),
+    ).toBe('late')
+  })
+
+  it('flags a check-out one minute before the end time', () => {
+    expect(
+      computeStatus({ type: 'out', when: new Date('2026-08-21T15:59:00'), settings: strict() }),
+    ).toBe('early-departure')
   })
 })

@@ -72,6 +72,9 @@ export const resolveStaffSettings = (settings, email) => {
   return resolved
 }
 
+// The grace period is symmetric: it covers arriving a few minutes after the
+// expected start AND leaving a few minutes before the expected end. Anything
+// inside that window counts as on time, so no late/early flag is raised.
 export const computeStatus = ({ type, when, settings }) => {
   const s = settings || defaultTimekeepingSettings()
   const moment = when instanceof Date ? when : new Date(when)
@@ -80,15 +83,15 @@ export const computeStatus = ({ type, when, settings }) => {
     const [h, m] = String(hhmm || '00:00').split(':').map(Number)
     return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0)
   }
-  const grace = Number.isFinite(s.graceMinutes) ? s.graceMinutes : 0
+  const grace = Number.isFinite(s.graceMinutes) ? Math.max(0, s.graceMinutes) : 0
 
   if (type === 'in') {
     const cutoff = parse(s.expectedCheckInTime) + grace
     return minutesNow <= cutoff ? 'on-time' : 'late'
   }
   if (type === 'out') {
-    const expected = parse(s.expectedCheckOutTime)
-    return minutesNow >= expected ? 'on-time' : 'early-departure'
+    const cutoff = parse(s.expectedCheckOutTime) - grace
+    return minutesNow >= cutoff ? 'on-time' : 'early-departure'
   }
   return 'on-time'
 }

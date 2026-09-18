@@ -233,8 +233,20 @@ const TimekeepingSettings = () => {
                 value={form.graceMinutes ?? 0}
                 onChange={(e) => update({ graceMinutes: e.target.value })}
               />
+              <div className="form-text">
+                Applied to both ends of the day. A check-in up to this many minutes after the start
+                time, or a check-out up to this many minutes before the end time, is recorded as on
+                time — no late or early flag.
+              </div>
             </CCol>
           </CRow>
+
+          <p className="text-muted small">
+            Staff can add a note when they check in or out (for example prep done at home, or an
+            off-site meeting). A note explains the record, so it is not counted as a late, early, or
+            out-of-range flag on their timesheet. The original time, location, and note stay on the
+            record for review.
+          </p>
 
           {message && <CAlert color={message.tone}>{message.text}</CAlert>}
 
@@ -252,7 +264,7 @@ const TimekeepingSettings = () => {
         <p className="text-muted">
           Set custom hours for part-time or alternate-schedule staff. Blank fields use the school
           defaults above ({form.expectedCheckInTime}–{form.expectedCheckOutTime},{' '}
-          {form.graceMinutes}-min grace).
+          {form.graceMinutes}-min grace either side).
         </p>
 
         {staff.length === 0 ? (

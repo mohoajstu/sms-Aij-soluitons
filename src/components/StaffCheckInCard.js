@@ -14,7 +14,7 @@ import useAuth from '../Firebase/useAuth'
 import {
   createStaffCheckIn,
   getUserRecentStaffCheckIns,
-  formatStatusLabel,
+  formatRecordStatusLabel,
 } from '../services/staffCheckins'
 import {
   getTimekeepingSettings,
@@ -119,7 +119,7 @@ const StaffCheckInCard = ({ onAfterCheckIn }) => {
 
   const expectedText = useMemo(() => {
     const s = resolveStaffSettings(settings, user?.email)
-    return `Expected hours: ${s.expectedCheckInTime} – ${s.expectedCheckOutTime} (${s.graceMinutes}-min grace)`
+    return `Expected hours: ${s.expectedCheckInTime} – ${s.expectedCheckOutTime} (${s.graceMinutes}-min grace either side)`
   }, [settings, user?.email])
 
   const handleCheck = async (type) => {
@@ -160,14 +160,18 @@ const StaffCheckInCard = ({ onAfterCheckIn }) => {
         result.distanceMeters !== null ? ` (${result.distanceMeters}m from school)` : ''
       const verb = type === 'in' ? 'Check-in' : 'Check-out'
       const timeText = formatTime(new Date())
-      const statusLabel = formatStatusLabel(result.status)
+      const statusLabel = formatRecordStatusLabel(result)
 
       let tone = 'success'
       let message = `${verb} recorded at ${timeText} — ${statusLabel}${distText}.`
 
-      if (!result.inRange) {
+      if (!result.inRange && result.excused) {
+        message = `${verb} recorded at ${timeText} away from school${distText}. Your note is on the record, so it is not flagged.`
+      } else if (!result.inRange) {
         tone = 'warning'
         message = `${verb} recorded at ${timeText}, but outside the ${settings.radiusMeters}m geo-fence${distText}. Admin will be notified.`
+      } else if (result.excused) {
+        message = `${verb} recorded at ${timeText} — ${statusLabel}${distText}. Your note explains the time.`
       } else if (result.status !== 'on-time') {
         tone = 'warning'
       }
@@ -205,7 +209,7 @@ const StaffCheckInCard = ({ onAfterCheckIn }) => {
   const lastSummary = lastCheckIn
     ? `${lastCheckIn.type === 'in' ? 'Checked in' : 'Checked out'} ${formatRecentTimestamp(
         lastCheckIn.createdAt || lastCheckIn.clientCreatedAt,
-      )} · ${formatStatusLabel(lastCheckIn.status)}${
+      )} · ${formatRecordStatusLabel(lastCheckIn)}${
         lastCheckIn.distanceMeters != null ? ` · ${lastCheckIn.distanceMeters}m` : ''
       }`
     : 'No prior check-ins on record.'
@@ -235,10 +239,14 @@ const StaffCheckInCard = ({ onAfterCheckIn }) => {
           <CFormLabel htmlFor="checkin-notes" className="form-label small mb-1">
             Notes (optional)
           </CFormLabel>
+          <div className="text-muted small mb-1">
+            A note explains an early, late, or off-site check-in, so it is not flagged on your
+            timesheet.
+          </div>
           <CFormTextarea
             id="checkin-notes"
             rows={2}
-            placeholder="e.g. parent interrupted morning routine"
+            placeholder="e.g. prep at home this morning, parent meeting off-site"
             value={notes}
             maxLength={500}
             onChange={(e) => setNotes(e.target.value)}

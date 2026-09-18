@@ -28,7 +28,10 @@ import useAuth from '../../Firebase/useAuth'
 import {
   getRecentStaffCheckIns,
   formatStatusLabel,
+  formatRecordStatusLabel,
   statusBadgeColor,
+  effectiveStatus,
+  isExcused,
   isViolation,
 } from '../../services/staffCheckins'
 import {
@@ -79,7 +82,8 @@ const StaffCheckIns = () => {
   const [loading, setLoading] = useState(true)
   const [settings, setSettings] = useState(defaultTimekeepingSettings())
   const [typeFilter, setTypeFilter] = useState('all') // all | in | out
-  const [statusFilter, setStatusFilter] = useState('all') // all | on-time | late | early-departure | out-of-range | violations
+  // all | on-time | late | early-departure | out-of-range | excused | violations
+  const [statusFilter, setStatusFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
@@ -113,11 +117,13 @@ const StaffCheckIns = () => {
       if (typeFilter !== 'all' && r.type !== typeFilter) return false
       if (statusFilter === 'violations' && !isViolation(r)) return false
       if (statusFilter === 'out-of-range' && r.inRange !== false) return false
+      if (statusFilter === 'excused' && !isExcused(r)) return false
       if (
         statusFilter !== 'all' &&
         statusFilter !== 'violations' &&
         statusFilter !== 'out-of-range' &&
-        r.status !== statusFilter
+        statusFilter !== 'excused' &&
+        effectiveStatus(r) !== statusFilter
       )
         return false
       if (!inDateRange(r.createdAt || r.clientCreatedAt, fromDate, toDate)) return false
@@ -147,7 +153,7 @@ const StaffCheckIns = () => {
           <small className="text-muted">
             School: {Number(settings.latitude).toFixed(4)}, {Number(settings.longitude).toFixed(4)}{' '}
             · Radius: {settings.radiusMeters}m · Hours: {settings.expectedCheckInTime} –{' '}
-            {settings.expectedCheckOutTime} ({settings.graceMinutes}-min grace)
+            {settings.expectedCheckOutTime} ({settings.graceMinutes}-min grace either side)
           </small>
         </CCol>
         <CCol xs="auto">
@@ -212,6 +218,7 @@ const StaffCheckIns = () => {
                     <option value="on-time">On time</option>
                     <option value="late">Late</option>
                     <option value="early-departure">Early departure</option>
+                    <option value="excused">Explained by note</option>
                     <option value="out-of-range">Out of range</option>
                   </CFormSelect>
                 </CCol>
@@ -290,13 +297,25 @@ const StaffCheckIns = () => {
                             </CBadge>
                           </CTableDataCell>
                           <CTableDataCell>
-                            <CBadge color={statusBadgeColor(r.status)}>
-                              {formatStatusLabel(r.status)}
+                            <CBadge color={statusBadgeColor(effectiveStatus(r))}>
+                              {formatRecordStatusLabel(r)}
                             </CBadge>
                             {r.inRange === false && (
-                              <CBadge color="danger" className="ms-1">
-                                Outside fence
+                              <CBadge
+                                color={isExcused(r) ? 'secondary' : 'danger'}
+                                className="ms-1"
+                                title={isExcused(r) ? r.notes : undefined}
+                              >
+                                Outside fence{isExcused(r) ? ' · noted' : ''}
                               </CBadge>
+                            )}
+                            {isExcused(r) && r.status !== 'on-time' && (
+                              <div>
+                                <small className="text-muted" title={r.notes}>
+                                  Scheduled {r.expectedTime || '—'} ·{' '}
+                                  {formatStatusLabel(r.status).toLowerCase()}, explained
+                                </small>
+                              </div>
                             )}
                           </CTableDataCell>
                           <CTableDataCell>

@@ -48,6 +48,11 @@ export const createStaffCheckIn = async ({ user, role, location, type, notes }) 
 
   const now = new Date()
   const status = computeStatus({ type, when: now, settings })
+  const cleanNotes = typeof notes === 'string' ? notes.trim().slice(0, 500) : ''
+  // A note is the staff member's explanation (prep at home, off-site errand,
+  // parent meeting). It excuses the record on the timesheet; the raw status and
+  // the note itself stay on the document so admins can still audit it.
+  const excused = Boolean(cleanNotes) && (status !== 'on-time' || !inRange)
 
   const docRef = await addDoc(collection(firestore, COLLECTION), {
     uid: user.uid,
@@ -55,7 +60,7 @@ export const createStaffCheckIn = async ({ user, role, location, type, notes }) 
     displayName: user.displayName || '',
     role: role || '',
     type,
-    notes: typeof notes === 'string' ? notes.trim().slice(0, 500) : '',
+    notes: cleanNotes,
     latitude: location.latitude,
     longitude: location.longitude,
     accuracy: Number.isFinite(location.accuracy) ? location.accuracy : null,
@@ -63,6 +68,7 @@ export const createStaffCheckIn = async ({ user, role, location, type, notes }) 
     inRange: Boolean(inRange),
     radiusMeters: settings.radiusMeters,
     status,
+    excused,
     expectedTime: type === 'in' ? settings.expectedCheckInTime : settings.expectedCheckOutTime,
     graceMinutes: settings.graceMinutes,
     createdAt: serverTimestamp(),
@@ -75,6 +81,8 @@ export const createStaffCheckIn = async ({ user, role, location, type, notes }) 
     distanceMeters: Number.isFinite(distanceMeters) ? Math.round(distanceMeters) : null,
     inRange,
     status,
+    excused,
+    notes: cleanNotes,
   }
 }
 
@@ -100,8 +108,23 @@ export const getUserRecentStaffCheckIns = async (uid, max = 25) => {
   return docs.slice(0, max)
 }
 
+// Records written before the excuse rule existed have no `excused` field, so a
+// note on them still counts as the explanation.
+export const isExcused = (record) => {
+  if (!record) return false
+  if (record.excused === true) return true
+  if (record.excused === false) return false
+  return Boolean(record.notes && String(record.notes).trim())
+}
+
+// What the timesheet should show: an explained late arrival or early departure
+// reads as on time.
+export const effectiveStatus = (record) =>
+  isExcused(record) ? 'on-time' : record?.status || 'on-time'
+
 export const isViolation = (record) =>
   !!record &&
+  !isExcused(record) &&
   (record.inRange === false || (record.status && record.status !== 'on-time'))
 
 export const formatStatusLabel = (status) => {
@@ -116,6 +139,13 @@ export const formatStatusLabel = (status) => {
       return status || '—'
   }
 }
+
+// Label for a record rather than a bare status string, so an excused row reads
+// "On time (noted)" instead of "Late".
+export const formatRecordStatusLabel = (record) =>
+  isExcused(record) && record?.status !== 'on-time'
+    ? 'On time (noted)'
+    : formatStatusLabel(effectiveStatus(record))
 
 export const statusBadgeColor = (status) => {
   switch (status) {
