@@ -14,6 +14,7 @@ import {
   isAuthenticated,
 } from '../../services/calendarService'
 import { auth } from '../../firebase'
+import { loadRosterStudents } from '../../services/courseRoster'
 import StudentSelectorModal from './StudentForm'
 import StaffSelectorModal from './StaffSelectorModal'
 import CourseGrades from './CourseGrades' // B14: Course grades with median calculation
@@ -34,6 +35,9 @@ function CourseDetailPage() {
   const [showStudentModal, setShowStudentModal] = useState(false)
   const [showStaffModal, setShowStaffModal] = useState(false)
   const [showECEModal, setShowECEModal] = useState(false) // Separate modal for ECE
+  // Roster entries with no student record. These are the children the
+  // attendance page cannot mark, so the class list has to name them too.
+  const [unloadedStudents, setUnloadedStudents] = useState([])
   const [updating, setUpdating] = useState(false)
   const [activeSection, setActiveSection] = useState('overview') // B14: Track active section
 
@@ -61,6 +65,11 @@ function CourseDetailPage() {
         if (courseDoc.exists()) {
           const courseData = courseDoc.data()
           setCourse({ id: courseDoc.id, ...courseData })
+
+          // Resolve the roster the same way the attendance page does, so this
+          // list and the attendance list always agree.
+          const { missing } = await loadRosterStudents(courseData)
+          setUnloadedStudents(missing)
 
           if (courseData.teacherIds && courseData.teacherIds.length > 0) {
             const staffPromises = courseData.teacherIds.map((uid) =>
@@ -254,6 +263,7 @@ function CourseDetailPage() {
   // Use teacher and students arrays from course doc
   const staffList = Array.isArray(course.teacher) ? course.teacher : []
   const studentList = Array.isArray(course.students) ? course.students : []
+  const unloadedIds = new Set(unloadedStudents.map((m) => m.id))
 
   // Use this for all budget calculations and display
   const initialBudget =
@@ -463,6 +473,14 @@ function CourseDetailPage() {
                 <CButton color="primary" size="sm" className="mb-2" onClick={() => setShowStudentModal(true)}>
                   Add Students
                 </CButton>
+                {unloadedStudents.length > 0 && (
+                  <div className="alert alert-danger py-2 px-3 mb-2">
+                    {unloadedStudents.length} of {studentList.length} students on this list have no
+                    student record. Attendance will show {studentList.length -
+                      unloadedStudents.length}{' '}
+                    students until this is fixed.
+                  </div>
+                )}
                 <table className="members-table">
                   <thead>
                     <tr>
@@ -478,9 +496,14 @@ function CourseDetailPage() {
                       </tr>
                     ) : (
                       studentList.map((s, idx) => (
-                        <tr key={idx}>
+                        <tr key={idx} className={unloadedIds.has(String(s.id)) ? 'table-danger' : ''}>
                           <td>{s.id || '-'}</td>
-                          <td>{s.name || '-'}</td>
+                          <td>
+                            {s.name || '-'}
+                            {unloadedIds.has(String(s.id)) && (
+                              <span className="badge bg-danger ms-2">no student record</span>
+                            )}
+                          </td>
                           {userRole === 'admin' && (
                             <td>
                               <CButton

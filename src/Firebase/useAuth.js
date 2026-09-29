@@ -2,8 +2,7 @@
 import { useEffect, useState } from 'react'
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth'
 import { auth, firestore } from './firebase'
-import { loadCurrentUserProfile } from '../utils/userProfile'
-import { normalizeAdminRole } from '../config/authConfig'
+import { loadCurrentUserProfile, resolveProfileRole } from '../utils/userProfile'
 
 const useAuth = () => {
   const [user, setUser] = useState(null)
@@ -11,8 +10,13 @@ const useAuth = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let active = true
+    let version = 0
     // Listen for sign-in / sign-out
     const unsubAuth = onAuthStateChanged(auth, async (authUser) => {
+      const currentVersion = ++version
+      setLoading(true)
+      setRole(null)
       if (!authUser) {
         // signed out
         setUser(authUser)
@@ -23,19 +27,17 @@ const useAuth = () => {
 
       // signed in - load profile by email lookup
       setUser(authUser)
-      
+
       try {
         const profile = await loadCurrentUserProfile(firestore, authUser)
-        
+        if (!active || version !== currentVersion) return
+
         if (profile) {
-          // Extract role from profile data
-          const userRole = profile.data?.personalInfo?.role || profile.data?.role || 'guest'
-          const normalizedRole = normalizeAdminRole(userRole)
-          
-          console.log('✅ Found user profile:', profile.id)
-          console.log('📄 User data:', profile.data)
+          const normalizedRole = resolveProfileRole(profile)
+
+          console.log('✅ Found user profile:', profile.collection, profile.id)
           console.log('🔑 Extracted role:', normalizedRole)
-          
+
           setRole(normalizedRole)
         } else {
           console.warn('⚠️ No user profile found for:', authUser.email)
@@ -43,15 +45,16 @@ const useAuth = () => {
           setRole('guest')
         }
       } catch (error) {
+        if (!active || version !== currentVersion) return
         console.error('Error loading user profile:', error)
         setRole('guest')
       } finally {
-        setLoading(false)
+        if (active && version === currentVersion) setLoading(false)
       }
     })
 
     // cleanup
-    return unsubAuth
+    return () => { active = false; version += 1; unsubAuth() }
   }, [])
 
   const signOut = async () => {

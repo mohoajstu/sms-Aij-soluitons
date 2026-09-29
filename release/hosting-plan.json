@@ -1,0 +1,14 @@
+{
+  "name": "Restore course access and staff schedule display; enforce scoped releases",
+  "project": "tarbiyah-sms",
+  "target": "hosting:tlasms",
+  "baseAsset": "/assets/index-DcTBCkAJ.js",
+  "allowedFiles": [
+    "firebase.json",
+    "src/views/Courses/courses.js",
+    "src/views/Courses/courseDetails.js",
+    "src/views/Courses/__tests__/coursesAccess.test.jsx",
+    "src/views/admin/TimekeepingSettings.js",
+    "src/views/admin/__tests__/TimekeepingSettings.test.jsx"
+  ]
+}

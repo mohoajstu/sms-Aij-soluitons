@@ -2,49 +2,12 @@ import React, { useState, useEffect } from 'react'
 import { Autocomplete, TextField, CircularProgress } from '@mui/material'
 import { collection, getDocs } from 'firebase/firestore'
 import { firestore } from '../Firebase/firebase'
+import { isHomeroomClass } from './classSelection'
 
 const ClassSelector = ({ value, onChange, ...props }) => {
   const [internalSelectedClass, setInternalSelectedClass] = useState(null)
   const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(true)
-
-  // Define homeroom class patterns
-  const homeroomPatterns = [
-    /^jk$/i,                    // JK
-    /^sk$/i,                    // SK (general)
-    /^sk1$/i,                   // SK1
-    /^sk2$/i,                   // SK2
-    /^sk.*rafia$/i,            // SK - Tr. Rafia
-    /^sk.*huda$/i,             // SK - Tr. Huda
-    /^homeroom\s+junior\s+kindergarten$/i,  // HomeRoom Junior Kindergarten
-    /^homeroom\s+senior\s+kindergarten$/i,  // HomeRoom Senior Kindergarten
-    /^homeroom\s+sk$/i,        // Homeroom SK
-    /^homeroom\s+sk1$/i,       // Homeroom SK1
-    /^homeroom\s+sk2$/i,       // Homeroom SK2
-    /^homeroom\s+grade\s*[1-8]$/i,  // HomeRoom Grade 1-8
-  ]
-
-  // Function to check if a class is a homeroom class
-  const isHomeroomClass = (classData) => {
-    const title = classData.title || classData.name || ''
-    const gradeLevel = classData.gradeLevel || ''
-    
-    // Check title patterns
-    for (const pattern of homeroomPatterns) {
-      if (pattern.test(title)) {
-        return true
-      }
-    }
-    
-    // Check grade level patterns
-    for (const pattern of homeroomPatterns) {
-      if (pattern.test(gradeLevel)) {
-        return true
-      }
-    }
-    
-    return false
-  }
 
   useEffect(() => {
     const fetchClasses = async () => {

@@ -208,8 +208,11 @@ service cloud.firestore {
     // is open to the public, an attacker can still self-serve an account and get
     // back in. Per-collection rules are the actual fix; this is the stopgap that
     // closes the drive-by path today.
-    match /{document=**} {
-      allow read, write: if isAuthenticated();
+    // Corrections and their history are server-only, accessed through the
+    // verified-email staffTimesheets API. Never expose them via this legacy rule.
+    match /{collectionId}/{document=**} {
+      allow read, write: if isAuthenticated() &&
+        collectionId != 'staffTimesheetCorrections' && collectionId != 'timekeepingAdminAccess';
     }
   }
 }

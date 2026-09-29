@@ -2,6 +2,7 @@
   "hosting": [
     {
       "site": "tlasms",
+      "predeploy": ["node scripts/releaseHosting.cjs verify"],
       "public": "build",
       "ignore": [
         "firebase.json",

@@ -2,9 +2,9 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { auth, firestore } from '../../firebase'
-import { collection, getDocs, doc, getDoc, query, where, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, getDocs, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
-import { loadCurrentUserProfile } from '../../utils/userProfile'
+import { loadCurrentUserProfile, resolveProfileRole } from '../../utils/userProfile'
 import './courses.css'
 import { CButton, CButtonGroup, CCard, CCardBody, CCardHeader, CCol, CRow, CNav, CNavItem, CNavLink, CTabContent, CTabPane, CSpinner } from '@coreui/react'
 
@@ -15,43 +15,9 @@ function CoursesPage() {
   const [archivedCourses, setArchivedCourses] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('active')
-  const [userRole, setUserRole] = useState(null)
+  const [loadError, setLoadError] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
 
-  // Add diagnostic function to manually check course existence
-  const diagnoseCourseIssue = async (facultyCourses) => {
-    console.log('🔬 DIAGNOSTIC: Manually checking course documents...')
-    for (const courseId of facultyCourses) {
-      try {
-        const directDocRef = doc(firestore, 'courses', courseId)
-        const directDoc = await getDoc(directDocRef)
-        console.log(`🔬 DIAGNOSTIC Course ${courseId}:`, {
-          exists: directDoc.exists(),
-          id: directDoc.id,
-          title: directDoc.exists() ? directDoc.data()?.title || directDoc.data()?.name : 'N/A'
-        })
-      } catch (error) {
-        console.error(`🔬 DIAGNOSTIC Error checking ${courseId}:`, error)
-      }
-    }
-    
-    // Also check what the admin query would return
-    console.log('🔬 DIAGNOSTIC: Checking what admin query returns...')
-    try {
-      const allCoursesSnapshot = await getDocs(collection(firestore, 'courses'))
-      console.log(`🔬 DIAGNOSTIC: Found ${allCoursesSnapshot.docs.length} total courses in collection`)
-      allCoursesSnapshot.docs.forEach(doc => {
-        const data = doc.data()
-        console.log(`🔬 DIAGNOSTIC Course in collection:`, {
-          docId: doc.id,
-          courseId: data.courseID || data.courseId,
-          title: data.title || data.name
-        })
-      })
-    } catch (error) {
-      console.error('🔬 DIAGNOSTIC Error checking all courses:', error)
-    }
-  }
 
   // Function to archive/unarchive a course
   const toggleCourseArchive = async (courseId, currentlyArchived) => {
@@ -84,193 +50,54 @@ function CoursesPage() {
   }
 
   useEffect(() => {
+    let active = true
+    let request = 0
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          // Use the same logic as useAuth.js - email-based lookup
-          console.log('🔍 Looking up user profile for:', user.email)
-          const profile = await loadCurrentUserProfile(firestore, user)
-          
-          let userData = null
-          let tarbiyahId = null
-          
-          if (profile) {
-            userData = profile.data
-            tarbiyahId = profile.id // This is the actual Tarbiyah ID (document ID)
-            const role = userData.personalInfo?.role || userData.role || null
-            setUserRole(role)
-            setIsAdmin(role?.toLowerCase() === 'admin')
-            
-            console.log('✅ Found user profile with Tarbiyah ID:', tarbiyahId)
-            console.log('📄 User data:', userData)
-            console.log('🔑 User role:', role)
+      const version = ++request
+      const current = () => active && version === request
+      setLoading(true)
+      setCourses([])
+      setArchivedCourses([])
+      setIsAdmin(false)
+      setLoadError(null)
+      try {
+        if (!user) return
+        const profile = await loadCurrentUserProfile(firestore, user)
+        if (!current()) return
+        const role = resolveProfileRole(profile)
+        setIsAdmin(role === 'admin')
+        let loaded = []
+        if (role === 'admin') {
+          const snap = await getDocs(collection(firestore, 'courses'))
+          loaded = snap.docs.map((d) => ({ ...d.data(), id: d.id }))
+        } else if (role === 'faculty') {
+          const assigned = profile?.data?.courses
+          if (Array.isArray(assigned) && assigned.length) {
+            const docs = await Promise.all([...new Set(assigned)].map((id) =>
+              getDoc(doc(firestore, 'courses', id))))
+            loaded = docs.filter((d) => d.exists()).map((d) => ({ ...d.data(), id: d.id }))
           } else {
-            console.warn('⚠️ No user profile found for:', user.email)
-            console.warn('⚠️ User may need to be added via People Page first')
+            const snap = await getDocs(collection(firestore, 'courses'))
+            const ids = new Set([profile?.id, user.uid].filter(Boolean))
+            const matches = (value) => typeof value === 'string' ? ids.has(value) :
+              value && [value.id, value.schoolId, value.authUID, value.tarbiyahId].some((id) => ids.has(id))
+            loaded = snap.docs.map((d) => ({ ...d.data(), id: d.id })).filter((course) =>
+              ['teacherIds', 'teacherAuthUIDs', 'teacherTarbiyahIds', 'teachers', 'teacher']
+                .some((key) => Array.isArray(course[key]) && course[key].some(matches)))
           }
-
-          const coursesCollectionRef = collection(firestore, 'courses')
-
-          if (isAdmin) {
-            // Admin sees all courses (active and archived)
-            const coursesSnapshot = await getDocs(coursesCollectionRef)
-            const allCourses = coursesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-            
-            // Separate active and archived courses
-            const active = allCourses.filter(course => !course.archived)
-            const archived = allCourses.filter(course => course.archived)
-            
-            console.log('👑 ADMIN: Found', active.length, 'active courses and', archived.length, 'archived courses')
-            setCourses(active)
-            setArchivedCourses(archived)
-          } else if (userRole?.toLowerCase() === 'faculty') {
-            console.log('👨‍🏫 Faculty user detected')
-            console.log('🆔 Tarbiyah ID:', tarbiyahId)
-            console.log('🆔 Auth UID:', user.uid)
-            
-            // First, check if the user has a courses array in their document
-            if (userData.courses && Array.isArray(userData.courses) && userData.courses.length > 0) {
-              console.log('📚 Found courses array in user document:', userData.courses)
-              
-              try {
-                // Fetch the actual course documents using the course IDs from the user's courses array
-                const userCourses = []
-                
-                for (const courseId of userData.courses) {
-                  try {
-                    const courseDocRef = doc(firestore, 'courses', courseId)
-                    const courseDoc = await getDoc(courseDocRef)
-                    
-                    if (courseDoc.exists()) {
-                      const courseData = courseDoc.data()
-                      // Only show non-archived courses to faculty
-                      if (!courseData.archived) {
-                        userCourses.push({ id: courseDoc.id, ...courseData })
-                        console.log(`✅ Found active course: ${courseData.title || courseData.name} (${courseId})`)
-                      } else {
-                        console.log(`📦 Skipping archived course: ${courseData.title || courseData.name} (${courseId})`)
-                      }
-                    } else {
-                      console.warn(`⚠️ Course document not found: ${courseId}`)
-                    }
-                  } catch (error) {
-                    console.error(`❌ Error fetching course ${courseId}:`, error)
-                  }
-                }
-                
-                console.log(`🎯 Successfully loaded ${userCourses.length} active courses from user's courses array`)
-                setCourses(userCourses)
-                
-              } catch (error) {
-                console.error('❌ Error fetching courses from user courses array:', error)
-                setCourses([])
-              }
-            } else {
-              // Fallback: Search through all courses to find ones where this faculty member is assigned
-              console.log('📚 No courses array found in user document, searching through all courses...')
-              
-              try {
-                const allCoursesSnapshot = await getDocs(coursesCollectionRef)
-                console.log(`📚 Found ${allCoursesSnapshot.docs.length} total courses in collection`)
-                
-                const userCourses = []
-                
-                allCoursesSnapshot.docs.forEach(doc => {
-                  const courseData = doc.data()
-                  const docId = doc.id
-                  
-                  // Skip archived courses for faculty
-                  if (courseData.archived) {
-                    console.log(`📦 Skipping archived course: ${courseData.title || courseData.name} (${docId})`)
-                    return
-                  }
-                  
-                  // Check multiple places where the teacher might be stored
-                  const teacherIds = courseData.teacherIds || []
-                  const teacherAuthUIDs = courseData.teacherAuthUIDs || []
-                  const teacherTarbiyahIds = courseData.teacherTarbiyahIds || []
-                  
-                  // Check if either Auth UID or Tarbiyah ID is in any of the teacher arrays
-                  const isInTeacherIds = teacherIds.includes(tarbiyahId) || teacherIds.includes(user.uid)
-                  const isInAuthUIDs = teacherAuthUIDs.includes(user.uid)
-                  const isInTarbiyahIds = teacherTarbiyahIds.includes(tarbiyahId)
-                  
-                  // Also check legacy teachers array (for backward compatibility)
-                  let isInTeachersArray = false
-                  if (Array.isArray(courseData.teachers)) {
-                    isInTeachersArray = courseData.teachers.some(teacher => {
-                      if (typeof teacher === 'string') {
-                        return teacher === tarbiyahId || teacher === user.uid
-                      } else if (typeof teacher === 'object' && teacher.schoolId) {
-                        return teacher.schoolId === tarbiyahId || teacher.schoolId === user.uid
-                      }
-                      return false
-                    })
-                  }
-                  
-                  // Also check teacher array (enhanced format)
-                  let isInTeacherArray = false
-                  if (Array.isArray(courseData.teacher)) {
-                    isInTeacherArray = courseData.teacher.some(teacher => {
-                      if (typeof teacher === 'object') {
-                        return teacher.schoolId === tarbiyahId || 
-                               teacher.schoolId === user.uid ||
-                               teacher.authUID === user.uid ||
-                               teacher.tarbiyahId === tarbiyahId
-                      }
-                      return false
-                    })
-                  }
-                  
-                  console.log(`📝 Course ${docId} (${courseData.title || courseData.name}):`, {
-                    teacherIds: teacherIds,
-                    teacherAuthUIDs: teacherAuthUIDs,
-                    teacherTarbiyahIds: teacherTarbiyahIds,
-                    isInTeacherIds: isInTeacherIds,
-                    isInAuthUIDs: isInAuthUIDs,
-                    isInTarbiyahIds: isInTarbiyahIds,
-                    teachers: courseData.teachers,
-                    isInTeachersArray: isInTeachersArray,
-                    teacher: courseData.teacher,
-                    isInTeacherArray: isInTeacherArray,
-                    searchingFor: {
-                      tarbiyahId: tarbiyahId,
-                      authUID: user.uid
-                    }
-                  })
-                  
-                  if (isInTeacherIds || isInAuthUIDs || isInTarbiyahIds || isInTeachersArray || isInTeacherArray) {
-                    console.log(`✅ Faculty member is assigned to course: ${courseData.title || courseData.name}`)
-                    userCourses.push({ id: docId, ...courseData })
-                  }
-                })
-                
-                console.log(`🎯 Found ${userCourses.length} active courses for faculty member via course search`)
-                console.log('🎯 Faculty courses:', userCourses.map(c => ({ id: c.id, title: c.title || c.name })))
-                
-                setCourses(userCourses)
-                
-              } catch (error) {
-                console.error('❌ Error searching courses for faculty:', error)
-                setCourses([])
-              }
-            }
-          } else {
-            setCourses([])
-          }
-        } catch (error) {
-          console.error('❌ Error in useEffect:', error)
-          setCourses([])
-        } finally {
-          setLoading(false)
         }
-      } else {
-        setLoading(false)
+        if (!current()) return
+        setCourses(loaded.filter((course) => !course.archived))
+        setArchivedCourses(role === 'admin' ? loaded.filter((course) => course.archived) : [])
+      } catch (error) {
+        if (current()) setLoadError('Could not load courses. Please refresh to try again.')
+        console.error('Could not load courses:', error)
+      } finally {
+        if (current()) setLoading(false)
       }
     })
-
-    return () => unsubscribe()
-  }, [userRole, isAdmin])
+    return () => { active = false; request += 1; unsubscribe() }
+  }, [])
 
   // Helper function to extract schedule information from new format
   const getScheduleInfo = (course) => {
@@ -416,6 +243,8 @@ function CoursesPage() {
     { shape: 'square', size: '18px' },
     { shape: 'triangle', size: '22px' },
   ]
+
+  if (loadError) return <div role="alert" className="alert alert-danger">{loadError}</div>
 
   if (loading) {
     return (
