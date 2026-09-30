@@ -6,6 +6,11 @@ const { interpretComments } = require('./timekeepingCommentInterpretation')
 
 admin.initializeApp()
 
+exports.registrationEnrollment = functions.region('northamerica-northeast1').https.onRequest((req, res) =>
+  require('./registrationEnrollment').createHandler({ admin,
+    reviewerEmails: String(functions.config().timekeeping?.revieweremails || '').split(',').map((e) => e.trim()).filter(Boolean),
+  })(req, res))
+
 exports.staffTimesheets = functions.region('northamerica-northeast1').https.onRequest((req, res) =>
   require('./staffTimesheets').createHandler({ admin,
     reviewerEmails: String(functions.config().timekeeping?.revieweremails || '').split(',').map((e) => e.trim()).filter(Boolean),

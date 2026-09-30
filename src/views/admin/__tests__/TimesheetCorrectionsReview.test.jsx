@@ -6,7 +6,10 @@ vi.mock('../../../firebase', () => ({ firestore: {} }))
 vi.mock('../../../Firebase/firebase', () => ({ firestore: {}, auth: {} }))
 vi.mock('../../../services/timekeepingSettings', () => ({ getTimekeepingSettings: vi.fn(async () => ({})), resolveStaffSettings: vi.fn() }))
 vi.mock('../../../services/staffCheckins', () => ({ getStaffCheckInsBetween: vi.fn(async () => []) }))
-vi.mock('../../Courses/staffDirectory', () => ({ loadFacultyAndAdmins: vi.fn(async () => [{ email: 'staff@school.ca', firstName: 'Staff' }]) }))
+vi.mock('../../Courses/staffDirectory', () => ({ loadFacultyAndAdmins: vi.fn(async () => [
+  { email: 'staff@school.ca', firstName: 'Staff' },
+  { email: 'admin@school.ca', firstName: 'Admin', excludeFromTimesheetExport: true },
+]) }))
 vi.mock('../../../services/staffTimesheets', () => ({ timesheetRequest: vi.fn() }))
 vi.mock('../../../services/timekeepingComments', () => ({ interpretTimekeepingComments: vi.fn(async () => []) }))
 vi.mock('../../../services/timesheetWorkbook', () => ({ generateTimesheetZip: vi.fn(async () => ({ blob: new Blob(), fileName: 'review.zip', summary: [] })) }))
@@ -34,6 +37,15 @@ beforeEach(() => {
 })
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); vi.useRealTimers() })
 describe('admin correction review', () => {
+  it('omits identities excluded from timesheet export', async () => {
+    correction = { ...correction, rows: [], approved: { revision: 0, rows: [] } }
+    await act(async () => root.render(<TimesheetExport />))
+    await click('Export timesheets')
+    expect(generateTimesheetZip.mock.calls[0][0].people).toEqual([
+      expect.objectContaining({ email: 'staff@school.ca' }),
+    ])
+  })
+
   it('proposes the latest pending submission but waits for explicit admin confirmation', async () => {
     await act(async () => root.render(<TimesheetExport />))
     await click('Export timesheets')

@@ -97,7 +97,7 @@ const TimesheetExport = () => {
   useEffect(() => {
     let cancelled = false
     loadFacultyAndAdmins(firestore)
-      .then((list) => !cancelled && setStaff(list.filter((s) => s.email)))
+      .then((list) => !cancelled && setStaff(list.filter((s) => s.email && !s.excludeFromTimesheetExport)))
       .catch(
         () => !cancelled && setMessage({ tone: 'danger', text: 'Could not load the staff list.' }),
       )

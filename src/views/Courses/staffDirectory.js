@@ -34,6 +34,7 @@ export const mapStaffDoc = (id, data, source, fallbackRole) => {
     source,
     schoolId: data.schoolId || p.schoolId || id,
     active: data.active !== false,
+    excludeFromTimesheetExport: data.excludeFromTimesheetExport === true,
   }
 }
 
