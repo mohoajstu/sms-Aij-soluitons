@@ -26,6 +26,9 @@ export const archiveAndStartNewSchoolYear = async (
   if (!outgoingLabel || !newLabel || !newStartDate) {
     throw new Error('outgoingLabel, newLabel, and newStartDate are all required')
   }
+  if (newLabel === outgoingLabel) {
+    throw new Error('The new school year label must differ from the current one')
+  }
 
   const studentsSnapshot = await getDocs(collection(firestoreInstance, 'students'))
   const studentDocs = studentsSnapshot.docs

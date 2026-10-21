@@ -15,7 +15,11 @@ import {
 import PropTypes from 'prop-types'
 import { debounce } from 'lodash'
 import { generateFieldNameVariations } from '../fieldMappings'
-import { updateAllFieldAppearances, stripArabicFromText } from '../pdfFillingUtils'
+import {
+  updateAllFieldAppearances,
+  stripArabicFromText,
+  getFieldFontSize,
+} from '../pdfFillingUtils'
 
 // Set up the worker for PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
@@ -748,7 +752,7 @@ const PDFViewer = React.memo(
                   
                   const valueText = processedValue?.toString?.() ?? ''
                   const safeText = stripArabicFromText(valueText)
-                  const success = fillPDFField(field, safeText, timesRomanFont, 10)
+                  const success = fillPDFField(field, safeText, timesRomanFont, getFieldFontSize(field.getName()))
                   if (success) {
                     filledCount++
                     
@@ -810,7 +814,12 @@ const PDFViewer = React.memo(
                     console.log(`PDFViewer: 🔍 Found fuzzy match: "${formKey}" -> "${pdfFieldName}"`)
                     const fuzzyValueText = processedValue?.toString?.() ?? ''
                     const safeFuzzyText = stripArabicFromText(fuzzyValueText)
-                    const success = fillPDFField(pdfField, safeFuzzyText, timesRomanFont, 10)
+                    const success = fillPDFField(
+                      pdfField,
+                      safeFuzzyText,
+                      timesRomanFont,
+                      getFieldFontSize(pdfFieldName),
+                    )
                     if (success) {
                       filledCount++
                       matchedFields.push({

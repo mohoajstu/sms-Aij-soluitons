@@ -33,7 +33,12 @@ import CIcon from '@coreui/icons-react'
 import SignatureCanvas from 'react-signature-canvas'
 import PropTypes from 'prop-types'
 import AIReportCommentInput from '../../../components/AIReportCommentInput'
-import { getCharacterLimit } from '../utils/characterLimits'
+import {
+  getCharacterLimit,
+  fitTextToLimit,
+  LEARNING_SKILL_COMMENT_LIMITS,
+  SUBJECT_COMMENT_LIMIT,
+} from '../utils/characterLimits'
 
 /**
  * AI-Enhanced Text Area
@@ -86,9 +91,10 @@ const AICommentField = ({
           handleChange={(field, aiValue) => {
             // Map AI output directly to the specific field
             if (field === 'teacher_comments' || field === 'strengths_next_steps') {
-              onFormDataChange({ ...formData, [name]: aiValue })
+              onFormDataChange({ ...formData, [name]: fitTextToLimit(aiValue, effectiveMaxLength) })
             }
           }}
+          maxChars={effectiveMaxLength}
           buttonText=""
           explicitReportType="Elementary 1-6 Progress Report"
           className="ai-button-minimal"
@@ -568,44 +574,36 @@ const LearningSkillsSection = ({ formData, onFormDataChange }) => {
       label: 'Responsibility',
       description: 'Fulfills responsibilities and commitments within the learning environment',
       sansField: 'sansResponsibility',
-      // Comment boxes on the PDF are different sizes per skill; caps below are
-      // measured against the real PDF field so text never gets clipped, capped at 250.
-      maxLength: 90,
     },
     {
       key: 'organization1',
       label: 'Organization',
       description: 'Devises and applies a plan of work to complete projects and tasks',
       sansField: 'sansOrganization',
-      maxLength: 180,
     },
     {
       key: 'independentWork1',
       label: 'Independent Work',
       description: 'Accepts various roles and an equitable share of work in a group',
       sansField: 'sansIndependentWork',
-      maxLength: 180,
     },
     {
       key: 'collaboration1',
       label: 'Collaboration',
       description: 'Responds positively to the ideas, opinions, values, and traditions of others',
       sansField: 'sansCollaboration',
-      maxLength: 250,
     },
     {
       key: 'initiative1',
       label: 'Initiative',
       description: 'Looks for and acts on new ideas and opportunities for learning',
       sansField: 'sansInitiative',
-      maxLength: 230,
     },
     {
       key: 'selfRegulation1',
       label: 'Self-Regulation',
       description: 'Sets own individual goals and monitors progress towards achieving them',
       sansField: 'sansSelfRegulation',
-      maxLength: 250,
     },
   ]
 
@@ -672,7 +670,7 @@ const LearningSkillsSection = ({ formData, onFormDataChange }) => {
                       rows={3}
                       isGenerating={false}
                       onGenerate={() => {}}
-                      maxLength={skill.maxLength || 250}
+                      maxLength={LEARNING_SKILL_COMMENT_LIMITS['1-6'][skill.sansField] || 250}
                       formData={formData}
                       onFormDataChange={onFormDataChange}
                     />
@@ -1049,7 +1047,7 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                       rows={3}
                       isGenerating={false}
                       onGenerate={() => {}}
-                      maxLength={150}
+                      maxLength={SUBJECT_COMMENT_LIMIT}
                       formData={formData}
                       onFormDataChange={onFormDataChange}
                     />

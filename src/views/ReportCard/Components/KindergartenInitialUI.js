@@ -35,7 +35,7 @@ import {
 
 import SignatureCanvas from 'react-signature-canvas'
 import AIReportCommentInput from '../../../components/AIReportCommentInput'
-import { getCharacterLimit } from '../utils/characterLimits'
+import { getCharacterLimit, KG_KEY_LEARNING_LIMIT } from '../utils/characterLimits'
 import { applyKindergartenDefaultsForGrade } from '../utils/reportDefaults'
 
 /**
@@ -715,7 +715,7 @@ const KeyLearningSection = ({ formData, onFormDataChange, onGenerate, isGenerati
           rows={12}
           isGenerating={isGenerating}
           onGenerate={onGenerate}
-          maxLength={3500}
+          maxLength={KG_KEY_LEARNING_LIMIT}
           formData={formData}
           onFormDataChange={onFormDataChange}
         />

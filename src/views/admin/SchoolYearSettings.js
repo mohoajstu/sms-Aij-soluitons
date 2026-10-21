@@ -129,7 +129,7 @@ const SchoolYearSettings = () => {
       })
     } catch (error) {
       console.error('Error archiving school year:', error)
-      toast.error('Failed to start new school year')
+      toast.error(error.message || 'Failed to start new school year')
     } finally {
       setArchiving(false)
     }
@@ -180,12 +180,10 @@ const SchoolYearSettings = () => {
               <div className="row g-3">
                 <div className="col-md-6">
                   <CFormLabel htmlFor="schoolYearLabel">Label</CFormLabel>
-                  <CFormInput
-                    id="schoolYearLabel"
-                    value={current.label}
-                    onChange={(e) => setCurrent({ ...current, label: e.target.value })}
-                    placeholder="2026-2027"
-                  />
+                  {/* Read-only: drafts are tagged with this label, so renaming the
+                      current year would make its own drafts look like a prior year's.
+                      It changes only via "Start New School Year". */}
+                  <CFormInput id="schoolYearLabel" value={current.label} readOnly disabled />
                 </div>
                 <div className="col-md-6">
                   <CFormLabel htmlFor="schoolYearStartDate">Start Date</CFormLabel>
@@ -303,7 +301,13 @@ const SchoolYearSettings = () => {
           <CButton
             color="danger"
             onClick={handleArchiveAndStartNewYear}
-            disabled={archiving || archiveConfirmText !== 'ARCHIVE' || !newLabel || !newStartDate}
+            disabled={
+              archiving ||
+              archiveConfirmText !== 'ARCHIVE' ||
+              !newLabel ||
+              !newStartDate ||
+              newLabel === current.label
+            }
           >
             {archiving ? <CSpinner size="sm" className="me-2" /> : null}
             Archive & Start New Year
