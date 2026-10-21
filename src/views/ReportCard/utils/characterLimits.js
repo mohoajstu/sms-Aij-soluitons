@@ -10,7 +10,7 @@ export const CHARACTER_LIMITS = {
   // Other field
   OTHER: 500,
   // Kindergarten Observations
-  KG_OBS: 1500,
+  KG_OBS: 3500,
 }
 
 /**
@@ -65,4 +65,3 @@ export const validateCharacterLimit = (text, fieldName) => {
   const limit = getCharacterLimit(fieldName)
   return text.length > limit ? text.substring(0, limit) : text
 }
-

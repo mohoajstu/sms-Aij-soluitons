@@ -40,7 +40,7 @@ export const applyDefaultReportDate = (
 export const getKindergartenDefaultsForGrade = (gradeValue) => {
   const grade = `${gradeValue || ''}`.toLowerCase()
 
-  if (grade.includes('jk') || grade.includes('junior kindergarten') || grade.includes('year 1')) {
+  if (grade.includes('jk') || grade.includes('junior kindergarten') || grade.includes('jr kindergarten') || grade.includes('year 1')) {
     return {
       year1: true,
       year2: false,
@@ -49,7 +49,7 @@ export const getKindergartenDefaultsForGrade = (gradeValue) => {
     }
   }
 
-  if (grade.includes('sk') || grade.includes('senior kindergarten') || grade.includes('year 2')) {
+  if (grade.includes('sk') || grade.includes('senior kindergarten') || grade.includes('sr kindergarten') || grade.includes('year 2')) {
     return {
       year1: false,
       year2: true,

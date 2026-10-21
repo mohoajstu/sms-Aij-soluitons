@@ -121,11 +121,14 @@ const normalizeGradeForMatching = (grade) => {
   const gradeStr = grade.toString().trim().toLowerCase()
   
   // Handle JK
-  if (gradeStr.includes('jk') || gradeStr === 'junior kindergarten') {
+  if (gradeStr.includes('jk') || gradeStr === 'junior kindergarten' || gradeStr.includes('jr kindergarten')) {
     return 'jk'
   }
-  
-  // Handle SK, SK1, SK2
+
+  // Handle SK, SK1, SK2 (registration form stores this as "Sr Kindergarten")
+  if (gradeStr.includes('sr kindergarten') || gradeStr === 'senior kindergarten') {
+    return 'sk'
+  }
   if (gradeStr.includes('sk')) {
     // Extract SK variant (SK, SK1, SK2, etc.)
     const skMatch = gradeStr.match(/sk\d*/i)

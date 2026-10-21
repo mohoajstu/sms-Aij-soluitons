@@ -11,8 +11,8 @@ export const mergeFormDataWithStudent = (formData, student) => {
   const normalizedGrade = (() => {
     if (!gradeValue) return ''
     const gradeLower = gradeValue.toString().toLowerCase()
-    if (gradeLower.includes('jk') || gradeLower === 'junior kindergarten') return 'JK'
-    if (gradeLower.includes('sk') || gradeLower === 'senior kindergarten') return 'SK'
+    if (gradeLower.includes('jk') || gradeLower === 'junior kindergarten' || gradeLower.includes('jr kindergarten')) return 'JK'
+    if (gradeLower.includes('sk') || gradeLower === 'senior kindergarten' || gradeLower.includes('sr kindergarten')) return 'SK'
     const match = gradeValue.toString().match(/\d+/)
     return match ? match[0] : gradeValue
   })()

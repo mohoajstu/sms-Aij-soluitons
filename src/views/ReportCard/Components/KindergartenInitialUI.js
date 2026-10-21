@@ -715,7 +715,7 @@ const KeyLearningSection = ({ formData, onFormDataChange, onGenerate, isGenerati
           rows={12}
           isGenerating={isGenerating}
           onGenerate={onGenerate}
-          maxLength={1500}
+          maxLength={3500}
           formData={formData}
           onFormDataChange={onFormDataChange}
         />

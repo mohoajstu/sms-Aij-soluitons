@@ -121,7 +121,7 @@ const getSubjectForField = (fieldName) => {
   if (fieldName === 'sansCollaboration') return 'Collaboration'
   if (fieldName === 'sansInitiative') return 'Initiative'
   if (fieldName === 'sansSelfRegulation') return 'Self-Regulation'
-  
+
   // Subject Area fields
   if (fieldName === 'sans2Language') return 'Language'
   if (fieldName === 'sans2French') return 'French'
@@ -136,10 +136,10 @@ const getSubjectForField = (fieldName) => {
   if (fieldName === 'sans2Music') return 'Music'
   if (fieldName === 'sans2VisualArts') return 'Visual Arts'
   if (fieldName === 'sans2Other') return 'Other'
-  
+
   // Board Info
   if (fieldName === 'boardInfo') return 'Board Information'
-  
+
   return 'Elementary Learning'
 }
 
@@ -289,7 +289,6 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
       [name]: value,
     })
   }
-
 
   return (
     <div>
@@ -569,36 +568,44 @@ const LearningSkillsSection = ({ formData, onFormDataChange }) => {
       label: 'Responsibility',
       description: 'Fulfills responsibilities and commitments within the learning environment',
       sansField: 'sansResponsibility',
+      // Comment boxes on the PDF are different sizes per skill; caps below are
+      // measured against the real PDF field so text never gets clipped, capped at 250.
+      maxLength: 90,
     },
     {
       key: 'organization1',
       label: 'Organization',
       description: 'Devises and applies a plan of work to complete projects and tasks',
       sansField: 'sansOrganization',
+      maxLength: 180,
     },
     {
       key: 'independentWork1',
       label: 'Independent Work',
       description: 'Accepts various roles and an equitable share of work in a group',
       sansField: 'sansIndependentWork',
+      maxLength: 180,
     },
     {
       key: 'collaboration1',
       label: 'Collaboration',
       description: 'Responds positively to the ideas, opinions, values, and traditions of others',
       sansField: 'sansCollaboration',
+      maxLength: 250,
     },
     {
       key: 'initiative1',
       label: 'Initiative',
       description: 'Looks for and acts on new ideas and opportunities for learning',
       sansField: 'sansInitiative',
+      maxLength: 230,
     },
     {
       key: 'selfRegulation1',
       label: 'Self-Regulation',
       description: 'Sets own individual goals and monitors progress towards achieving them',
       sansField: 'sansSelfRegulation',
+      maxLength: 250,
     },
   ]
 
@@ -665,7 +672,7 @@ const LearningSkillsSection = ({ formData, onFormDataChange }) => {
                       rows={3}
                       isGenerating={false}
                       onGenerate={() => {}}
-                      maxLength={1500}
+                      maxLength={skill.maxLength || 250}
                       formData={formData}
                       onFormDataChange={onFormDataChange}
                     />
@@ -676,7 +683,6 @@ const LearningSkillsSection = ({ formData, onFormDataChange }) => {
           </CCol>
         ))}
       </CRow>
-
 
       {/* Date */}
       <CRow className="mt-3">
@@ -711,17 +717,17 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
   // Auto-fill default values for nativeLanguage and otherSubjectName
   useEffect(() => {
     const updates = {}
-    
+
     // Auto-fill nativeLanguage if empty or undefined
     if (!formData.nativeLanguage || formData.nativeLanguage.trim() === '') {
       updates.nativeLanguage = 'Quran and Arabic Studies'
     }
-    
+
     // Auto-fill otherSubjectName if empty or undefined (note: UI uses otherSubjectName, PDF uses 'other')
     if (!formData.otherSubjectName || formData.otherSubjectName.trim() === '') {
       updates.otherSubjectName = 'Islamic Studies'
     }
-    
+
     // Only update if there are changes to make
     if (Object.keys(updates).length > 0) {
       onFormDataChange({ ...formData, ...updates })
@@ -948,7 +954,11 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                       const label = accommodationLabels[accommodationType] || field
 
                       return (
-                        <div key={field} className="me-3" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                        <div
+                          key={field}
+                          className="me-3"
+                          style={{ display: 'inline-flex', alignItems: 'center' }}
+                        >
                           <input
                             type="checkbox"
                             id={field}
@@ -985,13 +995,18 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                       const fieldLower = field.toLowerCase()
 
                       if (fieldLower.includes('verywell')) performanceType = 'verywell'
-                      else if (fieldLower.includes('withdifficulty')) performanceType = 'withdifficulty'
+                      else if (fieldLower.includes('withdifficulty'))
+                        performanceType = 'withdifficulty'
                       else if (fieldLower.includes('well')) performanceType = 'well'
 
                       const label = performanceLabels[performanceType] || field
 
                       return (
-                        <div key={field} className="me-3" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                        <div
+                          key={field}
+                          className="me-3"
+                          style={{ display: 'inline-flex', alignItems: 'center' }}
+                        >
                           <input
                             type="checkbox"
                             id={field}
@@ -1034,9 +1049,7 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                       rows={3}
                       isGenerating={false}
                       onGenerate={() => {}}
-                      maxLength={
-                        ['other', 'history', 'geography'].includes(subject.key) ? 400 : 750
-                      }
+                      maxLength={150}
                       formData={formData}
                       onFormDataChange={onFormDataChange}
                     />
@@ -1047,7 +1060,6 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
           </CCardBody>
         </CCard>
       ))}
-
     </div>
   )
 }
@@ -1067,7 +1079,7 @@ const SignatureSection = ({ formData, onFormDataChange }) => {
     if (formData.teacher_name || formData.teacher) {
       const teacherName = formData.teacher_name || formData.teacher
       const currentSignature = formData.teacherSignature?.value || ''
-      
+
       // Auto-fill if signature is empty or doesn't match
       if (!currentSignature || currentSignature.trim() === '' || currentSignature !== teacherName) {
         onFormDataChange({
@@ -1080,9 +1092,11 @@ const SignatureSection = ({ formData, onFormDataChange }) => {
 
   // Auto-fill principal signature with "Ghazala Choudhary"
   useEffect(() => {
-    if (!formData.principalSignature || 
-        !formData.principalSignature.value || 
-        formData.principalSignature.value.trim() === '') {
+    if (
+      !formData.principalSignature ||
+      !formData.principalSignature.value ||
+      formData.principalSignature.value.trim() === ''
+    ) {
       onFormDataChange({
         ...formData,
         principalSignature: { type: 'typed', value: 'Ghazala Choudhary' },
