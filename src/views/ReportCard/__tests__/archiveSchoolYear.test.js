@@ -26,7 +26,9 @@ vi.mock('firebase/firestore', () => ({
   },
 }))
 
-import { archiveAndStartNewSchoolYear } from '../utils/archiveSchoolYear'
+import { archiveAndStartNewSchoolYear, canStartNewSchoolYear } from '../utils/archiveSchoolYear'
+
+const END_OF_YEAR = { now: new Date('2027-07-15T12:00:00Z') }
 
 const makeStudent = (id, data) => ({ id, ref: { path: `students/${id}` }, data: () => data })
 
@@ -54,7 +56,13 @@ describe('archiveAndStartNewSchoolYear', () => {
 
     const result = await archiveAndStartNewSchoolYear(
       {},
-      { outgoingLabel: '2026-2027', newLabel: '2027-2028', newStartDate: '2027-09-02' },
+      {
+        outgoingLabel: '2026-2027',
+        outgoingStartDate: '2026-09-02',
+        newLabel: '2027-2028',
+        newStartDate: '2027-09-02',
+      },
+      END_OF_YEAR,
     )
 
     expect(result).toEqual({ studentsArchived: 2 })
@@ -108,7 +116,13 @@ describe('archiveAndStartNewSchoolYear', () => {
 
     await archiveAndStartNewSchoolYear(
       {},
-      { outgoingLabel: '2026-2027', newLabel: '2027-2028', newStartDate: '2027-09-02' },
+      {
+        outgoingLabel: '2026-2027',
+        outgoingStartDate: '2026-09-02',
+        newLabel: '2027-2028',
+        newStartDate: '2027-09-02',
+      },
+      END_OF_YEAR,
     )
 
     expect(batches.length).toBe(3)
@@ -120,13 +134,23 @@ describe('archiveAndStartNewSchoolYear', () => {
     await expect(
       archiveAndStartNewSchoolYear(
         {},
-        { outgoingLabel: '2026-2027', newLabel: '', newStartDate: '2027-09-02' },
+        {
+          outgoingLabel: '2026-2027',
+          outgoingStartDate: '2026-09-02',
+          newLabel: '',
+          newStartDate: '2027-09-02',
+        },
       ),
     ).rejects.toThrow()
     await expect(
       archiveAndStartNewSchoolYear(
         {},
-        { outgoingLabel: '2026-2027', newLabel: '2026-2027', newStartDate: '2027-09-02' },
+        {
+          outgoingLabel: '2026-2027',
+          outgoingStartDate: '2026-09-02',
+          newLabel: '2026-2027',
+          newStartDate: '2027-09-02',
+        },
       ),
     ).rejects.toThrow(/must differ/)
     expect(mockGetDocs).not.toHaveBeenCalled()
@@ -139,9 +163,58 @@ describe('archiveAndStartNewSchoolYear', () => {
     await expect(
       archiveAndStartNewSchoolYear(
         {},
-        { outgoingLabel: '2026-2027', newLabel: '2027-2028', newStartDate: '2027-09-02' },
+        {
+          outgoingLabel: '2026-2027',
+          outgoingStartDate: '2026-09-02',
+          newLabel: '2027-2028',
+          newStartDate: '2027-09-02',
+        },
+        END_OF_YEAR,
       ),
     ).rejects.toThrow('network')
     expect(mockSetDoc).not.toHaveBeenCalled()
+  })
+
+  it('refuses to archive a school year that is still in progress (e.g. "start fresh" in October)', async () => {
+    await expect(
+      archiveAndStartNewSchoolYear(
+        {},
+        {
+          outgoingLabel: '2026-2027',
+          outgoingStartDate: '2026-09-02',
+          newLabel: '2027-2028',
+          newStartDate: '2027-09-02',
+        },
+        { now: new Date('2026-10-22T12:00:00Z') },
+      ),
+    ).rejects.toThrow(/still in progress.*2027-06-29/)
+    expect(mockGetDocs).not.toHaveBeenCalled()
+    expect(batches).toHaveLength(0)
+    expect(mockSetDoc).not.toHaveBeenCalled()
+  })
+
+  it('refuses when the current start date is missing or invalid', async () => {
+    await expect(
+      archiveAndStartNewSchoolYear(
+        {},
+        { outgoingLabel: '2026-2027', newLabel: '2027-2028', newStartDate: '2027-09-02' },
+        END_OF_YEAR,
+      ),
+    ).rejects.toThrow(/no valid start date/)
+    expect(mockGetDocs).not.toHaveBeenCalled()
+  })
+})
+
+describe('canStartNewSchoolYear', () => {
+  it('opens ~10 months (300 days) after the school year started', () => {
+    expect(canStartNewSchoolYear('2026-09-02', new Date('2026-10-22T12:00:00Z'))).toBe(false)
+    expect(canStartNewSchoolYear('2026-09-02', new Date('2027-06-28T12:00:00Z'))).toBe(false)
+    expect(canStartNewSchoolYear('2026-09-02', new Date('2027-06-29T12:00:00Z'))).toBe(true)
+    expect(canStartNewSchoolYear('2026-09-02', new Date('2027-09-01T12:00:00Z'))).toBe(true)
+  })
+
+  it('is closed when there is no valid start date', () => {
+    expect(canStartNewSchoolYear('', new Date())).toBe(false)
+    expect(canStartNewSchoolYear('not a date', new Date())).toBe(false)
   })
 })

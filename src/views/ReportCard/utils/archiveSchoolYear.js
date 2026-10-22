@@ -5,6 +5,23 @@ import { saveSchoolYearSettings } from './schoolYear'
 // well under Firestore's 500-op limit per commit.
 const STUDENTS_PER_BATCH = 200
 
+// Archiving closes out the *current* year, so running it early (e.g. "to
+// start fresh" in October) would zero this year's attendance and hide all of
+// this year's drafts. Only allow it once the year is ~10 months in.
+const MIN_DAYS_BEFORE_ARCHIVE = 300
+const DAY_MS = 24 * 60 * 60 * 1000
+
+export const getEarliestArchiveDate = (currentStartDate) => {
+  const start = new Date(currentStartDate)
+  if (Number.isNaN(start.getTime())) return null
+  return new Date(start.getTime() + MIN_DAYS_BEFORE_ARCHIVE * DAY_MS)
+}
+
+export const canStartNewSchoolYear = (currentStartDate, now = new Date()) => {
+  const earliest = getEarliestArchiveDate(currentStartDate)
+  return !!earliest && now >= earliest
+}
+
 /**
  * Archives every student's current attendanceStats under the outgoing
  * school year, resets those counters to zero, then advances the stored
@@ -20,14 +37,22 @@ const STUDENTS_PER_BATCH = 200
  */
 export const archiveAndStartNewSchoolYear = async (
   firestoreInstance,
-  { outgoingLabel, newLabel, newStartDate },
-  { onProgress } = {},
+  { outgoingLabel, outgoingStartDate, newLabel, newStartDate },
+  { onProgress, now = new Date() } = {},
 ) => {
   if (!outgoingLabel || !newLabel || !newStartDate) {
     throw new Error('outgoingLabel, newLabel, and newStartDate are all required')
   }
   if (newLabel === outgoingLabel) {
     throw new Error('The new school year label must differ from the current one')
+  }
+  if (!canStartNewSchoolYear(outgoingStartDate, now)) {
+    const earliest = getEarliestArchiveDate(outgoingStartDate)
+    throw new Error(
+      earliest
+        ? `${outgoingLabel} is still in progress; a new school year can be started from ${earliest.toISOString().slice(0, 10)}`
+        : 'The current school year has no valid start date',
+    )
   }
 
   const studentsSnapshot = await getDocs(collection(firestoreInstance, 'students'))

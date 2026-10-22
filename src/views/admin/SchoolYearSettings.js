@@ -21,7 +21,11 @@ import { toast } from 'react-hot-toast'
 import CIcon from '@coreui/icons-react'
 import { cilSettings, cilCalendar, cilWarning } from '@coreui/icons'
 import { fetchSchoolYearSettings, saveSchoolYearSettings } from '../ReportCard/utils/schoolYear'
-import { archiveAndStartNewSchoolYear } from '../ReportCard/utils/archiveSchoolYear'
+import {
+  archiveAndStartNewSchoolYear,
+  canStartNewSchoolYear,
+  getEarliestArchiveDate,
+} from '../ReportCard/utils/archiveSchoolYear'
 import { recalculateAttendanceStatsFromDate } from '../attendance/utils/recalculateAttendanceStats'
 
 /**
@@ -116,7 +120,12 @@ const SchoolYearSettings = () => {
       setArchiveProgress(null)
       const { studentsArchived } = await archiveAndStartNewSchoolYear(
         firestore,
-        { outgoingLabel: current.label, newLabel, newStartDate },
+        {
+          outgoingLabel: current.label,
+          outgoingStartDate: current.startDate,
+          newLabel,
+          newStartDate,
+        },
         { onProgress: (done, total) => setArchiveProgress({ done, total }) },
       )
       setCurrent({ label: newLabel, startDate: newStartDate })
@@ -134,6 +143,16 @@ const SchoolYearSettings = () => {
       setArchiving(false)
     }
   }
+
+  const archiveAllowed = canStartNewSchoolYear(current.startDate)
+  const earliestArchiveDate = getEarliestArchiveDate(current.startDate)?.toLocaleDateString(
+    'en-CA',
+    {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    },
+  )
 
   if (loading) {
     return (
@@ -203,12 +222,13 @@ const SchoolYearSettings = () => {
 
             <div className="mb-4 p-3 border rounded bg-light">
               <CFormLabel className="fw-semibold mb-1" style={{ fontSize: '1.1rem' }}>
-                Fix Attendance Totals Now
+                Start This Year's Attendance Fresh
               </CFormLabel>
               <p className="text-muted mb-2" style={{ fontSize: '0.9rem' }}>
                 Recomputes every student's attendance counts from actual attendance records on or
-                after the start date above, discarding anything carried over from before it. Use
-                this to fix totals that are currently inflated by last year's attendance.
+                after the start date above, discarding anything from before it. This is the button
+                to use to start {current.label} fresh — last year's report cards and drafts are
+                already excluded automatically, so no archiving is needed.
               </p>
               <CButton
                 color="warning"
@@ -232,13 +252,17 @@ const SchoolYearSettings = () => {
                 Start New School Year
               </CFormLabel>
               <p className="text-muted mb-2" style={{ fontSize: '0.9rem' }}>
-                Archives every student's current attendance totals (under{' '}
-                {current.label || 'the current year'}), resets them to zero, and advances the school
-                year boundary. Past report card drafts/reports are kept, not deleted — the new
-                boundary is what stops them from showing up as current. Run this at the start of
-                each new school year.
+                For the end of {current.label || 'the current year'} only (e.g. next summer). Closes
+                out {current.label || 'the current year'}: archives every student's attendance
+                totals, resets them to zero, and moves the school year boundary forward. Running it
+                mid-year would wipe this year's attendance and hide this year's report card drafts.
               </p>
-              <CButton color="danger" onClick={openArchiveModal}>
+              {!archiveAllowed && earliestArchiveDate && (
+                <p className="text-danger mb-2" style={{ fontSize: '0.9rem' }}>
+                  {current.label} is still in progress. Available from {earliestArchiveDate}.
+                </p>
+              )}
+              <CButton color="danger" onClick={openArchiveModal} disabled={!archiveAllowed}>
                 Archive & Start New School Year
               </CButton>
             </div>
