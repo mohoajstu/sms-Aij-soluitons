@@ -15,7 +15,7 @@ export const GRADE_TO_TEACHER_MAP = {
   '5': 'Sara Sultan',
   '6': 'Saba Alvi',
   '7': 'Houda Ismaili',
-  '8': 'Saba Alvi',
+  '8': 'Ghazala Choudhary',
 }
 
 /**

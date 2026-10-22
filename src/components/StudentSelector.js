@@ -97,15 +97,23 @@ const StudentSelector = ({
             const name = (cls.name || '').toLowerCase()
             const gradeNumber = grade.match(/\d+/)?.[0]
             
-            // Check for JK (Junior Kindergarten)
-            const isJK = grade.includes('jk') || name.includes('jk') || grade === 'junior kindergarten'
-            
+            // Check for JK (Junior Kindergarten) - registration form stores this as "Jr Kindergarten"
+            const isJK =
+              grade.includes('jk') ||
+              name.includes('jk') ||
+              grade === 'junior kindergarten' ||
+              grade.includes('jr kindergarten') ||
+              name.includes('jr kindergarten')
+
             // Check for SK (Senior Kindergarten) - including SK1, SK2, etc.
             // SK1 and SK2 are still kindergarten, not grade 1-6
-            const isSK = 
-              grade.includes('sk') || 
-              name.includes('sk') || 
+            // Registration form stores this as "Sr Kindergarten"
+            const isSK =
+              grade.includes('sk') ||
+              name.includes('sk') ||
               grade === 'senior kindergarten' ||
+              grade.includes('sr kindergarten') ||
+              name.includes('sr kindergarten') ||
               name.includes('sk1') ||
               name.includes('sk2') ||
               grade.includes('sk1') ||
@@ -264,9 +272,9 @@ const StudentSelector = ({
       const grade = (student.grade || student.program || '').toString().toLowerCase()
       const gradeNumber = grade.match(/\d+/)?.[0]
       
-      // Check for kindergarten
-      const isJK = grade.includes('jk') || grade === 'junior kindergarten'
-      const isSK = grade.includes('sk') || grade === 'senior kindergarten' || 
+      // Check for kindergarten - registration form stores these as "Jr Kindergarten" / "Sr Kindergarten"
+      const isJK = grade.includes('jk') || grade === 'junior kindergarten' || grade.includes('jr kindergarten')
+      const isSK = grade.includes('sk') || grade === 'senior kindergarten' || grade.includes('sr kindergarten') ||
                    grade.includes('sk1') || grade.includes('sk2')
       const isKindergarten = isJK || isSK
       

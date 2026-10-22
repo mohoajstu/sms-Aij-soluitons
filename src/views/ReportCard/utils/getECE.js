@@ -22,10 +22,14 @@ const normalizeGrade = (grade) => {
   if (!grade) return ''
   const gradeStr = grade.toString().trim().toLowerCase()
   
-  if (gradeStr.includes('jk') || gradeStr === 'junior kindergarten') {
+  if (gradeStr.includes('jk') || gradeStr === 'junior kindergarten' || gradeStr.includes('jr kindergarten')) {
     return 'jk'
   }
-  
+
+  if (gradeStr.includes('sr kindergarten') || gradeStr === 'senior kindergarten') {
+    return 'sk'
+  }
+
   if (gradeStr.includes('sk')) {
     const skMatch = gradeStr.match(/sk\d*/i)
     if (skMatch) {

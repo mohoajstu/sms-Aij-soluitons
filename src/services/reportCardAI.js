@@ -220,7 +220,7 @@ Return ONLY valid JSON, no additional text.`;
 }
 
 // Create user prompt with student data
-function createUserPrompt(payload) {
+export function createUserPrompt(payload) {
   const {
     studentName,
     gradeLevel,
@@ -228,6 +228,7 @@ function createUserPrompt(payload) {
     subject,
     gradePercentage,
     teacherPrompt,
+    maxChars,
     // Kindergarten fields
     keyLearning,
     growthInLearning,
@@ -267,6 +268,11 @@ Report Type: ${reportType}`;
   }
 
   prompt += `\n\nPlease generate professional, constructive comments that build upon any existing content while following the required JSON structure.`;
+
+  // The report card PDF box for this comment only fits so much text.
+  if (maxChars) {
+    prompt += `\n\nIMPORTANT: Each comment and the next steps must each be at most ${maxChars} characters (including spaces). Be brief.`;
+  }
 
   return prompt;
 } 

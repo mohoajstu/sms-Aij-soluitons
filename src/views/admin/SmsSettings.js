@@ -12,6 +12,7 @@ import {
 import AttendanceSmsSettings from '../attendance/AttendanceSmsSettings'
 import ReportCardSmsSettings from './ReportCardSmsSettings'
 import RegistrationSettings from './RegistrationSettings'
+import SchoolYearSettings from './SchoolYearSettings'
 import useAuth from '../../Firebase/useAuth'
 
 /**
@@ -34,7 +35,7 @@ const SmsSettings = () => {
   return (
     <CContainer fluid>
       <h2 className="mb-4">SMS Settings</h2>
-      
+
       <CNav variant="tabs" role="tablist">
         <CNavItem>
           <CNavLink
@@ -63,6 +64,15 @@ const SmsSettings = () => {
             Registration
           </CNavLink>
         </CNavItem>
+        <CNavItem>
+          <CNavLink
+            active={activeTab === 3}
+            onClick={() => setActiveTab(3)}
+            style={{ cursor: 'pointer' }}
+          >
+            School Year
+          </CNavLink>
+        </CNavItem>
       </CNav>
 
       <CTabContent>
@@ -81,10 +91,14 @@ const SmsSettings = () => {
             <RegistrationSettings />
           </div>
         </CTabPane>
+        <CTabPane visible={activeTab === 3}>
+          <div className="mt-4">
+            <SchoolYearSettings />
+          </div>
+        </CTabPane>
       </CTabContent>
     </CContainer>
   )
 }
 
 export default SmsSettings
-

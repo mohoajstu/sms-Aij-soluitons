@@ -1,8 +1,8 @@
 export const normalizeGradeForClassMatch = (gradeValue) => {
   if (!gradeValue) return ''
   const gradeLower = gradeValue.toString().trim().toLowerCase()
-  if (gradeLower.includes('jk') || gradeLower === 'junior kindergarten') return 'jk'
-  if (gradeLower === 'senior kindergarten') return 'sk'
+  if (gradeLower.includes('jk') || gradeLower === 'junior kindergarten' || gradeLower.includes('jr kindergarten')) return 'jk'
+  if (gradeLower === 'senior kindergarten' || gradeLower.includes('sr kindergarten')) return 'sk'
   if (gradeLower.includes('sk')) {
     const skMatch = gradeLower.match(/sk\d*/i)
     return skMatch ? skMatch[0].toLowerCase() : 'sk'

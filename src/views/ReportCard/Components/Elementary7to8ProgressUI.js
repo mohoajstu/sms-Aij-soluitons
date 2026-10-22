@@ -33,7 +33,12 @@ import CIcon from '@coreui/icons-react'
 import SignatureCanvas from 'react-signature-canvas'
 import PropTypes from 'prop-types'
 import AIReportCommentInput from '../../../components/AIReportCommentInput'
-import { getCharacterLimit } from '../utils/characterLimits'
+import {
+  getCharacterLimit,
+  fitTextToLimit,
+  LEARNING_SKILL_COMMENT_LIMITS,
+  SUBJECT_COMMENT_LIMIT,
+} from '../utils/characterLimits'
 
 /**
  * AI-Enhanced Text Area
@@ -86,9 +91,10 @@ const AICommentField = ({
           handleChange={(field, aiValue) => {
             // Map AI output directly to the specific field
             if (field === 'teacher_comments' || field === 'strengths_next_steps') {
-              onFormDataChange({ ...formData, [name]: aiValue })
+              onFormDataChange({ ...formData, [name]: fitTextToLimit(aiValue, effectiveMaxLength) })
             }
           }}
+          maxChars={effectiveMaxLength}
           buttonText=""
           explicitReportType="Elementary 7-8 Progress Report"
           className="ai-button-minimal"
@@ -121,7 +127,7 @@ const getSubjectForField = (fieldName) => {
   if (fieldName === 'sansCollaboration') return 'Collaboration'
   if (fieldName === 'sansInitiative') return 'Initiative'
   if (fieldName === 'sansSelfRegulation') return 'Self-Regulation'
-  
+
   // Subject Area fields
   if (fieldName === 'sans2Language') return 'Language'
   if (fieldName === 'sans2French') return 'French'
@@ -137,13 +143,13 @@ const getSubjectForField = (fieldName) => {
   if (fieldName === 'sans2Music') return 'Music'
   if (fieldName === 'sans2VisualArts') return 'Visual Arts'
   if (fieldName === 'sans2Other') return 'Other'
-  
+
   // Main comment fields
   if (fieldName === 'strengthAndNextStepsForImprovement') return 'Learning Skills and Work Habits'
   if (fieldName === 'strengthsAndNextStepsForImprovement2') return 'Subject Areas Summary'
   if (fieldName === 'boardSpace') return 'Additional Comments'
   if (fieldName === 'boardInfo') return 'Board Information'
-  
+
   return 'Elementary Learning'
 }
 
@@ -293,7 +299,6 @@ const StudentSchoolInfoSection = ({ formData, onFormDataChange }) => {
       [name]: value,
     })
   }
-
 
   return (
     <div>
@@ -680,7 +685,7 @@ const LearningSkillsSection = ({ formData, onFormDataChange }) => {
                       rows={3}
                       isGenerating={false}
                       onGenerate={() => {}}
-                      maxLength={1500}
+                      maxLength={LEARNING_SKILL_COMMENT_LIMITS['7-8'][skill.sansField] || 250}
                       formData={formData}
                       onFormDataChange={onFormDataChange}
                     />
@@ -691,7 +696,6 @@ const LearningSkillsSection = ({ formData, onFormDataChange }) => {
           </CCol>
         ))}
       </CRow>
-
 
       {/* Date */}
       <CRow className="mt-3">
@@ -726,17 +730,17 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
   // Auto-fill default values for nativeLanguage and other
   useEffect(() => {
     const updates = {}
-    
+
     // Auto-fill nativeLanguage if empty or undefined
     if (formData.nativeLanguage === undefined || formData.nativeLanguage === '') {
       updates.nativeLanguage = 'Quran and Arabic Studies'
     }
-    
+
     // Auto-fill other if empty or undefined
     if (formData.other === undefined || formData.other === '') {
       updates.other = 'Islamic Studies'
     }
-    
+
     // Only update if there are changes to make
     if (Object.keys(updates).length > 0) {
       onFormDataChange({ ...formData, ...updates })
@@ -868,7 +872,7 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
   const accommodationLabels = {
     esl: 'ESL/ELD',
     iep: 'IEP',
-    iel: 'IEP',  // Handle the typo in JSON
+    iel: 'IEP', // Handle the typo in JSON
     na: 'NA',
     french: 'French',
     core: 'Core',
@@ -972,7 +976,11 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                       const label = accommodationLabels[accommodationType] || field
 
                       return (
-                        <div key={field} className="me-3" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                        <div
+                          key={field}
+                          className="me-3"
+                          style={{ display: 'inline-flex', alignItems: 'center' }}
+                        >
                           <input
                             type="checkbox"
                             id={field}
@@ -1009,13 +1017,18 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                       const fieldLower = field.toLowerCase()
 
                       if (fieldLower.includes('verywell')) performanceType = 'verywell'
-                      else if (fieldLower.includes('withdifficulty')) performanceType = 'withdifficulty'
+                      else if (fieldLower.includes('withdifficulty'))
+                        performanceType = 'withdifficulty'
                       else if (fieldLower.includes('well')) performanceType = 'well'
 
                       const label = performanceLabels[performanceType] || field
 
                       return (
-                        <div key={field} className="me-3" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                        <div
+                          key={field}
+                          className="me-3"
+                          style={{ display: 'inline-flex', alignItems: 'center' }}
+                        >
                           <input
                             type="checkbox"
                             id={field}
@@ -1058,9 +1071,7 @@ const SubjectAreasSection = ({ formData, onFormDataChange }) => {
                       rows={3}
                       isGenerating={false}
                       onGenerate={() => {}}
-                      maxLength={
-                        ['other', 'history', 'geography'].includes(subject.key) ? 400 : 750
-                      }
+                      maxLength={SUBJECT_COMMENT_LIMIT}
                       formData={formData}
                       onFormDataChange={onFormDataChange}
                     />
@@ -1090,7 +1101,7 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange }) => {
     if (formData.teacher_name || formData.teacher) {
       const teacherName = formData.teacher_name || formData.teacher
       const currentSignature = formData.teacherSignature?.value || ''
-      
+
       // Auto-fill if signature is empty or doesn't match
       if (!currentSignature || currentSignature.trim() === '' || currentSignature !== teacherName) {
         onFormDataChange({
@@ -1103,9 +1114,11 @@ const CommentsSignaturesSection = ({ formData, onFormDataChange }) => {
 
   // Auto-fill principal signature with "Ghazala Choudhary"
   useEffect(() => {
-    if (!formData.principalSignature || 
-        !formData.principalSignature.value || 
-        formData.principalSignature.value.trim() === '') {
+    if (
+      !formData.principalSignature ||
+      !formData.principalSignature.value ||
+      formData.principalSignature.value.trim() === ''
+    ) {
       onFormDataChange({
         ...formData,
         principalSignature: { type: 'typed', value: 'Ghazala Choudhary' },
