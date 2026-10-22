@@ -30,6 +30,7 @@
     "src/views/admin/SchoolYearSettings.js",
     "src/views/admin/SmsSettings.js",
     "src/views/attendance/utils/__tests__/recalculateAttendanceStats.test.js",
-    "src/views/attendance/utils/recalculateAttendanceStats.js"
+    "src/views/attendance/utils/recalculateAttendanceStats.js",
+    "yarn.lock"
   ]
 }
