@@ -39,6 +39,14 @@ beforeEach(() => {
 })
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); vi.useRealTimers() })
 describe('My Timesheets', () => {
+  it('lets staff retry a failed load', async () => {
+    timesheetRequest.mockRejectedValueOnce(new Error('Loading your timesheet took too long.'))
+    await render()
+    expect(container.textContent).toContain('took too long')
+    await act(async () => [...container.querySelectorAll('button')].find((button) => button.textContent === 'Try again').click())
+    expect(field('Hours 2026-09-14')).toBeTruthy()
+    expect(container.textContent).not.toContain('took too long')
+  })
   it('opens for faculty and submits corrected hours/comment with a reason', async () => {
     await render()
     expect(field('Hours 2026-09-14')).toBeTruthy()

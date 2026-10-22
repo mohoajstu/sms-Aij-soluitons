@@ -37,6 +37,7 @@ const createHandler = ({ admin, reviewerEmails = [], apiKey }) => async (req, re
     if (!token) throw fail(401, 'Sign in required.')
     let identity
     try { identity = await admin.auth().verifyIdToken(token, true) } catch { throw fail(401, 'Sign in again.') }
+    await require('./actAs').validateActAsSession(admin, identity)
     const email = String(identity.email || '').trim().toLowerCase()
     if (!email || identity.email_verified !== true) throw fail(403, 'Use a verified staff email account.')
     const { action, periodIndex, revision } = req.body || {}
@@ -109,6 +110,7 @@ const createHandler = ({ admin, reviewerEmails = [], apiKey }) => async (req, re
         if ((previous?.revision || 0) !== revision) throw fail(409, 'This timesheet changed in another session. Reload before saving.')
         const change = { uid: identity.uid, email, periodIndex, rows, revision: revision + 1,
           status: 'pending', submittedAt: new Date().toISOString(), submittedBy: email,
+          ...(identity.actAsSession ? { actAsSession: identity.actAsSession, actedByUid: identity.actAsActor } : {}),
           approved: previous?.approved || null }
         transaction.set(ref, change)
         transaction.set(ref.collection('history').doc(), { action: 'submit', before: previous, after: change })

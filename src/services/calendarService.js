@@ -1,3 +1,4 @@
+import { isActingAs } from './actAs'
 // Google Calendar Service for handling API interactions
 
 let API_KEY = import.meta.env.VITE_GOOGLE_API_KEY
@@ -81,6 +82,7 @@ const storeToken = (token) => {
  * @returns {object|null} The stored token or null
  */
 const getStoredToken = () => {
+  if (isActingAs()) return null
   // Try to get the token from our primary storage
   const tokenStr = localStorage.getItem(TOKEN_STORAGE_KEY)
   if (tokenStr) {
@@ -131,6 +133,7 @@ const getStoredToken = () => {
  * @returns {boolean} True if authenticated, false otherwise
  */
 export const isAuthenticated = () => {
+  if (isActingAs()) return false
   try {
     // This check is now reliable because initializeGoogleApi uses getStoredToken,
     // which validates the token's expiration.
@@ -222,6 +225,7 @@ export const isInitialized = () => {
  * Authenticate the user with Google
  */
 export const authenticate = () => {
+  if (isActingAs()) return Promise.reject(new Error('Google Calendar requires the teacher’s own Google authorization. Return to your admin account to connect Google.'))
   return new Promise((resolve, reject) => {
     if (!isInitialized()) {
       reject(new Error('Google APIs not initialized'))
@@ -266,6 +270,7 @@ export const authenticate = () => {
  * Sign out the user
  */
 export const signOut = () => {
+  if (isActingAs()) return
   try {
     const token = gapi.client.getToken()
     if (token !== null) {
@@ -285,6 +290,7 @@ export const signOut = () => {
 
 // Add this wrapper function
 export const callGoogleApi = async (apiCallFunction) => {
+  if (isActingAs()) throw new Error('Google Calendar requires the teacher’s own Google authorization.')
   try {
     // Ensure GAPI client is loaded and initialized before making a call
     if (!gapi.client) {

@@ -1,0 +1,74 @@
+{
+  "verifiedAt": "2026-10-19T01:49:20.436Z",
+  "project": "tarbiyah-sms",
+  "rules": [
+    {
+      "service": "cloud.firestore",
+      "resource": null,
+      "ruleset": "projects/tarbiyah-sms/rulesets/82651eea-2500-4f76-821a-db5aa5e968e6",
+      "sourceSha256": "2d901500ff72f06e2205924e0cf98393fa19a173b26b73dfe9aadad6dd0be8e8",
+      "matchesTestedSource": true
+    },
+    {
+      "service": "firebase.storage",
+      "resource": "tarbiyah-sms.firebasestorage.app",
+      "ruleset": "projects/tarbiyah-sms/rulesets/20fe42f0-691f-4266-acd4-c4f8bc0ea02e",
+      "sourceSha256": "e1a0cf47fd2fc87bdfbbb78dc52da96008cbbc37b60d15c9245b09c76e3c5b1b",
+      "matchesTestedSource": true
+    }
+  ],
+  "functions": [
+    {
+      "name": "projects/tarbiyah-sms/locations/northamerica-northeast1/functions/interpretTimekeepingComments",
+      "status": "ACTIVE",
+      "runtime": "nodejs20",
+      "versionId": "3",
+      "serviceAccountEmail": "tarbiyah-sms@appspot.gserviceaccount.com",
+      "updateTime": "2026-10-19T01:06:58.732Z"
+    },
+    {
+      "name": "projects/tarbiyah-sms/locations/northamerica-northeast1/functions/actAs",
+      "status": "ACTIVE",
+      "runtime": "nodejs20",
+      "versionId": "1",
+      "serviceAccountEmail": "tarbiyah-sms@appspot.gserviceaccount.com",
+      "updateTime": "2026-10-19T01:08:38.183340643Z"
+    },
+    {
+      "name": "projects/tarbiyah-sms/locations/northamerica-northeast1/functions/staffTimesheets",
+      "status": "ACTIVE",
+      "runtime": "nodejs20",
+      "versionId": "5",
+      "serviceAccountEmail": "tarbiyah-sms@appspot.gserviceaccount.com",
+      "updateTime": "2026-10-19T01:06:58.400Z"
+    },
+    {
+      "name": "projects/tarbiyah-sms/locations/northamerica-northeast1/functions/registrationEnrollment",
+      "status": "ACTIVE",
+      "runtime": "nodejs20",
+      "versionId": "2",
+      "serviceAccountEmail": "tarbiyah-sms@appspot.gserviceaccount.com",
+      "updateTime": "2026-10-19T01:06:52.818Z"
+    },
+    {
+      "name": "projects/tarbiyah-sms/locations/northamerica-northeast1/functions/setParentTempPassword",
+      "status": "ACTIVE",
+      "runtime": "nodejs20",
+      "versionId": "6",
+      "serviceAccountEmail": "tarbiyah-sms@appspot.gserviceaccount.com",
+      "updateTime": "2026-10-19T01:06:53.978Z"
+    }
+  ],
+  "corsPreflightStatus": 204,
+  "unauthenticatedStatus": 401,
+  "hostingAsset": "/assets/index-DD_2y0VM.js",
+  "hostingUnchanged": true,
+  "sourceHashes": {
+    "functions/actAs.js": "0a9730bb331e91e7129dc15bbef9e6103b9a73daa16201d5cd465f2acb14b748",
+    "functions/index.js": "b0cbb9388b2732e358d90241d695886c27861d4eabc28c387c1990cea7ed5664",
+    "functions/staffTimesheets.js": "c96686ec9d4bb77a365e65765ed8b02daad6438ad411ef0195e3709991ce9334",
+    "functions/registrationEnrollment.js": "03706fa66bc11341ad70b91a6f788909883995a0adc6a3d4ffff886e9f11f1f6",
+    "firestore.rules": "2d901500ff72f06e2205924e0cf98393fa19a173b26b73dfe9aadad6dd0be8e8",
+    "storage.rules": "e1a0cf47fd2fc87bdfbbb78dc52da96008cbbc37b60d15c9245b09c76e3c5b1b"
+  }
+}

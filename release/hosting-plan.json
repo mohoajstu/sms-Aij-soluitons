@@ -1,12 +1,27 @@
 {
-  "name": "Atomic registration approval and homeroom enrollment",
+  "name": "Enable administrator Act as teacher with expiring audited sessions",
   "project": "tarbiyah-sms",
   "target": "hosting:tlasms",
-  "baseAsset": "/assets/index-BNoAr3dj.js",
+  "baseAsset": "/assets/index-DD_2y0VM.js",
   "allowedFiles": [
-    "src/services/registrationEnrollment.js",
-    "src/views/registration/EnrollmentModal.js",
-    "src/views/registration/RegistrationProcessingDashboard.js",
-    "src/views/registration/__tests__/EnrollmentModal.test.jsx"
+    "firebase.json",
+    "src/App.js",
+    "src/Firebase/firebase.js",
+    "src/Firebase/useAuth.js",
+    "src/components/ActAsBoundary.js",
+    "src/components/ActAsControl.js",
+    "src/components/AppHeader.js",
+    "src/components/__tests__/ActAsBoundary.test.jsx",
+    "src/components/__tests__/ActAsControl.test.jsx",
+    "src/firebase.js",
+    "src/index.js",
+    "src/services/__tests__/actAs.test.js",
+    "src/services/__tests__/actAsAuthorization.test.js",
+    "src/services/actAs.js",
+    "src/services/calendarService.js",
+    "src/views/pages/login/ChangePassword.js",
+    "src/views/pages/login/Login.js",
+    "src/views/pages/login/StaffLogin.js",
+    "src/views/pages/login/__tests__/StaffLogin.test.jsx"
   ]
 }

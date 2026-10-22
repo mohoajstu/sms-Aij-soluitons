@@ -37,6 +37,7 @@ const MyTimesheets = () => {
     let active = true
     setLoading(true)
     setData(null)
+    setMessage(null)
     timesheetRequest('load', { periodIndex }).then((result) => {
       if (!active) return
       const records = result.records.map((record) => ({ ...record, at: new Date(record.at) }))
@@ -101,6 +102,7 @@ const MyTimesheets = () => {
         })}
       </CFormSelect>
       {message && <CAlert color={message.tone} className="mt-3">{message.text}</CAlert>}
+      {!loading && !data && <CButton color="primary" onClick={() => setReload((value) => value + 1)}>Try again</CButton>}
       {loading ? <CSpinner className="mt-3" /> : data && <>
         <p className="mt-3">{data.email} · Status: {data.correction?.status || 'No corrections submitted'} · Revision {data.correction?.revision || 0}</p>
         {!data.records.length && !data.correction && <CAlert color="info">

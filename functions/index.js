@@ -6,6 +6,9 @@ const { interpretComments } = require('./timekeepingCommentInterpretation')
 
 admin.initializeApp()
 
+exports.actAs = functions.region('northamerica-northeast1').https.onRequest((req, res) =>
+  require('./actAs').createHandler({ admin })(req, res))
+
 exports.registrationEnrollment = functions.region('northamerica-northeast1').https.onRequest((req, res) =>
   require('./registrationEnrollment').createHandler({ admin,
     reviewerEmails: String(functions.config().timekeeping?.revieweremails || '').split(',').map((e) => e.trim()).filter(Boolean),
@@ -31,7 +34,9 @@ exports.interpretTimekeepingComments = functions
     try {
       const token = /^Bearer (.+)$/.exec(req.headers.authorization || '')?.[1]
       if (!token) return res.status(401).json({ message: 'Sign in required.' })
-      const { uid } = await admin.auth().verifyIdToken(token)
+      const identity = await admin.auth().verifyIdToken(token, true)
+      await require('./actAs').validateActAsSession(admin, identity)
+      const { uid } = identity
       const user = await admin.firestore().collection('users').doc(uid).get()
       const data = user.data() || {}
       const roles = [data.primaryRole, data.role, data.personalInfo?.primaryRole, data.personalInfo?.role]
@@ -661,7 +666,8 @@ exports.setParentTempPassword = functions
     }
 
     try {
-      const decoded = await admin.auth().verifyIdToken(idToken)
+      const decoded = await admin.auth().verifyIdToken(idToken, true)
+      await require('./actAs').validateActAsSession(admin, decoded)
       const callerUid = decoded.uid
       const db = admin.firestore()
       const callerSnap = await db.collection('users').doc(callerUid).get()

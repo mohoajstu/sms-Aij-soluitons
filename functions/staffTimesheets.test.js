@@ -44,7 +44,7 @@ const fixture = () => {
     await createHandler({ admin, reviewerEmails: reviewers })({ method: 'POST', headers: token ? { authorization: `Bearer ${token}` } : {}, body }, res)
     return { code, result }
   }
-  return { call, store }
+  return { call, store, identities }
 }
 test('validates dates, duplicate days, quarter hours, reasons, and numeric types', () => {
   assert.equal(periodDates(2)[9], '2026-09-25')
@@ -142,4 +142,26 @@ test('a server-managed admin access record grants review without a manual email 
   assert.equal((await call('reviewer', { action: 'adminList', periodIndex: 2 })).code, 200)
   store.set(`timekeepingAdminAccess/${accessId}`, { email: 'someoneelse@tarbiyahlearning.ca' })
   assert.equal((await call('reviewer', { action: 'adminList', periodIndex: 2 })).code, 403)
+})
+
+
+test('Act as saves use teacher ownership with administrator attribution and stop after session end', async () => {
+  const { call, store, identities } = fixture()
+  const id = '11111111-1111-1111-1111-111111111111'
+  identities.teacher.actAsSession = id
+  identities.teacher.actAsActor = 'super-admin'
+  store.set(`actAsSessions/${id}`, { targetUid: 'teacher', actorUid: 'super-admin', status: 'active', expiresAt: Date.now() + 60000 })
+  const saved = await call('teacher', { action: 'save', periodIndex: 2, revision: 0, rows: [row] })
+  assert.equal(saved.code, 200)
+  const correction = [...store].find(([key]) => key.startsWith('staffTimesheetCorrections/') && key.split('/').length === 2)[1]
+  assert.equal(correction.uid, 'teacher')
+  assert.equal(correction.email, email)
+  assert.equal(correction.actedByUid, 'super-admin')
+  assert.equal(correction.actAsSession, id)
+  store.get(`actAsSessions/${id}`).status = 'ended'
+  assert.equal((await call('teacher', { action: 'load', periodIndex: 2 })).code, 403)
+  assert.equal((await call('teacher', { action: 'save', periodIndex: 2, revision: 1, rows: [row] })).code, 403)
+  delete identities.teacher.actAsSession
+  delete identities.teacher.actAsActor
+  assert.equal((await call('teacher', { action: 'load', periodIndex: 2 })).code, 200)
 })

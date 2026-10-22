@@ -2,6 +2,7 @@ import React, { Suspense } from 'react'
 import { HashRouter, Route, Routes, Navigate } from 'react-router-dom'
 import { CSpinner } from '@coreui/react'
 import useAuth from './Firebase/useAuth'
+import { isActingAs } from './services/actAs'
 import { Toaster } from 'react-hot-toast'
 import './scss/style.scss'
 import './scss/examples.scss'
@@ -83,7 +84,7 @@ const App = () => {
             path="/login/staff"
             element={user ? <Navigate to="/" replace /> : <StaffLogin />}
           />
-          <Route path="/register" element={<Register />} />
+          <Route path="/register" element={isActingAs() ? <Navigate to="/dashboard" replace /> : <Register />} />
           <Route path="/home" element={<Home />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
@@ -95,7 +96,7 @@ const App = () => {
           {/* Protected Routes */}
           <Route path="/*" element={user ? <DefaultLayout /> : <Navigate to="/home" replace />} />
           {/* Force password change route */}
-          <Route path="/change-password" element={<ChangePassword />} />
+          <Route path="/change-password" element={isActingAs() ? <Navigate to="/dashboard" replace /> : <ChangePassword />} />
 
           {/* Redirect unmatched routes */}
           <Route path="*" element={<Navigate to={user ? '/' : '/home'} replace />} />

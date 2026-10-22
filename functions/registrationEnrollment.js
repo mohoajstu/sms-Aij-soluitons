@@ -127,7 +127,8 @@ function createHandler({ admin, reviewerEmails = [] }) {
       if (!token) throw fail(401, 'Sign in required.')
       let identity
       try { identity = await admin.auth().verifyIdToken(token, true) } catch { throw fail(401, 'Sign in again.') }
-      const email = norm(identity.email)
+      await require('./actAs').validateActAsSession(admin, identity)
+    const email = norm(identity.email)
       if (!email || identity.email_verified !== true) throw fail(403, 'Use a verified administrator account.')
       const db = admin.firestore()
       // Reuse the existing protected, server-managed school administrator registry.

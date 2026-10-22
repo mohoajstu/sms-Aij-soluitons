@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth'
 import { auth, firestore } from './firebase'
 import { loadCurrentUserProfile, resolveProfileRole } from '../utils/userProfile'
+import { isActingAs, endActAs } from '../services/actAs'
 
 const useAuth = () => {
   const [user, setUser] = useState(null)
@@ -59,6 +60,7 @@ const useAuth = () => {
 
   const signOut = async () => {
     try {
+      if (isActingAs()) { await endActAs(); return }
       await firebaseSignOut(auth)
     } catch (error) {
       console.error('Error signing out:', error)

@@ -10,6 +10,8 @@
         "**/node_modules/**"
       ],
       "rewrites": [
+        { "source": "/api/staffTimesheets", "function": { "functionId": "staffTimesheets", "region": "northamerica-northeast1" } },
+        { "source": "/api/actAs", "function": { "functionId": "actAs", "region": "northamerica-northeast1" } },
         { "source": "**/*.*", "destination": "**/*.*" },
         { "source": "**", "destination": "/index.html" }
       ],
