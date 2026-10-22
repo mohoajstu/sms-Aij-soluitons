@@ -18,6 +18,13 @@ import {
 
 const COLLECTION = 'staffCheckins'
 
+// 'staff' is the role StaffLogin assigns to school-domain accounts with no
+// matching faculty record, so it must be allowed here too.
+const CHECK_IN_ROLES = ['admin', 'faculty', 'teacher', 'staff']
+
+export const canUseStaffCheckIn = (role) =>
+  CHECK_IN_ROLES.includes(String(role || '').toLowerCase().trim())
+
 export const calculateDistanceInMeters = (lat1, lon1, lat2, lon2) => {
   if ([lat1, lon1, lat2, lon2].some((c) => !Number.isFinite(c))) return null
   const R = 6371000

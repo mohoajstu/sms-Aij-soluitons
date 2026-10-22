@@ -22,6 +22,7 @@ import {
   getUserRecentStaffCheckIns,
   formatStatusLabel,
   statusBadgeColor,
+  canUseStaffCheckIn,
 } from '../../services/staffCheckins'
 
 const formatDateTime = (ts) => {
@@ -40,16 +41,19 @@ const CheckInPage = () => {
   const { user, role, loading: authLoading } = useAuth()
   const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
 
   const load = useCallback(async () => {
     if (!user?.uid) return
     setLoading(true)
+    setLoadError('')
     try {
       const data = await getUserRecentStaffCheckIns(user.uid, 25)
       setHistory(data)
     } catch (err) {
       console.error('Failed to load check-in history:', err)
       setHistory([])
+      setLoadError(`Could not load your check-ins${err?.code ? ` (${err.code})` : ''}.`)
     } finally {
       setLoading(false)
     }
@@ -61,9 +65,7 @@ const CheckInPage = () => {
 
   if (authLoading) return null
 
-  const r = role?.toLowerCase()
-  const allowed = r === 'admin' || r === 'faculty' || r === 'teacher'
-  if (!allowed) {
+  if (!canUseStaffCheckIn(role)) {
     return (
       <CContainer>
         <div className="alert alert-danger mt-3">Access denied. Staff only.</div>
@@ -82,7 +84,13 @@ const CheckInPage = () => {
           <CCard>
             <CCardHeader className="d-flex justify-content-between align-items-center">
               <span>Your Recent Check-Ins</span>
-              <CButton size="sm" color="primary" variant="outline" onClick={load} disabled={loading}>
+              <CButton
+                size="sm"
+                color="primary"
+                variant="outline"
+                onClick={load}
+                disabled={loading}
+              >
                 Refresh
               </CButton>
             </CCardHeader>
@@ -91,6 +99,8 @@ const CheckInPage = () => {
                 <div className="text-center py-3">
                   <CSpinner size="sm" />
                 </div>
+              ) : loadError ? (
+                <div className="alert alert-danger mb-0">{loadError}</div>
               ) : history.length === 0 ? (
                 <div className="text-center text-muted py-3">No check-ins yet.</div>
               ) : (

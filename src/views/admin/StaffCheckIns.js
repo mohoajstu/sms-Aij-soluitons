@@ -77,6 +77,7 @@ const StaffCheckIns = () => {
   const [activeTab, setActiveTab] = useState(0)
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [settings, setSettings] = useState(defaultTimekeepingSettings())
   const [typeFilter, setTypeFilter] = useState('all') // all | in | out
   const [statusFilter, setStatusFilter] = useState('all') // all | on-time | late | early-departure | out-of-range | violations
@@ -88,6 +89,7 @@ const StaffCheckIns = () => {
 
   const load = async () => {
     setLoading(true)
+    setLoadError('')
     try {
       const [data, s] = await Promise.all([
         getRecentStaffCheckIns(500),
@@ -98,6 +100,8 @@ const StaffCheckIns = () => {
     } catch (err) {
       console.error('Failed to load staff check-ins:', err)
       setRows([])
+      // Without this, a permission error looks exactly like having no records.
+      setLoadError(`Could not load staff check-ins${err?.code ? ` (${err.code})` : ''}.`)
     } finally {
       setLoading(false)
     }
@@ -249,6 +253,8 @@ const StaffCheckIns = () => {
                 <div className="text-center py-4">
                   <CSpinner />
                 </div>
+              ) : loadError ? (
+                <div className="alert alert-danger mb-0">{loadError}</div>
               ) : filtered.length === 0 ? (
                 <div className="text-center text-muted py-4">No check-ins match the filters.</div>
               ) : (

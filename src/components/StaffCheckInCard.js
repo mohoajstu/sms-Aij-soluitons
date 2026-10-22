@@ -193,7 +193,12 @@ const StaffCheckInCard = ({ onAfterCheckIn }) => {
       } else if (err && err.code === 3) {
         setStatus({ tone: 'error', message: 'Getting location timed out. Try again.' })
       } else {
-        setStatus({ tone: 'error', message: 'Could not record check-in. Try again.' })
+        // Show the Firestore code (e.g. permission-denied) so a blocked save is diagnosable.
+        const detail = err?.code ? ` (${err.code})` : ''
+        setStatus({
+          tone: 'error',
+          message: `Could not record check-in${detail}. Try again, or send this message to the office.`,
+        })
       }
     } finally {
       setBusy(null)
