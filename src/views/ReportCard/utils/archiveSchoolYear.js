@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, serverTimestamp, writeBatch } from 'firebase/firestore'
+import { collection, doc, getDocs, serverTimestamp, runTransaction } from 'firebase/firestore'
 import { saveSchoolYearSettings } from './schoolYear'
 
 // Each student touched writes 2 ops (archive doc + reset), so keep batches
@@ -59,37 +59,39 @@ export const archiveAndStartNewSchoolYear = async (
   const studentDocs = studentsSnapshot.docs
 
   for (let i = 0; i < studentDocs.length; i += STUDENTS_PER_BATCH) {
-    const batch = writeBatch(firestoreInstance)
     const chunk = studentDocs.slice(i, i + STUDENTS_PER_BATCH)
 
-    chunk.forEach((studentDoc) => {
-      const data = studentDoc.data() || {}
-      const archiveRef = doc(
-        firestoreInstance,
-        'attendanceArchives',
-        `${studentDoc.id}_${outgoingLabel}`,
-      )
-      batch.set(archiveRef, {
-        studentId: studentDoc.id,
-        studentName:
-          data.fullName ||
-          `${data.personalInfo?.firstName || ''} ${data.personalInfo?.lastName || ''}`.trim(),
-        schoolYear: outgoingLabel,
-        grade: data.grade || data.program || '',
-        attendanceStats: data.attendanceStats || {},
-        archivedAt: serverTimestamp(),
-      })
-      batch.update(studentDoc.ref, {
-        attendanceStats: {
-          currentTermLateCount: 0,
-          yearLateCount: 0,
-          currentTermAbsenceCount: 0,
-          yearAbsenceCount: 0,
-        },
-      })
+    // Read archive markers and current counters in the same transaction. A retry
+    // skips completed students rather than replacing their archive with zeroes.
+    await runTransaction(firestoreInstance, async (transaction) => {
+      const records = await Promise.all(chunk.map(async (studentDoc) => {
+        const archiveRef = doc(firestoreInstance, 'attendanceArchives', `${studentDoc.id}_${outgoingLabel}`)
+        const archive = await transaction.get(archiveRef)
+        const current = await transaction.get(studentDoc.ref)
+        return { studentDoc, archiveRef, archive, current }
+      }))
+      for (const { studentDoc, archiveRef, archive, current } of records) {
+        if (archive.exists() || !current.exists()) continue
+        const data = current.data() || {}
+        transaction.set(archiveRef, {
+          studentId: studentDoc.id,
+          studentName: data.fullName ||
+            `${data.personalInfo?.firstName || ''} ${data.personalInfo?.lastName || ''}`.trim(),
+          schoolYear: outgoingLabel,
+          grade: data.grade || data.program || '',
+          attendanceStats: data.attendanceStats || {},
+          archivedAt: serverTimestamp(),
+        })
+        transaction.update(studentDoc.ref, {
+          attendanceStats: {
+            currentTermLateCount: 0,
+            yearLateCount: 0,
+            currentTermAbsenceCount: 0,
+            yearAbsenceCount: 0,
+          },
+        })
+      }
     })
-
-    await batch.commit()
     onProgress?.(Math.min(i + STUDENTS_PER_BATCH, studentDocs.length), studentDocs.length)
   }
 

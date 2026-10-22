@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const batches = []
 let nextCommitError = null
+let failCommitNumber = null
+const stored = new Map()
 const mockGetDocs = vi.fn()
 const mockSetDoc = vi.fn()
 
@@ -11,18 +13,26 @@ vi.mock('firebase/firestore', () => ({
   getDocs: (...args) => mockGetDocs(...args),
   setDoc: (...args) => mockSetDoc(...args),
   serverTimestamp: () => 'SERVER_TIMESTAMP',
-  writeBatch: () => {
+  runTransaction: async (_db, callback) => {
     const error = nextCommitError
     nextCommitError = null
-    const batch = {
-      sets: [],
-      updates: [],
-      commit: vi.fn(() => (error ? Promise.reject(error) : Promise.resolve())),
+    const students = (await mockGetDocs()).docs
+    for (const student of students) {
+      if (!stored.has(student.ref.path)) stored.set(student.ref.path, student.data())
     }
+    const batch = { sets: [], updates: [], commit: vi.fn() }
+    batch.get = async (ref) => ({
+      exists: () => stored.has(ref.path),
+      data: () => stored.get(ref.path),
+    })
     batch.set = (ref, data) => batch.sets.push({ ref, data })
     batch.update = (ref, data) => batch.updates.push({ ref, data })
     batches.push(batch)
-    return batch
+    await callback(batch)
+    if (error || batches.length === failCommitNumber) throw error || new Error('network')
+    batch.commit()
+    for (const { ref, data } of batch.sets) stored.set(ref.path, data)
+    for (const { ref, data } of batch.updates) stored.set(ref.path, { ...stored.get(ref.path), ...data })
   },
 }))
 
@@ -36,7 +46,9 @@ describe('archiveAndStartNewSchoolYear', () => {
   beforeEach(() => {
     batches.length = 0
     nextCommitError = null
-    vi.clearAllMocks()
+    failCommitNumber = null
+    stored.clear()
+    vi.resetAllMocks()
   })
 
   it('archives each student under the outgoing year, resets counters, then advances the year', async () => {
@@ -128,6 +140,32 @@ describe('archiveAndStartNewSchoolYear', () => {
     expect(batches.length).toBe(3)
     batches.forEach((b) => expect(b.sets.length + b.updates.length).toBeLessThanOrEqual(500))
     expect(batches.reduce((n, b) => n + b.sets.length, 0)).toBe(450)
+  })
+
+  it('preserves completed archives when retrying a failure in the second batch', async () => {
+    mockGetDocs.mockResolvedValue({ docs: Array.from({ length: 201 }, (_, i) =>
+      makeStudent(`S${i}`, { attendanceStats: { yearAbsenceCount: i + 1 } })) })
+    const input = { outgoingLabel: '2026-2027', outgoingStartDate: '2026-09-02',
+      newLabel: '2027-2028', newStartDate: '2027-09-02' }
+    failCommitNumber = 2
+    await expect(archiveAndStartNewSchoolYear({}, input, END_OF_YEAR)).rejects.toThrow('network')
+    expect(mockSetDoc).not.toHaveBeenCalled()
+    expect(stored.get('students/S0').attendanceStats.yearAbsenceCount).toBe(0)
+    failCommitNumber = null
+    await archiveAndStartNewSchoolYear({}, input, END_OF_YEAR)
+    expect(stored.get('attendanceArchives/S0_2026-2027').attendanceStats.yearAbsenceCount).toBe(1)
+    expect(stored.get('attendanceArchives/S200_2026-2027').attendanceStats.yearAbsenceCount).toBe(201)
+    expect(mockSetDoc).toHaveBeenCalledTimes(1)
+  })
+
+  it('preserves archives when only the final settings save failed', async () => {
+    mockGetDocs.mockResolvedValue({ docs: [makeStudent('S1', { attendanceStats: { yearLateCount: 9 } })] })
+    const input = { outgoingLabel: '2026-2027', outgoingStartDate: '2026-09-02',
+      newLabel: '2027-2028', newStartDate: '2027-09-02' }
+    mockSetDoc.mockRejectedValueOnce(new Error('settings network error'))
+    await expect(archiveAndStartNewSchoolYear({}, input, END_OF_YEAR)).rejects.toThrow('settings network error')
+    await archiveAndStartNewSchoolYear({}, input, END_OF_YEAR)
+    expect(stored.get('attendanceArchives/S1_2026-2027').attendanceStats.yearLateCount).toBe(9)
   })
 
   it('refuses to run without all inputs, or when reusing the current label', async () => {
