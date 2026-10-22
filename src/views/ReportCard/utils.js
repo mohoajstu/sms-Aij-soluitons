@@ -98,6 +98,7 @@ import {
   getDefaultReportDate,
   usesFixedFormalReportDate,
 } from './utils/reportDefaults'
+import { fetchSchoolYearSettings, isFromCurrentSchoolYear } from './utils/schoolYear'
 
 const MEDIANS_MAP_URL = '/medians-map.json'
 let mediansMapCache = null
@@ -385,6 +386,24 @@ const ReportCard = ({ presetReportCardId = null }) => {
   const isLoadingDraftRef = useRef(false) // Synchronous guard
   const [currentDraftId, setCurrentDraftId] = useState(null) // Track which draft is loaded
   const currentDraftIdRef = useRef(null)
+
+  // Current school year boundary (admin-configurable in Settings > School Year).
+  // Used to keep last year's drafts/reports from being picked up as "already
+  // filled in" for a returning student this year.
+  const [schoolYearInfo, setSchoolYearInfo] = useState(null)
+  const schoolYearInfoRef = useRef(null)
+  useEffect(() => {
+    let isMounted = true
+    fetchSchoolYearSettings(firestore).then((info) => {
+      if (isMounted) {
+        setSchoolYearInfo(info)
+        schoolYearInfoRef.current = info
+      }
+    })
+    return () => {
+      isMounted = false
+    }
+  }, [])
   const pendingDraftConsolidationRef = useRef(null)
   const [reviewDraftOrder, setReviewDraftOrder] = useState([])
   const reviewNavTokenRef = useRef(0)
@@ -427,8 +446,8 @@ const ReportCard = ({ presetReportCardId = null }) => {
       
       // Normalize grade (extract number if present)
       const gradeNumber = gradeLower.match(/\d+/)?.[0]
-      const isJK = gradeLower.includes('jk') || gradeLower === 'junior kindergarten'
-      const isSK = gradeLower.includes('sk') || gradeLower === 'senior kindergarten'
+      const isJK = gradeLower.includes('jk') || gradeLower === 'junior kindergarten' || gradeLower.includes('jr kindergarten')
+      const isSK = gradeLower.includes('sk') || gradeLower === 'senior kindergarten' || gradeLower.includes('sr kindergarten')
       const isKindergarten = isJK || isSK
 
       filtered = filtered.filter(type => {
@@ -725,10 +744,10 @@ const ReportCard = ({ presetReportCardId = null }) => {
           if (!gradeValue) return ''
           const gradeLower = gradeValue.toString().toLowerCase()
           // Preserve JK/SK for kindergarten reports
-          if (gradeLower.includes('jk') || gradeLower === 'junior kindergarten') {
+          if (gradeLower.includes('jk') || gradeLower === 'junior kindergarten' || gradeLower.includes('jr kindergarten')) {
             return 'JK'
           }
-          if (gradeLower.includes('sk') || gradeLower === 'senior kindergarten') {
+          if (gradeLower.includes('sk') || gradeLower === 'senior kindergarten' || gradeLower.includes('sr kindergarten')) {
             return 'SK'
           }
           // Extract number from grade string (handles "grade 8", "Grade 7", "8", etc.)
@@ -1261,6 +1280,12 @@ const ReportCard = ({ presetReportCardId = null }) => {
       const isStaleT2Draft = (formData) =>
         isStaleTerm2Draft({ term, reportType, formData, studentHasTerm1: studentHasTerm1Data })
 
+      // A draft from a prior school year (e.g. this student's old Grade 7
+      // "7-8-progress" draft) must never be mistaken for this year's work,
+      // even though studentId + reportType + term all still match.
+      const isWrongSchoolYear = (draftDataToCheck) =>
+        !!schoolYearInfoRef.current && !isFromCurrentSchoolYear(draftDataToCheck, schoolYearInfoRef.current)
+
       if (draftSnap.exists()) {
         const draftData = draftSnap.data()
         const draftRecord = {
@@ -1282,9 +1307,13 @@ const ReportCard = ({ presetReportCardId = null }) => {
         // Map old field names to new field names for backward compatibility
         loadedFormData = mapOldFieldNamesToNew(loadedFormData, reportType)
 
-        // Skip stale T2 drafts created before the T1-carryover fix (they have no Report1 fields)
+        // Skip stale T2 drafts created before the T1-carryover fix (they have no Report1 fields),
+        // and skip drafts carried over from a prior school year.
         if (isStaleT2Draft(loadedFormData)) {
           console.warn('⚠️ Step 1: Stale T2 draft detected (no T1 fields) — skipping, will copy from T1 instead:', draftId)
+          // fall through to Step 2/3
+        } else if (isWrongSchoolYear(draftData)) {
+          console.warn('⚠️ Step 1: Draft is from a prior school year — skipping:', draftId)
           // fall through to Step 2/3
         } else {
           try {
@@ -1307,7 +1336,11 @@ const ReportCard = ({ presetReportCardId = null }) => {
                 if (stale) {
                   console.warn('⚠️ Step 1: Stale same-term T2 draft detected - excluding from consolidation:', draft.id)
                 }
-                return !stale
+                const wrongYear = isWrongSchoolYear(draft.data)
+                if (wrongYear) {
+                  console.warn('⚠️ Step 1: Prior-school-year draft detected - excluding from consolidation:', draft.id)
+                }
+                return !stale && !wrongYear
               })
 
             if (sameTermDrafts.length > 1) {
@@ -1383,14 +1416,19 @@ const ReportCard = ({ presetReportCardId = null }) => {
             }
           }
 
-          // Drop stale T2 drafts (no T1 fields) so Step 3 can carry forward from T1
+          // Drop stale T2 drafts (no T1 fields) so Step 3 can carry forward from T1,
+          // and drop drafts carried over from a prior school year.
           draftsToConsider = draftsToConsider.filter((d) => {
             const fd = mapOldFieldNamesToNew(getLatestFormData(d.data) || {}, reportType)
             const stale = isStaleT2Draft(fd)
             if (stale) {
               console.warn('⚠️ Step 2: Stale T2 draft detected (no T1 fields) — skipping:', d.id)
             }
-            return !stale
+            const wrongYear = isWrongSchoolYear(d.data)
+            if (wrongYear) {
+              console.warn('⚠️ Step 2: Prior-school-year draft detected — skipping:', d.id)
+            }
+            return !stale && !wrongYear
           })
 
           if (draftsToConsider.length > 0) {
@@ -1458,7 +1496,13 @@ const ReportCard = ({ presetReportCardId = null }) => {
             }))
             .filter(report => {
               const status = report.data.status
-              return status === 'complete' || status === 'approved'
+              const isCompleted = status === 'complete' || status === 'approved'
+              if (!isCompleted) return false
+              if (isWrongSchoolYear(report.data)) {
+                console.warn('⚠️ Step 3: Completed Term 1 report is from a prior school year — skipping:', report.id)
+                return false
+              }
+              return true
             })
           
           if (completedReports.length > 0) {
@@ -1532,10 +1576,10 @@ const ReportCard = ({ presetReportCardId = null }) => {
                 const gradeLower = grade.toString().toLowerCase()
                 
                 // SK -> Grade 1, JK -> KG Year 2
-                if (gradeLower.includes('sk') || gradeLower === 'senior kindergarten') {
+                if (gradeLower.includes('sk') || gradeLower === 'senior kindergarten' || gradeLower.includes('sr kindergarten')) {
                   term2FormData.placementInSeptemberGrade1 = true
                   term2FormData.placementInSeptemberKG2 = false
-                } else if (gradeLower.includes('jk') || gradeLower === 'junior kindergarten') {
+                } else if (gradeLower.includes('jk') || gradeLower === 'junior kindergarten' || gradeLower.includes('jr kindergarten')) {
                   term2FormData.placementInSeptemberKG2 = true
                   term2FormData.placementInSeptemberGrade1 = false
                 }
@@ -1659,10 +1703,10 @@ const ReportCard = ({ presetReportCardId = null }) => {
                 const gradeLower = grade.toString().toLowerCase()
                 
                 // SK -> Grade 1, JK -> KG Year 2
-                if (gradeLower.includes('sk') || gradeLower === 'senior kindergarten') {
+                if (gradeLower.includes('sk') || gradeLower === 'senior kindergarten' || gradeLower.includes('sr kindergarten')) {
                   term2FormData.placementInSeptemberGrade1 = true
                   term2FormData.placementInSeptemberKG2 = false
-                } else if (gradeLower.includes('jk') || gradeLower === 'junior kindergarten') {
+                } else if (gradeLower.includes('jk') || gradeLower === 'junior kindergarten' || gradeLower.includes('jr kindergarten')) {
                   term2FormData.placementInSeptemberKG2 = true
                   term2FormData.placementInSeptemberGrade1 = false
                 }
@@ -1998,6 +2042,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
         reportCardType: selectedReportCard,
         reportCardTypeName: reportCardType?.name || 'Unknown',
         term: selectedTerm, // B7: Store term in draft
+        schoolYear: schoolYearInfoRef.current?.label || null,
         formData: cleanFormData, // Use cleaned form data
         // Store only essential student data to avoid circular references
         selectedStudent: {
@@ -2952,6 +2997,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
             studentId: selectedStudent?.id || '',
             reportCardTypeName: reportCardType?.name || 'Unknown',
             term: selectedTerm, // B7: Store term (term1 or term2)
+            schoolYear: schoolYearInfoRef.current?.label || null,
             createdAt: serverTimestamp(),
             completedAt: serverTimestamp(),
           })

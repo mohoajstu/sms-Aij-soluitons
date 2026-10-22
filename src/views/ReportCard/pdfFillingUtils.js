@@ -7,6 +7,16 @@ import { PDFDocument, StandardFonts, PDFNumber, PDFName, PDFDict, PDFStream, PDF
 import fontkit from '@pdf-lib/fontkit'
 import { generateFieldNameVariations } from './fieldMappings'
 
+// Progress-report comment boxes (sansResponsibility…, sans2Language…) are
+// too short for two clean lines at 10pt, so they print at 8.5pt. The comment
+// caps in utils/characterLimits.js are sized for this; see
+// __tests__/pdfFieldCapacity.test.js. The Quran template's plain "sans" field
+// and every other field keep 10pt.
+export const DEFAULT_FIELD_FONT_SIZE = 10
+export const PROGRESS_COMMENT_FONT_SIZE = 8.5
+export const getFieldFontSize = (fieldName) =>
+  /^sans2?[A-Z]/.test(fieldName || '') ? PROGRESS_COMMENT_FONT_SIZE : DEFAULT_FIELD_FONT_SIZE
+
 const ARABIC_REGEX_GLOBAL = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+/g
 
 export const stripArabicFromText = (text) => {
@@ -842,7 +852,7 @@ export const fillPDFFormWithData = async (pdfDoc, formData, timesRomanFont, cont
         if (field) {
           const valueText = processedValue?.toString?.() ?? ''
           const safeText = stripArabicFromText(valueText)
-          const success = fillPDFField(field, safeText, timesRomanFont, 10)
+          const success = fillPDFField(field, safeText, timesRomanFont, getFieldFontSize(field.getName()))
           if (success) {
             filledCount++
             matchedFields.push({ formKey, pdfField: fieldName, value: processedValue.toString() })

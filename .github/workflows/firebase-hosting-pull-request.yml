@@ -18,6 +18,8 @@ jobs:
           node-version: 20
           cache: 'yarn'
       - run: yarn install --non-interactive --no-progress
+      - name: Run unit tests
+        run: yarn test:unit
       - run: yarn build
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:

@@ -28,7 +28,8 @@ export default function AIReportCommentInput({
   explicitReportType,  // optional: override report type
   subjectField,        // optional: where subject lives in your form
   buttonText,
-  className = ""
+  className = "",
+  maxChars,            // optional: character limit of the target field
 }) {
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
@@ -101,6 +102,7 @@ export default function AIReportCommentInput({
       const payload = {
         ...basePayload,
         teacherPrompt: prompt.trim(),
+        maxChars,
       };
 
       // Call OpenAI directly (serverless)
@@ -286,4 +288,5 @@ AIReportCommentInput.propTypes = {
   subjectField: PropTypes.string,          // (optional) where subject is stored in formData
   buttonText: PropTypes.string,
   className: PropTypes.string,
+  maxChars: PropTypes.number,              // (optional) character limit of the target field
 }; 
