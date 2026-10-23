@@ -1,25 +1,7 @@
 {
-  "name": "Isolate report persistence and review by school year and term",
+  "name": "Verified production baseline; no pending frontend changes",
   "project": "tarbiyah-sms",
   "target": "hosting:tlasms",
-  "baseAsset": "/assets/index-Q-gQNk2P.js",
-  "allowedFiles": [
-    "src/views/ReportCard/Components/AdminReportCardReview.js",
-    "src/views/ReportCard/Components/TeacherReportProgress.js",
-    "src/views/ReportCard/Components/ReportScopeFilter.jsx",
-    "src/views/ReportCard/PastReportCardsTable.js",
-    "src/views/ReportCard/utils.js",
-    "src/views/ReportCard/utils/schoolYear.js",
-    "src/views/ReportCard/utils/reportScope.js",
-    "src/views/ReportCard/utils/useReportScope.js",
-    "src/views/ReportCard/utils/saveScopedDraft.js",
-    "src/views/ReportCard/utils/publishScopedReport.js",
-    "src/views/ReportCard/utils/teacherDrafts.js",
-    "src/views/ReportCard/__tests__/schoolYear.test.js",
-    "src/views/ReportCard/__tests__/reportScope.test.js",
-    "src/views/ReportCard/__tests__/reportPersistence.test.js",
-    "src/views/ReportCard/__tests__/reportScopeFilter.test.jsx",
-    "src/views/admin/__tests__/TimesheetApprovals.test.jsx",
-    "src/views/ReportCard/__tests__/reportEditorPersistence.test.jsx"
-  ]
+  "baseAsset": "/assets/index-JSDq1E7i.js",
+  "allowedFiles": []
 }
