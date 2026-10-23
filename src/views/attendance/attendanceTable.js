@@ -24,6 +24,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore'
 import { firestore } from '../../Firebase/firebase'
 import useAuth from '../../Firebase/useAuth'
+import { loadRosterStudents } from '../../services/courseRoster'
 import './attendanceTable.css'
 
 const AttendanceTable = () => {
@@ -31,6 +32,7 @@ const AttendanceTable = () => {
   const selectedCourse = location.state?.selectedCourse
   const [students, setStudents] = useState([])
   const [studentsLoading, setStudentsLoading] = useState(false)
+  const [unloadedStudents, setUnloadedStudents] = useState([])
   const [attendanceData, setAttendanceData] = useState({})
   const [originalAttendanceData, setOriginalAttendanceData] = useState({})
   const [showModal, setShowModal] = useState(false)
@@ -49,41 +51,15 @@ const AttendanceTable = () => {
   useEffect(() => {
     const fetchEnrolledStudents = async () => {
       setStudentsLoading(true)
-      let studentIds = []
-
-      // Check for the 'students' array in the course object first
-      if (selectedCourse?.students && Array.isArray(selectedCourse.students)) {
-        studentIds = selectedCourse.students.map((student) => student.id).filter(Boolean)
-      }
-      // Fallback to 'enrolledList' if 'students' isn't there
-      else if (selectedCourse?.enrolledList) {
-        studentIds = selectedCourse.enrolledList
-      }
-
-      if (studentIds.length > 0) {
-        try {
-          const studentDocs = await Promise.all(
-            studentIds.map(async (id) => {
-              const docRef = doc(firestore, 'students', id)
-              const docSnap = await getDoc(docRef)
-              if (docSnap.exists()) {
-                return { id: docSnap.id, ...docSnap.data() }
-              } else {
-                console.warn(`Student with ID ${id} could not be found.`)
-                return null
-              }
-            }),
-          )
-          setStudents(studentDocs.filter(Boolean))
-        } catch (err) {
-          setStudents([])
-          console.error('Error fetching enrolled students:', err)
-        } finally {
-          setStudentsLoading(false)
-        }
-      } else {
-        // If no course is selected or it has no students, clear the list
+      try {
+        const { students: loaded, missing } = await loadRosterStudents(selectedCourse)
+        setStudents(loaded)
+        setUnloadedStudents(missing)
+      } catch (err) {
         setStudents([])
+        setUnloadedStudents([])
+        console.error('Error fetching enrolled students:', err)
+      } finally {
         setStudentsLoading(false)
       }
     }
@@ -299,6 +275,20 @@ const AttendanceTable = () => {
             Attendance for this class and date has already been taken. You may update and resubmit if
             needed.
           </div>
+        </CAlert>
+      )}
+
+      {!studentsLoading && unloadedStudents.length > 0 && (
+        <CAlert color="danger" className="mb-3">
+          <div className="d-flex align-items-center mb-2">
+            <CIcon icon={cilBellExclamation} className="flex-shrink-0 me-2" />
+            <strong>
+              {unloadedStudents.length} of {students.length + unloadedStudents.length} students on
+              this class list are missing a student record, so you cannot mark them below.
+            </strong>
+          </div>
+          <div>{unloadedStudents.map((s) => s.name || s.id).join(', ')}</div>
+          <div className="mt-2">Ask the office to fix the class list before you record today.</div>
         </CAlert>
       )}
 

@@ -2,10 +2,21 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    
+    function isActAsSessionValid() {
+      return request.auth == null || !('actAsSession' in request.auth.token) || (
+        firestore.exists(/databases/(default)/documents/actAsSessions/$(request.auth.token.actAsSession)) &&
+        firestore.get(/databases/(default)/documents/actAsSessions/$(request.auth.token.actAsSession)).data.status == 'active' &&
+        firestore.get(/databases/(default)/documents/actAsSessions/$(request.auth.token.actAsSession)).data.targetUid == request.auth.uid &&
+        firestore.get(/databases/(default)/documents/actAsSessions/$(request.auth.token.actAsSession)).data.actorUid == request.auth.token.actAsActor &&
+        firestore.get(/databases/(default)/documents/actAsSessions/$(request.auth.token.actAsSession)).data.expiresAt > request.time.toMillis()
+      );
+    }
+
+
+
     // Helper function to check if user is admin
     function isAdmin() {
-      return request.auth != null && 
+      return request.auth != null &&
              firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
              (
                firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.primaryRole != null &&
@@ -33,10 +44,10 @@ service firebase.storage {
                )
              );
     }
-    
+
     // Helper function to check if user is faculty
     function isFaculty() {
-      return request.auth != null && 
+      return request.auth != null &&
              firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
              (
                (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.primaryRole != null &&
@@ -51,10 +62,10 @@ service firebase.storage {
                 firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo.primaryRole.lower() == 'faculty')
              );
     }
-    
+
     // Helper function to check if user is parent
     function isParent() {
-      return request.auth != null && 
+      return request.auth != null &&
              firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
              (
                (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.primaryRole != null &&
@@ -69,46 +80,46 @@ service firebase.storage {
                 firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.personalInfo.primaryRole.lower() == 'parent')
              );
     }
-    
+
     // EXISTING RULE: Report Cards - Teacher uploads (drafts and completed)
     // This rule allows authenticated users to manage their own report cards
     match /reportCards/{userId}/{allPaths=**} {
       // Admins can read/write all
-      allow read, write: if isAdmin();
-      
+      allow read, write: if isActAsSessionValid() && (isAdmin());
+
       // Faculty/teachers can read/write their own uploads
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isActAsSessionValid() && (request.auth != null && request.auth.uid == userId);
     }
-    
+
     // NEW RULE: Report Cards - Approved reports (visible to parents)
     // Admins upload approved reports here, parents can read them
     match /reportCards/approved/{fileName} {
       // Admins can read/write all approved report cards
-      allow read, write: if isAdmin();
-      
+      allow read, write: if isActAsSessionValid() && (isAdmin());
+
       // Faculty can read/write their own report cards (if they uploaded them)
-      allow read, write: if isFaculty() && 
+      allow read, write: if isActAsSessionValid() && (isFaculty() &&
                             request.resource.metadata != null &&
-                            request.resource.metadata.uid == request.auth.uid;
-      
+                            request.resource.metadata.uid == request.auth.uid);
+
       // Parents can read approved report cards (for their children)
-      allow read: if isParent();
+      allow read: if isActAsSessionValid() && (isParent());
     }
-    
+
     // EXISTING RULE: Registration files - public uploads
     // This rule allows ANYONE to upload registration files into categorized folders
     match /registrations/{registrationId}/{category}/{fileName} {
       // Allow reading a file. This is needed to get the download URL after uploading.
       // IMPORTANT: This means anyone with the direct link can view the file.
-      allow get: if true;
-      
+      allow get: if isActAsSessionValid() && (true);
+
       // Listing directory contents is blocked for security.
-      allow list: if false;
-      
+      allow list: if isActAsSessionValid() && (false);
+
       // Allow uploads that meet specific criteria:
       // - Common document and image formats (PDF, images, Word docs, Excel, text files)
       // - The file size is less than 10MB.
-      allow write: if request.resource.size < 10 * 1024 * 1024 &&
+      allow write: if isActAsSessionValid() && (request.resource.size < 10 * 1024 * 1024 &&
                       request.resource.contentType.matches(
                         'application/pdf|' +
                         'image/jpeg|image/jpg|image/png|image/gif|image/webp|' +
@@ -117,7 +128,7 @@ service firebase.storage {
                         'text/plain|' +
                         'application/vnd.ms-excel|' +
                         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                      );
+                      ));
     }
   }
 }

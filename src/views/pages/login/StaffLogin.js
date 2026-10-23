@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
-import { getFirestore, doc, setDoc, getDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore'
-import { auth } from '../../../Firebase/firebase'
+import { doc, setDoc, getDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore'
+import { auth, firestore } from '../../../Firebase/firebase'
 import { STAFF_AUTHORIZED_DOMAINS, isStaffEmailAuthorized, isAdminUser } from '../../../config/authConfig'
 import {
   CButton,
@@ -16,7 +16,7 @@ import {
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilUser, cilHome } from '@coreui/icons'
-import { loadCurrentUserProfile } from '../../../utils/userProfile'
+import { loadCurrentUserProfile, resolveProfileRole } from '../../../utils/userProfile'
 import { toast } from 'react-hot-toast'
 
 // Configure Google Provider for staff with additional scopes
@@ -26,7 +26,7 @@ googleProvider.addScope('https://www.googleapis.com/auth/calendar.readonly')
 googleProvider.addScope('https://www.googleapis.com/auth/calendar.events')
 
 
-const db = getFirestore()
+const db = firestore
 const SHARED_GOOGLE_AUTH_TOKEN_KEY = 'firebase_google_auth_token'
 
 const StaffLogin = () => {
@@ -63,8 +63,7 @@ const StaffLogin = () => {
           // Check users collection as fallback
           const profile = await loadCurrentUserProfile(db, user)
           if (profile) {
-            const profileRole = profile.data?.personalInfo?.role || profile.data?.role || 'guest'
-            normalizedRole = String(profileRole).toLowerCase()
+            normalizedRole = resolveProfileRole(profile)
             tarbiyahId = profile.id
           }
         }

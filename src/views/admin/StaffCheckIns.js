@@ -24,6 +24,8 @@ import {
   CTabContent,
   CTabPane,
 } from '@coreui/react'
+import { collection, getDocs } from 'firebase/firestore'
+import { firestore } from '../../firebase'
 import useAuth from '../../Firebase/useAuth'
 import {
   getRecentStaffCheckIns,
@@ -36,6 +38,8 @@ import {
   defaultTimekeepingSettings,
 } from '../../services/timekeepingSettings'
 import TimekeepingSettings from './TimekeepingSettings'
+import TimesheetExport from './TimesheetExport'
+import TimesheetApprovals from './TimesheetApprovals'
 
 const formatDateTime = (ts) => {
   if (!ts) return { day: '—', time: '—' }
@@ -89,11 +93,26 @@ const StaffCheckIns = () => {
   const load = async () => {
     setLoading(true)
     try {
-      const [data, s] = await Promise.all([
+      const [data, s, facultySnap] = await Promise.all([
         getRecentStaffCheckIns(500),
         getTimekeepingSettings({ forceRefresh: true }),
+        getDocs(collection(firestore, 'faculty')),
       ])
-      setRows(data)
+      // Check-ins made by flagged test accounts stay in Firestore and out
+      // of this list.
+      const testEmails = new Set(
+        facultySnap.docs
+          .filter((d) => d.data().isTestAccount === true)
+          .map((d) => {
+            const x = d.data()
+            const p = x.personalInfo || {}
+            return String(p.email || x.email || (x.contact || {}).email || '')
+              .trim()
+              .toLowerCase()
+          })
+          .filter(Boolean),
+      )
+      setRows(data.filter((r) => !testEmails.has(String(r.email || '').toLowerCase())))
       setSettings(s)
     } catch (err) {
       console.error('Failed to load staff check-ins:', err)
@@ -176,6 +195,20 @@ const StaffCheckIns = () => {
             style={{ cursor: 'pointer' }}
           >
             Settings
+          </CNavLink>
+        </CNavItem>
+        <CNavItem>
+          <CNavLink
+            active={activeTab === 2}
+            onClick={() => setActiveTab(2)}
+            style={{ cursor: 'pointer' }}
+          >
+            Timesheets
+          </CNavLink>
+        </CNavItem>
+        <CNavItem>
+          <CNavLink active={activeTab === 3} onClick={() => setActiveTab(3)} style={{ cursor: 'pointer' }}>
+            Approvals
           </CNavLink>
         </CNavItem>
       </CNav>
@@ -298,6 +331,15 @@ const StaffCheckIns = () => {
                                 Outside fence
                               </CBadge>
                             )}
+                            {r.inRange !== false && r.locationCertainty === 'uncertain' && (
+                              <CBadge
+                                color="secondary"
+                                className="ms-1"
+                                title="The device could not pin down a location precise enough to judge against the fence."
+                              >
+                                Unconfirmed location
+                              </CBadge>
+                            )}
                           </CTableDataCell>
                           <CTableDataCell>
                             {r.distanceMeters != null ? `${r.distanceMeters}m` : '—'}
@@ -336,6 +378,9 @@ const StaffCheckIns = () => {
         <CTabPane visible={activeTab === 1}>
           <TimekeepingSettings />
         </CTabPane>
+
+        <CTabPane visible={activeTab === 2}>{activeTab === 2 && <TimesheetExport />}</CTabPane>
+        <CTabPane visible={activeTab === 3}>{activeTab === 3 && <TimesheetApprovals />}</CTabPane>
       </CTabContent>
     </CContainer>
   )

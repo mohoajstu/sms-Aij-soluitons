@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
-import { getFirestore, doc, setDoc, getDoc, serverTimestamp, collection, getDocs } from 'firebase/firestore'
-import { auth } from '../../../Firebase/firebase'
+import { doc, setDoc, getDoc, serverTimestamp, collection, getDocs } from 'firebase/firestore'
+import { auth, firestore } from '../../../Firebase/firebase'
 import {
   CButton,
   CCard,
@@ -27,7 +27,7 @@ googleProvider.addScope('https://www.googleapis.com/auth/drive.file')
 googleProvider.addScope('https://www.googleapis.com/auth/calendar.readonly')
 googleProvider.addScope('https://www.googleapis.com/auth/calendar.events')
 
-const db = getFirestore()
+const db = firestore
 const SHARED_GOOGLE_AUTH_TOKEN_KEY = 'firebase_google_auth_token'
 
 const Login = () => {

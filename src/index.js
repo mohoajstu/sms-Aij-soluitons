@@ -5,9 +5,10 @@ import 'core-js'
 
 import App from './App'
 import store from './store'
+import ActAsBoundary from './components/ActAsBoundary'
 
 createRoot(document.getElementById('root')).render(
   <Provider store={store}>
-    <App />
+    <ActAsBoundary><App /></ActAsBoundary>
   </Provider>,
 )

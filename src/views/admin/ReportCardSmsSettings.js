@@ -1,3 +1,4 @@
+import { normalizeDefaultTerm } from '../ReportCard/utils/useReportTerm'
 import React, { useState, useEffect } from 'react'
 import {
   CCard,
@@ -10,6 +11,7 @@ import {
   CSpinner,
   CAlert,
   CFormInput,
+  CFormSelect,
 } from '@coreui/react'
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
 import { firestore } from '../../Firebase/firebase'
@@ -29,6 +31,7 @@ const ReportCardSmsSettings = () => {
   const [settings, setSettings] = useState({
     disableEditing: false, // B9: Disable editing setting
     hideProgressReports: false, // B3: Hide progress reports from selection
+    defaultTerm: 'term1',
     reportCardDate: '', // Autofill date for report cards
   })
   const [alert, setAlert] = useState({ show: false, message: '', color: 'success' })
@@ -49,6 +52,7 @@ const ReportCardSmsSettings = () => {
           disableEditing: loadedSettings.disableEditing ?? false,
           hideProgressReports: loadedSettings.hideProgressReports ?? false,
           reportCardDate: loadedSettings.reportCardDate || '',
+          defaultTerm: normalizeDefaultTerm(loadedSettings.defaultTerm),
         })
       } else {
         // Create default settings if they don't exist
@@ -133,6 +137,23 @@ const ReportCardSmsSettings = () => {
           )}
 
           <CForm>
+            <div className="mb-4 p-3 border rounded bg-light">
+              <CFormLabel htmlFor="defaultReportTerm" className="fw-semibold">
+                Default report card term
+              </CFormLabel>
+              <CFormSelect
+                id="defaultReportTerm"
+                value={settings.defaultTerm}
+                onChange={(e) => setSettings({ ...settings, defaultTerm: e.target.value })}
+              >
+                <option value="term1">Term 1</option>
+                <option value="term2">Term 2</option>
+              </CFormSelect>
+              <p className="text-muted mt-2 mb-0">
+                Sets the starting term when opening the report card generator. Teachers can
+                switch terms. Existing drafts keep their saved term.
+              </p>
+            </div>
             {/* B9: Disable editing setting */}
             <div className="mb-4 p-3 border rounded bg-light">
               <div className="d-flex align-items-start justify-content-between mb-2">

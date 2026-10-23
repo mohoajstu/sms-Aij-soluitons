@@ -2,8 +2,68 @@ const functions = require('firebase-functions/v1')
 const admin = require('firebase-admin')
 const twilio = require('twilio')
 const cors = require('cors')
+const { interpretComments } = require('./timekeepingCommentInterpretation')
 
 admin.initializeApp()
+
+exports.actAs = functions.region('northamerica-northeast1').https.onRequest((req, res) =>
+  require('./actAs').createHandler({ admin })(req, res))
+
+exports.registrationEnrollment = functions.region('northamerica-northeast1').https.onRequest((req, res) =>
+  require('./registrationEnrollment').createHandler({ admin,
+    reviewerEmails: String(functions.config().timekeeping?.revieweremails || '').split(',').map((e) => e.trim()).filter(Boolean),
+  })(req, res))
+
+exports.staffTimesheets = functions.region('northamerica-northeast1').https.onRequest((req, res) =>
+  require('./staffTimesheets').createHandler({ admin,
+    reviewerEmails: String(functions.config().timekeeping?.revieweremails || '').split(',').map((e) => e.trim()).filter(Boolean),
+    apiKey: process.env.OPENAI_API_KEY || functions.config().openai?.apikey,
+  })(req, res))
+
+// A separate, admin-only OpenAI path for timekeeping notes. It returns suggestions;
+// the export UI requires review before any suggestion changes paid hours.
+exports.interpretTimekeepingComments = functions
+  .region('northamerica-northeast1')
+  .https.onRequest(async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*')
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    if (req.method === 'OPTIONS') return res.status(204).send('')
+    if (req.method !== 'POST') return res.status(405).json({ message: 'Only POST allowed.' })
+
+    try {
+      const token = /^Bearer (.+)$/.exec(req.headers.authorization || '')?.[1]
+      if (!token) return res.status(401).json({ message: 'Sign in required.' })
+      const identity = await admin.auth().verifyIdToken(token, true)
+      await require('./actAs').validateActAsSession(admin, identity)
+      const { uid } = identity
+      const user = await admin.firestore().collection('users').doc(uid).get()
+      const data = user.data() || {}
+      const roles = [data.primaryRole, data.role, data.personalInfo?.primaryRole, data.personalInfo?.role]
+        .map((value) => String(value || '').toLowerCase())
+      if (!roles.some((role) => ['admin', 'schooladmin', 'school_admin'].includes(role))) {
+        return res.status(403).json({ message: 'Admin access required.' })
+      }
+
+      const comments = req.body?.comments
+      if (!Array.isArray(comments) || comments.length > 100 || comments.some(
+        (c) => !c || typeof c.id !== 'string' || c.id.length > 150 ||
+          typeof c.note !== 'string' || c.note.length > 500,
+      )) {
+        return res.status(400).json({ message: 'Invalid comments.' })
+      }
+      if (new Set(comments.map((c) => c.id)).size !== comments.length) {
+        return res.status(400).json({ message: 'Duplicate comment IDs.' })
+      }
+      const apiKey = process.env.OPENAI_API_KEY || functions.config().openai?.apikey
+      if (!apiKey) return res.status(503).json({ message: 'OpenAI is not configured.' })
+      const entries = comments.length ? await interpretComments(comments, apiKey) : []
+      return res.status(200).json({ entries })
+    } catch (error) {
+      console.error('Timekeeping interpretation failed:', error)
+      return res.status(500).json({ message: 'Could not interpret timekeeping comments.' })
+    }
+  })
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID || functions.config().twilio?.accountsid
 const authToken = process.env.TWILIO_AUTH_TOKEN || functions.config().twilio?.authtoken
@@ -606,7 +666,8 @@ exports.setParentTempPassword = functions
     }
 
     try {
-      const decoded = await admin.auth().verifyIdToken(idToken)
+      const decoded = await admin.auth().verifyIdToken(idToken, true)
+      await require('./actAs').validateActAsSession(admin, decoded)
       const callerUid = decoded.uid
       const db = admin.firestore()
       const callerSnap = await db.collection('users').doc(callerUid).get()

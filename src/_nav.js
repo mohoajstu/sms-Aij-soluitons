@@ -120,6 +120,13 @@ const _nav = [
     icon: <CIcon icon={cilClock} customClassName="nav-icon" />,
     hideFor: ['parent', 'student', 'teacher', 'faculty'],
   },
+  {
+    component: CNavItem,
+    name: 'My Timesheets',
+    to: '/my-timesheets',
+    icon: <CIcon icon={cilClock} customClassName="nav-icon" />,
+    hideFor: ['parent', 'student'],
+  },
 ]
 
 export default _nav

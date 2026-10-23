@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { updatePassword } from 'firebase/auth'
-import { doc, updateDoc, getFirestore } from 'firebase/firestore'
-import { auth } from '../../../Firebase/firebase'
+import { doc, updateDoc } from 'firebase/firestore'
+import { auth, firestore } from '../../../Firebase/firebase'
 import {
   CCard,
   CCardBody,
@@ -45,7 +45,7 @@ const ChangePassword = () => {
     try {
       await updatePassword(user, newPassword)
       // Flip the flag off in Firestore
-      const db = getFirestore()
+      const db = firestore
       await updateDoc(doc(db, 'users', user.uid), { mustChangePassword: false })
       setSuccess('Password changed successfully!')
       setTimeout(() => navigate('/'), 800)

@@ -3,6 +3,18 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Act as audit records are server-managed. Ending a session does not
+    // revoke or interrupt the real teacher's own login.
+    function isActAsSessionValid() {
+      return request.auth == null || !('actAsSession' in request.auth.token) || (
+        exists(/databases/$(database)/documents/actAsSessions/$(request.auth.token.actAsSession)) &&
+        get(/databases/$(database)/documents/actAsSessions/$(request.auth.token.actAsSession)).data.status == 'active' &&
+        get(/databases/$(database)/documents/actAsSessions/$(request.auth.token.actAsSession)).data.targetUid == request.auth.uid &&
+        get(/databases/$(database)/documents/actAsSessions/$(request.auth.token.actAsSession)).data.actorUid == request.auth.token.actAsActor &&
+        get(/databases/$(database)/documents/actAsSessions/$(request.auth.token.actAsSession)).data.expiresAt > request.time.toMillis()
+      );
+    }
+
     // Helper functions
     function isAdmin() {
       let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
@@ -56,70 +68,70 @@ service cloud.firestore {
 
     // Registration forms: ANYONE can create and update (for public registration), admins/faculty can read/write/delete
     match /registrations/{docId} {
-      allow create: if true; // Allow anyone to submit registration forms
-      allow update: if true; // Allow anyone to update their registration (for editing before submission)
-      allow read, write, delete: if isAdmin() || isFaculty();
+      allow create: if isActAsSessionValid() && (true); // Allow anyone to submit registration forms
+      allow update: if isActAsSessionValid() && (true); // Allow anyone to update their registration (for editing before submission)
+      allow read, write, delete: if isActAsSessionValid() && (isAdmin() || isFaculty());
     }
 
     // Registration settings: anyone can read (needed for public registration form), only admins can write
     match /systemSettings/{docId} {
-      allow read: if docId == 'registration' || isAdmin() || isFaculty();
-      allow write: if isAdmin();
+      allow read: if isActAsSessionValid() && (docId == 'registration' || isAdmin() || isFaculty());
+      allow write: if isActAsSessionValid() && (isAdmin());
     }
 
     // Counters collection: needed for generating registration IDs
     match /counters/{docId} {
       // Allow anyone to read/write the registrations counter (for public registration)
-      allow read, write: if docId == 'registrations';
+      allow read, write: if isActAsSessionValid() && (docId == 'registrations');
       // Other counters require authentication
-      allow read, write: if isAuthenticated();
+      allow read, write: if isActAsSessionValid() && (isAuthenticated());
     }
 
     // Announcements: anyone can read, only admins can write
     match /announcements/{docId} {
-      allow read: if true;
-      allow write: if isAdmin();
+      allow read: if isActAsSessionValid() && (true);
+      allow write: if isActAsSessionValid() && (isAdmin());
     }
 
     // Report Card Drafts: teachers can read/write their own drafts, admins can read/write all
     match /reportCardDrafts/{draftId} {
-      allow read, write: if isAdmin();
-      allow read, write: if isFaculty() && resource.data.uid == request.auth.uid;
-      allow create: if isFaculty() && request.resource.data.uid == request.auth.uid;
+      allow read, write: if isActAsSessionValid() && (isAdmin());
+      allow read, write: if isActAsSessionValid() && (isFaculty() && resource.data.uid == request.auth.uid);
+      allow create: if isActAsSessionValid() && (isFaculty() && request.resource.data.uid == request.auth.uid);
     }
 
     // Report Cards: teachers can read/write their own, admins can read/write all, parents can read approved ones
     match /reportCards/{reportId} {
-      allow read, write: if isAdmin();
-      allow read, write: if isFaculty() && resource.data.uid == request.auth.uid;
-      allow create: if isFaculty() && request.resource.data.uid == request.auth.uid;
+      allow read, write: if isActAsSessionValid() && (isAdmin());
+      allow read, write: if isActAsSessionValid() && (isFaculty() && resource.data.uid == request.auth.uid);
+      allow create: if isActAsSessionValid() && (isFaculty() && request.resource.data.uid == request.auth.uid);
       // Parents can read approved/published report cards for their children
-      allow read: if isParent() && 
+      allow read: if isActAsSessionValid() && (isParent() &&
                      resource.data.status in ['approved', 'published'] &&
-                     'tarbiyahId' in resource.data;
+                     'tarbiyahId' in resource.data);
     }
 
     // Users can read their own profile or if they're a parent (temporarily permissive)
     match /users/{userId} {
-      allow read: if request.auth.uid == userId || isParent();
-      allow write: if request.auth.uid == userId || isParent() || isFaculty();
+      allow read: if isActAsSessionValid() && (request.auth.uid == userId || isParent());
+      allow write: if isActAsSessionValid() && (request.auth.uid == userId || isParent() || isFaculty());
     }
 
     // Rules for courses
     match /courses/{courseId} {
-        allow read, update: if isFaculty() && (
+        allow read, update: if isActAsSessionValid() && (isFaculty() && (
           request.auth.uid in resource.data.teacherIds ||
           courseId in get(/databases/$(database)/documents/faculty/$(request.auth.uid)).data.courses
-        );
+        ));
         // Parents can read courses their children are enrolled in.
-        allow read: if isParent() && exists(/databases/$(database)/documents/students/$(request.auth.uid)) &&
-                     courseId in get(/databases/$(database)/documents/students/$(request.auth.uid)).data.enrolledCourses;
+        allow read: if isActAsSessionValid() && (isParent() && exists(/databases/$(database)/documents/students/$(request.auth.uid)) &&
+                     courseId in get(/databases/$(database)/documents/students/$(request.auth.uid)).data.enrolledCourses);
     }
 
     // Rules for students - allow self access; keep current parent/faculty logic
     match /students/{studentId} {
       // Teachers can read student data IF that student is enrolled in a course the teacher manages.
-      allow read: if isFaculty() &&
+      allow read: if isActAsSessionValid() && (isFaculty() &&
                      'teacherProfile' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data &&
                      'classesManaged' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teacherProfile &&
                      'enrolledCourses' in resource.data &&
@@ -135,66 +147,66 @@ service cloud.firestore {
                       studentId == request.auth.uid ||
                       studentId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tarbiyahId
                     )
-                  );
+                  ));
 
       // TEMPORARILY PERMISSIVE: Allow any parent to write student data
       // Plus allow the student to write their own doc (for Profile page saves)
-      allow write: if isParent() ||
+      allow write: if isActAsSessionValid() && (isParent() ||
                    (
                      request.auth != null &&
                      (
                        studentId == request.auth.uid ||
                        studentId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tarbiyahId
                      )
-                   );
+                   ));
     }
-    
+
     // Allow faculty to read and write their own faculty document
     match /faculty/{facultyId} {
-      allow read, write: if request.auth.uid == facultyId;
+      allow read, write: if isActAsSessionValid() && (request.auth.uid == facultyId);
     }
-    
+
     // Allow faculty to read courses and students
     match /courses/{courseId} {
-      allow read: if isAuthenticated();
+      allow read: if isActAsSessionValid() && (isAuthenticated());
     }
-    
+
     match /students/{studentId} {
-      allow read: if isAuthenticated();
+      allow read: if isActAsSessionValid() && (isAuthenticated());
     }
-    
+
     // Allow users to read their own user document
     match /users/{userId} {
-      allow read, write: if request.auth.uid == userId;
+      allow read, write: if isActAsSessionValid() && (request.auth.uid == userId);
     }
-    
+
     // Allow parents to read and write their own document
     match /parents/{parentId} {
-      allow read, write: if request.auth.uid == parentId;
+      allow read, write: if isActAsSessionValid() && (request.auth.uid == parentId);
     }
-    
+
     // Allow admins to read and write all documents
     match /admins/{adminId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isActAsSessionValid() && (isAuthenticated());
     }
-    
+
     // Announcements: anyone can read, only admins can write
     match /announcements/{docId} {
-      allow read: if true;
-      allow write: if isAuthenticated();
+      allow read: if isActAsSessionValid() && (true);
+      allow write: if isActAsSessionValid() && (isAuthenticated());
     }
-    
+
     // Staff geographic check-ins (timekeeping)
     match /staffCheckins/{checkInId} {
       // Staff create their own check-ins (uid must match auth)
-      allow create: if isAuthenticated() &&
+      allow create: if isActAsSessionValid() && (isAuthenticated() &&
                        request.resource.data.uid == request.auth.uid &&
-                       (isAdmin() || isFaculty());
+                       (isAdmin() || isFaculty()));
       // Admin can read all, users can read their own
-      allow read: if isAdmin() ||
-                     (isAuthenticated() && resource.data.uid == request.auth.uid);
+      allow read: if isActAsSessionValid() && (isAdmin() ||
+                     (isAuthenticated() && resource.data.uid == request.auth.uid));
       // Only admin can edit/delete (e.g., to correct or void records)
-      allow update, delete: if isAdmin();
+      allow update, delete: if isActAsSessionValid() && (isAdmin());
     }
 
     // Default rule: require sign-in.
@@ -208,8 +220,11 @@ service cloud.firestore {
     // is open to the public, an attacker can still self-serve an account and get
     // back in. Per-collection rules are the actual fix; this is the stopgap that
     // closes the drive-by path today.
-    match /{document=**} {
-      allow read, write: if isAuthenticated();
+    // Corrections and their history are server-only, accessed through the
+    // verified-email staffTimesheets API. Never expose them via this legacy rule.
+    match /{collectionId}/{document=**} {
+      allow read, write: if isActAsSessionValid() && (isAuthenticated() &&
+        collectionId != 'actAsSessions' && collectionId != 'staffTimesheetCorrections' && collectionId != 'timekeepingAdminAccess');
     }
   }
 }
