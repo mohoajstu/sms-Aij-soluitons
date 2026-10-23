@@ -106,7 +106,7 @@ describe('isFromCurrentSchoolYear', () => {
     ).toBe(false)
   })
 
-  it('keeps untagged drafts worked on this year (pre-existing current-year work)', () => {
+  it('keeps legacy documents in their creation year even if reviewed this year', () => {
     expect(
       isFromCurrentSchoolYear(
         {
@@ -115,7 +115,7 @@ describe('isFromCurrentSchoolYear', () => {
         },
         CURRENT,
       ),
-    ).toBe(true)
+    ).toBe(false)
   })
 
   it('rejects untagged drafts last touched in a prior year (the Grade 8 carryover case)', () => {
@@ -145,6 +145,6 @@ describe('isFromCurrentSchoolYear', () => {
         { schoolYear: null, lastModified: fakeTimestamp('2026-10-15T00:00:00Z') },
         CURRENT,
       ),
-    ).toBe(true)
+    ).toBe(false)
   })
 })

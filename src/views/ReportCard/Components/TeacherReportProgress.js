@@ -1,3 +1,7 @@
+import { getReportTerm } from '../utils/reportScope'
+import { getTeacherDrafts } from '../utils/teacherDrafts'
+import { useReportScope } from '../utils/useReportScope'
+import ReportScopeFilter from './ReportScopeFilter'
 import React, { useState, useEffect } from 'react'
 import {
   CCard,
@@ -40,6 +44,8 @@ const TeacherReportProgress = () => {
   const [students, setStudents] = useState([])
   const { user, role } = useAuth()
 
+  const reportScope = useReportScope(reportCards)
+
   // Load report cards for current teacher
   useEffect(() => {
     const loadReportCards = async () => {
@@ -50,12 +56,7 @@ const TeacherReportProgress = () => {
 
       try {
         // Load report card drafts for current teacher
-        const draftsQuery = query(
-          collection(firestore, 'reportCardDrafts'),
-          where('uid', '==', user.uid),
-          orderBy('lastModified', 'desc')
-        )
-        const draftsSnapshot = await getDocs(draftsQuery)
+        const draftsSnapshot = await getTeacherDrafts(firestore, user.uid)
 
         const reportCardsList = []
         const studentsSet = new Set()
@@ -63,14 +64,15 @@ const TeacherReportProgress = () => {
         draftsSnapshot.forEach((doc) => {
           const data = doc.data()
           const reportCard = {
+            ...data,
             id: doc.id,
             studentName: data.studentName,
             studentId: data.selectedStudent?.id,
             reportCardType: data.reportCardType,
             reportCardTypeName: data.reportCardTypeName,
-            status: data.adminReviewStatus || 'draft',
-            lastModified: data.lastModified?.toDate?.() || data.createdAt?.toDate?.() || new Date(),
-            createdAt: data.createdAt?.toDate?.() || new Date(),
+            status: ['approved', 'needs_revision'].includes(data.adminReviewStatus) ? data.adminReviewStatus : 'draft',
+            lastModified: data.lastModified?.toDate?.() || data.createdAt?.toDate?.() || data.createdAt || null,
+            createdAt: data.createdAt?.toDate?.() || data.createdAt || null,
             formData: data.formData,
             selectedStudent: data.selectedStudent,
             completionStatus: getCompletionStatus(data.formData, data.reportCardType),
@@ -88,11 +90,7 @@ const TeacherReportProgress = () => {
         if (err.code === 'failed-precondition' || err.message.includes('index')) {
           // Try a simpler query without ordering
           try {
-            const simpleQuery = query(
-              collection(firestore, 'reportCardDrafts'),
-              where('uid', '==', user.uid)
-            )
-            const simpleSnapshot = await getDocs(simpleQuery)
+            const simpleSnapshot = await getTeacherDrafts(firestore, user.uid)
             
             const reportCardsList = []
             const studentsSet = new Set()
@@ -100,14 +98,15 @@ const TeacherReportProgress = () => {
             simpleSnapshot.forEach((doc) => {
               const data = doc.data()
               const reportCard = {
-                id: doc.id,
+                ...data,
+            id: doc.id,
                 studentName: data.studentName,
                 studentId: data.selectedStudent?.id,
                 reportCardType: data.reportCardType,
                 reportCardTypeName: data.reportCardTypeName,
-                status: data.adminReviewStatus || 'draft',
-                lastModified: data.lastModified?.toDate?.() || data.createdAt?.toDate?.() || new Date(),
-                createdAt: data.createdAt?.toDate?.() || new Date(),
+                status: ['approved', 'needs_revision'].includes(data.adminReviewStatus) ? data.adminReviewStatus : 'draft',
+                lastModified: data.lastModified?.toDate?.() || data.createdAt?.toDate?.() || data.createdAt || null,
+                createdAt: data.createdAt?.toDate?.() || data.createdAt || null,
                 formData: data.formData,
                 selectedStudent: data.selectedStudent,
                 completionStatus: getCompletionStatus(data.formData, data.reportCardType),
@@ -190,7 +189,7 @@ const TeacherReportProgress = () => {
   }
 
   // Filter report cards
-  const filteredReportCards = reportCards.filter(rc => {
+  const filteredReportCards = reportScope.records.filter(rc => {
     const matchesSearch = !searchTerm || 
       rc.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rc.reportCardTypeName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -251,6 +250,7 @@ const TeacherReportProgress = () => {
           </small>
         </CCardHeader>
         <CCardBody>
+          <ReportScopeFilter scope={reportScope} />
           {/* Filters */}
           <CRow className="mb-4">
             <CCol md={4}>
@@ -309,7 +309,7 @@ const TeacherReportProgress = () => {
               <CCard className="text-center">
                 <CCardBody>
                   <h5 className="text-secondary">
-                    {reportCards.filter(rc => rc.status === 'draft').length}
+                    {reportScope.records.filter(rc => rc.status === 'draft').length}
                   </h5>
                   <small>In Progress</small>
                 </CCardBody>
@@ -319,7 +319,7 @@ const TeacherReportProgress = () => {
               <CCard className="text-center">
                 <CCardBody>
                   <h5 className="text-success">
-                    {reportCards.filter(rc => rc.status === 'approved').length}
+                    {reportScope.records.filter(rc => rc.status === 'approved').length}
                   </h5>
                   <small>Approved</small>
                 </CCardBody>
@@ -329,7 +329,7 @@ const TeacherReportProgress = () => {
               <CCard className="text-center">
                 <CCardBody>
                   <h5 className="text-warning">
-                    {reportCards.filter(rc => rc.status === 'needs_revision').length}
+                    {reportScope.records.filter(rc => rc.status === 'needs_revision').length}
                   </h5>
                   <small>Needs Revision</small>
                 </CCardBody>
@@ -339,7 +339,7 @@ const TeacherReportProgress = () => {
               <CCard className="text-center">
                 <CCardBody>
                   <h5 className="text-primary">
-                    {reportCards.length}
+                    {reportScope.records.length}
                   </h5>
                   <small>Total Reports</small>
                 </CCardBody>
@@ -365,7 +365,7 @@ const TeacherReportProgress = () => {
                   <CTableDataCell>
                     <strong>{reportCard.studentName}</strong>
                   </CTableDataCell>
-                  <CTableDataCell>{reportCard.reportCardTypeName}</CTableDataCell>
+                  <CTableDataCell>{reportCard.reportCardTypeName}<small className="d-block text-body-secondary">{getReportTerm(reportCard) === 'unknown' ? 'Term not recorded' : getReportTerm(reportCard) === 'term1' ? 'Term 1' : 'Term 2'}</small></CTableDataCell>
                   <CTableDataCell>
                     <div className="mb-2">
                       <CProgress

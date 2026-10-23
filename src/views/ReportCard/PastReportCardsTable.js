@@ -1,7 +1,17 @@
+import PDFViewer from './Components/PDFViewer'
+import { getLatestFormData } from './utils/draftVersioning'
+import { getTeacherDrafts } from './utils/teacherDrafts'
+import { getReportYear, getReportTerm } from './utils/reportScope'
+import { useReportScope } from './utils/useReportScope'
+import ReportScopeFilter from './Components/ReportScopeFilter'
 import React, { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
 import {
   Box,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Table,
   TableBody,
   TableCell,
@@ -44,7 +54,9 @@ const PastReportCardsTable = ({ onEditDraft: onEditDraftCallback }) => {
   const [draftReports, setDraftReports] = useState([])
   const [filterType, setFilterType] = useState('')
   const [showDrafts, setShowDrafts] = useState(true)
+  const [previewDraft, setPreviewDraft] = useState(null)
   const [error, setError] = useState(null)
+  const reportScope = useReportScope([...draftReports, ...reportCards])
 
   useEffect(() => {
     if (!user) return
@@ -73,6 +85,8 @@ const PastReportCardsTable = ({ onEditDraft: onEditDraftCallback }) => {
               const student = metadata.customMetadata?.student || '—'
 
               return {
+                schoolYear: metadata.customMetadata?.schoolYear,
+                term: metadata.customMetadata?.term,
                 id: itemRef.fullPath,
                 type: typeSlug,
                 url,
@@ -93,12 +107,7 @@ const PastReportCardsTable = ({ onEditDraft: onEditDraftCallback }) => {
         // Fetch draft reports from Firestore
         const fetchDrafts = async () => {
           try {
-            const draftsQuery = query(
-              collection(firestore, 'reportCardDrafts'),
-              where('uid', '==', user.uid),
-            )
-
-            const querySnapshot = await getDocs(draftsQuery)
+            const querySnapshot = await getTeacherDrafts(firestore, user.uid)
             const drafts = []
 
             querySnapshot.forEach((doc) => {
@@ -106,6 +115,7 @@ const PastReportCardsTable = ({ onEditDraft: onEditDraftCallback }) => {
               // Only add valid drafts
               if (data && data.reportCardType && data.studentName) {
                 drafts.push({
+                  ...data,
                   id: doc.id,
                   type: data.reportCardType,
                   url: null, // No URL for drafts
@@ -128,18 +138,23 @@ const PastReportCardsTable = ({ onEditDraft: onEditDraftCallback }) => {
             return drafts
           } catch (error) {
             console.error('Error fetching drafts:', error)
-            // Return empty array if drafts fail to load
-            return []
+            throw error
           }
         }
 
-        const [completedReports, drafts] = await Promise.all([
-          fetchFromStorage().catch((err) => {
-            console.error('Error loading completed reports:', err)
-            return [] // Return empty array on error
-          }),
-          fetchDrafts(), // Already has error handling
+        const [storedFiles, drafts, publishedSnapshot] = await Promise.all([
+          fetchFromStorage().catch(() => []), fetchDrafts(),
+          getDocs(query(collection(firestore, 'reportCards'), where('uid', '==', user.uid))),
         ])
+        const published = publishedSnapshot.docs.map((snapshot) => {
+          const data = snapshot.data()
+          return { ...data, id: snapshot.id, type: data.type || data.reportCardType,
+            createdAtMs: data.createdAt?.toDate?.()?.getTime() || new Date(data.createdAt || 0).getTime(),
+            student: data.studentName || '—', status: 'completed' }
+        })
+        // Firestore supplies period metadata and approved copies outside the teacher storage folder.
+        const publishedPaths = new Set(published.map((record) => record.filePath).filter(Boolean))
+        const completedReports = [...published, ...storedFiles.filter((record) => !publishedPaths.has(record.id))]
 
         // Sort completed reports newest first
         completedReports.sort((a, b) => b.createdAtMs - a.createdAtMs)
@@ -159,6 +174,10 @@ const PastReportCardsTable = ({ onEditDraft: onEditDraftCallback }) => {
 
   // Handle draft actions
   const handleEditDraft = (draft) => {
+    if (getReportYear(draft, reportScope.current) !== reportScope.current.label) {
+      alert('Historical drafts remain in this school year. Create a new current-year report from Create Report Card.')
+      return
+    }
     // Store the draft data in localStorage for loading
     localStorage.setItem('editingDraftId', draft.id)
     localStorage.setItem('draftFormData', JSON.stringify(draft.formData))
@@ -187,7 +206,7 @@ const PastReportCardsTable = ({ onEditDraft: onEditDraftCallback }) => {
   }
 
   // Combine and filter reports
-  const allReports = showDrafts ? [...draftReports, ...reportCards] : reportCards
+  const allReports = reportScope.records.filter((r) => showDrafts || r.status !== 'draft')
 
   const filteredReports = filterType
     ? allReports.filter((rc) => rc.type === filterType)
@@ -233,6 +252,7 @@ const PastReportCardsTable = ({ onEditDraft: onEditDraftCallback }) => {
   if (filteredReports.length === 0) {
     return (
       <Box sx={{ p: 2 }}>
+        <ReportScopeFilter scope={reportScope} />
         <Box mb={3} display="flex" gap={2} alignItems="center" flexWrap="wrap">
           <Autocomplete
             options={[]}
@@ -253,7 +273,7 @@ const PastReportCardsTable = ({ onEditDraft: onEditDraftCallback }) => {
           />
         </Box>
         <Typography variant="body1" color="textSecondary">
-          No report cards found. Generate your first report card to see it here.
+          No reports in this school year and term. Choose another reporting period to view earlier records.
         </Typography>
         <Typography variant="body2" color="textSecondary" mt={1} textAlign="right">
           Showing 0 report cards (0 drafts, 0 completed)
@@ -264,6 +284,7 @@ const PastReportCardsTable = ({ onEditDraft: onEditDraftCallback }) => {
 
   return (
     <Box className="rc-report-table-container" mt={2}>
+      <ReportScopeFilter scope={reportScope} />
       {/* Filter and Controls */}
       <Box mb={3} display="flex" gap={2} alignItems="center" flexWrap="wrap">
         <Autocomplete
@@ -310,15 +331,17 @@ const PastReportCardsTable = ({ onEditDraft: onEditDraftCallback }) => {
                     size="small"
                   />
                 </TableCell>
-                <TableCell>{getTypeName(rc.type)}</TableCell>
+                <TableCell>{getTypeName(rc.type)}<small className="d-block text-body-secondary">{getReportTerm(rc) === 'unknown' ? 'Term not recorded' : getReportTerm(rc) === 'term1' ? 'Term 1' : 'Term 2'}</small></TableCell>
                 <TableCell>{rc.student}</TableCell>
                 <TableCell>
                   {rc.status === 'draft' ? (
                     <Box display="flex" gap={1}>
+                      <Button size="small" onClick={() => setPreviewDraft(rc)}>View draft</Button>
                       <Tooltip title="Edit Draft">
                         <IconButton
                           size="small"
                           color="primary"
+                          disabled={getReportYear(rc, reportScope.current) !== reportScope.current.label}
                           onClick={() => handleEditDraft(rc)}
                         >
                           <EditIcon fontSize="small" />
@@ -328,6 +351,7 @@ const PastReportCardsTable = ({ onEditDraft: onEditDraftCallback }) => {
                         <IconButton
                           size="small"
                           color="error"
+                          disabled={getReportYear(rc, reportScope.current) !== reportScope.current.label}
                           onClick={() => handleDeleteDraft(rc.id)}
                         >
                           <DeleteIcon fontSize="small" />
@@ -349,11 +373,23 @@ const PastReportCardsTable = ({ onEditDraft: onEditDraftCallback }) => {
       </TableContainer>
       <Typography variant="body2" color="textSecondary" mt={1} textAlign="right">
         Showing {filteredReports.length} report card{filteredReports.length !== 1 ? 's' : ''}(
-        {draftReports.filter((d) => !filterType || d.type === filterType).length} draft
-        {draftReports.filter((d) => !filterType || d.type === filterType).length !== 1
+        {filteredReports.filter((d) => d.status === 'draft').length} draft
+        {filteredReports.filter((d) => d.status === 'draft').length !== 1
           ? 's'
-          : ''}, {reportCards.filter((r) => !filterType || r.type === filterType).length} completed)
+          : ''}, {filteredReports.filter((r) => r.status !== 'draft').length} completed)
       </Typography>
+      <Dialog open={!!previewDraft} onClose={() => setPreviewDraft(null)} maxWidth="lg" fullWidth>
+        <DialogTitle>Saved draft: {previewDraft?.student}</DialogTitle>
+        <DialogContent>
+          {previewDraft && <>
+            <Typography>{getReportYear(previewDraft, reportScope.current)} · {getReportTerm(previewDraft) === 'term1' ? 'Term 1' : getReportTerm(previewDraft) === 'term2' ? 'Term 2' : 'Term not recorded'}</Typography>
+            <PDFViewer pdfUrl={REPORT_CARD_TYPES.find((type) => type.id === previewDraft.type)?.pdfPath}
+              formData={getLatestFormData(previewDraft)} showPreview />
+          </>}
+        </DialogContent>
+        <DialogActions><Button onClick={() => setPreviewDraft(null)}>Close</Button></DialogActions>
+      </Dialog>
+
     </Box>
   )
 }
