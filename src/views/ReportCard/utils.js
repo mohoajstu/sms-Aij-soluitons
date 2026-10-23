@@ -1,3 +1,4 @@
+import { useReportTerm } from './utils/useReportTerm'
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import {
   CContainer,
@@ -331,7 +332,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
   const [finalizeMessage, setFinalizeMessage] = useState('')
   const finalizeMessageTimeoutRef = useRef(null)
   // B7: Term 1/Term 2 tabs
-  const [selectedTerm, setSelectedTerm] = useState('term2') // 'term1' or 'term2'
+  const { selectedTerm, setSelectedTerm, applyDefaultTerm } = useReportTerm()
 
   // Current authenticated user (needed for storage path)
   const { user, role } = useAuth()
@@ -350,6 +351,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           setDisableEditing(settingsData.disableEditing || false)
           setHideProgressReports(settingsData.hideProgressReports || false)
           setReportCardDateSetting(settingsData.reportCardDate || '')
+          applyDefaultTerm(settingsData.defaultTerm)
         }
       } catch (error) {
         console.error('Error loading report card settings:', error)
