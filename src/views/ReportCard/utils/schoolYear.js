@@ -1,3 +1,4 @@
+import { getReportYear } from './reportScope'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 
 /**
@@ -71,14 +72,9 @@ export const isOnOrAfterSchoolYearStart = (when, startDate) => {
 /**
  * Decide whether a saved draft/report belongs to the current school year.
  * Explicit `schoolYear` tagging (added going forward) wins; older documents
- * that predate that tagging are judged by when they were last touched, so
+ * that predate that tagging use their stable creation date (or stay unclassified), so
  * last year's carryover doesn't masquerade as "already filled in" this year.
  */
 export const isFromCurrentSchoolYear = (docData, schoolYearInfo) => {
-  if (!docData || !schoolYearInfo) return false
-  if (docData.schoolYear) {
-    return docData.schoolYear === schoolYearInfo.label
-  }
-  const when = docData.lastModified || docData.createdAt
-  return isOnOrAfterSchoolYearStart(when, schoolYearInfo.startDate)
+  return !!docData && !!schoolYearInfo && getReportYear(docData, schoolYearInfo) === schoolYearInfo.label
 }

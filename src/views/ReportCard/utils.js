@@ -1,3 +1,6 @@
+import { publishScopedReport } from './utils/publishScopedReport'
+import { draftDocumentId } from './utils/reportScope'
+import { saveScopedDraft, draftRevision } from './utils/saveScopedDraft'
 import { useReportTerm } from './utils/useReportTerm'
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import {
@@ -55,13 +58,9 @@ import { exportQuranReport } from './exportQuranReport'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import {
   collection,
-  addDoc,
   serverTimestamp,
   doc,
-  setDoc,
-  updateDoc,
   getDoc,
-  deleteDoc,
   query,
   where,
   getDocs,
@@ -88,8 +87,6 @@ import {
 import { mapOldFieldNamesToNew } from './utils/mapOldFieldNamesToNew'
 import { getNextDraftId } from './utils/reviewNavigation'
 import {
-  appendDraftBaselineVersion,
-  appendDraftVersion,
   consolidateDraftVersionHistories,
   getLatestFormData,
 } from './utils/draftVersioning'
@@ -388,6 +385,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
   const isLoadingDraftRef = useRef(false) // Synchronous guard
   const [currentDraftId, setCurrentDraftId] = useState(null) // Track which draft is loaded
   const currentDraftIdRef = useRef(null)
+  const loadedDraftRevisionRef = useRef({})
 
   // Current school year boundary (admin-configurable in Settings > School Year).
   // Used to keep last year's drafts/reports from being picked up as "already
@@ -418,6 +416,8 @@ const ReportCard = ({ presetReportCardId = null }) => {
   const [classStudents, setClassStudents] = useState([])
   const [currentStudentIndex, setCurrentStudentIndex] = useState(-1)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [recoveryCopy, setRecoveryCopy] = useState(null)
+  const formEditRevisionRef = useRef(0)
   // When admin opens "Edit Report Card" from Admin Review, allow editing even if global disableEditing is on
   const [allowEditFromReview, setAllowEditFromReview] = useState(false)
 
@@ -494,6 +494,10 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
   // Handle changing/clearing student selection
   const handleChangeStudent = () => {
+    if (hasUnsavedChanges && !window.confirm('Leave this report with unsaved changes? A recovery copy will remain in this browser.')) return
+    setHasUnsavedChanges(false)
+    setCurrentDraftId(null)
+    currentDraftIdRef.current = null
     setSelectedStudent(null)
     setFormData({}) // Clear all form data
     // Clear current localStorage entries
@@ -670,6 +674,11 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
   // Handle student selection
   const handleStudentSelect = async (student) => {
+    if (hasUnsavedChanges && !window.confirm('Leave this report with unsaved changes? A recovery copy will remain in this browser.')) return
+    setHasUnsavedChanges(false)
+    currentDraftIdRef.current = null
+    setCurrentDraftId(null)
+
     // Always fetch latest attendance from Firestore so days absent / times late show correctly
     if (student?.id) {
       try {
@@ -985,6 +994,9 @@ const ReportCard = ({ presetReportCardId = null }) => {
       }
       if (token !== reviewNavTokenRef.current) return
       const draftData = draftSnap.data()
+      loadedDraftRevisionRef.current[draftId] = draftRevision(draftData)
+      const year = schoolYearInfoRef.current || await fetchSchoolYearSettings(firestore)
+      if (!isFromCurrentSchoolYear(draftData, year)) throw new Error("Historical reports can be viewed in their school year; they cannot be opened in the current editor.")
       let loadedFormData = mapOldFieldNamesToNew(getLatestFormData(draftData) || {}, draftData.reportCardType)
 
       let selected = draftData.selectedStudent || {}
@@ -1069,7 +1081,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           where('term', '==', 'term1'),
         ),
       )
-      if (!term1DraftsSnap.empty) return true
+      if (term1DraftsSnap.docs.some((d) => isFromCurrentSchoolYear(d.data(), schoolYearInfoRef.current))) return true
 
       const term1ReportsSnap = await getDocs(
         query(
@@ -1079,7 +1091,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           where('term', '==', 'term1'),
         ),
       )
-      return !term1ReportsSnap.empty
+      return term1ReportsSnap.docs.some((d) => isFromCurrentSchoolYear(d.data(), schoolYearInfoRef.current))
     } catch (error) {
       console.warn('Could not determine Term 1 presence; keeping draft:', error)
       return false
@@ -1090,6 +1102,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
     const draftData = draftRecord.data || {}
     return {
       ...draftRecord,
+      revision: draftRecord.revision || draftRevision(draftRecord.data),
       data: {
         ...draftData,
         formData: mapOldFieldNamesToNew(draftData.formData || {}, reportType),
@@ -1171,6 +1184,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
     consolidation = null,
     logLabel = 'draft',
   }) => {
+    loadedDraftRevisionRef.current[draftRecord.id] = draftRecord.revision || draftRevision(draftRecord.data)
     const effectiveTerm = draftRecord.data.term || term
     const prepared = await prepareLoadedDraftFormData(loadedFormData, student, reportType, effectiveTerm)
 
@@ -1188,6 +1202,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
         formData: prepared.formData,
         versions: consolidation.versions,
         sourceDraftIds: consolidation.sourceDraftIds,
+        sourceRevisions: consolidation.sourceRevisions,
       }
     } else {
       pendingDraftConsolidationRef.current = null
@@ -1218,6 +1233,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
       mapDraftRecordFieldNames(draftRecord, reportType),
     )
     const consolidation = consolidateDraftVersionHistories(mappedRecords)
+    consolidation.sourceRevisions = Object.fromEntries(mappedRecords.map((record) => [record.id, record.revision]))
 
     console.warn('🔀 Fragmented draft histories detected; rendering consolidated latest fields:', {
       canonicalDraftId: canonicalDraft.id,
@@ -1266,8 +1282,10 @@ const ReportCard = ({ presetReportCardId = null }) => {
         userId: user.uid,
       })
 
+      if (!schoolYearInfoRef.current) schoolYearInfoRef.current = await fetchSchoolYearSettings(firestore)
+
       // Step 1: Try deterministic ID first (userUid_studentId_reportType_term)
-      const draftId = `${user.uid}_${student.id}_${reportType}_${term}`
+      const draftId = draftDocumentId(user.uid, student.id, reportType, term, schoolYearInfoRef.current.label)
       const draftRef = doc(firestore, 'reportCardDrafts', draftId)
       const draftSnap = await getDoc(draftRef)
 
@@ -1402,21 +1420,6 @@ const ReportCard = ({ presetReportCardId = null }) => {
           // - Term 2: don't fall back to Term 1 here; allow Step 3 to copy Term 1 → Term 2
           // - Term 1: fall back to latest draft so saved work is visible
           let draftsToConsider = drafts
-          if (drafts.length === 0 && allDrafts.length > 0) {
-            if (term === 'term2') {
-              console.warn('⚠️ No Term 2 drafts found; skipping fallback so Term 2 can initialize', {
-                requestedTerm: term,
-                latestDraftTerm: allDrafts[0]?.data?.term,
-              })
-              draftsToConsider = []
-            } else {
-              console.warn('⚠️ No drafts matched selected term, falling back to latest draft', {
-                requestedTerm: term,
-                latestDraftTerm: allDrafts[0]?.data?.term,
-              })
-              draftsToConsider = allDrafts
-            }
-          }
 
           // Drop stale T2 drafts (no T1 fields) so Step 3 can carry forward from T1,
           // and drop drafts carried over from a prior school year.
@@ -1521,7 +1524,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
             // Try to get the formData from the associated draft
             // First try current user's draft, then try querying for any Term 1 draft
             let term1DraftSnap = null
-            const term1DraftId = `${user.uid}_${student.id}_${reportType}_term1`
+            const term1DraftId = draftDocumentId(user.uid, student.id, reportType, 'term1', schoolYearInfoRef.current.label)
             const term1DraftRef = doc(firestore, 'reportCardDrafts', term1DraftId)
             term1DraftSnap = await getDoc(term1DraftRef)
             
@@ -1543,7 +1546,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
                   data: doc.data(),
                   lastModified: doc.data().lastModified?.toDate?.() || doc.data().createdAt?.toDate?.() || new Date(0),
                   isComplete: doc.data().status === 'complete',
-                }))
+                })).filter((draft) => !isWrongSchoolYear(draft.data))
                 
                 // Sort: completed first, then by lastModified
                 term1Drafts.sort((a, b) => {
@@ -1552,12 +1555,12 @@ const ReportCard = ({ presetReportCardId = null }) => {
                 })
                 
                 const latestTerm1Draft = term1Drafts[0]
-                term1DraftSnap = { exists: () => true, data: () => latestTerm1Draft.data }
-                console.log('✅ Found Term 1 draft from any teacher:', latestTerm1Draft.id)
+                term1DraftSnap = latestTerm1Draft ? { exists: () => true, data: () => latestTerm1Draft.data } : null
+                console.log('✅ Found Term 1 draft from any teacher:', latestTerm1Draft?.id)
               }
             }
             
-            if (term1DraftSnap && term1DraftSnap.exists()) {
+            if (term1DraftSnap && term1DraftSnap.exists() && !isWrongSchoolYear(term1DraftSnap.data())) {
               const term1DraftData = term1DraftSnap.data()
               let term1FormData = getLatestFormData(term1DraftData) || {}
               
@@ -1630,7 +1633,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
               }
               
               setFormData(applyReportFormDefaults(refreshedFormData, reportType, 'term2'))
-              setCurrentDraftId(null) // Will create new Term 2 draft
+              setCurrentDraftId(null); currentDraftIdRef.current = null // Will create new Term 2 draft
               pendingDraftConsolidationRef.current = null
               
               console.log('📊 Loaded Term 1 completed form as base for Term 2')
@@ -1674,7 +1677,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
                 isComplete: doc.data().status === 'complete',
                 term: doc.data().term || 'term1',
               }))
-              .filter(draft => draft.term === 'term1') // Filter by term in memory if needed
+              .filter(draft => draft.term === 'term1' && !isWrongSchoolYear(draft.data)) // Filter by term in memory if needed
             
             if (term1Drafts.length > 0) {
               // Sort: completed first, then by lastModified
@@ -1733,7 +1736,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
               }
               
               setFormData(applyReportFormDefaults(refreshedFormData, reportType, 'term2'))
-              setCurrentDraftId(null) // Will create new Term 2 draft
+              setCurrentDraftId(null); currentDraftIdRef.current = null // Will create new Term 2 draft
               pendingDraftConsolidationRef.current = null
               
               console.log('📊 Loaded Term 1 draft as base for Term 2')
@@ -1747,13 +1750,13 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
       // Step 4: No draft found - return null (form will use auto-populated student data)
       console.log('📝 No existing draft found - will create new draft')
-      setCurrentDraftId(null)
+      setCurrentDraftId(null); currentDraftIdRef.current = null
       pendingDraftConsolidationRef.current = null
       return null
 
     } catch (error) {
       console.error('❌ Error loading draft:', error)
-      return null
+      throw error
     } finally {
       // Clear loading flags after a short delay
       setTimeout(() => {
@@ -1910,7 +1913,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
       }
     }
 
-    loadDraft()
+    loadDraft().catch((error) => setSaveMessage(`Could not load saved work: ${error.message}. Please reopen before editing.`))
   }, [selectedStudent, selectedReportCard, selectedTerm, user, reportCardDateSetting]) // B7: Include selectedTerm and reportCardDateSetting in dependencies
 
   // Ensure review-edit override never applies to non-admins
@@ -1943,6 +1946,13 @@ const ReportCard = ({ presetReportCardId = null }) => {
     selectedStudent?.yearLateCount,
   ])
 
+  useEffect(() => {
+    if (!hasUnsavedChanges) return
+    const warn = (event) => { event.preventDefault(); event.returnValue = '' }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [hasUnsavedChanges])
+
   // Handle form data changes with improved structure
   const handleFormDataChange = (newFormData) => {
     if (disableEditing && role !== 'admin' && !allowEditFromReview) {
@@ -1955,7 +1965,9 @@ const ReportCard = ({ presetReportCardId = null }) => {
       return
     }
 
+    formEditRevisionRef.current += 1
     setFormData(newFormData)
+    setHasUnsavedChanges(true)
     
     // Auto-save logic can go here if needed
     // (For now, manual save via saveDraft button)
@@ -1966,11 +1978,11 @@ const ReportCard = ({ presetReportCardId = null }) => {
     await saveDraft()
   }
 
-  const MAX_DRAFT_VERSIONS = 10
 
 
   // Save draft report card to Firestore
   const saveDraft = async () => {
+    if (isLoadingDraftRef.current || isSaving) return false
     if (!user || !selectedStudent || !selectedReportCard) {
       alert('Please select a student and report card type before saving.')
       return
@@ -1985,6 +1997,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
       formDataKeys: Object.keys(formData),
     })
 
+    const savingEditRevision = formEditRevisionRef.current
     setIsSaving(true)
     setSaveMessage('')
 
@@ -2066,119 +2079,35 @@ const ReportCard = ({ presetReportCardId = null }) => {
         formDataSize: JSON.stringify(draftData.formData).length,
       })
 
-      // Use existing draft ID if we loaded one, otherwise create new
-      // B7: Include term in draft ID to separate Term 1 and Term 2 documents
-      const draftId = currentDraftId || `${user.uid}_${selectedStudent.id}_${selectedReportCard}_${selectedTerm}`
-      const draftRef = doc(firestore, 'reportCardDrafts', draftId)
-
-      console.log('💾 Attempting to save to Firestore with ID:', draftId)
-      console.log('📋 Using draft ID:', currentDraftId ? 'Existing draft' : 'New draft')
-
-      // Check if draft already exists
-      console.log('🔍 Checking if draft exists...')
-      const existingDoc = await getDoc(draftRef)
-
-      if (existingDoc.exists()) {
-        console.log('📝 Updating existing draft...')
-        const existingData = existingDoc.data()
-        const pendingConsolidation =
-          pendingDraftConsolidationRef.current?.draftId === draftId
-            ? pendingDraftConsolidationRef.current
-            : null
-        const baseVersions = pendingConsolidation?.versions || existingData.versions
-        const previousFormData = pendingConsolidation?.formData || getLatestFormData(existingData)
-        const maxVersions = pendingConsolidation
-          ? Math.max(MAX_DRAFT_VERSIONS, (baseVersions || []).length + 1)
-          : MAX_DRAFT_VERSIONS
-        const nextVersions = pendingConsolidation
-          ? appendDraftBaselineVersion(baseVersions, draftData, cleanFormData, maxVersions)
-          : appendDraftVersion(baseVersions, draftData, cleanFormData, previousFormData, maxVersions)
-        
-        // If this draft was previously approved, reset it to pending when edited
-        const wasApproved = existingData.adminReviewStatus === 'approved' || existingData.status === 'complete'
-        const resetApprovalStatus = wasApproved ? 'pending' : (existingData.adminReviewStatus || 'pending')
-        
-        if (wasApproved) {
-          console.log('⚠️ Draft was previously approved - resetting to pending status for re-approval')
-        }
-        
-        // Update existing draft - preserve original creator info
-        await updateDoc(draftRef, {
-          ...draftData,
-          createdAt: existingData.createdAt, // Preserve original creation date
-          originalTeacherId: existingData.originalTeacherId || existingData.uid,
-          originalTeacherName: existingData.originalTeacherName || existingData.teacherName,
-          lastModified: serverTimestamp(), // Update modification time
-          versions: nextVersions,
-          ...(pendingConsolidation && {
-            consolidatedDraftIds: pendingConsolidation.sourceDraftIds,
-            consolidatedAt: serverTimestamp(),
-          }),
-          // Reset approval status if it was previously approved
-          adminReviewStatus: resetApprovalStatus,
-          status: wasApproved ? 'draft' : (existingData.status || 'draft'),
-          // Clear approval metadata if resetting
-          ...(wasApproved && {
-            adminReviewedAt: null,
-            adminReviewedBy: null,
-            publishedToParents: false,
-          }),
-        })
-        setSaveMessage(wasApproved ? 'Draft updated successfully - requires re-approval!' : 'Draft updated successfully!')
-        setHasUnsavedChanges(false) // B5: Clear unsaved changes flag
-        pendingDraftConsolidationRef.current = null
-        console.log('✅ Draft updated successfully', wasApproved ? '(reset to pending)' : '')
-        
-        // Sync grades to course if this is a report card (not progress report)
-        if (selectedReportCard && !selectedReportCard.includes('progress') && !selectedReportCard.includes('initial')) {
-          syncGradesToCourse(cleanFormData, selectedStudent.id, selectedTerm, selectedReportCard)
-            .catch(error => console.error('Error syncing grades:', error))
-        }
-      } else {
-        console.log('📄 Creating new draft...')
-        const pendingConsolidation =
-          pendingDraftConsolidationRef.current?.draftId === draftId
-            ? pendingDraftConsolidationRef.current
-            : null
-        const baseVersions = pendingConsolidation?.versions || []
-        const previousFormData = pendingConsolidation?.formData || {}
-        const maxVersions = pendingConsolidation
-          ? Math.max(MAX_DRAFT_VERSIONS, baseVersions.length + 1)
-          : MAX_DRAFT_VERSIONS
-        const versions = pendingConsolidation
-          ? appendDraftBaselineVersion(baseVersions, draftData, cleanFormData, maxVersions)
-          : appendDraftVersion(baseVersions, draftData, cleanFormData, previousFormData, maxVersions)
-        // Create new draft with original creator info
-        await setDoc(draftRef, {
-          ...draftData,
-          originalTeacherId: user.uid,
-          originalTeacherName: user.displayName || user.email || 'Unknown Teacher',
-          versions: versions,
-          ...(pendingConsolidation && {
-            consolidatedDraftIds: pendingConsolidation.sourceDraftIds,
-            consolidatedAt: serverTimestamp(),
-          }),
-        })
-        setSaveMessage('Draft saved successfully!')
-        setHasUnsavedChanges(false) // B5: Clear unsaved changes flag
-        pendingDraftConsolidationRef.current = null
-        console.log('✅ New draft created successfully')
-        
-        // Sync grades to course if this is a report card (not progress report)
-        if (selectedReportCard && !selectedReportCard.includes('progress') && !selectedReportCard.includes('initial')) {
-          syncGradesToCourse(cleanFormData, selectedStudent.id, selectedTerm, selectedReportCard)
-            .catch(error => console.error('Error syncing grades:', error))
-        }
-      }
-
-      // Update currentDraftId after save
+      const year = schoolYearInfoRef.current
+      if (!year) throw new Error('School-year settings are still loading. Please try saving again.')
+      const scope = { studentId: selectedStudent.id, type: selectedReportCard,
+        term: selectedTerm, year: year.label, current: year }
+      const draftId = currentDraftIdRef.current || draftDocumentId(user.uid, selectedStudent.id, selectedReportCard, selectedTerm, year.label)
+      const consolidation = pendingDraftConsolidationRef.current?.draftId === draftId
+        ? pendingDraftConsolidationRef.current : null
+      const savedResult = await saveScopedDraft(firestore, draftId, draftData, scope,
+        loadedDraftRevisionRef.current[draftId], consolidation)
+      loadedDraftRevisionRef.current[draftId] = draftRevision(savedResult.saved)
       setCurrentDraftId(draftId)
       currentDraftIdRef.current = draftId
-
+      pendingDraftConsolidationRef.current = null
+      const newerEdits = formEditRevisionRef.current !== savingEditRevision
+      setHasUnsavedChanges(newerEdits)
+      setSaveMessage(newerEdits ? 'Earlier edits saved successfully. You have newer unsaved edits; save again.' : 'Draft saved successfully!')
+      if (!newerEdits) {
+        try { localStorage.removeItem(`reportcard_recovery_${draftDocumentId(user.uid, selectedStudent.id, selectedReportCard, selectedTerm, year.label)}`) } catch {}
+        setRecoveryCopy(null)
+      }
+      if (!selectedReportCard.includes('progress') && !selectedReportCard.includes('initial')) {
+        syncGradesToCourse(cleanFormData, selectedStudent.id, selectedTerm, selectedReportCard)
+          .catch(error => console.error('Error syncing grades:', error))
+      }
       console.log('✅ Report card draft saved to Firestore')
 
       // Clear message after 3 seconds
       setTimeout(() => setSaveMessage(''), 3000)
+      return !newerEdits
     } catch (error) {
       console.error('❌ Error saving draft:', error)
       console.error('Error details:', {
@@ -2187,8 +2116,8 @@ const ReportCard = ({ presetReportCardId = null }) => {
         code: error.code,
         stack: error.stack,
       })
-      setSaveMessage('Failed to save draft. Please try again.')
-      setTimeout(() => setSaveMessage(''), 3000)
+      setSaveMessage(`Not saved: ${error.message || 'Please try again.'}`)
+      return false
     } finally {
       setIsSaving(false)
     }
@@ -2196,6 +2125,10 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
   // Handle report card type change
   const handleReportTypeChange = (e) => {
+    if (hasUnsavedChanges && !window.confirm('Switch report types with unsaved changes? A recovery copy will remain in this browser.')) return
+    setHasUnsavedChanges(false)
+    currentDraftIdRef.current = null
+    setCurrentDraftId(null)
     const id = e.target.value
     setSelectedReportCard(id)
 
@@ -2229,8 +2162,15 @@ const ReportCard = ({ presetReportCardId = null }) => {
             setAllowEditFromReview(true)
           }
 
-          let parsedFormData = JSON.parse(draftFormData)
-          let parsedStudent = JSON.parse(draftStudent)
+          const latest = await getDoc(doc(firestore, 'reportCardDrafts', editingDraftId))
+          if (!latest.exists()) throw new Error('Draft no longer exists')
+          const info = schoolYearInfoRef.current || await fetchSchoolYearSettings(firestore)
+          schoolYearInfoRef.current = info
+          if (!isFromCurrentSchoolYear(latest.data(), info)) throw new Error('Historical reports are available in Past Report Cards; they cannot be edited as current work.')
+          loadedDraftRevisionRef.current[editingDraftId] = draftRevision(latest.data())
+          let parsedFormData = getLatestFormData(latest.data())
+          let parsedStudent = latest.data().selectedStudent || JSON.parse(draftStudent)
+          if (latest.data().reportCardType !== draftReportType) throw new Error('Draft type changed. Reopen it from the report list.')
 
           // Fetch latest attendance from Firestore so days absent / times late are correct
           if (parsedStudent?.id) {
@@ -2255,11 +2195,11 @@ const ReportCard = ({ presetReportCardId = null }) => {
           // Map old field names to new field names for backward compatibility
           parsedFormData = mapOldFieldNamesToNew(parsedFormData, draftReportType)
 
-          const storedDraftTerm = editingDraftId.endsWith('_term1')
+          const storedDraftTerm = latest.data().term || (editingDraftId.endsWith('_term1')
             ? 'term1'
             : editingDraftId.endsWith('_term2')
               ? 'term2'
-              : selectedTerm
+              : selectedTerm)
 
           // Keep student-identifying fields in sync to prevent stale cross-student data
           const refreshedFormData = applyReportFormDefaults(
@@ -2318,108 +2258,24 @@ const ReportCard = ({ presetReportCardId = null }) => {
   /* ------------------------------------------------------------------
      LocalStorage persistence
      ------------------------------------------------------------------ */
-  // Load saved form when report card type changes
+  // Keep recovery data isolated by login, student, report, year and term.
+  // Server drafts remain authoritative when reopening; recovery never replaces a saved report.
   useEffect(() => {
-    if (!selectedReportCard) return
-
+    if (!user || !selectedReportCard || !selectedStudent || !schoolYearInfo || isLoadingDraftRef.current || !hasUnsavedChanges) return
     try {
-      // Only load localStorage data if we have a selected student
-      const storageKey = selectedStudent
-        ? `reportcard_form_${selectedReportCard}_${selectedStudent.id}`
-        : `reportcard_form_${selectedReportCard}` // Fallback for legacy data
-      const saved = localStorage.getItem(storageKey)
-      if (saved) {
-        let savedData = JSON.parse(saved)
+      const key = `reportcard_recovery_${draftDocumentId(user.uid, selectedStudent.id, selectedReportCard, selectedTerm, schoolYearInfo.label)}`
+      localStorage.setItem(key, JSON.stringify({ formData, revision: loadedDraftRevisionRef.current[currentDraftIdRef.current], savedAt: new Date().toISOString() }))
+    } catch (error) { console.warn('Unable to store report recovery copy:', error) }
+  }, [formData, selectedReportCard, selectedStudent, selectedTerm, schoolYearInfo, user, hasUnsavedChanges])
 
-        // Validate that the saved data belongs to the current student (if we have a student)
-        if (selectedStudent && savedData.studentId && savedData.studentId !== selectedStudent.id) {
-          console.warn('Saved form data belongs to a different student, skipping load')
-          return
-        }
-
-        // Map old field names to new field names for backward compatibility
-        if (savedData && typeof savedData === 'object') {
-          savedData = mapOldFieldNamesToNew(savedData, selectedReportCard)
-        }
-
-        // Preserve auto-populated student data when switching report card types
-        // ALWAYS use latest attendance data from selectedStudent
-        const currentStudentData = {
-          student: formData.student,
-          student_name: formData.student_name,
-          OEN: formData.OEN,
-          oen: formData.oen,
-          grade: formData.grade,
-          // ALWAYS refresh attendance data from latest student info
-          daysAbsent: selectedStudent?.currentTermAbsenceCount || 0,
-          totalDaysAbsent: selectedStudent?.yearAbsenceCount || 0,
-          timesLate: selectedStudent?.currentTermLateCount || 0,
-          totalTimesLate: selectedStudent?.yearLateCount || 0,
-          email: formData.email,
-          phone1: formData.phone1,
-          phone2: formData.phone2,
-          emergencyPhone: formData.emergencyPhone,
-          address: formData.address,
-          address_1: formData.address_1,
-          address_2: formData.address_2,
-          residentialArea: formData.residentialArea,
-          poBox: formData.poBox,
-          nationality: formData.nationality,
-          nationalId: formData.nationalId,
-          nationalIdExpiry: formData.nationalIdExpiry,
-          primaryLanguage: formData.primaryLanguage,
-          secondaryLanguage: formData.secondaryLanguage,
-          fatherName: formData.fatherName,
-          motherName: formData.motherName,
-          fatherId: formData.fatherId,
-          motherId: formData.motherId,
-          parent_name: formData.parent_name,
-          dob: formData.dob,
-          gender: formData.gender,
-          salutation: formData.salutation,
-          nickName: formData.nickName,
-          middleName: formData.middleName,
-          program: formData.program,
-          daySchoolEmployer: formData.daySchoolEmployer,
-          notes: formData.notes,
-          returningStudentYear: formData.returningStudentYear,
-          school: formData.school,
-          schoolAddress: formData.schoolAddress,
-          board: formData.board,
-          // boardAddress intentionally omitted as per user request
-          principal: formData.principal,
-          telephone: formData.telephone,
-          teacher: formData.teacher,
-          teacher_name: formData.teacher_name,
-        }
-
-        // Merge saved data with current student data, prioritizing student data
-        let mergedData = { ...savedData, ...currentStudentData }
-        // Ensure boardSpace is always blank for 1-6 progress report
-        if (selectedReportCard === '1-6-progress') {
-          mergedData.boardSpace = ''
-          mergedData.boardspace = ''
-        }
-        mergedData = applyReportFormDefaults(mergedData, selectedReportCard, selectedTerm)
-        setFormData(mergedData)
-      } else {
-        setFormData({})
-      }
-    } catch (err) {
-      console.warn('Unable to parse saved form data:', err)
-    }
-  }, [selectedReportCard]) // Only depend on selectedReportCard to avoid infinite loops
-
-  // Auto-save current form on every change (tied to specific student)
   useEffect(() => {
-    if (!selectedReportCard || !selectedStudent) return
+    if (!user || !selectedStudent || !selectedReportCard || !schoolYearInfo || isLoadingDraft || hasUnsavedChanges) return
     try {
-      const storageKey = `reportcard_form_${selectedReportCard}_${selectedStudent.id}`
-      localStorage.setItem(storageKey, JSON.stringify(formData))
-    } catch (err) {
-      console.warn('Unable to save form data to localStorage:', err)
-    }
-  }, [formData, selectedReportCard, selectedStudent])
+      const key = `reportcard_recovery_${draftDocumentId(user.uid, selectedStudent.id, selectedReportCard, selectedTerm, schoolYearInfo.label)}`
+      const saved = localStorage.getItem(key)
+      setRecoveryCopy(saved ? JSON.parse(saved) : null)
+    } catch { setRecoveryCopy(null) }
+  }, [user, selectedStudent, selectedReportCard, selectedTerm, schoolYearInfo, isLoadingDraft, hasUnsavedChanges])
 
   // NOTE: generateFieldNameVariations is now imported from ./fieldMappings.js (shared with PDFViewer)
   // The old local function below is commented out - remove it later for cleanup
@@ -2781,6 +2637,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
     }
 
     try {
+      if (!await saveDraft()) throw new Error('Report was not saved. Resolve the save message before generating a final copy.')
       console.log(`🔧 Generating PDF for report type: ${reportCardType.id}`)
 
       let effectiveFormData = applyReportFormDefaults(formData, reportCardType.id, selectedTerm)
@@ -2816,7 +2673,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
       }
 
       const effectiveDraftId =
-        currentDraftId || `${user.uid}_${selectedStudent.id}_${selectedReportCard}_${selectedTerm}`
+        currentDraftIdRef.current || draftDocumentId(user.uid, selectedStudent.id, selectedReportCard, selectedTerm, schoolYearInfoRef.current?.label)
 
       // Persist any auto-filled medians into the draft for Grade 8 before finalizing
       if (
@@ -2840,14 +2697,16 @@ const ReportCard = ({ presetReportCardId = null }) => {
           ...cleanBucketFn(termData),
         }
 
-        try {
-          await updateDoc(doc(firestore, 'reportCardDrafts', effectiveDraftId), {
-            formData: cleanFormData,
-            lastModified: serverTimestamp(),
-          })
-        } catch (error) {
-          console.error('Failed to write back median autofill to draft:', error)
-        }
+        const existing = await getDoc(doc(firestore, 'reportCardDrafts', effectiveDraftId))
+        if (!existing.exists()) throw new Error('The saved draft is missing. Save it again before finalizing.')
+        const medianSave = await saveScopedDraft(firestore, effectiveDraftId, {
+          ...existing.data(), uid: user.uid, teacherName: user.displayName || user.email || '',
+          formData: cleanFormData,
+        }, { studentId: selectedStudent.id, type: selectedReportCard, term: selectedTerm,
+          year: schoolYearInfoRef.current.label, current: schoolYearInfoRef.current },
+        loadedDraftRevisionRef.current[effectiveDraftId])
+        loadedDraftRevisionRef.current[effectiveDraftId] = draftRevision(medianSave.saved)
+
       }
 
       const studentName = (effectiveFormData.student_name || effectiveFormData.student || 'student').replace(
@@ -2983,53 +2842,26 @@ const ReportCard = ({ presetReportCardId = null }) => {
           const filePath = `reportCards/${user.uid}/${selectedReportCard || 'report'}-${timestamp}.pdf`
           const storageRef = ref(storage, filePath)
 
-          await uploadBytes(storageRef, blob)
+          await uploadBytes(storageRef, blob, { customMetadata: { schoolYear: schoolYearInfoRef.current.label, term: selectedTerm, student: selectedStudent.fullName, reportType: selectedReportCard } })
           const downloadURL = await getDownloadURL(storageRef)
 
-          // Store a reference in Firestore
-          // B7: Include term in saved report card document
-          await addDoc(collection(firestore, 'reportCards'), {
-            uid: user.uid,
-            type: selectedReportCard,
-            filePath,
-            url: downloadURL,
-            studentName: studentName,
-            tarbiyahId: selectedStudent?.schoolId || selectedStudent?.id || '',
-            status: 'complete',
-            studentId: selectedStudent?.id || '',
-            reportCardTypeName: reportCardType?.name || 'Unknown',
-            term: selectedTerm, // B7: Store term (term1 or term2)
-            schoolYear: schoolYearInfoRef.current?.label || null,
-            createdAt: serverTimestamp(),
+          await publishScopedReport(firestore, {
+            id: effectiveDraftId, studentId: selectedStudent.id, reportCardType: selectedReportCard,
+            schoolYear: schoolYearInfoRef.current.label, term: selectedTerm,
+          }, schoolYearInfoRef.current, {
+            uid: user.uid, type: selectedReportCard, filePath, url: downloadURL,
+            studentName: selectedStudent.fullName, tarbiyahId: selectedStudent.schoolId || selectedStudent.id,
+            status: 'complete', reportCardTypeName: reportCardType.name,
             completedAt: serverTimestamp(),
-          })
-
-          // Convert draft to completed status instead of deleting
-          // B7: Include term in draft ID
-          if (selectedStudent) {
-            try {
-              // Update the draft to mark it as completed
-              const draftRef = doc(firestore, 'reportCardDrafts', effectiveDraftId)
-              await updateDoc(draftRef, {
-                status: 'complete',
-                completedAt: serverTimestamp(),
-                tarbiyahId: selectedStudent?.schoolId || selectedStudent?.id || '',
-                finalPdfUrl: downloadURL,
-                finalPdfPath: filePath,
-                term: selectedTerm, // Store term in draft
-              })
-              console.log('✅ Updated draft to completed status')
-            } catch (updateError) {
-              console.log('No existing draft to update or error updating draft:', updateError)
-            }
-          }
+          }, {
+            status: 'complete', completedAt: serverTimestamp(), finalPdfUrl: downloadURL,
+            finalPdfPath: filePath, tarbiyahId: selectedStudent.schoolId || selectedStudent.id,
+          }, loadedDraftRevisionRef.current[effectiveDraftId])
 
           console.log('✅ Report card uploaded to Firebase Storage:', downloadURL)
         } catch (uploadError) {
           console.error('Error uploading PDF to Firebase Storage:', uploadError)
-          alert(
-            'Failed to save the report card to the cloud, but the file will be downloaded locally.',
-          )
+          throw new Error(`The final report was not saved to the cloud: ${uploadError.message}. Your draft remains saved; retry after resolving this error.`)
         }
       } else {
         console.warn('User not authenticated. Skipping Firebase upload.')
@@ -3045,7 +2877,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
       }, 4000)
     } catch (error) {
       console.error('Error during PDF processing and download:', error)
-      alert('An error occurred while trying to process or download the PDF.')
+      alert(error.message || 'The report could not be finalized. Please try again.')
     } finally {
       setIsGenerating(false)
     }
@@ -3265,14 +3097,25 @@ const ReportCard = ({ presetReportCardId = null }) => {
           {selectedReportCard && selectedStudent && (
             <CCard className="mb-4">
               <CCardBody>
-                <h5 className="mb-3">Select Term</h5>
+                <h5 className="mb-3">{schoolYearInfo?.label || 'Loading school year…'} · Select Term</h5>
+                {recoveryCopy && <div className="alert alert-warning">
+                  Unsaved edits for this report were found in this browser. Saved database work is shown below.
+                  <CButton color="warning" className="ms-2" onClick={() => {
+                    setFormData(recoveryCopy.formData)
+                    loadedDraftRevisionRef.current[currentDraftIdRef.current] = recoveryCopy.revision
+                    setHasUnsavedChanges(true)
+                    setRecoveryCopy(null)
+                  }}>Recover unsaved edits</CButton>
+                </div>}
                 <CNav variant="tabs" role="tablist">
                   <CNavItem>
                     <CNavLink
                       active={selectedTerm === 'term1'}
                       onClick={() => {
+                        if (hasUnsavedChanges && !window.confirm('Switch terms with unsaved changes? A recovery copy will remain in this browser.')) return
+                        setHasUnsavedChanges(false)
                         setSelectedTerm('term1')
-                        setCurrentDraftId(null) // Reset draft ID to reload
+                        setCurrentDraftId(null); currentDraftIdRef.current = null // Reset draft ID to reload
                       }}
                       style={{ cursor: 'pointer' }}
                     >
@@ -3283,8 +3126,10 @@ const ReportCard = ({ presetReportCardId = null }) => {
                     <CNavLink
                       active={selectedTerm === 'term2'}
                       onClick={() => {
+                        if (hasUnsavedChanges && !window.confirm('Switch terms with unsaved changes? A recovery copy will remain in this browser.')) return
+                        setHasUnsavedChanges(false)
                         setSelectedTerm('term2')
-                        setCurrentDraftId(null) // Reset draft ID to reload
+                        setCurrentDraftId(null); currentDraftIdRef.current = null // Reset draft ID to reload
                         // The useEffect will automatically call loadExistingDraft when selectedTerm changes
                       }}
                       style={{ cursor: 'pointer' }}

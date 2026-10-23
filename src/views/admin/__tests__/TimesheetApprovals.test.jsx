@@ -2,6 +2,7 @@
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+vi.mock('../../../Firebase/firebase', () => ({ firestore: {} }))
 vi.mock('../../../services/staffTimesheets', () => ({ timesheetRequest: vi.fn() }))
 vi.mock('../../../services/timekeepingSettings', async (importOriginal) => ({
   ...(await importOriginal()), getTimekeepingSettings: vi.fn(async () => ({

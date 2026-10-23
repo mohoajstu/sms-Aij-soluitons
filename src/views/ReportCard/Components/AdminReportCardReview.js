@@ -1,3 +1,9 @@
+import PDFViewer from './PDFViewer'
+import { getReportYear, getReportTerm, matchesReportScope } from '../utils/reportScope'
+import { draftRevision, saveScopedDraft } from '../utils/saveScopedDraft'
+import { publishScopedReport } from '../utils/publishScopedReport'
+import { useReportScope } from '../utils/useReportScope'
+import ReportScopeFilter from './ReportScopeFilter'
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   CCard,
@@ -79,6 +85,7 @@ const AdminReportCardReview = () => {
   const reapproveMessageTimeoutRef = useRef(null)
   const [versionHistory, setVersionHistory] = useState([])
   const { user, role } = useAuth()
+  const reportScope = useReportScope(reportCards)
 
   useEffect(() => {
     return () => {
@@ -303,17 +310,18 @@ const AdminReportCardReview = () => {
           const data = doc.data()
           const grade = data.formData?.grade || data.selectedStudent?.grade || ''
           reportCardsList.push({
+            ...data,
             id: doc.id,
             studentName: data.studentName,
             teacherName: data.teacherName,
             reportCardType: data.reportCardType,
             reportCardTypeName: data.reportCardTypeName,
             status: data.adminReviewStatus || 'pending', // pending, approved, needs_revision
-            lastModified: data.lastModified?.toDate?.() || data.createdAt?.toDate?.() || new Date(),
+            lastModified: data.lastModified?.toDate?.() || data.createdAt?.toDate?.() || data.createdAt || null,
             teacherId: data.uid,
             formData: data.formData,
             selectedStudent: data.selectedStudent,
-            createdAt: data.createdAt?.toDate?.() || new Date(),
+            createdAt: data.createdAt?.toDate?.() || data.createdAt || null,
             grade: grade, // Extract grade for filtering
             tarbiyahId: data.tarbiyahId || data.selectedStudent?.schoolId || data.selectedStudent?.id || '',
             adminReviewedAt: data.adminReviewedAt?.toDate?.() || null,
@@ -457,39 +465,17 @@ const AdminReportCardReview = () => {
       
       console.log('✅ PDF uploaded to Storage:', downloadURL)
 
-      // Create approved record in reportCards collection (visible to parents)
-      await addDoc(collection(firestore, 'reportCards'), {
-        uid: reportCard.teacherId,
-        type: reportCard.reportCardType,
-        filePath,
-        url: downloadURL,
-        studentName: studentName,
-        tarbiyahId: reportCard.tarbiyahId,
-        status: 'approved', // Approved status makes it visible to parents
-        studentId: reportCard.selectedStudent?.id || '',
-        reportCardTypeName: reportCard.reportCardTypeName,
-        grade: reportCard.grade || '',
-        teacherName: reportCard.teacherName,
-        approvedBy: user.uid,
-        approvedAt: serverTimestamp(),
-        createdAt: serverTimestamp(),
-      })
-
-      console.log('✅ Approved record created in reportCards')
-
-      // Update the draft with approval info and final PDF URL
-      const draftRef = doc(firestore, 'reportCardDrafts', reportCard.id)
-      await updateDoc(draftRef, {
-        adminReviewStatus: 'approved',
-        adminReviewedAt: serverTimestamp(),
-        adminReviewedBy: user.uid,
-        status: 'complete',
-        completedAt: serverTimestamp(),
-        finalPdfUrl: downloadURL,
-        finalPdfPath: filePath,
-        publishedToParents: true,
+      await publishScopedReport(firestore, reportCard, reportScope.current, {
+        uid: reportCard.teacherId, type: reportCard.reportCardType, filePath, url: downloadURL,
+        studentName, tarbiyahId: reportCard.tarbiyahId, status: 'approved',
+        reportCardTypeName: reportCard.reportCardTypeName, grade: reportCard.grade || '',
+        teacherName: reportCard.teacherName, approvedBy: user.uid, approvedAt: serverTimestamp(),
+      }, {
+        adminReviewStatus: 'approved', adminReviewedAt: serverTimestamp(), adminReviewedBy: user.uid,
+        status: 'complete', completedAt: serverTimestamp(), finalPdfUrl: downloadURL,
+        finalPdfPath: filePath, publishedToParents: true,
         ...(mediansChanged ? { formData: mergedFormData } : {}),
-      })
+      }, draftRevision(reportCard))
 
       console.log('✅ Draft updated with approval status')
 
@@ -607,56 +593,22 @@ const AdminReportCardReview = () => {
       )
       const reportCardsSnapshot = await getDocs(reportCardsQuery)
       
-      if (!reportCardsSnapshot.empty) {
-        // Update the most recent approved record
-        const reportCardsList = reportCardsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          data: doc.data(),
-          approvedAt: doc.data().approvedAt?.toDate?.() || new Date(0)
-        }))
-        reportCardsList.sort((a, b) => b.approvedAt - a.approvedAt)
-        
-        const latestReportCard = reportCardsList[0]
-        const reportCardRef = doc(firestore, 'reportCards', latestReportCard.id)
-        await updateDoc(reportCardRef, {
-          url: downloadURL,
-          filePath: filePath,
-          reapprovedAt: serverTimestamp(),
-          reapprovedBy: user.uid,
-        })
-        console.log('✅ Updated existing reportCards record')
-      } else {
-        // If no existing record found, create a new one (shouldn't happen, but safety net)
-        await addDoc(collection(firestore, 'reportCards'), {
-          uid: reportCard.teacherId,
-          type: reportCard.reportCardType,
-          filePath,
-          url: downloadURL,
-          studentName: studentName,
-          tarbiyahId: reportCard.tarbiyahId,
-          status: 'approved',
-          studentId: reportCard.selectedStudent?.id || '',
-          reportCardTypeName: reportCard.reportCardTypeName,
-          grade: reportCard.grade || '',
-          teacherName: reportCard.teacherName,
-          approvedBy: user.uid,
-          approvedAt: serverTimestamp(),
-          reapprovedAt: serverTimestamp(),
-          reapprovedBy: user.uid,
-          createdAt: serverTimestamp(),
-        })
-        console.log('✅ Created new reportCards record (no existing found)')
-      }
-
-      // Update the draft with new final PDF URL
-      const draftRef = doc(firestore, 'reportCardDrafts', reportCard.id)
-      await updateDoc(draftRef, {
-        finalPdfUrl: downloadURL,
-        finalPdfPath: filePath,
-        reapprovedAt: serverTimestamp(),
-        reapprovedBy: user.uid,
+      const samePeriod = reportCardsSnapshot.docs.map((snapshot) => ({ id: snapshot.id, ...snapshot.data() }))
+        .filter((record) => matchesReportScope(record, getReportYear(reportCard, reportScope.current), getReportTerm(reportCard), reportScope.current) &&
+          record.studentId === (reportCard.studentId || reportCard.selectedStudent?.id) &&
+          (!record.sourceDraftId || record.sourceDraftId === reportCard.id))
+        .sort((a, b) => (b.approvedAt?.toMillis?.() || 0) - (a.approvedAt?.toMillis?.() || 0))
+      await publishScopedReport(firestore, reportCard, reportScope.current, {
+        uid: reportCard.teacherId, type: reportCard.reportCardType, filePath, url: downloadURL,
+        studentName, tarbiyahId: reportCard.tarbiyahId, status: 'approved',
+        reportCardTypeName: reportCard.reportCardTypeName, grade: reportCard.grade || '',
+        teacherName: reportCard.teacherName, approvedBy: user.uid, approvedAt: serverTimestamp(),
+        reapprovedAt: serverTimestamp(), reapprovedBy: user.uid,
+      }, {
+        finalPdfUrl: downloadURL, finalPdfPath: filePath,
+        reapprovedAt: serverTimestamp(), reapprovedBy: user.uid,
         ...(mediansChanged ? { formData: mergedFormData } : {}),
-      })
+      }, draftRevision(reportCard), samePeriod[0]?.id)
 
       console.log('✅ Draft updated with new PDF URL')
 
@@ -693,8 +645,8 @@ const AdminReportCardReview = () => {
 
   // Batch re-approve selected approved reports
   const batchReapproveSelected = async () => {
-    const reportsToReapprove = reportCards.filter(rc => 
-      rc.status === 'approved' && selectedForReapproval.has(rc.id)
+    const reportsToReapprove = reportScope.records.filter(rc =>
+      reportScope.year === reportScope.current.label && rc.status === 'approved' && selectedForReapproval.has(rc.id)
     )
 
     if (reportsToReapprove.length === 0) {
@@ -812,7 +764,7 @@ const AdminReportCardReview = () => {
   }
 
   // Filter report cards
-  const filteredReportCards = reportCards.filter(rc => {
+  const filteredReportCards = reportScope.records.filter(rc => {
     const matchesSearch = !searchTerm || 
       rc.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rc.teacherName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -936,6 +888,10 @@ const AdminReportCardReview = () => {
   // Handle edit button - navigate to report card edit page
   const handleEditReportCard = (reportCard) => {
     if (!selectedReportCardData) return
+    if (getReportYear(selectedReportCardData, reportScope.current) !== reportScope.current.label) {
+      alert('This is a historical report. View it in its school year; create current-year work from Create Report Card.')
+      return
+    }
 
     try {
       // Store ordered list for admin review navigation inside editor (freeze current filtered order)
@@ -969,6 +925,7 @@ const AdminReportCardReview = () => {
 
   const handleRestoreVersion = async (version) => {
     if (!selectedReportCardData?.id || !version?.formData) return
+    if (getReportYear(selectedReportCardData, reportScope.current) !== reportScope.current.label) { alert('Historical reports are retained for viewing. Restore is limited to the current school year.'); return }
     if (!window.confirm('Restore this version? This will overwrite the current draft.')) return
     try {
       const draftRef = doc(firestore, 'reportCardDrafts', selectedReportCardData.id)
@@ -990,13 +947,14 @@ const AdminReportCardReview = () => {
         latestFormData,
         10
       )
-      await updateDoc(draftRef, {
-        formData: version.formData,
-        versions: nextVersions,
-        lastModified: serverTimestamp(),
-        adminReviewStatus: 'pending',
-        status: 'draft',
-      })
+      await saveScopedDraft(firestore, selectedReportCardData.id, {
+        ...draftData, uid: user.uid, teacherName: user.displayName || user.email || 'Admin',
+        formData: version.formData, schoolYear: reportScope.current.label,
+      }, {
+        studentId: draftData.studentId || draftData.selectedStudent?.id,
+        type: draftData.reportCardType, term: getReportTerm({ ...draftData, id: selectedReportCardData.id }),
+        year: reportScope.current.label, current: reportScope.current,
+      }, draftRevision(selectedReportCardData))
 
       setSelectedReportCardData((prev) => ({
         ...prev,
@@ -1055,6 +1013,7 @@ const AdminReportCardReview = () => {
           </small>
         </CCardHeader>
         <CCardBody>
+          <ReportScopeFilter scope={reportScope} />
           {reapproveMessage && (
             <CAlert color="success" className="mb-3">
               {reapproveMessage}
@@ -1221,7 +1180,7 @@ const AdminReportCardReview = () => {
 
           {/* Batch Approval Section - Show when there are pending reports in filtered results */}
           {(() => {
-            const pendingInFilter = filteredReportCards.filter(rc => rc.status === 'pending')
+            const pendingInFilter = filteredReportCards.filter(rc => reportScope.year === reportScope.current.label && rc.status === 'pending')
             return pendingInFilter.length > 0 && (
               <CRow className="mb-3">
                 <CCol>
@@ -1318,7 +1277,7 @@ const AdminReportCardReview = () => {
               <CCard className="text-center">
                 <CCardBody>
                   <h5 className="text-secondary">
-                    {reportCards.filter(rc => rc.status === 'pending').length}
+                    {reportScope.records.filter(rc => rc.status === 'pending').length}
                   </h5>
                   <small>Pending Review</small>
                 </CCardBody>
@@ -1328,7 +1287,7 @@ const AdminReportCardReview = () => {
               <CCard className="text-center">
                 <CCardBody>
                   <h5 className="text-success">
-                    {reportCards.filter(rc => rc.status === 'approved').length}
+                    {reportScope.records.filter(rc => rc.status === 'approved').length}
                   </h5>
                   <small>Approved</small>
                 </CCardBody>
@@ -1338,7 +1297,7 @@ const AdminReportCardReview = () => {
               <CCard className="text-center">
                 <CCardBody>
                   <h5 className="text-warning">
-                    {reportCards.filter(rc => rc.status === 'needs_revision').length}
+                    {reportScope.records.filter(rc => rc.status === 'needs_revision').length}
                   </h5>
                   <small>Needs Revision</small>
                 </CCardBody>
@@ -1348,7 +1307,7 @@ const AdminReportCardReview = () => {
               <CCard className="text-center">
                 <CCardBody>
                   <h5 className="text-primary">
-                    {reportCards.length}
+                    {reportScope.records.length}
                   </h5>
                   <small>Total Reports</small>
                 </CCardBody>
@@ -1434,7 +1393,7 @@ const AdminReportCardReview = () => {
                       {reportCard.grade ? `Grade ${reportCard.grade}` : '-'}
                     </CTableDataCell>
                     <CTableDataCell>{reportCard.teacherName}</CTableDataCell>
-                    <CTableDataCell>{reportCard.reportCardTypeName}</CTableDataCell>
+                    <CTableDataCell>{reportCard.reportCardTypeName}<small className="d-block text-body-secondary">{getReportTerm(reportCard) === 'unknown' ? 'Term not recorded' : getReportTerm(reportCard) === 'term1' ? 'Term 1' : 'Term 2'}</small></CTableDataCell>
                     <CTableDataCell>
                       <CBadge color={getStatusBadgeColor(reportCard.status)}>
                         <CIcon icon={getStatusIcon(reportCard.status)} className="me-1" />
@@ -1456,7 +1415,7 @@ const AdminReportCardReview = () => {
                           View
                         </CButton>
                         
-                        {reportCard.status === 'pending' && (
+                        {reportScope.year === reportScope.current.label && reportCard.status === 'pending' && (
                           <>
                             <CButton
                               color="success"
@@ -1488,7 +1447,7 @@ const AdminReportCardReview = () => {
                           </>
                         )}
                         
-                        {reportCard.status === 'needs_revision' && (
+                        {reportScope.year === reportScope.current.label && reportCard.status === 'needs_revision' && (
                           <CButton
                             color="success"
                             size="sm"
@@ -1659,11 +1618,11 @@ const AdminReportCardReview = () => {
                   </div>
                 </div>
               ) : (
-                <CAlert color="info" className="mt-3">
-                  <CIcon icon={cilUser} className="me-2" />
-                  No finalized PDF available yet. This report card is still in draft status.
-                  You can edit it to generate a finalized PDF.
-                </CAlert>
+                <div className="mt-3">
+                  <p>Saved draft · {getReportYear(selectedReportCardData, reportScope.current)} · {getReportTerm(selectedReportCardData) === 'term1' ? 'Term 1' : getReportTerm(selectedReportCardData) === 'term2' ? 'Term 2' : 'Term not recorded'}</p>
+                  <PDFViewer pdfUrl={REPORT_CARD_TYPES.find((type) => type.id === selectedReportCardData.reportCardType)?.pdfPath}
+                    formData={getLatestFormData(selectedReportCardData)} showPreview />
+                </div>
               )}
 
               <div className="mt-4">
@@ -1696,6 +1655,7 @@ const AdminReportCardReview = () => {
                           <CButton
                             color="outline-primary"
                             size="sm"
+                            disabled={reportScope.year !== reportScope.current.label}
                             onClick={() => handleRestoreVersion(version)}
                           >
                             Restore
@@ -1723,7 +1683,7 @@ const AdminReportCardReview = () => {
           >
             Close
           </CButton>
-          {selectedReportCardData && (
+          {selectedReportCardData && getReportYear(selectedReportCardData, reportScope.current) === reportScope.current.label && (
             <CButton
               color="primary"
               onClick={() => handleEditReportCard(selectedReportCardData)}
