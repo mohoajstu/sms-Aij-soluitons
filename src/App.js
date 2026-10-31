@@ -4,6 +4,8 @@ import { CSpinner } from '@coreui/react'
 import useAuth from './Firebase/useAuth'
 import { isActingAs } from './services/actAs'
 import { Toaster } from 'react-hot-toast'
+import DemoBanner from './components/DemoBanner'
+import { isDemoMode } from './utils/demoMode'
 import './scss/style.scss'
 import './scss/examples.scss'
 
@@ -44,6 +46,7 @@ const App = () => {
 
   return (
     <HashRouter>
+      <DemoBanner />
       {/* Add Toaster for notifications */}
       <Toaster
         position="top-right"
@@ -94,12 +97,12 @@ const App = () => {
           <Route path="/registration/thankYouPage" element={<ThankYouPage />} />
 
           {/* Protected Routes */}
-          <Route path="/*" element={user ? <DefaultLayout /> : <Navigate to="/home" replace />} />
+          <Route path="/*" element={user ? <DefaultLayout /> : <Navigate to={isDemoMode() ? '/login' : '/home'} replace />} />
           {/* Force password change route */}
           <Route path="/change-password" element={isActingAs() ? <Navigate to="/dashboard" replace /> : <ChangePassword />} />
 
           {/* Redirect unmatched routes */}
-          <Route path="*" element={<Navigate to={user ? '/' : '/home'} replace />} />
+          <Route path="*" element={<Navigate to={user ? '/' : isDemoMode() ? '/login' : '/home'} replace />} />
         </Routes>
       </Suspense>
     </HashRouter>

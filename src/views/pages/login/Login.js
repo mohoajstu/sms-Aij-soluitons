@@ -19,6 +19,7 @@ import {
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilLockLocked, cilUser } from '@coreui/icons'
+import DemoAccounts from './DemoAccounts'
 
 // Configure Google Provider
 const googleProvider = new GoogleAuthProvider()
@@ -298,6 +299,7 @@ const Login = () => {
                       </small>
                     </div>
                   </CForm>
+                  <DemoAccounts onSignedIn={() => navigate('/')} />
                 </CCardBody>
               </CCard>
 

@@ -30,6 +30,7 @@ import { toast } from 'react-hot-toast'
 import CIcon from '@coreui/icons-react'
 import { cilSave, cilSettings, cilBell, cilCalendar } from '@coreui/icons'
 import CalendarPicker from './CalendarPicker'
+import { smsFetch } from '../../config/functionsBase'
 
 function formatPhoneE164First(input) {
   if (!input || typeof input !== 'string') return null
@@ -217,7 +218,7 @@ const AttendanceSmsSettings = () => {
         throw new Error('Please enter a valid phone number in E.164 format (e.g., +1XXXXXXXXXX)')
       }
 
-      const response = await fetch('https://northamerica-northeast1-tarbiyah-sms.cloudfunctions.net/sendSmsHttp', {
+      const response = await smsFetch({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

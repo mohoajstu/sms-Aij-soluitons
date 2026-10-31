@@ -79,13 +79,14 @@ const client = new twilio(accountSid, authToken)
 function isStaging() {
   // Method 1: Check Functions config (preferred)
   const env = functions.config().app?.env
-  if (env === 'staging') {
+  if (env === 'staging' || env === 'demo') {
     return true
   }
   
-  // Method 2: Fallback to project ID check
+  // Method 2: Fallback to project ID check. The demo project (synthetic data
+  // only) must never send real SMS either.
   const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT
-  if (projectId && projectId.includes('staging')) {
+  if (projectId && (projectId.includes('staging') || projectId.includes('demo'))) {
     return true
   }
   

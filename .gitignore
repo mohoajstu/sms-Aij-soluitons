@@ -32,3 +32,10 @@ functions/.env
 functions/.env.*
 # Generated proof of a locally tested build; baseline and receipts stay versionable.
 release/hosting-prepared.json
+
+# demo
+/build-demo
+.env.demo
+firestore-debug.log
+ui-debug.log
+firebase-debug.log

@@ -1,4 +1,5 @@
 import { isActingAs } from './actAs'
+import { functionsBase } from '../config/functionsBase'
 // Google Calendar Service for handling API interactions
 
 let API_KEY = import.meta.env.VITE_GOOGLE_API_KEY
@@ -9,7 +10,6 @@ const SCOPES =
 const TOKEN_STORAGE_KEY = 'google_calendar_api_token' // This is our internal token storage
 const SHARED_GOOGLE_AUTH_TOKEN_KEY = 'firebase_google_auth_token' // Token shared with Firebase auth
 
-const functionsBase = `https://northamerica-northeast1-tarbiyah-sms.cloudfunctions.net`
 
 async function hydratePublicConfigIfMissing() {
   if (API_KEY && CLIENT_ID) {
@@ -19,7 +19,7 @@ async function hydratePublicConfigIfMissing() {
   
   console.log('🔄 Attempting to load Google API config from Firebase Functions...')
   try {
-    const resp = await fetch(`${functionsBase}/getPublicConfig`)
+    const resp = await fetch(`${functionsBase()}/getPublicConfig`)
     if (resp.ok) {
       const data = await resp.json()
       const hadApiKey = !!API_KEY

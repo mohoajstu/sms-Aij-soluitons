@@ -19,6 +19,7 @@ import {
 import { collection, query, where, getDocs } from 'firebase/firestore'
 import { firestore } from 'src/firebase'
 import emailjs from 'emailjs-com'
+import { isDemoMode } from 'src/utils/demoMode'
 
 // EmailJS configuration - Updated with correct credentials
 const EMAILJS_SERVICE_ID = 'service_t6357f8'
@@ -34,6 +35,9 @@ emailjs.init(EMAILJS_PUBLIC_KEY)
  * @returns {boolean} True if staging environment
  */
 function isStaging() {
+  // The demo never sends real email
+  if (isDemoMode()) return true
+
   // Check project ID from Firebase config
   const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID
   if (projectId && projectId.includes('staging')) {

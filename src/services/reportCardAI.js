@@ -1,5 +1,6 @@
 // OpenAI API calls are now handled via Firebase Functions proxy
 // This keeps the API key secure on the server side
+import { functionsBase as baseFunctionsUrl } from "../config/functionsBase";
 
 export function buildReportType({ grade, term, explicitReportType }) {
   // If UI passes an explicit report type, prefer it
@@ -51,7 +52,7 @@ export function buildReportPayload(formData, { explicitReportType, subjectField 
 // Generate report card comments using OpenAI via Firebase Functions proxy
 export async function generateReportCardJSON(payload, { retry = 1 } = {}) {
   // Use Firebase Functions proxy instead of direct OpenAI API
-  const functionsBase = `https://northamerica-northeast1-tarbiyah-sms.cloudfunctions.net`
+  const functionsBase = baseFunctionsUrl()
 
   const isKindergarten = payload.reportType?.includes("Kindergarten");
   

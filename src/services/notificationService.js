@@ -2,9 +2,7 @@
  * A service for sending SMS notifications using Firebase Functions
  */
 
-// Firebase Functions endpoint for sending SMS
-const FIREBASE_FUNCTIONS_URL =
-  'https://northamerica-northeast1-tarbiyah-sms.cloudfunctions.net/sendSmsHttp'
+import { smsFetch } from '../config/functionsBase'
 
 const NotificationService = {
   /**
@@ -31,7 +29,7 @@ const NotificationService = {
         day: 'numeric',
       })}. Please contact the school for more information.`
 
-      const response = await fetch(FIREBASE_FUNCTIONS_URL, {
+      const response = await smsFetch({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -68,7 +66,7 @@ const NotificationService = {
    */
   checkSmsConfiguration: async () => {
     try {
-      const response = await fetch(FIREBASE_FUNCTIONS_URL, {
+      const response = await smsFetch({
         method: 'OPTIONS',
       })
       return response.ok || response.status === 204

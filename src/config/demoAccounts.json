@@ -1,0 +1,37 @@
+[
+  {
+    "role": "admin",
+    "label": "School administrator",
+    "description": "Full access: people, courses, attendance, report review, registrations, timekeeping, settings.",
+    "email": "demo.admin@demo.example",
+    "id": "TA900001"
+  },
+  {
+    "role": "faculty",
+    "label": "Grade 3 homeroom teacher",
+    "description": "Teacher view: own classes, attendance, report card drafts, timetable, check-in.",
+    "email": "demo.teacher@demo.example",
+    "id": "TLA90001"
+  },
+  {
+    "role": "faculty",
+    "label": "Grade 7 homeroom teacher",
+    "description": "Teacher view with Grade 7-8 progress reports.",
+    "email": "demo.teacher2@demo.example",
+    "id": "TLA90002"
+  },
+  {
+    "role": "parent",
+    "label": "Parent (Grade 3 student)",
+    "description": "Parent view: child attendance, announcements and published report cards.",
+    "email": "demo.parent@demo.example",
+    "id": "TP900001"
+  },
+  {
+    "role": "parent",
+    "label": "Parent (Grade 7 student)",
+    "description": "Parent view with a published progress report.",
+    "email": "demo.parent2@demo.example",
+    "id": "TP900002"
+  }
+]

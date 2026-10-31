@@ -20,6 +20,7 @@ import { firestore } from '../../firebase'
 import NotificationService from '../../services/notificationService'
 import { toast } from 'react-hot-toast'
 import Select from 'react-select'
+import { smsFetch } from '../../config/functionsBase'
 
 function formatPhoneE164First(input) {
   if (!input || typeof input !== 'string') return null
@@ -215,7 +216,7 @@ const ManualSmsNotification = () => {
       }
 
       // Send SMS using the updated notification service
-      const response = await fetch('https://northamerica-northeast1-tarbiyah-sms.cloudfunctions.net/sendSmsHttp', {
+      const response = await smsFetch({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

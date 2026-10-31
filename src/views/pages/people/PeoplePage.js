@@ -52,6 +52,7 @@ import { cilPeople, cilPlus, cilPencil, cilTrash, cilCheckCircle } from '@coreui
 import { firestore } from 'src/firebase';
 import useAuth from 'src/Firebase/useAuth';
 import './PeoplePage.css';
+import { functionsBase } from '../../../config/functionsBase';
 
 const PeoplePage = () => {
   const { user: currentUser, role: userRole } = useAuth();
@@ -513,7 +514,7 @@ const PeoplePage = () => {
         try {
           const token = await currentUser?.getIdToken?.();
           if (token) {
-            await fetch('https://northamerica-northeast1-tarbiyah-sms.cloudfunctions.net/setParentTempPassword', {
+            await fetch(`${functionsBase()}/setParentTempPassword`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
