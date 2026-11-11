@@ -146,3 +146,25 @@ describe('Kindergarten initial observations cap fits the PDF', () => {
     expectFits(form, font, 'keyLearning', KG_KEY_LEARNING_LIMIT)
   }, 30000)
 })
+
+describe('Kindergarten initial observation formatting', () => {
+  it('preserves paragraph breaks and left-aligns both comment boxes', async () => {
+    const { stripArabicFromText } = await import('../pdfFillingUtils')
+    const { form, font } = await loadTemplate('kg-cl-initial-Observations.pdf')
+    const text = 'First paragraph.\n\nSecond paragraph.'
+    expect(stripArabicFromText(text)).toBe(text)
+    for (const name of ['keyLearning', 'keyLearning2']) {
+      const field = form.getTextField(name)
+      expect(fillPDFField(field, stripArabicFromText(text), font)).toBe(true)
+      expect(field.getAlignment()).toBe(0)
+      expect(field.getText()).toBe(text)
+    }
+    // Verify formatting survives export, rather than only checking in-memory fields.
+    const exported = await PDFDocument.load(await form.doc.save())
+    for (const name of ['keyLearning', 'keyLearning2']) {
+      const field = exported.getForm().getTextField(name)
+      expect(field.getAlignment()).toBe(0)
+      expect(field.getText()).toBe(text)
+    }
+  })
+})

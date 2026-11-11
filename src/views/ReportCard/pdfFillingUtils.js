@@ -23,7 +23,7 @@ export const stripArabicFromText = (text) => {
   if (!text) return text
   const stripped = text
     .replace(ARABIC_REGEX_GLOBAL, '')
-    .replace(/\s{2,}/g, ' ')
+    .replace(/[^\S\r\n]{2,}/g, ' ')
     .trim()
   // Also sanitize any non-WinAnsi characters (ā, zero-width spaces, etc.)
   // so StandardFonts.TimesRoman never encounters chars it can't encode.
@@ -502,6 +502,7 @@ const shouldBeLeftAligned = (fieldName) => {
     'principle',
     'principalname',
     'sans',
+    'keylearning',
     'strengths',
     'nextsteps',
     'improvement',

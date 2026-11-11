@@ -1,7 +1,11 @@
 {
-  "name": "Verified production baseline; no pending frontend changes",
+  "name": "Left-align Kindergarten initial observations and preserve paragraph breaks",
   "project": "tarbiyah-sms",
   "target": "hosting:tlasms",
   "baseAsset": "/assets/index-JSDq1E7i.js",
-  "allowedFiles": []
+  "allowedFiles": [
+    "src/views/ReportCard/Components/PDFViewer.js",
+    "src/views/ReportCard/pdfFillingUtils.js",
+    "src/views/ReportCard/__tests__/pdfFieldCapacity.test.js"
+  ]
 }

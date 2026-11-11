@@ -1856,6 +1856,7 @@ const PDFViewer = React.memo(
         'principle',
         'principalname',
         'sans',
+        'keylearning',
         'strengths',
         'nextsteps',
         'improvement',
