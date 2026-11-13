@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
 import { doc, setDoc, getDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore'
 import { auth, firestore } from '../../../Firebase/firebase'
-import { STAFF_AUTHORIZED_DOMAINS, isStaffEmailAuthorized, isAdminUser } from '../../../config/authConfig'
+import { isAdminUser } from '../../../config/authConfig'
 import {
   CButton,
   CCard,
@@ -42,9 +42,6 @@ const StaffLogin = () => {
       const result = await signInWithPopup(auth, googleProvider)
       const user = result.user
 
-      // Check if the email domain is authorized
-      const isAuthorizedDomain = isStaffEmailAuthorized(user.email)
-      
       // First, check if user exists in faculty collection by email
       let existingFacultyDoc = null
       let normalizedRole = 'guest'
@@ -73,11 +70,15 @@ const StaffLogin = () => {
 
       const isAdminOrFaculty = isAdminUser(normalizedRole) || normalizedRole === 'faculty'
 
-      // Allow access if either domain is authorized OR user is admin/faculty
-      if (!isAuthorizedDomain && !isAdminOrFaculty) {
+      // Staff access requires a record provisioned by an administrator (faculty/admins
+      // collection, or a users doc an admin gave a staff role). An email domain alone
+      // is NOT enough: parents sign in with their child's @tarbiyahlearning.ca account,
+      // so the domain cannot tell staff from families. Firestore rules enforce this
+      // too; this check just gives a clear message.
+      if (!isAdminOrFaculty && normalizedRole !== 'staff') {
         // Sign out the user immediately
         await auth.signOut()
-        const reason = `Access denied. Only staff with authorized email domains or admin/faculty users are allowed. Your email domain: ${user.email.split('@')[1]}`
+        const reason = 'Access denied. This account has not been set up as staff. Please ask a school administrator to add you.'
         setError(reason)
         toast.error(reason)
         setLoading(false)
@@ -94,81 +95,21 @@ const StaffLogin = () => {
         localStorage.setItem(SHARED_GOOGLE_AUTH_TOKEN_KEY, JSON.stringify(token))
       }
 
-      // If user exists in faculty collection, create/update user document with Tarbiyah ID
-      if (existingFacultyDoc && tarbiyahId) {
-        const userRef = doc(db, 'users', tarbiyahId)
+      // Record login stats on the existing, admin-provisioned users doc. This never
+      // creates a users doc or touches a role: roles are granted by administrators
+      // only (Firestore rules reject client-side role writes). Best-effort.
+      try {
+        const statsId = existingFacultyDoc ? tarbiyahId : user.uid
+        const userRef = doc(db, 'users', statsId)
         const userDoc = await getDoc(userRef)
-        
-        if (!userDoc.exists()) {
-          // Create new user document with Tarbiyah ID
-          await setDoc(userRef, {
-            tarbiyahId: tarbiyahId,
-            linkedCollection: 'faculty',
-            personalInfo: {
-              firstName: existingFacultyDoc.data()?.personalInfo?.firstName || user.displayName?.split(' ')[0] || '',
-              lastName: existingFacultyDoc.data()?.personalInfo?.lastName || user.displayName?.split(' ').slice(1).join(' ') || '',
-              email: user.email,
-              role: 'Faculty'
-            },
-            role: 'Faculty',
-            emailDomain: user.email.split('@')[1],
-            isVerified: true,
-            isAuthorizedDomain,
-            createdAt: serverTimestamp(),
-            lastLogin: serverTimestamp(),
-            loginCount: 1,
-            active: true,
-            dashboard: {
-              theme: 'default'
-            },
-            stats: {
-              lastLoginAt: serverTimestamp(),
-              loginCount: 1
-            }
-          })
-        } else {
-          // Update existing user document
+        if (userDoc.exists()) {
           await setDoc(userRef, {
             lastLogin: serverTimestamp(),
             loginCount: (userDoc.data().loginCount || 0) + 1,
-            emailDomain: user.email.split('@')[1],
-            isVerified: true,
-            isAuthorizedDomain,
-            'stats.lastLoginAt': serverTimestamp()
           }, { merge: true })
         }
-      } else {
-        // Fallback: create user document in users collection (by auth uid) for non-faculty staff
-        const userRef = doc(db, 'users', user.uid)
-        const userDoc = await getDoc(userRef)
-
-        if (!userDoc.exists()) {
-          const [firstName, lastName] = user.displayName?.split(' ') || ['', '']
-          // Set role based on domain authorization or existing profile role
-          const userRole = isAuthorizedDomain ? 'staff' : (isAdminOrFaculty ? (isAdminUser(normalizedRole) ? 'admin' : normalizedRole) : 'staff')
-          
-          await setDoc(userRef, {
-            firstName,
-            lastName,
-            email: user.email,
-            role: userRole,
-            emailDomain: user.email.split('@')[1],
-            isVerified: true,
-            isAuthorizedDomain,
-            createdAt: serverTimestamp(),
-            lastLogin: serverTimestamp(),
-            loginCount: 1,
-          })
-        } else {
-          // Update last login and verify domain again
-          await setDoc(userRef, {
-            lastLogin: serverTimestamp(),
-            loginCount: (userDoc.data().loginCount || 0) + 1,
-            emailDomain: user.email.split('@')[1],
-            isVerified: true,
-            isAuthorizedDomain,
-          }, { merge: true })
-        }
+      } catch (e) {
+        console.warn('Could not record staff login stats:', e)
       }
 
       navigate('/')
@@ -294,11 +235,7 @@ const StaffLogin = () => {
 
                   <div className="text-center">
                     <small className="text-muted">
-                      Only staff members with authorized email domains or admin users can access this portal.
-                      <br />
-                      <strong>Authorized domains:</strong> {STAFF_AUTHORIZED_DOMAINS.join(', ')}
-                      <br />
-                      <strong>Admin users:</strong> Users with admin role can access from any domain
+                      Only staff accounts set up by a school administrator can access this portal.
                     </small>
                   </div>
                 </CCardBody>

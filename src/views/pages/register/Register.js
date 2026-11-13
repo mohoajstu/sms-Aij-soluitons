@@ -145,35 +145,15 @@ const Register = () => {
     }
   }
 
-  const getRoleSpecificData = () => {
-    switch (formData.role) {
-      case 'parent':
-        return {
-          parentProfile: {
-            emergencyNumber: formData.emergencyNumber,
-            children: [],
-            communicationPreferences: { email: true, sms: true },
-          },
-        }
-      case 'teacher':
-        return {
-          teacherProfile: {
-            subjects: formData.subjects.split(',').map((s) => s.trim()),
-            classesManaged: [],
-            teacherPerformance: { averageClassAttendance: 0, feedbackScore: 0 },
-          },
-        }
-      case 'admin':
-        return {
-          adminProfile: {
-            permissions: formData.permissions.split(',').map((p) => p.trim()),
-            auditMetrics: { lastAudit: null, actionsLogged: 0 },
-          },
-        }
-      default:
-        return {}
-    }
-  }
+  // Self-registration only ever creates a parent. Staff and admin accounts are
+  // provisioned by an administrator, so no teacher/admin profile is built here.
+  const getRoleSpecificData = () => ({
+    parentProfile: {
+      emergencyNumber: formData.emergencyNumber,
+      children: [],
+      communicationPreferences: { email: true, sms: true },
+    },
+  })
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }))

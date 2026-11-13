@@ -74,3 +74,16 @@ it('continues to reject a parent using an unauthorized staff email domain', asyn
   expect(navigate).not.toHaveBeenCalled()
   expect(container.textContent).toContain('Access denied')
 })
+
+it('rejects a parent signed in with their child\'s @tarbiyahlearning.ca account', async () => {
+  // Parents must use the child's school Google account, so the domain alone can
+  // never prove someone is staff.
+  signInWithPopup.mockResolvedValue({ user: {
+    uid: 'parent-uid', email: 'child.name@tarbiyahlearning.ca', emailVerified: true,
+  } })
+  loadCurrentUserProfile.mockResolvedValue(null)
+  await signIn()
+  expect(auth.signOut).toHaveBeenCalledOnce()
+  expect(navigate).not.toHaveBeenCalled()
+  expect(container.textContent).toContain('Access denied')
+})

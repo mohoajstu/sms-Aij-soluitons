@@ -16,9 +16,14 @@ service cloud.firestore {
     }
 
     // Helper functions
+    // Admin status comes from a server-set custom claim, or from the role on the
+    // caller's own users/{uid} doc. That doc is NOT client-writable for role
+    // fields (see the users rules below), so neither source can be self-granted.
     function isAdmin() {
       let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
       return
+        request.auth.token.get('admin', false) == true ||
+        request.auth.token.get('superAdmin', false) == true ||
         (
           userData.primaryRole != null &&
           (userData.primaryRole.lower() == 'admin' ||
@@ -66,6 +71,75 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // ---- Privilege protection -------------------------------------------------
+    // Role is resolved from several fields and from collection membership
+    // (faculty/ and admins/). Anything that can write those can mint a staff or
+    // admin identity, so every one of them is protected below.
+
+    // True when every role claim in the document is empty or "parent".
+    function parentOnlyRoles(d) {
+      return d.get('role', '').lower() in ['', 'parent'] &&
+             d.get('primaryRole', '').lower() in ['', 'parent'] &&
+             d.get('personalInfo', {}).get('role', '').lower() in ['', 'parent'] &&
+             d.get('personalInfo', {}).get('primaryRole', '').lower() in ['', 'parent'];
+    }
+
+    function rolesUnchanged() {
+      let a = request.resource.data;
+      let b = resource.data;
+      return a.get('role', null) == b.get('role', null) &&
+             a.get('primaryRole', null) == b.get('primaryRole', null) &&
+             a.get('personalInfo', {}).get('role', null) == b.get('personalInfo', {}).get('role', null) &&
+             a.get('personalInfo', {}).get('primaryRole', null) == b.get('personalInfo', {}).get('primaryRole', null);
+    }
+
+    // Fields that link a users doc to a staff/student record or carry staff data.
+    function staffLinkFieldsUntouched() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['adminProfile', 'teacherProfile', 'linkedCollection', 'tarbiyahId', 'isTestAccount']);
+    }
+
+    function noStaffLinkFields(d) {
+      return !d.keys().hasAny(['adminProfile', 'teacherProfile', 'linkedCollection', 'tarbiyahId', 'isTestAccount']);
+    }
+
+    // The verified Google/email sign-in owns the record (users docs are often keyed
+    // by Tarbiyah ID rather than auth uid, so uid alone cannot establish ownership).
+    function emailOwnsRecord(d) {
+      return request.auth.token.get('email_verified', false) == true &&
+             request.auth.token.get('email', '') != '' &&
+             (d.get('email', '').lower() == request.auth.token.email.lower() ||
+              d.get('contact', {}).get('email', '').lower() == request.auth.token.email.lower() ||
+              d.get('personalInfo', {}).get('email', '').lower() == request.auth.token.email.lower());
+    }
+
+    // What a signed-in person may create for themselves: a parent account, nothing else.
+    function validSelfCreate(userId) {
+      let d = request.resource.data;
+      return parentOnlyRoles(d) && (
+        (request.auth.uid == userId && noStaffLinkFields(d)) ||
+        // Login.js provisions a temporary parent record for an unknown Google account.
+        (userId.matches('TEMP_[0-9]+') && emailOwnsRecord(d) && d.get('tarbiyahId', '') == userId &&
+         !d.keys().hasAny(['adminProfile', 'teacherProfile', 'linkedCollection', 'isTestAccount']))
+      );
+    }
+
+    // What an owner may change on their own doc: never roles or staff links.
+    function validSelfUpdate(userId) {
+      return (request.auth.uid == userId || emailOwnsRecord(resource.data)) &&
+             staffLinkFieldsUntouched() &&
+             (rolesUnchanged() || (parentOnlyRoles(resource.data) && parentOnlyRoles(request.resource.data)));
+    }
+
+    // faculty/ docs: others (e.g. course creation) may update non-identity fields.
+    function facultyIdentityUntouched() {
+      let a = request.resource.data;
+      let b = resource.data;
+      return rolesUnchanged() &&
+             !a.diff(b).affectedKeys().hasAny(['active', 'isTestAccount', 'email', 'contact', 'linkedCollection', 'tarbiyahId', 'adminProfile']) &&
+             a.get('personalInfo', {}).get('email', null) == b.get('personalInfo', {}).get('email', null);
+    }
+
     // Registration forms: ANYONE can create and update (for public registration), admins/faculty can read/write/delete
     match /registrations/{docId} {
       allow create: if isActAsSessionValid() && (true); // Allow anyone to submit registration forms
@@ -111,10 +185,17 @@ service cloud.firestore {
                      'tarbiyahId' in resource.data);
     }
 
-    // Users can read their own profile or if they're a parent (temporarily permissive)
+    // Users. Any signed-in user may still READ (existing behaviour; PII exposure is a
+    // separate follow-up). WRITES are closed: nobody can set or change a role, a
+    // staff link or another person's doc unless they are an admin.
+    // Previously `isParent() || isFaculty()` could write ANY user doc, and a second
+    // block let a user write their own doc unrestricted — that is how a parent could
+    // grant themselves staff/admin.
     match /users/{userId} {
-      allow read: if isActAsSessionValid() && (request.auth.uid == userId || isParent());
-      allow write: if isActAsSessionValid() && (request.auth.uid == userId || isParent() || isFaculty());
+      allow read: if isActAsSessionValid() && isAuthenticated();
+      allow create: if isActAsSessionValid() && (isAdmin() || validSelfCreate(userId));
+      allow update: if isActAsSessionValid() && (isAdmin() || validSelfUpdate(userId));
+      allow delete: if isActAsSessionValid() && isAdmin();
     }
 
     // Rules for courses
@@ -161,9 +242,18 @@ service cloud.firestore {
                    ));
     }
 
-    // Allow faculty to read and write their own faculty document
+    // Staff identity records. Role is resolved from collection membership, so being
+    // able to CREATE a doc here is the same as being granted that role: admin only.
     match /faculty/{facultyId} {
-      allow read, write: if isActAsSessionValid() && (request.auth.uid == facultyId);
+      allow read: if isActAsSessionValid() && isAuthenticated();
+      allow create, delete: if isActAsSessionValid() && isAdmin();
+      allow update: if isActAsSessionValid() && isAuthenticated() &&
+                       (isAdmin() || facultyIdentityUntouched());
+    }
+
+    match /admins/{adminId} {
+      allow read: if isActAsSessionValid() && isAuthenticated();
+      allow write: if isActAsSessionValid() && isAdmin();
     }
 
     // Allow faculty to read courses and students
@@ -173,21 +263,6 @@ service cloud.firestore {
 
     match /students/{studentId} {
       allow read: if isActAsSessionValid() && (isAuthenticated());
-    }
-
-    // Allow users to read their own user document
-    match /users/{userId} {
-      allow read, write: if isActAsSessionValid() && (request.auth.uid == userId);
-    }
-
-    // Allow parents to read and write their own document
-    match /parents/{parentId} {
-      allow read, write: if isActAsSessionValid() && (request.auth.uid == parentId);
-    }
-
-    // Allow admins to read and write all documents
-    match /admins/{adminId} {
-      allow read, write: if isActAsSessionValid() && (isAuthenticated());
     }
 
     // Announcements: anyone can read, only admins can write
@@ -209,22 +284,36 @@ service cloud.firestore {
       allow update, delete: if isActAsSessionValid() && (isAdmin());
     }
 
-    // Default rule: require sign-in.
+    // Default rule: require sign-in for everything not covered above.
     //
-    // This was `allow read, write: if true`, which granted the anonymous public
-    // internet full read AND write on every document. Firestore rules are OR-ed,
-    // not first-match, so it overrode every role check above it.
+    // Firestore rules are OR-ed, not first-match, so this rule overrides any
+    // stricter rule written for the same path. That is why the identity and
+    // settings collections below are excluded from its WRITE access: otherwise
+    // any signed-in user (including a parent who self-registered) could create
+    // faculty/admins docs, edit users docs or change system settings, no matter
+    // what the specific rules above say.
     //
-    // SCOPE OF THIS FIX: it stops unauthenticated access only. Any signed-in
-    // user can still read and write everything via this rule. Because /register
-    // is open to the public, an attacker can still self-serve an account and get
-    // back in. Per-collection rules are the actual fix; this is the stopgap that
-    // closes the drive-by path today.
-    // Corrections and their history are server-only, accessed through the
-    // verified-email staffTimesheets API. Never expose them via this legacy rule.
-    match /{collectionId}/{document=**} {
-      allow read, write: if isActAsSessionValid() && (isAuthenticated() &&
-        collectionId != 'actAsSessions' && collectionId != 'staffTimesheetCorrections' && collectionId != 'timekeepingAdminAccess');
+    // KNOWN GAP (follow-up): every other collection (students, courses, reports,
+    // parents, ...) is still readable and writable by any signed-in user.
+    // Per-collection rules are still needed. Corrections and their history are
+    // server-only, accessed through the verified-email staffTimesheets API.
+    function serverOnlyCollection(c) {
+      return c == 'actAsSessions' || c == 'staffTimesheetCorrections' || c == 'timekeepingAdminAccess';
+    }
+    function identityOrSettingsCollection(c) {
+      return c == 'users' || c == 'faculty' || c == 'admins' || c == 'systemSettings';
+    }
+
+    // Top-level documents.
+    match /{collectionId}/{docId} {
+      allow read: if isActAsSessionValid() && isAuthenticated() && !serverOnlyCollection(collectionId);
+      allow write: if isActAsSessionValid() && isAuthenticated() &&
+        !serverOnlyCollection(collectionId) && !identityOrSettingsCollection(collectionId);
+    }
+
+    // Documents in subcollections (never matches a top-level document).
+    match /{collectionId}/{docId}/{sub}/{rest=**} {
+      allow read, write: if isActAsSessionValid() && isAuthenticated() && !serverOnlyCollection(collectionId);
     }
   }
 }

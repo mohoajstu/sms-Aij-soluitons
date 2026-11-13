@@ -642,7 +642,7 @@ exports.generateReportCard = functions
     }
   })
 
-// Set a parent's temp password using Admin Auth. Requires an authenticated caller with admin/staff role.
+// Set a parent's temp password using Admin Auth. Requires an authenticated admin (resets another account's password, so never 'staff').
 exports.setParentTempPassword = functions
   .region('northamerica-northeast1')
   .https.onRequest(async (req, res) => {
@@ -673,7 +673,7 @@ exports.setParentTempPassword = functions
       const callerSnap = await db.collection('users').doc(callerUid).get()
       const callerData = callerSnap.exists ? callerSnap.data() : {}
       const role = (callerData?.role || callerData?.personalInfo?.role || '').toString().toLowerCase()
-      const allowed = role === 'admin' || role === 'schooladmin' || role === 'staff'
+      const allowed = role === 'admin' || role === 'schooladmin' || role === 'school_admin'
       if (!allowed) {
         return res.status(403).json({ success: false, message: 'Insufficient permissions' })
       }
@@ -731,11 +731,16 @@ exports.triggerAttendanceSms = functions
       }
 
       try {
-        const { date, adminUid } = req.body
+        const { date } = req.body || {}
 
-        if (!adminUid) {
-          return res.status(400).json({ success: false, message: 'Admin UID required' })
+        // Identify the caller from a verified ID token. Never trust a client-supplied uid.
+        const bearer = /^Bearer (.+)$/.exec(req.headers.authorization || '')?.[1]
+        if (!bearer) {
+          return res.status(401).json({ success: false, message: 'Sign in required' })
         }
+        const decoded = await admin.auth().verifyIdToken(bearer, true)
+        await require('./actAs').validateActAsSession(admin, decoded)
+        const adminUid = decoded.uid
 
         // Verify admin status
         const adminDoc = await admin.firestore().collection('users').doc(adminUid).get()
@@ -744,7 +749,7 @@ exports.triggerAttendanceSms = functions
         }
 
         const adminData = adminDoc.data()
-        const role = adminData.personalInfo?.role || adminData.role || ''
+        const role = String(adminData.personalInfo?.role || adminData.role || '')
         if (role.toLowerCase() !== 'admin') {
           return res.status(403).json({ success: false, message: 'Admin access required' })
         }
