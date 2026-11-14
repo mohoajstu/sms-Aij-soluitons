@@ -2,6 +2,7 @@ import React, { Suspense } from 'react'
 import { HashRouter, Route, Routes, Navigate } from 'react-router-dom'
 import { CSpinner } from '@coreui/react'
 import useAuth from './Firebase/useAuth'
+import { canUsePortal } from './config/portalAccess'
 import { isActingAs } from './services/actAs'
 import { Toaster } from 'react-hot-toast'
 import './scss/style.scss'
@@ -17,12 +18,13 @@ const PrivacyPolicy = React.lazy(() => import('./views/pages/privacyPolicy/Priva
 const TermsOfService = React.lazy(() => import('./views/pages/termsOfService/TermsOfService'))
 const ParentLogin = React.lazy(() => import('./views/pages/login/ParentLogin'))
 const StaffLogin = React.lazy(() => import('./views/pages/login/StaffLogin'))
+const NoAccess = React.lazy(() => import('./views/pages/NoAccess'))
 const ChangePassword = React.lazy(() => import('./views/pages/login/ChangePassword'))
 const RegistrationPage = React.lazy(() => import('./views/registration/registrationPage'))
 const ThankYouPage = React.lazy(() => import('./views/registration/thankYouPage'))
 
 const App = () => {
-  const { user, loading } = useAuth()
+  const { user, role, loading } = useAuth()
 
   if (loading) {
     return (
@@ -94,7 +96,15 @@ const App = () => {
           <Route path="/registration/thankYouPage" element={<ThankYouPage />} />
 
           {/* Protected Routes */}
-          <Route path="/*" element={user ? <DefaultLayout /> : <Navigate to="/home" replace />} />
+          <Route path="/*" element={
+              !user ? (
+                <Navigate to="/home" replace />
+              ) : canUsePortal(role) ? (
+                <DefaultLayout />
+              ) : (
+                <NoAccess />
+              )
+            } />
           {/* Force password change route */}
           <Route path="/change-password" element={isActingAs() ? <Navigate to="/dashboard" replace /> : <ChangePassword />} />
 

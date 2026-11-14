@@ -2,6 +2,7 @@ import React, { Suspense, useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { CContainer, CSpinner } from '@coreui/react'
 import useAuth from '../Firebase/useAuth'
+import { canUsePortal } from '../config/portalAccess'
 
 // routes config
 import routes from '../routes'
@@ -42,6 +43,7 @@ const AppContent = () => {
   )
   
   const filteredRoutes = routes.filter((route) => {
+    if (!canUsePortal(role)) return false
     if (!route.hideFor) return true
     if (!Array.isArray(route.hideFor)) return true
     return !route.hideFor.includes((role || '').toLowerCase())
