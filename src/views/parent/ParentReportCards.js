@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from 'react'
 import { CCard, CCardBody, CCardHeader, CNav, CNavItem, CNavLink, CTabContent, CTabPane, CListGroup, CListGroupItem, CSpinner, CAlert } from '@coreui/react'
-import { storage, firestore } from '../../Firebase/firebase'
+import { firestore } from '../../Firebase/firebase'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import useAuth from '../../Firebase/useAuth'
+import { fetchSchoolYearSettings } from '../ReportCard/utils/schoolYear'
+import { groupParentReports, parentReportTermLabel } from './parentReportGroups'
+import './ParentReportCards.css'
 
 const ParentReportCards = () => {
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [children, setChildren] = useState([]) // [{ id, name }]
   const [activeIdx, setActiveIdx] = useState(0)
-  const [filesByChild, setFilesByChild] = useState({}) // id -> [{ name, url }]
+  const [filesByChild, setFilesByChild] = useState({}) // id -> school-year groups
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -19,6 +22,7 @@ const ParentReportCards = () => {
       setLoading(true)
       setError('')
       try {
+        const schoolYear = await fetchSchoolYearSettings(firestore)
         // Find student by the logged-in email (parent logs in with child's email)
         const studentsQuery = query(
           collection(firestore, 'students'),
@@ -70,48 +74,18 @@ const ParentReportCards = () => {
               rcSnap = await getDocs(byNameQ)
             }
 
-            // Group by report type ID and keep only the latest approved one for each type
-            // This ensures parents see only ONE report card per type (e.g., one "1-6 progress", one "7-8 progress")
-            const reportsByType = new Map()
-            
-            rcSnap.forEach((docSnap) => {
-              const data = docSnap.data() || {}
-              const url = data.url
-              const filePath = data.filePath || ''
-              // Use reportCardType (ID) as the unique key, fallback to reportCardTypeName or type
-              const reportTypeId = data.reportCardType || data.type || 'unknown'
-              const reportTypeName = data.reportCardTypeName || data.type || 'Report Card'
-              const approvedAt = data.approvedAt?.toDate?.() || data.createdAt?.toDate?.() || new Date()
-              
-              if (url) {
-                // Use report type ID as the unique key (e.g., "1-6-progress", "7-8-progress", "kg-initial-observations")
-                const reportKey = reportTypeId
-                
-                // If we haven't seen this type, or this one is newer, keep it
-                if (!reportsByType.has(reportKey) || approvedAt > reportsByType.get(reportKey).approvedAt) {
-                  const displayName = reportTypeName // Show the friendly name, not the filename
-                  reportsByType.set(reportKey, {
-                    name: displayName,
-                    url,
-                    grade: data.grade || '',
-                    approvedAt: approvedAt,
-                    type: reportTypeName,
-                    typeId: reportTypeId
-                  })
-                }
-              }
-            })
-            
-            // Convert map to array and sort by approval date (newest first)
-            map[kid.id] = Array.from(reportsByType.values()).sort((a, b) => b.approvedAt - a.approvedAt)
+            const records = []
+            rcSnap.forEach((report) => records.push({ ...report.data(), id: report.id }))
+            map[kid.id] = groupParentReports(records, schoolYear)
           } catch (inner) {
             console.warn('Error fetching reportCards for', kid.id, inner)
+            throw inner
           }
         }
         setFilesByChild(map)
       } catch (e) {
         console.error('Failed to load parent report cards:', e)
-        setError('Failed to load report cards.')
+        setError('Unable to load report cards. Please refresh the page to try again.')
       } finally {
         setLoading(false)
       }
@@ -127,7 +101,7 @@ const ParentReportCards = () => {
   return (
     <CCard>
       <CCardHeader>
-        <h3>Report Cards</h3>
+        <h3 className="mb-0">Report Cards</h3>
       </CCardHeader>
       <CCardBody>
         {children.length > 1 && (
@@ -145,18 +119,42 @@ const ParentReportCards = () => {
         <CTabContent>
           {children.map((child, idx) => (
             <CTabPane key={child.id} visible={activeIdx === idx}>
-              <CListGroup>
-                {(filesByChild[child.id] || []).map((f, i) => (
-                  <CListGroupItem key={`${child.id}-${i}`}>
-                    <a href={f.url} target="_blank" rel="noopener noreferrer">
-                      {f.name}
-                    </a>
-                  </CListGroupItem>
-                ))}
-                {(filesByChild[child.id] || []).length === 0 && (
-                  <CListGroupItem>No report cards found.</CListGroupItem>
-                )}
-              </CListGroup>
+              <p className="mb-4">{child.name}</p>
+              {(filesByChild[child.id] || []).map((group) => {
+                const title = group.year === 'unknown' ? 'School year not recorded' : group.year
+                const reports = (
+                  <CListGroup flush>
+                    {group.reports.map((report) => (
+                      <CListGroupItem key={report.id} className="parent-report-item">
+                        <a href={report.url} target="_blank" rel="noopener noreferrer">
+                          {report.name}
+                          <span className="visually-hidden"> (opens PDF in a new tab)</span>
+                        </a>
+                        <span className="parent-report-meta">
+                          {parentReportTermLabel(report.term)}
+                          {report.grade ? ` · ${/grade|kindergarten|^jk$|^sk$/i.test(report.grade) ? report.grade : `Grade ${report.grade}`}` : ''}
+                        </span>
+                      </CListGroupItem>
+                    ))}
+                  </CListGroup>
+                )
+                return group.current ? (
+                  <section key={group.year} className="parent-report-current" aria-label={`Current school year ${title}`}>
+                    <h4>{title} <span className="badge text-bg-primary">Current school year</span></h4>
+                    {group.reports.length ? reports : (
+                      <p className="mb-0">No report cards have been released for this school year yet.</p>
+                    )}
+                  </section>
+                ) : (
+                  <details key={`${child.id}-${group.year}`} className="parent-report-year">
+                    <summary>
+                      <span>{title}</span>
+                      <span className="parent-report-count">{group.reports.length} {group.reports.length === 1 ? 'report' : 'reports'}</span>
+                    </summary>
+                    {reports}
+                  </details>
+                )
+              })}
             </CTabPane>
           ))}
         </CTabContent>
@@ -165,4 +163,4 @@ const ParentReportCards = () => {
   )
 }
 
-export default ParentReportCards 
+export default ParentReportCards
