@@ -29,13 +29,19 @@ const ParentLogin = () => {
     setLoading(true)
 
     try {
+      // Always ask which account to use; do not silently reuse a personal login.
+      // The domain hint guides Google; the checks below still enforce access.
+      googleProvider.setCustomParameters({
+        prompt: 'select_account',
+        hd: 'tarbiyahlearning.ca',
+      })
       const result = await signInWithPopup(auth, googleProvider)
       const user = result.user
 
       // Check if the email is a Tarbiyah student email
       if (!user.email || !user.email.endsWith('@tarbiyahlearning.ca')) {
         await auth.signOut()
-        setError('Please sign in with your child\'s Tarbiyah email (@tarbiyahlearning.ca)')
+        setError('Please choose your child\'s @tarbiyahlearning.ca Google account. Personal accounts cannot access this portal. Click Sign in with Google again, then choose Use another account if your child\'s account is not listed.')
         setLoading(false)
         return
       }
@@ -148,6 +154,11 @@ const ParentLogin = () => {
                     <p className="text-muted small mt-2">
                       Use your child's school email (e.g., firstname.lastname@tarbiyahlearning.ca)
                     </p>
+                    <CAlert color="info" className="text-start">
+                      Personal Google accounts cannot be used here. Choose your child's{' '}
+                      <strong>@tarbiyahlearning.ca</strong> account in the Google sign-in window.
+                      If it is not listed, select <strong>Use another account</strong>.
+                    </CAlert>
                   </div>
                     
                   {error && <CAlert color="danger">{error}</CAlert>}
