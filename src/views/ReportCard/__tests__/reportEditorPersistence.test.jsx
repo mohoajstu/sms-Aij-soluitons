@@ -2,7 +2,7 @@
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { beforeEach, afterEach, it, expect, vi } from 'vitest'
-const state = vi.hoisted(() => ({ records: new Map(), uid: 'teacher-a', fail: false, users: { 'teacher-a': { uid: 'teacher-a', displayName: 'teacher-a', email: 'a@example.test' }, 'teacher-b': { uid: 'teacher-b', displayName: 'teacher-b', email: 'b@example.test' } } }))
+const state = vi.hoisted(() => ({ records: new Map(), uid: 'teacher-a', fail: false, listeners: new Set(), users: { 'teacher-a': { uid: 'teacher-a', displayName: 'teacher-a', email: 'a@example.test' }, 'teacher-b': { uid: 'teacher-b', displayName: 'teacher-b', email: 'b@example.test' } } }))
 vi.mock('../../../Firebase/firebase', () => ({ firestore: {}, storage: {} }))
 vi.mock('../../../Firebase/useAuth', () => ({ default: () => ({ user: state.users[state.uid], role: 'Faculty' }) }))
 vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }))
@@ -22,6 +22,12 @@ vi.mock('firebase/firestore', () => {
     where: (field, op, value) => ({ field, op, value }), query: (collection, ...filters) => ({ collection, filters }),
     serverTimestamp: () => new Date('2026-10-22T15:00:00Z'),
     getDoc: async (ref) => snapshot(ref),
+    getDocFromServer: async (ref) => snapshot(ref),
+    onSnapshot: (ref, next) => {
+      const listener = () => next(snapshot(ref))
+      state.listeners.add(listener); listener()
+      return () => state.listeners.delete(listener)
+    },
     getDocs: async (q) => {
       const docs = [...state.records].filter(([path, data]) => path.startsWith(`${q.collection}/`) && q.filters.every(({ field, value }) => data[field] === value))
         .map(([path]) => snapshot({ path, id: path.split('/').at(-1) }))
@@ -103,4 +109,21 @@ it('keeps Term 2 work out of a fresh Term 1 and saves the two terms independentl
   await click('[data-testid="edit"]'); await save()
   expect(state.records.get(t2path).formData.keyLearning).toBe('Saved Term 2')
   expect(state.records.get('reportCardDrafts/S1_kg-initial-observations_2026-2027_term1').formData.keyLearning).toBe('Edited by teacher-a')
+})
+it('locks a page that was already open when an admin disables editing, and refuses the save', async () => {
+  await open(); await click('[data-testid="edit"]')
+  await act(async () => {
+    state.records.set('systemSettings/reportCardSms', { defaultTerm: 'term1', disableEditing: true })
+    state.listeners.forEach((listener) => listener())
+  })
+  expect(host.textContent).toContain('Editing is currently disabled by administrators')
+  await save()
+  expect(state.records.has('reportCardDrafts/S1_kg-initial-observations_2026-2027_term1')).toBe(false)
+})
+it('refuses a save when editing was disabled but the live update has not arrived yet', async () => {
+  await open(); await click('[data-testid="edit"]')
+  state.records.set('systemSettings/reportCardSms', { defaultTerm: 'term1', disableEditing: true })
+  await save()
+  expect(state.records.has('reportCardDrafts/S1_kg-initial-observations_2026-2027_term1')).toBe(false)
+  expect(alert).toHaveBeenCalledWith(expect.stringContaining('editing has been disabled'))
 })

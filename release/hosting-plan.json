@@ -1,7 +1,13 @@
 {
-  "name": "Verified production baseline; no pending frontend changes",
+  "name": "Report cards: enforce admin editing lock on open pages; print 7-8 progress subject comments",
   "project": "tarbiyah-sms",
   "target": "hosting:tlasms",
   "baseAsset": "/assets/index-JSDq1E7i.js",
-  "allowedFiles": []
+  "allowedFiles": [
+    "src/views/ReportCard/pdfFillingUtils.js",
+    "src/views/ReportCard/utils.js",
+    "src/views/ReportCard/utils/editingLock.js",
+    "src/views/ReportCard/__tests__/progressExportComments.test.js",
+    "src/views/ReportCard/__tests__/reportEditorPersistence.test.jsx"
+  ]
 }

@@ -305,24 +305,27 @@ export const updateAllFieldAppearances = async (form, pdfDoc, context = 'PDF') =
     const timesRomanFont = await embedTimesRomanFont(pdfDoc)
     const ensureWidgetNormalAppearance = (field, widget, fieldName) => {
       try {
-        const ap = widget.getAP?.()
-        const normalAppearance = ap ? ap.get(PDFName.of('N')) : undefined
+        const normalAppearance = widget.getAppearances?.()?.normal
         const isValidAppearance =
           normalAppearance instanceof PDFDict ||
           normalAppearance instanceof PDFStream ||
           normalAppearance instanceof PDFRef
         if (!isValidAppearance) {
-          if (typeof field.createAppearanceStream === 'function') {
-            const emptyAppearance = field.createAppearanceStream(
-              widget,
-              [],
-              timesRomanFont || undefined,
-            )
-            widget.setNormalAppearance(emptyAppearance)
-            console.log(
-              `${context}: 🧩 Added missing widget appearance for field "${fieldName}"`,
-            )
-          }
+          // Signature fields (e.g. teacherSignature/principalSignature on the
+          // 7-8 progress template) have no appearance and no
+          // createAppearanceStream. form.flatten() throws "Unexpected N type"
+          // on them partway through, which drops every field after them
+          // (all the page-2 subject comments). The signature image is drawn
+          // onto the page separately, so an empty appearance is correct.
+          const { width, height } = widget.getRectangle()
+          const emptyAppearance =
+            typeof field.createAppearanceStream === 'function'
+              ? field.createAppearanceStream(widget, [], timesRomanFont || undefined)
+              : pdfDoc.context.register(
+                  pdfDoc.context.formXObject([], { BBox: [0, 0, width, height] }),
+                )
+          widget.setNormalAppearance(emptyAppearance)
+          console.log(`${context}: 🧩 Added missing widget appearance for field "${fieldName}"`)
         }
       } catch (appearanceError) {
         console.warn(
@@ -471,6 +474,14 @@ export const updateAllFieldAppearances = async (form, pdfDoc, context = 'PDF') =
         }
       } catch (fieldError) {
         console.warn(`${context}: ⚠️ Could not update appearance for "${field.getName()}":`, fieldError)
+      }
+    }
+    // Run separately from the loop above: that loop's per-widget try block can
+    // bail out before reaching this check, leaving widgets that make
+    // form.flatten() throw and silently drop the fields after them.
+    for (const field of form.getFields()) {
+      for (const widget of field.acroField.getWidgets()) {
+        ensureWidgetNormalAppearance(field, widget, field.getName())
       }
     }
     console.log(`${context}: ✅ Aggressively forced all field appearances update`)

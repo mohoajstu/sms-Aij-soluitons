@@ -64,6 +64,7 @@ import {
   query,
   where,
   getDocs,
+  onSnapshot,
 } from 'firebase/firestore'
 import { storage, firestore } from '../../Firebase/firebase'
 import useAuth from '../../Firebase/useAuth'
@@ -97,6 +98,7 @@ import {
   usesFixedFormalReportDate,
 } from './utils/reportDefaults'
 import { fetchSchoolYearSettings, isFromCurrentSchoolYear } from './utils/schoolYear'
+import { isEditingDisabledNow } from './utils/editingLock'
 
 const MEDIANS_MAP_URL = '/medians-map.json'
 let mediansMapCache = null
@@ -338,23 +340,26 @@ const ReportCard = ({ presetReportCardId = null }) => {
 
   // B9 & B3: Load report card settings and sync date field
   const [reportCardDateSetting, setReportCardDateSetting] = useState('')
+  // Listen live so an admin turning on "Disable Report Card Editing" locks
+  // pages teachers already have open, not just pages opened afterwards.
   useEffect(() => {
-    const loadSettings = async () => {
-      // All users should respect settings (not just admins)
-      try {
-        const settingsDoc = await getDoc(doc(firestore, 'systemSettings', 'reportCardSms'))
-        if (settingsDoc.exists()) {
-          const settingsData = settingsDoc.data()
-          setDisableEditing(settingsData.disableEditing || false)
-          setHideProgressReports(settingsData.hideProgressReports || false)
-          setReportCardDateSetting(settingsData.reportCardDate || '')
+    let appliedDefaultTerm = false
+    const unsubscribe = onSnapshot(
+      doc(firestore, 'systemSettings', 'reportCardSms'),
+      (settingsDoc) => {
+        if (!settingsDoc.exists()) return
+        const settingsData = settingsDoc.data()
+        setDisableEditing(settingsData.disableEditing || false)
+        setHideProgressReports(settingsData.hideProgressReports || false)
+        setReportCardDateSetting(settingsData.reportCardDate || '')
+        if (!appliedDefaultTerm) {
+          appliedDefaultTerm = true
           applyDefaultTerm(settingsData.defaultTerm)
         }
-      } catch (error) {
-        console.error('Error loading report card settings:', error)
-      }
-    }
-    loadSettings()
+      },
+      (error) => console.error('Error loading report card settings:', error),
+    )
+    return unsubscribe
   }, [])
 
   // Auto-fill date field from settings or fixed formal-report defaults.
@@ -1983,6 +1988,11 @@ const ReportCard = ({ presetReportCardId = null }) => {
   // Save draft report card to Firestore
   const saveDraft = async () => {
     if (isLoadingDraftRef.current || isSaving) return false
+    if (role !== 'admin' && !allowEditFromReview && (await isEditingDisabledNow(firestore))) {
+      setDisableEditing(true)
+      alert('Report card editing has been disabled by administrators. Your changes were not saved.')
+      return false
+    }
     if (!user || !selectedStudent || !selectedReportCard) {
       alert('Please select a student and report card type before saving.')
       return
