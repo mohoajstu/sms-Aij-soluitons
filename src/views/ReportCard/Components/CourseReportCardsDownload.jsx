@@ -110,7 +110,6 @@ const CourseReportCardsDownload = ({ roster }) => {
           onClose={() => setShowModal(false)}
           reports={reports}
           studentsWithoutReport={studentsWithoutReport}
-          reapprovalHint="Re-approve them under Report Cards > Admin Review (filter to Approved), then come back here."
         />
       </CCardBody>
     </CCard>

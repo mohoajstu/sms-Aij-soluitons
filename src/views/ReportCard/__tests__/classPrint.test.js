@@ -2,8 +2,6 @@ import { describe, it, expect } from 'vitest'
 import { PDFDocument, StandardFonts } from 'pdf-lib'
 import {
   PDF_RENDER_VERSION,
-  describeLoadFailure,
-  needsRegeneration,
   planClassPrint,
   printFileName,
   sortForPrint,
@@ -36,28 +34,16 @@ const pageTexts = async (bytes) => {
 }
 
 describe('planClassPrint', () => {
-  it('holds back unapproved, PDF-less and pre-fix 7-8 progress reports, and keeps the rest', () => {
+  it('puts every approved report in the ZIP, stored PDF or not, and lists the rest', () => {
     const plan = planClassPrint([
       report({ studentName: 'Ready' }),
       report({ studentName: 'Pending', status: 'pending' }),
       report({ studentName: 'NoPdf', finalPdfUrl: null }),
       report({ studentName: 'Old78', reportCardType: '7-8-progress', pdfRenderVersion: undefined }),
-      report({ studentName: 'New78', reportCardType: '7-8-progress' }),
-      report({ studentName: 'Old16', pdfRenderVersion: undefined }),
+      report({ studentName: 'Revise', status: 'needs_revision' }),
     ])
-    const names = (list) => list.map((r) => r.studentName)
-    expect(names(plan.ready)).toEqual(['Old16', 'Ready', 'New78'])
-    expect(names(plan.notApproved)).toEqual(['Pending'])
-    expect(names(plan.missingPdf)).toEqual(['NoPdf'])
-    expect(names(plan.needsReapproval)).toEqual(['Old78'])
-  })
-
-  it('only flags 7-8 progress reports, the one template that lost text before the fix', () => {
-    expect(needsRegeneration({ reportCardType: '7-8-progress' })).toBe(true)
-    expect(needsRegeneration({ reportCardType: '7-8-progress', pdfRenderVersion: 2 })).toBe(false)
-    for (const type of ['1-6-progress', '1-6-report-card', '7-8-report-card', 'kg-report', 'kg-initial-observations', 'quran-report']) {
-      expect(needsRegeneration({ reportCardType: type })).toBe(false)
-    }
+    expect(plan.ready.map((r) => r.studentName)).toEqual(['NoPdf', 'Ready', 'Old78'])
+    expect(plan.notApproved.map((r) => r.studentName)).toEqual(['Pending', 'Revise'])
   })
 })
 
@@ -72,15 +58,6 @@ describe('sortForPrint', () => {
       report({ studentName: 'Amir', grade: '2', reportCardType: '1-6-report-card' }),
     ])
     expect(sorted.map((r) => r.studentName)).toEqual(['Jana', 'Sami', 'adam', 'Bilal', 'Amir', 'zara'])
-  })
-})
-
-describe('describeLoadFailure', () => {
-  it('explains a blocked storage read in plain words', () => {
-    expect(describeLoadFailure({ studentName: 'Adam' }, new TypeError('Failed to fetch')))
-      .toContain('blocked from reading report PDFs from Firebase Storage')
-    expect(describeLoadFailure({ studentName: 'Adam' }, new Error('HTTP 403')))
-      .toBe('Could not load the PDF for Adam (HTTP 403). Nothing was downloaded.')
   })
 })
 
@@ -99,7 +76,7 @@ describe('zipReportPdfs', () => {
   it('packs one unchanged PDF per student, numbered in print order', async () => {
     const files = { 'pdf://Amna Khan': await pdfWithPages('A', 2), 'pdf://Zaid': await pdfWithPages('Z', 1) }
     const reports = [report({ studentName: 'Amna Khan' }), report({ studentName: 'Zaid' })]
-    const zip = await JSZip.loadAsync(await zipReportPdfs(reports, { fetchBytes: async (url) => files[url] }))
+    const zip = await JSZip.loadAsync(await zipReportPdfs(reports, { getPdfBytes: async (r) => files[r.finalPdfUrl] }))
     const names = Object.keys(zip.files).sort()
     expect(names).toEqual(['01_Amna-Khan_1-6-progress.pdf', '02_Zaid_1-6-progress.pdf'])
     expect(await pageTexts(await zip.file(names[0]).async('uint8array'))).toEqual(['A-1', 'A-2'])
@@ -110,8 +87,8 @@ describe('zipReportPdfs', () => {
     const reports = [report({ studentName: 'A' }), report({ studentName: 'Broken' })]
     const good = await pdfWithPages('A', 1)
     await expect(
-      zipReportPdfs(reports, { fetchBytes: async (url) => (url === 'pdf://A' ? good : new Uint8Array([1, 2, 3])) }),
-    ).rejects.toThrow('Could not load the PDF for Broken')
+      zipReportPdfs(reports, { getPdfBytes: async (r) => (r.studentName === 'A' ? good : new Uint8Array([1, 2, 3])) }),
+    ).rejects.toThrow('Could not build the PDF for Broken')
   })
 
   it('keeps entry names unique and safe, and names the ZIP after the class', () => {

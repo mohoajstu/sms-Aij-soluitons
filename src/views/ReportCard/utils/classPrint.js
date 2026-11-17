@@ -4,16 +4,10 @@ import JSZip from 'jszip'
 /**
  * Version stamped on a report (pdfRenderVersion) whenever its final PDF is
  * generated. Version 2 is the first build where form.flatten() no longer
- * fails on fields without an appearance. Before that, Grade 7-8 progress
- * reports silently lost every page-2 subject comment. Other templates hit the
- * same error but lost no text (checked against every template), so only that
- * type needs regenerating.
+ * fails on fields without an appearance; before that, Grade 7-8 progress
+ * reports silently lost every page-2 subject comment.
  */
 export const PDF_RENDER_VERSION = 2
-const TYPES_NEEDING_RENDER_VERSION = { '7-8-progress': 2 }
-
-export const needsRegeneration = (report) =>
-  (report.pdfRenderVersion || 0) < (TYPES_NEEDING_RENDER_VERSION[report.reportCardType] || 0)
 
 const gradeNumber = (grade) => {
   const text = `${grade || ''}`.toLowerCase()
@@ -36,35 +30,18 @@ export const sortForPrint = (reports) =>
   )
 
 /**
- * Splits reports into what can be printed now and what is held back, so
- * nobody silently drops out of the printed stack.
+ * Splits reports into what goes in the ZIP (approved) and what is held back,
+ * so nobody silently drops out. PDFs are built fresh from each report's saved
+ * data, so a stored PDF is not needed and old PDFs from before the 7-8
+ * comment fix do not matter.
  */
 export const planClassPrint = (reports) => {
-  const plan = { ready: [], notApproved: [], missingPdf: [], needsReapproval: [] }
+  const plan = { ready: [], notApproved: [] }
   for (const report of sortForPrint(reports)) {
-    if (report.status !== 'approved') plan.notApproved.push(report)
-    else if (!report.finalPdfUrl) plan.missingPdf.push(report)
-    else if (needsRegeneration(report)) plan.needsReapproval.push(report)
-    else plan.ready.push(report)
+    if (report.status === 'approved') plan.ready.push(report)
+    else plan.notApproved.push(report)
   }
   return plan
-}
-
-// fetch() rejects with a bare TypeError ("Failed to fetch") when the browser
-// blocks the response, which for Firebase Storage almost always means the
-// bucket has no CORS rule allowing this site to read files.
-export const describeLoadFailure = (report, error) => {
-  const who = report.studentName || 'a student'
-  if (error instanceof TypeError && /fetch|network|load failed/i.test(error.message)) {
-    return `Could not load the PDF for ${who}: the browser was blocked from reading report PDFs from Firebase Storage. The storage bucket needs a CORS rule that lets this site read files. Nothing was downloaded.`
-  }
-  return `Could not load the PDF for ${who} (${error.message}). Nothing was downloaded.`
-}
-
-const defaultFetchBytes = async (url) => {
-  const response = await fetch(url)
-  if (!response.ok) throw new Error(`HTTP ${response.status}`)
-  return response.arrayBuffer()
 }
 
 export const printFileName = (reports) => {
@@ -113,23 +90,22 @@ export const zipEntryNames = (reports) => {
 }
 
 /**
- * Packs each report's final PDF, unchanged, into one ZIP. Like the merged
- * download, any PDF that fails to load aborts the whole ZIP with the
- * student's name, rather than producing an archive with someone missing.
+ * Builds each report's PDF (getPdfBytes) and packs them into one ZIP. If any
+ * report cannot be built, the whole ZIP is abandoned with the student's name
+ * rather than producing an archive with someone missing.
  */
-export const zipReportPdfs = async (
-  reports,
-  { fetchBytes = defaultFetchBytes, onProgress } = {},
-) => {
+export const zipReportPdfs = async (reports, { getPdfBytes, onProgress }) => {
   const zip = new JSZip()
   const names = zipEntryNames(reports)
   for (const [index, report] of reports.entries()) {
     let bytes
     try {
-      bytes = await fetchBytes(report.finalPdfUrl)
+      bytes = await getPdfBytes(report)
       await PDFDocument.load(bytes)
     } catch (error) {
-      throw new Error(describeLoadFailure(report, error))
+      throw new Error(
+        `Could not build the PDF for ${report.studentName || 'a student'} (${error.message}). Nothing was downloaded.`,
+      )
     }
     zip.file(names[index], bytes)
     onProgress?.(index + 1, reports.length)
