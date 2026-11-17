@@ -24,13 +24,11 @@ const ThankYouPage = React.lazy(() => import('./views/registration/thankYouPage'
 const App = () => {
   const { user, loading } = useAuth()
 
-  if (loading) {
-    return (
-      <div className="pt-3 text-center">
-        <CSpinner color="primary" variant="grow" />
-      </div>
-    )
-  }
+  const authPending = (
+    <div className="pt-3 text-center">
+      <CSpinner color="primary" variant="grow" />
+    </div>
+  )
 
   // Ensure public registration pages are reachable when accessed without the hash
   if (
@@ -78,7 +76,9 @@ const App = () => {
           <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
           <Route
             path="/login/parent"
-            element={user ? <Navigate to="/" replace /> : <ParentLogin />}
+            // Keep this screen mounted while Google auth and student linking run.
+            // ParentLogin navigates only after validation and profile creation.
+            element={<ParentLogin />}
           />
           <Route
             path="/login/staff"
@@ -94,7 +94,7 @@ const App = () => {
           <Route path="/registration/thankYouPage" element={<ThankYouPage />} />
 
           {/* Protected Routes */}
-          <Route path="/*" element={user ? <DefaultLayout /> : <Navigate to="/home" replace />} />
+          <Route path="/*" element={loading ? authPending : user ? <DefaultLayout /> : <Navigate to="/home" replace />} />
           {/* Force password change route */}
           <Route path="/change-password" element={isActingAs() ? <Navigate to="/dashboard" replace /> : <ChangePassword />} />
 

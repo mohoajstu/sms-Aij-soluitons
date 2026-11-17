@@ -1,11 +1,10 @@
 {
-  "name": "Left-align Kindergarten initial observations and preserve paragraph breaks",
+  "name": "Always show the Google school-account chooser for parent login",
   "project": "tarbiyah-sms",
   "target": "hosting:tlasms",
-  "baseAsset": "/assets/index-JSDq1E7i.js",
+  "baseAsset": "/assets/index-Alw9W6vX.js",
   "allowedFiles": [
-    "src/views/ReportCard/Components/PDFViewer.js",
-    "src/views/ReportCard/pdfFillingUtils.js",
-    "src/views/ReportCard/__tests__/pdfFieldCapacity.test.js"
+    "src/views/pages/login/ParentLogin.js",
+    "src/views/pages/login/__tests__/ParentLoginFlow.test.jsx"
   ]
 }
