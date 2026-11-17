@@ -2,7 +2,7 @@
   "name": "Report cards: enforce admin editing lock on open pages; print 7-8 progress subject comments; download a course's report cards as a ZIP built from saved data; direct Print buttons",
   "project": "tarbiyah-sms",
   "target": "hosting:tlasms",
-  "baseAsset": "/assets/index-JSDq1E7i.js",
+  "baseAsset": "/assets/index-Be9F9oct.js",
   "allowedFiles": [
     "src/views/Courses/__tests__/courseReportCardsSection.test.jsx",
     "src/views/Courses/courseDetails.js",
