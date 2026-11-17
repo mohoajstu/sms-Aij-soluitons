@@ -4,6 +4,8 @@ import { draftRevision, saveScopedDraft } from '../utils/saveScopedDraft'
 import { publishScopedReport } from '../utils/publishScopedReport'
 import { useReportScope } from '../utils/useReportScope'
 import ReportScopeFilter from './ReportScopeFilter'
+import ClassPrintModal from './ClassPrintModal'
+import { PDF_RENDER_VERSION } from '../utils/classPrint'
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   CCard,
@@ -82,6 +84,7 @@ const AdminReportCardReview = () => {
   const [selectedForReapproval, setSelectedForReapproval] = useState(new Set())
   const [reapprovingIds, setReapprovingIds] = useState(new Set())
   const [reapproveMessage, setReapproveMessage] = useState('')
+  const [showPrintModal, setShowPrintModal] = useState(false)
   const reapproveMessageTimeoutRef = useRef(null)
   const [versionHistory, setVersionHistory] = useState([])
   const { user, role } = useAuth()
@@ -473,7 +476,7 @@ const AdminReportCardReview = () => {
       }, {
         adminReviewStatus: 'approved', adminReviewedAt: serverTimestamp(), adminReviewedBy: user.uid,
         status: 'complete', completedAt: serverTimestamp(), finalPdfUrl: downloadURL,
-        finalPdfPath: filePath, publishedToParents: true,
+        finalPdfPath: filePath, publishedToParents: true, pdfRenderVersion: PDF_RENDER_VERSION,
         ...(mediansChanged ? { formData: mergedFormData } : {}),
       }, draftRevision(reportCard))
 
@@ -483,7 +486,7 @@ const AdminReportCardReview = () => {
       setReportCards(prev => 
         prev.map(rc => 
           rc.id === reportCard.id 
-            ? { ...rc, status: 'approved' }
+            ? { ...rc, status: 'approved', finalPdfUrl: downloadURL, pdfRenderVersion: PDF_RENDER_VERSION }
             : rc
         )
       )
@@ -605,7 +608,7 @@ const AdminReportCardReview = () => {
         teacherName: reportCard.teacherName, approvedBy: user.uid, approvedAt: serverTimestamp(),
         reapprovedAt: serverTimestamp(), reapprovedBy: user.uid,
       }, {
-        finalPdfUrl: downloadURL, finalPdfPath: filePath,
+        finalPdfUrl: downloadURL, finalPdfPath: filePath, pdfRenderVersion: PDF_RENDER_VERSION,
         reapprovedAt: serverTimestamp(), reapprovedBy: user.uid,
         ...(mediansChanged ? { formData: mergedFormData } : {}),
       }, draftRevision(reportCard), samePeriod[0]?.id)
@@ -616,7 +619,7 @@ const AdminReportCardReview = () => {
       setReportCards(prev => 
         prev.map(rc => 
           rc.id === reportCard.id 
-            ? { ...rc, finalPdfUrl: downloadURL }
+            ? { ...rc, finalPdfUrl: downloadURL, pdfRenderVersion: PDF_RENDER_VERSION }
             : rc
         )
       )
@@ -1122,6 +1125,27 @@ const AdminReportCardReview = () => {
             </CCol>
             <CCol md={4}></CCol>
           </CRow>
+
+          {filteredReportCards.length > 0 && (
+            <CRow className="mb-3">
+              <CCol className="d-flex justify-content-end">
+                <CButton color="primary" variant="outline" onClick={() => setShowPrintModal(true)}>
+                  <CIcon icon={cilCloudDownload} className="me-1" />
+                  Download for printing ({filteredReportCards.filter((rc) => rc.status === 'approved').length} approved)
+                </CButton>
+              </CCol>
+            </CRow>
+          )}
+          <ClassPrintModal
+            visible={showPrintModal}
+            onClose={() => setShowPrintModal(false)}
+            reports={filteredReportCards}
+            onSelectForReapproval={(ids) => {
+              setStatusFilter('approved')
+              setSelectedForReapproval(new Set(ids))
+              setShowPrintModal(false)
+            }}
+          />
 
           {/* Re-approve Section - Show only when status filter is set to "approved" */}
           {statusFilter === 'approved' && hasApprovedInFilter && (() => {

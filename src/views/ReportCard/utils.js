@@ -99,6 +99,7 @@ import {
 } from './utils/reportDefaults'
 import { fetchSchoolYearSettings, isFromCurrentSchoolYear } from './utils/schoolYear'
 import { isEditingDisabledNow } from './utils/editingLock'
+import { PDF_RENDER_VERSION } from './utils/classPrint'
 
 const MEDIANS_MAP_URL = '/medians-map.json'
 let mediansMapCache = null
@@ -2866,6 +2867,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
           }, {
             status: 'complete', completedAt: serverTimestamp(), finalPdfUrl: downloadURL,
             finalPdfPath: filePath, tarbiyahId: selectedStudent.schoolId || selectedStudent.id,
+            pdfRenderVersion: PDF_RENDER_VERSION,
           }, loadedDraftRevisionRef.current[effectiveDraftId])
 
           console.log('✅ Report card uploaded to Firebase Storage:', downloadURL)
