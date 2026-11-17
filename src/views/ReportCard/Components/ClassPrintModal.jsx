@@ -10,15 +10,23 @@ import {
   CModalTitle,
   CProgress,
 } from '@coreui/react'
-import { mergeReportPdfs, planClassPrint, printFileName } from '../utils/classPrint'
+import {
+  mergeReportPdfs,
+  planClassPrint,
+  printFileName,
+  zipFileName,
+  zipReportPdfs,
+} from '../utils/classPrint'
 
 const NameList = ({ reports }) => (
   <ul className="mb-0 small" style={{ maxHeight: 140, overflowY: 'auto' }}>
     {reports.map((report) => (
       <li key={report.id}>
         {report.studentName}
-        {report.grade ? ` (Grade ${report.grade})` : ''} -{' '}
-        {report.reportCardTypeName || report.reportCardType}
+        {report.grade ? ` (Grade ${report.grade})` : ''}
+        {report.reportCardTypeName || report.reportCardType
+          ? ` - ${report.reportCardTypeName || report.reportCardType}`
+          : ''}
       </li>
     ))}
   </ul>
@@ -26,29 +34,40 @@ const NameList = ({ reports }) => (
 NameList.propTypes = { reports: PropTypes.array.isRequired }
 
 /**
- * Downloads every approved report in the current filter as one PDF, in
- * grade/student order, so a class can be printed in a single job. Reports
- * that are not approved, have no final PDF, or were generated before the 7-8
- * progress comment fix are listed and left out rather than printed silently.
+ * Downloads a class's approved report cards, either as a ZIP with one PDF per
+ * student or as a single PDF to print in one job, sorted by grade and student
+ * name. Reports that are not approved, have no final PDF, or were generated
+ * before the 7-8 progress comment fix are listed and left out, as are class
+ * members with no report, so nobody silently drops out.
  */
-const ClassPrintModal = ({ visible, onClose, reports, onSelectForReapproval, fetchBytes }) => {
+const ClassPrintModal = ({
+  visible,
+  onClose,
+  reports,
+  studentsWithoutReport = [],
+  onSelectForReapproval,
+  reapprovalHint,
+  fetchBytes,
+}) => {
   const plan = useMemo(() => planClassPrint(reports), [reports])
   const [progress, setProgress] = useState(null)
+  const [format, setFormat] = useState(null)
   const [error, setError] = useState('')
   const busy = progress !== null
 
-  const download = async () => {
+  const download = async (kind) => {
+    const asZip = kind === 'zip'
     setError('')
+    setFormat(kind)
     setProgress(0)
     try {
-      const bytes = await mergeReportPdfs(plan.ready, {
-        fetchBytes,
-        onProgress: (done) => setProgress(done),
-      })
-      const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }))
+      const build = asZip ? zipReportPdfs : mergeReportPdfs
+      const bytes = await build(plan.ready, { fetchBytes, onProgress: (done) => setProgress(done) })
+      const type = asZip ? 'application/zip' : 'application/pdf'
+      const url = URL.createObjectURL(new Blob([bytes], { type }))
       const link = document.createElement('a')
       link.href = url
-      link.download = printFileName(plan.ready)
+      link.download = asZip ? zipFileName(plan.ready) : printFileName(plan.ready)
       document.body.appendChild(link)
       link.click()
       link.remove()
@@ -69,16 +88,12 @@ const ClassPrintModal = ({ visible, onClose, reports, onSelectForReapproval, fet
       backdrop={busy ? 'static' : true}
     >
       <CModalHeader closeButton={!busy}>
-        <CModalTitle>Download for printing</CModalTitle>
+        <CModalTitle>Download report cards</CModalTitle>
       </CModalHeader>
       <CModalBody>
-        <p className="mb-3">
-          Uses the reports in the current filter. Set the grade and report type above to print one
-          class.
-        </p>
         <CAlert color={plan.ready.length ? 'success' : 'secondary'} className="py-2">
-          <strong>{plan.ready.length}</strong> report(s) ready. They will download as one PDF,
-          sorted by grade and student name.
+          <strong>{plan.ready.length}</strong> report(s) ready, sorted by grade and student name.
+          The ZIP has one PDF per student; the single PDF prints the whole class in one job.
         </CAlert>
         {plan.needsReapproval.length > 0 && (
           <CAlert color="danger" className="py-2" data-testid="needs-reapproval">
@@ -88,16 +103,20 @@ const ClassPrintModal = ({ visible, onClose, reports, onSelectForReapproval, fet
             Their PDFs were made before the fix and are missing subject comments, so they are left
             out.
             <NameList reports={plan.needsReapproval} />
-            <CButton
-              color="danger"
-              size="sm"
-              variant="outline"
-              className="mt-2"
-              disabled={busy}
-              onClick={() => onSelectForReapproval(plan.needsReapproval.map((report) => report.id))}
-            >
-              Select these for re-approval
-            </CButton>
+            {onSelectForReapproval ? (
+              <CButton
+                color="danger"
+                size="sm"
+                variant="outline"
+                className="mt-2"
+                disabled={busy}
+                onClick={() => onSelectForReapproval(plan.needsReapproval.map((r) => r.id))}
+              >
+                Select these for re-approval
+              </CButton>
+            ) : (
+              reapprovalHint && <div className="small mt-2">{reapprovalHint}</div>
+            )}
           </CAlert>
         )}
         {plan.notApproved.length > 0 && (
@@ -114,10 +133,18 @@ const ClassPrintModal = ({ visible, onClose, reports, onSelectForReapproval, fet
             <NameList reports={plan.missingPdf} />
           </CAlert>
         )}
+        {studentsWithoutReport.length > 0 && (
+          <CAlert color="warning" className="py-2" data-testid="no-report">
+            <strong>
+              {studentsWithoutReport.length} student(s) in this class have no report of this type:
+            </strong>
+            <NameList reports={studentsWithoutReport} />
+          </CAlert>
+        )}
         {busy && (
           <div className="mt-2">
             <small>
-              Combining {progress} of {plan.ready.length}...
+              Adding {progress} of {plan.ready.length}...
             </small>
             <CProgress
               value={plan.ready.length ? (progress / plan.ready.length) * 100 : 0}
@@ -135,8 +162,20 @@ const ClassPrintModal = ({ visible, onClose, reports, onSelectForReapproval, fet
         <CButton color="secondary" variant="outline" onClick={onClose} disabled={busy}>
           Cancel
         </CButton>
-        <CButton color="primary" onClick={download} disabled={busy || plan.ready.length === 0}>
-          {busy ? 'Preparing...' : `Download ${plan.ready.length} as one PDF`}
+        <CButton
+          color="primary"
+          variant="outline"
+          onClick={() => download('pdf')}
+          disabled={busy || plan.ready.length === 0}
+        >
+          {busy && format === 'pdf' ? 'Preparing...' : `Download ${plan.ready.length} as one PDF`}
+        </CButton>
+        <CButton
+          color="primary"
+          onClick={() => download('zip')}
+          disabled={busy || plan.ready.length === 0}
+        >
+          {busy && format === 'zip' ? 'Preparing ZIP...' : `Download ${plan.ready.length} as ZIP`}
         </CButton>
       </CModalFooter>
     </CModal>
@@ -147,7 +186,9 @@ ClassPrintModal.propTypes = {
   visible: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   reports: PropTypes.array.isRequired,
-  onSelectForReapproval: PropTypes.func.isRequired,
+  studentsWithoutReport: PropTypes.array,
+  onSelectForReapproval: PropTypes.func,
+  reapprovalHint: PropTypes.node,
   fetchBytes: PropTypes.func,
 }
 

@@ -1,18 +1,22 @@
 {
-  "name": "Report cards: enforce admin editing lock on open pages; print 7-8 progress subject comments; download a class as one PDF for printing",
+  "name": "Report cards: enforce admin editing lock on open pages; print 7-8 progress subject comments; download a course's report cards as a ZIP or one PDF",
   "project": "tarbiyah-sms",
   "target": "hosting:tlasms",
   "baseAsset": "/assets/index-JSDq1E7i.js",
   "allowedFiles": [
+    "src/views/Courses/courseDetails.js",
     "src/views/ReportCard/Components/AdminReportCardReview.js",
     "src/views/ReportCard/Components/ClassPrintModal.jsx",
+    "src/views/ReportCard/Components/CourseReportCardsDownload.jsx",
     "src/views/ReportCard/__tests__/classPrint.test.js",
     "src/views/ReportCard/__tests__/classPrintModal.test.jsx",
+    "src/views/ReportCard/__tests__/courseReportCardsDownload.test.jsx",
     "src/views/ReportCard/__tests__/progressExportComments.test.js",
     "src/views/ReportCard/__tests__/reportEditorPersistence.test.jsx",
     "src/views/ReportCard/pdfFillingUtils.js",
     "src/views/ReportCard/utils.js",
     "src/views/ReportCard/utils/classPrint.js",
+    "src/views/ReportCard/utils/courseReports.js",
     "src/views/ReportCard/utils/editingLock.js"
   ]
 }

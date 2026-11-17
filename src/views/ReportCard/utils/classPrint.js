@@ -1,4 +1,5 @@
 import { PDFDocument } from 'pdf-lib'
+import JSZip from 'jszip'
 
 /**
  * Version stamped on a report (pdfRenderVersion) whenever its final PDF is
@@ -93,4 +94,62 @@ export const printFileName = (reports) => {
   ].filter(Boolean)
   const name = (pieces.length ? pieces.join('_') : 'report-cards').replace(/[^\w.-]+/g, '-')
   return `${name}_${reports.length}-students.pdf`
+}
+
+export const zipFileName = (reports) => printFileName(reports).replace(/\.pdf$/, '.zip')
+
+const safePart = (text) =>
+  `${text || ''}`
+    .trim()
+    .replace(/[^\w.-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+/**
+ * One file per student, numbered in print order (01_, 02_...) so they sort
+ * the same way in a folder. Names stay unique even for two students with the
+ * same name.
+ */
+export const zipEntryNames = (reports) => {
+  const width = String(reports.length).length < 2 ? 2 : String(reports.length).length
+  const used = new Set()
+  return reports.map((report, index) => {
+    const base = [
+      String(index + 1).padStart(width, '0'),
+      safePart(report.studentName) || 'student',
+      safePart(report.reportCardType),
+    ]
+      .filter(Boolean)
+      .join('_')
+    let name = `${base}.pdf`
+    for (let n = 2; used.has(name.toLowerCase()); n++) name = `${base}_${n}.pdf`
+    used.add(name.toLowerCase())
+    return name
+  })
+}
+
+/**
+ * Packs each report's final PDF, unchanged, into one ZIP. Like the merged
+ * download, any PDF that fails to load aborts the whole ZIP with the
+ * student's name, rather than producing an archive with someone missing.
+ */
+export const zipReportPdfs = async (
+  reports,
+  { fetchBytes = defaultFetchBytes, onProgress } = {},
+) => {
+  const zip = new JSZip()
+  const names = zipEntryNames(reports)
+  for (const [index, report] of reports.entries()) {
+    let bytes
+    try {
+      bytes = await fetchBytes(report.finalPdfUrl)
+      await PDFDocument.load(bytes)
+    } catch (error) {
+      throw new Error(
+        `Could not load the PDF for ${report.studentName || 'a student'} (${error.message}). Nothing was downloaded.`,
+      )
+    }
+    zip.file(names[index], bytes)
+    onProgress?.(index + 1, reports.length)
+  }
+  return zip.generateAsync({ type: 'uint8array' })
 }

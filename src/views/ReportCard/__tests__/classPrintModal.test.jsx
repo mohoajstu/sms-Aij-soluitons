@@ -50,3 +50,22 @@ it('hands the pre-fix reports to the re-approval selection', async () => {
   await act(async () => button('Select these for re-approval').click())
   expect(onSelectForReapproval).toHaveBeenCalledWith(['3'])
 })
+
+it('downloads a ZIP named after the class', async () => {
+  const onePage = await (async () => { const d = await PDFDocument.create(); d.addPage(); return d.save() })()
+  const clicks = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function () { clicks.download = this.download })
+  await render({ fetchBytes: async () => onePage })
+  await act(async () => button('Download 2 as ZIP').click())
+  for (let i = 0; i < 50 && !clicks.mock.calls.length; i++) {
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)) })
+  }
+  expect(clicks.download).toBe('Grade-7_7-8-progress_2-students.zip')
+  clicks.mockRestore()
+})
+
+it('lists class members with no report and shows the re-approval hint when it cannot select them', async () => {
+  await render({ onSelectForReapproval: undefined, reapprovalHint: 'Go to Admin Review', studentsWithoutReport: [{ id: 'x', studentName: 'Yusuf' }] })
+  expect(document.querySelector('[data-testid="no-report"]').textContent).toContain('Yusuf')
+  expect(document.querySelector('[data-testid="needs-reapproval"]').textContent).toContain('Go to Admin Review')
+  expect(button('Select these for re-approval')).toBeUndefined()
+})

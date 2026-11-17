@@ -7,7 +7,11 @@ import {
   planClassPrint,
   printFileName,
   sortForPrint,
+  zipEntryNames,
+  zipFileName,
+  zipReportPdfs,
 } from '../utils/classPrint'
+import JSZip from 'jszip'
 
 const report = (over) => ({
   id: over.studentName, status: 'approved', finalPdfUrl: `pdf://${over.studentName}`,
@@ -104,5 +108,35 @@ describe('printFileName', () => {
   it('falls back to a generic name for a mixed selection', () => {
     expect(printFileName([report({ studentName: 'A', grade: '5', term: 'term1', reportCardType: 'x' }), report({ studentName: 'B', grade: '6', term: 'term2', reportCardType: 'y' })]))
       .toBe('report-cards_2-students.pdf')
+  })
+})
+
+describe('zipReportPdfs', () => {
+  it('packs one unchanged PDF per student, numbered in print order', async () => {
+    const files = { 'pdf://Amna Khan': await pdfWithPages('A', 2), 'pdf://Zaid': await pdfWithPages('Z', 1) }
+    const reports = [report({ studentName: 'Amna Khan' }), report({ studentName: 'Zaid' })]
+    const zip = await JSZip.loadAsync(await zipReportPdfs(reports, { fetchBytes: async (url) => files[url] }))
+    const names = Object.keys(zip.files).sort()
+    expect(names).toEqual(['01_Amna-Khan_1-6-progress.pdf', '02_Zaid_1-6-progress.pdf'])
+    expect(await pageTexts(await zip.file(names[0]).async('uint8array'))).toEqual(['A-1', 'A-2'])
+    expect(await pageTexts(await zip.file(names[1]).async('uint8array'))).toEqual(['Z-1'])
+  })
+
+  it('refuses to build a ZIP with a student missing or a broken PDF', async () => {
+    const reports = [report({ studentName: 'A' }), report({ studentName: 'Broken' })]
+    const good = await pdfWithPages('A', 1)
+    await expect(
+      zipReportPdfs(reports, { fetchBytes: async (url) => (url === 'pdf://A' ? good : new Uint8Array([1, 2, 3])) }),
+    ).rejects.toThrow('Could not load the PDF for Broken')
+  })
+
+  it('keeps entry names unique and safe, and names the ZIP after the class', () => {
+    const reports = [
+      report({ studentName: 'Sara Ali', grade: '3' }),
+      report({ studentName: 'Sara Ali', grade: '3' }),
+      report({ studentName: 'Noor/../x', grade: '3' }),
+    ]
+    expect(zipEntryNames(reports)).toEqual(['01_Sara-Ali_1-6-progress.pdf', '02_Sara-Ali_1-6-progress.pdf', '03_Noor-..-x_1-6-progress.pdf'])
+    expect(zipFileName(reports)).toBe('Grade-3_1-6-progress_term1_3-students.zip')
   })
 })
