@@ -70,8 +70,8 @@ const CourseReportCardsDownload = ({ roster }) => {
       <CCardBody>
         <h4>Report Cards</h4>
         <p className="text-body-secondary">
-          Download this class&apos;s approved report cards as a ZIP (one PDF per student) or as one
-          PDF to print.
+          Print this class&apos;s approved report cards in one go, or download them as a ZIP (one
+          PDF per student) or as one PDF to print.
         </p>
         {loadError && <CAlert color="danger">Could not load report cards: {loadError}</CAlert>}
         {loading ? (
@@ -100,7 +100,7 @@ const CourseReportCardsDownload = ({ roster }) => {
                   </CFormSelect>
                 </div>
                 <CButton color="primary" onClick={() => setShowModal(true)}>
-                  Download report cards ({approved} of {roster.length} approved)
+                  Print or download ({approved} of {roster.length} approved)
                 </CButton>
               </div>
             )}

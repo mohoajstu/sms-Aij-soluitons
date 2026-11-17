@@ -5,6 +5,7 @@ import { publishScopedReport } from '../utils/publishScopedReport'
 import { useReportScope } from '../utils/useReportScope'
 import ReportScopeFilter from './ReportScopeFilter'
 import { PDF_RENDER_VERSION } from '../utils/classPrint'
+import PrintPdfButton from './PrintPdfButton'
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   CCard,
@@ -1603,7 +1604,10 @@ const AdminReportCardReview = () => {
 
               {selectedReportCardData.finalPdfUrl ? (
                 <div className="mt-4">
-                  <h5 className="mb-3">Finalized PDF</h5>
+                  <div className="d-flex align-items-center justify-content-between mb-3">
+                    <h5 className="mb-0">Finalized PDF</h5>
+                    <PrintPdfButton url={selectedReportCardData.finalPdfUrl} />
+                  </div>
                   <div style={{ border: '1px solid #dee2e6', borderRadius: '4px', overflow: 'auto', maxHeight: '70vh' }}>
                     {/* Use iframe for Firebase Storage URLs to avoid CORS issues */}
                     <iframe

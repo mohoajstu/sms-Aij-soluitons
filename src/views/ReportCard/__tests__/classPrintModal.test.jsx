@@ -69,3 +69,15 @@ it('lists class members with no report and shows the re-approval hint when it ca
   expect(document.querySelector('[data-testid="needs-reapproval"]').textContent).toContain('Go to Admin Review')
   expect(button('Select these for re-approval')).toBeUndefined()
 })
+
+it('Print sends the combined class PDF straight to the printer', async () => {
+  const onePage = await (async () => { const d = await PDFDocument.create(); d.addPage(); return d.save() })()
+  const print = vi.fn(async () => {})
+  const onClose = vi.fn()
+  await render({ fetchBytes: async () => onePage, print, onClose })
+  await act(async () => button('Print 2').click())
+  expect(print).toHaveBeenCalledTimes(1)
+  const printed = await PDFDocument.load(print.mock.calls[0][0])
+  expect(printed.getPageCount()).toBe(2)
+  expect(onClose).toHaveBeenCalled()
+})

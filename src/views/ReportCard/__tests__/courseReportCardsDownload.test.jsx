@@ -54,11 +54,11 @@ it('loads the roster in batches of 30 and offers only this term and type, listin
   expect(state.queries.map((ids) => ids.length)).toEqual([30, 1])
   const select = host.querySelector('#course-report-type')
   expect([...select.options].map((o) => o.textContent)).toEqual(['Gr 7-8 Progress (3)', 'Gr 7-8 Report Card (1)'])
-  const open = [...host.querySelectorAll('button')].find((b) => b.textContent.startsWith('Download report cards'))
-  expect(open.textContent).toBe('Download report cards (2 of 31 approved)')
+  const open = [...host.querySelectorAll('button')].find((b) => b.textContent.startsWith('Print or download'))
+  expect(open.textContent).toBe('Print or download (2 of 31 approved)')
 
   await act(async () => open.click())
-  expect(document.body.textContent).toContain('Download 2 as ZIP')
+  expect(document.body.textContent).toContain('Download 2 as ZIP'); expect(document.body.textContent).toContain('Print 2')
   const missing = document.querySelector('[data-testid="no-report"]').textContent
   expect(missing).toContain('28 student(s) in this class have no report of this type')
   expect(missing).toContain('Kid 2')
