@@ -53,12 +53,12 @@ it('shows the Report Cards section below the course overview for admins', async 
   await mount()
   expect(host.textContent).toContain('Homeroom Grade 3')
   expect(host.textContent).toContain('Report Cards')
-  expect(host.textContent).toContain('Print or download (1 of 2 approved)')
+  expect(host.textContent).toContain('Download ZIP (1 of 2 approved)')
 })
 
 it('hides it from teachers, who can only read their own report drafts', async () => {
   state.role = 'faculty'
   await mount()
   expect(host.textContent).toContain('Homeroom Grade 3')
-  expect(host.textContent).not.toContain('Print or download')
+  expect(host.textContent).not.toContain('Download ZIP')
 })

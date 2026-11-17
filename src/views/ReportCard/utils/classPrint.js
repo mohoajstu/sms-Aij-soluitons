@@ -50,36 +50,21 @@ export const planClassPrint = (reports) => {
   return plan
 }
 
+// fetch() rejects with a bare TypeError ("Failed to fetch") when the browser
+// blocks the response, which for Firebase Storage almost always means the
+// bucket has no CORS rule allowing this site to read files.
+export const describeLoadFailure = (report, error) => {
+  const who = report.studentName || 'a student'
+  if (error instanceof TypeError && /fetch|network|load failed/i.test(error.message)) {
+    return `Could not load the PDF for ${who}: the browser was blocked from reading report PDFs from Firebase Storage. The storage bucket needs a CORS rule that lets this site read files. Nothing was downloaded.`
+  }
+  return `Could not load the PDF for ${who} (${error.message}). Nothing was downloaded.`
+}
+
 const defaultFetchBytes = async (url) => {
   const response = await fetch(url)
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
   return response.arrayBuffer()
-}
-
-/**
- * Combines each report's final PDF into one document, in the given order.
- * Throws naming the first report that could not be fetched, rather than
- * producing a stack with a student missing.
- */
-export const mergeReportPdfs = async (
-  reports,
-  { fetchBytes = defaultFetchBytes, onProgress } = {},
-) => {
-  const merged = await PDFDocument.create()
-  for (const [index, report] of reports.entries()) {
-    let source
-    try {
-      source = await PDFDocument.load(await fetchBytes(report.finalPdfUrl))
-    } catch (error) {
-      throw new Error(
-        `Could not load the PDF for ${report.studentName || 'a student'} (${error.message}). Nothing was downloaded.`,
-      )
-    }
-    const pages = await merged.copyPages(source, source.getPageIndices())
-    pages.forEach((page) => merged.addPage(page))
-    onProgress?.(index + 1, reports.length)
-  }
-  return merged.save()
 }
 
 export const printFileName = (reports) => {
@@ -144,9 +129,7 @@ export const zipReportPdfs = async (
       bytes = await fetchBytes(report.finalPdfUrl)
       await PDFDocument.load(bytes)
     } catch (error) {
-      throw new Error(
-        `Could not load the PDF for ${report.studentName || 'a student'} (${error.message}). Nothing was downloaded.`,
-      )
+      throw new Error(describeLoadFailure(report, error))
     }
     zip.file(names[index], bytes)
     onProgress?.(index + 1, reports.length)

@@ -87,7 +87,16 @@ export const printPdfBytes = (bytes, { doc = document, win = window } = {}) =>
   })
 
 export const fetchPdfBytes = async (url) => {
-  const response = await fetch(url)
+  let response
+  try {
+    response = await fetch(url)
+  } catch (error) {
+    // A bare "Failed to fetch" here means the browser blocked reading the file
+    // from Firebase Storage: the bucket needs a CORS rule for this site.
+    throw new Error(
+      'the browser was blocked from reading the PDF from Firebase Storage. The storage bucket needs a CORS rule that lets this site read files.',
+    )
+  }
   if (!response.ok) throw new Error(`Could not load the PDF (HTTP ${response.status}).`)
   return new Uint8Array(await response.arrayBuffer())
 }

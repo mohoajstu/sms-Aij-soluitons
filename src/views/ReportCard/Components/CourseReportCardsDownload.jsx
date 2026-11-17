@@ -11,8 +11,8 @@ const typeLabel = (record) => record.reportCardTypeName || record.reportCardType
 
 /**
  * Course page section: download every report card for the students on this
- * course's roster, for one school year, term and report type, as a ZIP (one
- * PDF per student) or one combined PDF. Admin only: teachers can read only
+ * course's roster, for one school year, term and report type, as a ZIP with
+ * one PDF per student. Admin only: teachers can read only
  * their own report drafts.
  */
 const CourseReportCardsDownload = ({ roster }) => {
@@ -70,8 +70,7 @@ const CourseReportCardsDownload = ({ roster }) => {
       <CCardBody>
         <h4>Report Cards</h4>
         <p className="text-body-secondary">
-          Print this class&apos;s approved report cards in one go, or download them as a ZIP (one
-          PDF per student) or as one PDF to print.
+          Download this class&apos;s approved report cards as one ZIP, with a PDF for each student.
         </p>
         {loadError && <CAlert color="danger">Could not load report cards: {loadError}</CAlert>}
         {loading ? (
@@ -100,7 +99,7 @@ const CourseReportCardsDownload = ({ roster }) => {
                   </CFormSelect>
                 </div>
                 <CButton color="primary" onClick={() => setShowModal(true)}>
-                  Print or download ({approved} of {roster.length} approved)
+                  Download ZIP ({approved} of {roster.length} approved)
                 </CButton>
               </div>
             )}

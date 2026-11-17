@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { PDFDocument, StandardFonts } from 'pdf-lib'
 import {
   PDF_RENDER_VERSION,
-  mergeReportPdfs,
+  describeLoadFailure,
   needsRegeneration,
   planClassPrint,
   printFileName,
@@ -75,28 +75,12 @@ describe('sortForPrint', () => {
   })
 })
 
-describe('mergeReportPdfs', () => {
-  it('combines every page of every report in order and reports progress', async () => {
-    const files = { 'pdf://A': await pdfWithPages('A', 2), 'pdf://B': await pdfWithPages('B', 1) }
-    const progress = []
-    const bytes = await mergeReportPdfs(
-      [report({ studentName: 'A' }), report({ studentName: 'B' })],
-      { fetchBytes: async (url) => files[url], onProgress: (done, total) => progress.push(`${done}/${total}`) },
-    )
-    expect(await pageTexts(bytes)).toEqual(['A-1', 'A-2', 'B-1'])
-    expect(progress).toEqual(['1/2', '2/2'])
-  })
-
-  it('fails naming the student instead of producing a stack with someone missing', async () => {
-    const good = await pdfWithPages('A', 1)
-    await expect(
-      mergeReportPdfs([report({ studentName: 'A' }), report({ studentName: 'Bad Student' })], {
-        fetchBytes: async (url) => {
-          if (url === 'pdf://A') return good
-          throw new Error('HTTP 403')
-        },
-      }),
-    ).rejects.toThrow('Bad Student (HTTP 403). Nothing was downloaded.')
+describe('describeLoadFailure', () => {
+  it('explains a blocked storage read in plain words', () => {
+    expect(describeLoadFailure({ studentName: 'Adam' }, new TypeError('Failed to fetch')))
+      .toContain('blocked from reading report PDFs from Firebase Storage')
+    expect(describeLoadFailure({ studentName: 'Adam' }, new Error('HTTP 403')))
+      .toBe('Could not load the PDF for Adam (HTTP 403). Nothing was downloaded.')
   })
 })
 

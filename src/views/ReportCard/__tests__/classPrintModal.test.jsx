@@ -26,7 +26,7 @@ const render = async (props) => {
 }
 const button = (text) => [...document.querySelectorAll('button')].find((b) => b.textContent.includes(text))
 
-it('downloads only the ready reports, in name order, and lists who was left out and why', async () => {
+it('zips only the ready reports, in name order, and lists who was left out and why', async () => {
   const onePage = await (async () => { const d = await PDFDocument.create(); d.addPage(); return d.save() })()
   const fetched = []
   const onClose = vi.fn()
@@ -35,11 +35,16 @@ it('downloads only the ready reports, in name order, and lists who was left out 
 
   expect(document.querySelector('[data-testid="needs-reapproval"]').textContent).toContain('Omar')
   expect(document.querySelector('[data-testid="not-approved"]').textContent).toContain('Huda')
-  await act(async () => button('Download 2 as one PDF').click())
+  expect(button('as one PDF')).toBeUndefined()
+  expect(button('Print')).toBeUndefined()
+  await act(async () => button('Download 2 as ZIP').click())
+  for (let i = 0; i < 50 && !clicks.mock.calls.length; i++) {
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)) })
+  }
 
   expect(fetched).toEqual(['u/a', 'u/z'])
   expect(clicks).toHaveBeenCalledTimes(1)
-  expect(clicks.download).toBe('Grade-7_7-8-progress_2-students.pdf')
+  expect(clicks.download).toBe('Grade-7_7-8-progress_2-students.zip')
   expect(onClose).toHaveBeenCalled()
   clicks.mockRestore()
 })
@@ -70,14 +75,3 @@ it('lists class members with no report and shows the re-approval hint when it ca
   expect(button('Select these for re-approval')).toBeUndefined()
 })
 
-it('Print sends the combined class PDF straight to the printer', async () => {
-  const onePage = await (async () => { const d = await PDFDocument.create(); d.addPage(); return d.save() })()
-  const print = vi.fn(async () => {})
-  const onClose = vi.fn()
-  await render({ fetchBytes: async () => onePage, print, onClose })
-  await act(async () => button('Print 2').click())
-  expect(print).toHaveBeenCalledTimes(1)
-  const printed = await PDFDocument.load(print.mock.calls[0][0])
-  expect(printed.getPageCount()).toBe(2)
-  expect(onClose).toHaveBeenCalled()
-})

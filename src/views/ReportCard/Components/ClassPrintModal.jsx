@@ -10,14 +10,7 @@ import {
   CModalTitle,
   CProgress,
 } from '@coreui/react'
-import {
-  mergeReportPdfs,
-  planClassPrint,
-  printFileName,
-  zipFileName,
-  zipReportPdfs,
-} from '../utils/classPrint'
-import { printPdfBytes } from '../utils/printPdf'
+import { planClassPrint, zipFileName, zipReportPdfs } from '../utils/classPrint'
 
 const NameList = ({ reports }) => (
   <ul className="mb-0 small" style={{ maxHeight: 140, overflowY: 'auto' }}>
@@ -35,9 +28,8 @@ const NameList = ({ reports }) => (
 NameList.propTypes = { reports: PropTypes.array.isRequired }
 
 /**
- * Downloads a class's approved report cards, either as a ZIP with one PDF per
- * student or as a single PDF to print in one job, sorted by grade and student
- * name. Reports that are not approved, have no final PDF, or were generated
+ * Downloads a class's approved report cards as one ZIP with each student's
+ * PDF, numbered in grade and student-name order. Reports that are not approved, have no final PDF, or were generated
  * before the 7-8 progress comment fix are listed and left out, as are class
  * members with no report, so nobody silently drops out.
  */
@@ -49,32 +41,24 @@ const ClassPrintModal = ({
   onSelectForReapproval,
   reapprovalHint,
   fetchBytes,
-  print = printPdfBytes,
 }) => {
   const plan = useMemo(() => planClassPrint(reports), [reports])
   const [progress, setProgress] = useState(null)
-  const [format, setFormat] = useState(null)
   const [error, setError] = useState('')
   const busy = progress !== null
 
-  const download = async (kind) => {
-    const asZip = kind === 'zip'
+  const download = async () => {
     setError('')
-    setFormat(kind)
     setProgress(0)
     try {
-      const build = asZip ? zipReportPdfs : mergeReportPdfs
-      const bytes = await build(plan.ready, { fetchBytes, onProgress: (done) => setProgress(done) })
-      if (kind === 'print') {
-        await print(bytes)
-        onClose()
-        return
-      }
-      const type = asZip ? 'application/zip' : 'application/pdf'
-      const url = URL.createObjectURL(new Blob([bytes], { type }))
+      const bytes = await zipReportPdfs(plan.ready, {
+        fetchBytes,
+        onProgress: (done) => setProgress(done),
+      })
+      const url = URL.createObjectURL(new Blob([bytes], { type: 'application/zip' }))
       const link = document.createElement('a')
       link.href = url
-      link.download = asZip ? zipFileName(plan.ready) : printFileName(plan.ready)
+      link.download = zipFileName(plan.ready)
       document.body.appendChild(link)
       link.click()
       link.remove()
@@ -95,12 +79,12 @@ const ClassPrintModal = ({
       backdrop={busy ? 'static' : true}
     >
       <CModalHeader closeButton={!busy}>
-        <CModalTitle>Print or download report cards</CModalTitle>
+        <CModalTitle>Download report cards (ZIP)</CModalTitle>
       </CModalHeader>
       <CModalBody>
         <CAlert color={plan.ready.length ? 'success' : 'secondary'} className="py-2">
-          <strong>{plan.ready.length}</strong> report(s) ready, sorted by grade and student name.
-          Print sends the whole class to the printer in one job; the ZIP has one PDF per student.
+          <strong>{plan.ready.length}</strong> report(s) ready. The ZIP has one PDF per student,
+          numbered in grade and student-name order.
         </CAlert>
         {plan.needsReapproval.length > 0 && (
           <CAlert color="danger" className="py-2" data-testid="needs-reapproval">
@@ -169,28 +153,8 @@ const ClassPrintModal = ({
         <CButton color="secondary" variant="outline" onClick={onClose} disabled={busy}>
           Cancel
         </CButton>
-        <CButton
-          color="primary"
-          variant="outline"
-          onClick={() => download('pdf')}
-          disabled={busy || plan.ready.length === 0}
-        >
-          {busy && format === 'pdf' ? 'Preparing...' : `Download ${plan.ready.length} as one PDF`}
-        </CButton>
-        <CButton
-          color="primary"
-          variant="outline"
-          onClick={() => download('zip')}
-          disabled={busy || plan.ready.length === 0}
-        >
-          {busy && format === 'zip' ? 'Preparing ZIP...' : `Download ${plan.ready.length} as ZIP`}
-        </CButton>
-        <CButton
-          color="primary"
-          onClick={() => download('print')}
-          disabled={busy || plan.ready.length === 0}
-        >
-          {busy && format === 'print' ? 'Preparing to print...' : `Print ${plan.ready.length}`}
+        <CButton color="primary" onClick={download} disabled={busy || plan.ready.length === 0}>
+          {busy ? 'Preparing ZIP...' : `Download ${plan.ready.length} as ZIP`}
         </CButton>
       </CModalFooter>
     </CModal>
@@ -205,7 +169,6 @@ ClassPrintModal.propTypes = {
   onSelectForReapproval: PropTypes.func,
   reapprovalHint: PropTypes.node,
   fetchBytes: PropTypes.func,
-  print: PropTypes.func,
 }
 
 export default ClassPrintModal
