@@ -1,7 +1,29 @@
 {
-  "name": "Verified production baseline; no pending frontend changes",
+  "name": "Report cards: enforce admin editing lock on open pages; print 7-8 progress subject comments; download a course's report cards as a ZIP built from saved data; direct Print buttons",
   "project": "tarbiyah-sms",
   "target": "hosting:tlasms",
-  "baseAsset": "/assets/index-JSDq1E7i.js",
-  "allowedFiles": []
+  "baseAsset": "/assets/index-Be9F9oct.js",
+  "allowedFiles": [
+    "src/views/Courses/__tests__/courseReportCardsSection.test.jsx",
+    "src/views/Courses/courseDetails.js",
+    "src/views/ReportCard/Components/AdminReportCardReview.js",
+    "src/views/ReportCard/Components/ClassPrintModal.jsx",
+    "src/views/ReportCard/Components/CourseReportCardsDownload.jsx",
+    "src/views/ReportCard/Components/PrintPdfButton.jsx",
+    "src/views/ReportCard/PastReportCardsTable.js",
+    "src/views/ReportCard/__tests__/classPrint.test.js",
+    "src/views/ReportCard/__tests__/classPrintModal.test.jsx",
+    "src/views/ReportCard/__tests__/courseReportCardsDownload.test.jsx",
+    "src/views/ReportCard/__tests__/printPdf.test.jsx",
+    "src/views/ReportCard/__tests__/progressExportComments.test.js",
+    "src/views/ReportCard/__tests__/reportEditorPersistence.test.jsx",
+    "src/views/ReportCard/__tests__/reportPdf.test.js",
+    "src/views/ReportCard/pdfFillingUtils.js",
+    "src/views/ReportCard/utils.js",
+    "src/views/ReportCard/utils/classPrint.js",
+    "src/views/ReportCard/utils/courseReports.js",
+    "src/views/ReportCard/utils/editingLock.js",
+    "src/views/ReportCard/utils/printPdf.js",
+    "src/views/ReportCard/utils/reportPdf.js"
+  ]
 }

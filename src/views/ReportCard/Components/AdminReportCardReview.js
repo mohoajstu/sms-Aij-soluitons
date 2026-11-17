@@ -4,6 +4,9 @@ import { draftRevision, saveScopedDraft } from '../utils/saveScopedDraft'
 import { publishScopedReport } from '../utils/publishScopedReport'
 import { useReportScope } from '../utils/useReportScope'
 import ReportScopeFilter from './ReportScopeFilter'
+import { PDF_RENDER_VERSION } from '../utils/classPrint'
+import PrintPdfButton from './PrintPdfButton'
+import { buildReportPdf, getMergedFormDataForReport } from '../utils/reportPdf'
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   CCard,
@@ -45,20 +48,7 @@ import {
 } from '../utils/draftVersioning'
 import { buildReviewOrderPayload } from '../utils/reviewOrder'
 import dayjs from 'dayjs'
-import { PDFDocument } from 'pdf-lib'
-import { exportProgressReport1to6 } from '../exportProgressReport1to6'
-import { exportProgressReport7to8 } from '../exportProgressReport7to8'
-import { exportKGInitialObservations } from '../exportKGInitialObservations'
 import { REPORT_CARD_TYPES } from '../utils'
-import { mergeFormDataWithStudent } from '../utils/mergeFormDataWithStudent'
-import {
-  fillPDFFormWithData,
-  updateAllFieldAppearances,
-  embedTimesRomanFont,
-  normalizeSignatureFormData,
-  embedSignaturesIntoPdf,
-  drawTextIntoField,
-} from '../pdfFillingUtils'
 
 const AdminReportCardReview = () => {
   const [reportCards, setReportCards] = useState([])
@@ -189,106 +179,6 @@ const AdminReportCardReview = () => {
     return { updated: changed ? updated : formData, changed, mismatches }
   }
 
-  const getMergedFormDataForReport = async (reportCard) => {
-    let latestStudent = reportCard.selectedStudent || null
-    const studentId = reportCard.studentId || reportCard.selectedStudent?.id || ''
-    if (studentId) {
-      try {
-        const studentSnap = await getDoc(doc(firestore, 'students', studentId))
-        if (studentSnap.exists()) {
-          const studentData = studentSnap.data()
-          latestStudent = {
-            id: studentSnap.id,
-            fullName:
-              studentData.fullName ||
-              `${studentData.personalInfo?.firstName || ''} ${studentData.personalInfo?.lastName || ''}`.trim(),
-            firstName: studentData.personalInfo?.firstName || '',
-            lastName: studentData.personalInfo?.lastName || '',
-            grade: studentData.grade || studentData.program || '',
-            oen: studentData.schooling?.oen || studentData.oen || studentData.OEN || '',
-            schoolId: studentData.schoolId || studentData.id || studentSnap.id,
-            currentTermAbsenceCount: studentData.attendanceStats?.currentTermAbsenceCount ?? 0,
-            yearAbsenceCount: studentData.attendanceStats?.yearAbsenceCount ?? 0,
-            currentTermLateCount: studentData.attendanceStats?.currentTermLateCount ?? 0,
-            yearLateCount: studentData.attendanceStats?.yearLateCount ?? 0,
-          }
-        }
-      } catch (studentFetchError) {
-        console.warn('Could not fetch latest student info for approval:', studentFetchError)
-      }
-    }
-
-    return latestStudent
-      ? mergeFormDataWithStudent(reportCard.formData || {}, latestStudent)
-      : reportCard.formData || {}
-  }
-
-  const exportGenericReport = async (pdfPath, formData, context = 'Admin Approval') => {
-    const response = await fetch(pdfPath)
-    if (!response.ok) {
-      throw new Error('Failed to fetch PDF template')
-    }
-
-    const originalPdfBytes = await response.arrayBuffer()
-    const pdfDoc = await PDFDocument.load(originalPdfBytes)
-    const form = pdfDoc.getForm()
-    const fields = form.getFields()
-
-    const timesRomanFont = await embedTimesRomanFont(pdfDoc)
-    const normalizedFormData = normalizeSignatureFormData(formData)
-    await embedSignaturesIntoPdf(pdfDoc, form, normalizedFormData, context)
-
-    await fillPDFFormWithData(pdfDoc, normalizedFormData, timesRomanFont, context)
-    await updateAllFieldAppearances(form, pdfDoc, context)
-
-    const forceFlattenNames = new Set(['Full_Name_1', 'Full_name_1', 'full_name_1'])
-    for (const field of fields) {
-      try {
-        if (forceFlattenNames.has(field.getName())) {
-          await drawTextIntoField(
-            pdfDoc,
-            field,
-            normalizedFormData.student || normalizedFormData.student_name || '',
-            timesRomanFont,
-            10,
-          )
-          field.flatten()
-        }
-      } catch (forceFlattenError) {
-        console.warn(`Could not force-flatten field "${field.getName()}":`, forceFlattenError)
-      }
-    }
-
-    if (fields.length > 0) {
-      try {
-        form.flatten()
-      } catch (flattenError) {
-        console.warn('Flatten failed, retrying after appearance refresh:', flattenError)
-        await updateAllFieldAppearances(form, pdfDoc, `${context}-Retry`)
-        try {
-          form.flatten()
-        } catch (flattenRetryError) {
-          console.warn('Retry flatten failed, trying individual field flattening...')
-          for (const field of fields) {
-            try {
-              field.flatten()
-            } catch (fieldFlattenError) {
-              console.log(`Skipping field "${field.getName()}" during flatten`)
-            }
-          }
-        }
-      }
-      const catalog = pdfDoc.catalog
-      try {
-        catalog.delete('AcroForm')
-      } catch (e) {
-        console.warn('Could not remove AcroForm:', e)
-      }
-    }
-
-    return await pdfDoc.save({ useObjectStreams: false })
-  }
-
   // Load report cards from Firestore
   useEffect(() => {
     const loadReportCards = async () => {
@@ -396,7 +286,7 @@ const AdminReportCardReview = () => {
         throw new Error('Report card type configuration not found')
       }
 
-      let mergedFormData = await getMergedFormDataForReport(reportCard)
+      let mergedFormData = await getMergedFormDataForReport(firestore, reportCard)
       let mediansChanged = false
 
       if (reportCard.reportCardType === '7-8-report-card' && (reportCard.term || 'term1') === 'term1') {
@@ -432,25 +322,7 @@ const AdminReportCardReview = () => {
       const studentName = (mergedFormData.student || reportCard.studentName || 'student').replace(/\s+/g, '-')
       let finalPdfBytes
 
-      switch (reportCard.reportCardType) {
-        case '1-6-progress':
-          finalPdfBytes = await exportProgressReport1to6(reportCardType.pdfPath, mergedFormData, studentName)
-          break
-        case '7-8-progress':
-          finalPdfBytes = await exportProgressReport7to8(reportCardType.pdfPath, mergedFormData, studentName)
-          break
-        case 'kg-initial-observations':
-          finalPdfBytes = await exportKGInitialObservations(reportCardType.pdfPath, mergedFormData, studentName)
-          break
-        case 'kg-report':
-        case '1-6-report-card':
-        case '7-8-report-card':
-          finalPdfBytes = await exportGenericReport(reportCardType.pdfPath, mergedFormData)
-          break
-        default:
-          finalPdfBytes = await exportGenericReport(reportCardType.pdfPath, mergedFormData)
-          break
-      }
+      finalPdfBytes = await buildReportPdf(reportCardType, mergedFormData, studentName)
 
       console.log('✅ PDF generated successfully')
 
@@ -473,7 +345,7 @@ const AdminReportCardReview = () => {
       }, {
         adminReviewStatus: 'approved', adminReviewedAt: serverTimestamp(), adminReviewedBy: user.uid,
         status: 'complete', completedAt: serverTimestamp(), finalPdfUrl: downloadURL,
-        finalPdfPath: filePath, publishedToParents: true,
+        finalPdfPath: filePath, publishedToParents: true, pdfRenderVersion: PDF_RENDER_VERSION,
         ...(mediansChanged ? { formData: mergedFormData } : {}),
       }, draftRevision(reportCard))
 
@@ -483,7 +355,7 @@ const AdminReportCardReview = () => {
       setReportCards(prev => 
         prev.map(rc => 
           rc.id === reportCard.id 
-            ? { ...rc, status: 'approved' }
+            ? { ...rc, status: 'approved', finalPdfUrl: downloadURL, pdfRenderVersion: PDF_RENDER_VERSION }
             : rc
         )
       )
@@ -515,7 +387,7 @@ const AdminReportCardReview = () => {
         throw new Error('Report card type configuration not found')
       }
 
-      let mergedFormData = await getMergedFormDataForReport(reportCard)
+      let mergedFormData = await getMergedFormDataForReport(firestore, reportCard)
       let mediansChanged = false
 
       if (reportCard.reportCardType === '7-8-report-card' && (reportCard.term || 'term1') === 'term1') {
@@ -551,25 +423,7 @@ const AdminReportCardReview = () => {
       const studentName = (mergedFormData.student || reportCard.studentName || 'student').replace(/\s+/g, '-')
       let finalPdfBytes
 
-      switch (reportCard.reportCardType) {
-        case '1-6-progress':
-          finalPdfBytes = await exportProgressReport1to6(reportCardType.pdfPath, mergedFormData, studentName)
-          break
-        case '7-8-progress':
-          finalPdfBytes = await exportProgressReport7to8(reportCardType.pdfPath, mergedFormData, studentName)
-          break
-        case 'kg-initial-observations':
-          finalPdfBytes = await exportKGInitialObservations(reportCardType.pdfPath, mergedFormData, studentName)
-          break
-        case 'kg-report':
-        case '1-6-report-card':
-        case '7-8-report-card':
-          finalPdfBytes = await exportGenericReport(reportCardType.pdfPath, mergedFormData, 'Admin Re-approval')
-          break
-        default:
-          finalPdfBytes = await exportGenericReport(reportCardType.pdfPath, mergedFormData, 'Admin Re-approval')
-          break
-      }
+      finalPdfBytes = await buildReportPdf(reportCardType, mergedFormData, studentName, 'Admin Re-approval')
 
       console.log('✅ PDF regenerated successfully (without logo)')
 
@@ -605,7 +459,7 @@ const AdminReportCardReview = () => {
         teacherName: reportCard.teacherName, approvedBy: user.uid, approvedAt: serverTimestamp(),
         reapprovedAt: serverTimestamp(), reapprovedBy: user.uid,
       }, {
-        finalPdfUrl: downloadURL, finalPdfPath: filePath,
+        finalPdfUrl: downloadURL, finalPdfPath: filePath, pdfRenderVersion: PDF_RENDER_VERSION,
         reapprovedAt: serverTimestamp(), reapprovedBy: user.uid,
         ...(mediansChanged ? { formData: mergedFormData } : {}),
       }, draftRevision(reportCard), samePeriod[0]?.id)
@@ -616,7 +470,7 @@ const AdminReportCardReview = () => {
       setReportCards(prev => 
         prev.map(rc => 
           rc.id === reportCard.id 
-            ? { ...rc, finalPdfUrl: downloadURL }
+            ? { ...rc, finalPdfUrl: downloadURL, pdfRenderVersion: PDF_RENDER_VERSION }
             : rc
         )
       )
@@ -1602,7 +1456,10 @@ const AdminReportCardReview = () => {
 
               {selectedReportCardData.finalPdfUrl ? (
                 <div className="mt-4">
-                  <h5 className="mb-3">Finalized PDF</h5>
+                  <div className="d-flex align-items-center justify-content-between mb-3">
+                    <h5 className="mb-0">Finalized PDF</h5>
+                    <PrintPdfButton url={selectedReportCardData.finalPdfUrl} />
+                  </div>
                   <div style={{ border: '1px solid #dee2e6', borderRadius: '4px', overflow: 'auto', maxHeight: '70vh' }}>
                     {/* Use iframe for Firebase Storage URLs to avoid CORS issues */}
                     <iframe

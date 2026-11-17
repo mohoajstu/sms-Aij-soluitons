@@ -39,6 +39,7 @@ import { ref as storageRef, listAll, getDownloadURL, getMetadata } from 'firebas
 import { storage, firestore } from '../../Firebase/firebase'
 import { collection, query, where, getDocs, orderBy, deleteDoc, doc } from 'firebase/firestore'
 import useAuth from '../../Firebase/useAuth'
+import PrintPdfButton from './Components/PrintPdfButton'
 import { REPORT_CARD_TYPES } from './utils'
 
 /**
@@ -359,9 +360,12 @@ const PastReportCardsTable = ({ onEditDraft: onEditDraftCallback }) => {
                       </Tooltip>
                     </Box>
                   ) : rc.url ? (
-                    <Link href={rc.url} target="_blank" rel="noopener">
-                      View PDF
-                    </Link>
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Link href={rc.url} target="_blank" rel="noopener">
+                        View PDF
+                      </Link>
+                      <PrintPdfButton url={rc.url} variant="outline" />
+                    </Box>
                   ) : (
                     '—'
                   )}

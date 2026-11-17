@@ -14,7 +14,8 @@ import {
   isAuthenticated,
 } from '../../services/calendarService'
 import { auth } from '../../firebase'
-import { loadRosterStudents } from '../../services/courseRoster'
+import { loadRosterStudents, rosterEntriesFromCourse } from '../../services/courseRoster'
+import CourseReportCardsDownload from '../ReportCard/Components/CourseReportCardsDownload'
 import StudentSelectorModal from './StudentForm'
 import StaffSelectorModal from './StaffSelectorModal'
 import CourseGrades from './CourseGrades' // B14: Course grades with median calculation
@@ -537,6 +538,10 @@ function CourseDetailPage() {
           </div>
         </CCardBody>
       </CCard>
+      )}
+
+      {activeSection === 'overview' && userRole === 'admin' && studentList.length > 0 && (
+        <CourseReportCardsDownload roster={rosterEntriesFromCourse(course)} />
       )}
       {/* Student selection & creation modal */}
       <StudentSelectorModal visible={showStudentModal} courseId={id} onClose={() => setShowStudentModal(false)} />

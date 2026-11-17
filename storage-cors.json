@@ -1,0 +1,13 @@
+[
+  {
+    "origin": [
+      "https://tlasms.com",
+      "https://www.tlasms.com",
+      "https://tlasms.web.app",
+      "https://tlasms.firebaseapp.com",
+      "http://localhost:3000"
+    ],
+    "method": ["GET"],
+    "maxAgeSeconds": 3600
+  }
+]
