@@ -89,7 +89,17 @@ export const printPdfBytes = (bytes, { doc = document, win = window } = {}) =>
 export const fetchPdfBytes = async (url) => {
   let response
   try {
-    response = await fetch(url)
+    const localDevelopment = import.meta.env.DEV &&
+      ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)
+    const localReport = localDevelopment &&
+      url.startsWith('https://firebasestorage.googleapis.com/v0/b/tarbiyah-sms.firebasestorage.app/o/reportCards%2Fapproved%2F')
+    response = localReport
+      ? await fetch('/__local-report-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain', 'X-Local-Report': '1' },
+          body: url,
+        })
+      : await fetch(url)
   } catch (error) {
     // A bare "Failed to fetch" here means the browser blocked reading the file
     // from Firebase Storage: the bucket needs a CORS rule for this site.
