@@ -101,4 +101,8 @@ export const fetchPdfBytes = async (url) => {
   return new Uint8Array(await response.arrayBuffer())
 }
 
-export const printPdfUrl = async (url) => printPdfBytes(await fetchPdfBytes(url))
+export const printPdfUrl = async (url) => {
+  const bytes = await fetchPdfBytes(url)
+  const { renderReportForPrint } = await import('./renderReportForPrint')
+  return printPdfBytes(await renderReportForPrint(bytes))
+}
