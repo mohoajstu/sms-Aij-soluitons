@@ -14,7 +14,10 @@ exports.registrationEnrollment = functions.region('northamerica-northeast1').htt
     reviewerEmails: String(functions.config().timekeeping?.revieweremails || '').split(',').map((e) => e.trim()).filter(Boolean),
   })(req, res))
 
-exports.staffTimesheets = functions.region('northamerica-northeast1').https.onRequest((req, res) =>
+exports.parentPortal = functions.region('northamerica-northeast1').https.onRequest((req, res) =>
+  require('./parentPortal').createHandler({ admin })(req, res))
+
+exports.staffTimesheets =functions.region('northamerica-northeast1').https.onRequest((req, res) =>
   require('./staffTimesheets').createHandler({ admin,
     reviewerEmails: String(functions.config().timekeeping?.revieweremails || '').split(',').map((e) => e.trim()).filter(Boolean),
     apiKey: process.env.OPENAI_API_KEY || functions.config().openai?.apikey,

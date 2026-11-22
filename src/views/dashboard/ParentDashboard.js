@@ -14,117 +14,47 @@ import {
 } from '@coreui/icons'
 import './ParentDashboard.css'
 import sygnet from '../../assets/brand/TLA_logo_simple.svg'
-import { collection, getDocs, query, where, orderBy, limit, documentId } from 'firebase/firestore'
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore'
 import { firestore } from '../../firebase'
-import useAuth from '../../Firebase/useAuth'
 import dayjs from 'dayjs'
+import { parentPortal } from '../../services/parentPortal'
+import useParentFamily from '../parent/useParentFamily'
+import { gradeLabel } from '../parent/ChildSelector'
+
+// Late counts as attended. Returns null when there are no records in the window.
+export const attendanceRate = (records) => {
+  const attended = records.filter(({ status }) => ['Present', 'Late', 'Excused Late'].includes(status)).length
+  return records.length ? Math.round((attended / records.length) * 100) : null
+}
 
 const ParentDashboard = () => {
   const navigate = useNavigate()
-  const { user } = useAuth()
-
-  const [parentName, setParentName] = useState('')
-  const [children, setChildren] = useState([]) // [{ id, name, grade, attendancePercent }]
+  const family = useParentFamily()
+  const [rates, setRates] = useState({}) // id -> attendance percent or null
   const [announcements, setAnnouncements] = useState([])
+  const familyChildren = family.children
+  const children = familyChildren.map((child) => ({
+    ...child, grade: gradeLabel(child.grade), attendancePercent: rates[child.id] ?? null,
+  }))
 
   useEffect(() => {
-    if (!user || !user.email) return
-
-    const loadData = async () => {
+    if (!familyChildren.length) return undefined
+    let active = true
+    const endDate = dayjs().format('YYYY-MM-DD')
+    const startDate = dayjs().subtract(60, 'day').format('YYYY-MM-DD')
+    Promise.all(familyChildren.map(async (child) => {
       try {
-        // Find student by the logged-in email (parent logs in with child's email)
-        const studentsQuery = query(
-          collection(firestore, 'students'),
-          where('contact.email', '==', user.email)
-        )
-        const studentsSnapshot = await getDocs(studentsQuery)
-
-        if (studentsSnapshot.empty) {
-          console.error('No student found with email:', user.email)
-          setChildren([])
-          return
-        }
-
-        // Get the student document (should be only one)
-        const studentDoc = studentsSnapshot.docs[0]
-        const studentId = studentDoc.id
-        const studentData = studentDoc.data()
-
-        const first = studentData?.personalInfo?.firstName || ''
-        const last = studentData?.personalInfo?.lastName || ''
-        const grade =
-          studentData?.schooling?.gradeLevel ||
-          studentData?.schooling?.grade ||
-          studentData?.gradeLevel ||
-          studentData?.grade ||
-          ''
-        
-        // Set parent name (could be student's name or a parent name from student data)
-        const parentFirstName = studentData?.parents?.father?.firstName || 
-                               studentData?.parents?.mother?.firstName || 
-                               first
-        const parentLastName = studentData?.parents?.father?.lastName || 
-                              studentData?.parents?.mother?.lastName || 
-                              last
-        setParentName(`${parentFirstName} ${parentLastName}`.trim() || 'Parent')
-
-        // Initialize children list with single student
-        const baseChildren = [{
-          id: studentId,
-          name: `${first} ${last}`.trim() || studentId,
-          grade: grade ? (String(grade).startsWith('Grade') ? grade : `Grade ${grade}`) : '',
-          attendancePercent: null,
-        }]
-
-        setChildren(baseChildren)
-        const childIds = [studentId]
-
-        // Compute recent attendance rates (last 60 days) from attendance collection
-        if (childIds.length > 0) {
-          const endDate = dayjs()
-          const startDate = endDate.subtract(60, 'day')
-          let attQuery = query(
-            collection(firestore, 'attendance'),
-            where(documentId(), '>=', startDate.format('YYYY-MM-DD')),
-            where(documentId(), '<=', endDate.format('YYYY-MM-DD')),
-          )
-          const attSnap = await getDocs(attQuery)
-
-          const totals = new Map() // id -> { total, present, late, absent }
-          childIds.forEach((id) => totals.set(id, { total: 0, present: 0, late: 0, absent: 0 }))
-
-          attSnap.forEach((docSnap) => {
-            const daily = docSnap.data() || {}
-            const courses = daily.courses || []
-            courses.forEach((course) => {
-              const students = course.students || []
-              students.forEach((s) => {
-                const sid = s.studentId
-                if (!totals.has(sid)) return
-                const t = totals.get(sid)
-                t.total += 1
-                if (s.status === 'Present') t.present += 1
-                else if (s.status === 'Late' || s.status === 'Excused Late') t.late += 1
-                else if (s.status === 'Absent' || s.status === 'Excused Absent') t.absent += 1
-              })
-            })
-          })
-
-          setChildren((prev) =>
-            prev.map((c) => {
-              const t = totals.get(c.id)
-              if (!t || t.total === 0) return c
-              const attended = t.present + t.late // count Late as attended
-              const pct = Math.round((attended / t.total) * 100)
-              return { ...c, attendancePercent: pct }
-            }),
-          )
-        }
+        const { records } = await parentPortal('attendance', { studentId: child.id, startDate, endDate })
+        return [child.id, attendanceRate(records || [])]
       } catch (e) {
-        console.error('Failed to load parent dashboard data:', e)
+        console.error('Failed to load attendance for', child.id, e)
+        return [child.id, null]
       }
-    }
+    })).then((entries) => { if (active) setRates(Object.fromEntries(entries)) })
+    return () => { active = false }
+  }, [familyChildren])
 
+  useEffect(() => {
     const loadAnnouncements = async () => {
       try {
         const ref = collection(firestore, 'announcements')
@@ -138,9 +68,8 @@ const ParentDashboard = () => {
       }
     }
 
-    loadData()
     loadAnnouncements()
-  }, [user])
+  }, [])
 
   // Simplified quick actions
   const quickActions = [
@@ -175,7 +104,7 @@ const ParentDashboard = () => {
           </div>
         </div>
         <div className="user-section">
-          <span className="parent-name">Welcome, {parentName || 'Parent'}</span>
+          <span className="parent-name">Welcome, Parent</span>
         </div>
       </div>
 

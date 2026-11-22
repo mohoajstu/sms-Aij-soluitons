@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { CCard, CCardBody, CCardHeader, CTable, CTableHead, CTableRow, CTableHeaderCell, CTableBody, CTableDataCell, CSpinner, CAlert, CButton } from '@coreui/react'
 import dayjs from 'dayjs'
-import { collection, getDocs, query, where, documentId, orderBy, limit } from 'firebase/firestore'
 import { firestore } from '../../Firebase/firebase'
-import useAuth from '../../Firebase/useAuth'
+import { parentPortal } from '../../services/parentPortal'
 import { computeDefaultSchoolYear, fetchSchoolYearSettings } from '../ReportCard/utils/schoolYear'
+import useParentFamily from './useParentFamily'
+import ChildSelector from './ChildSelector'
 import './ParentReportCards.css'
 
 export const attendanceSchoolYears = (earliestDate, current, today = dayjs().format('YYYY-MM-DD')) => {
@@ -40,27 +41,7 @@ const AttendanceYear = ({ year, studentId }) => {
     setError('')
     const load = async () => {
       try {
-        const snapshot = await getDocs(query(
-          collection(firestore, 'attendance'),
-          where(documentId(), '>=', year.startDate),
-          where(documentId(), '<=', year.endDate),
-        ))
-        const rows = []
-        snapshot.forEach((dailyDoc) => {
-          const daily = dailyDoc.data() || {}
-          for (const course of daily.courses || []) {
-            for (const student of course.students || []) {
-              if (student.studentId !== studentId) continue
-              rows.push({
-                date: daily.date || dailyDoc.id,
-                class: course.courseTitle || 'Class',
-                status: student.status || '—',
-                note: student.note || '',
-              })
-            }
-          }
-        })
-        rows.sort((a, b) => b.date.localeCompare(a.date))
+        const { records: rows } = await parentPortal('attendance', { studentId, startDate: year.startDate, endDate: year.endDate })
         if (active) setRecords(rows)
       } catch (err) {
         console.error('Failed to load parent attendance:', err)
@@ -117,55 +98,35 @@ const AttendanceYear = ({ year, studentId }) => {
 }
 
 const ParentAttendance = () => {
-  const { user } = useAuth()
-  const [loading, setLoading] = useState(true)
-  const [student, setStudent] = useState(null)
-  const [years, setYears] = useState([])
-  const [error, setError] = useState('')
-  const email = user?.email
+  const { loading, error, children, selected, selectChild, earliestAttendanceDate, retry } = useParentFamily()
+  const [years, setYears] = useState(null)
+  const [yearsError, setYearsError] = useState('')
 
   useEffect(() => {
-    if (!email) return
+    if (loading || error) return undefined
     let active = true
-    const load = async () => {
-      setLoading(true)
-      setError('')
-      try {
-        const [students, current, oldestAttendance] = await Promise.all([
-          getDocs(query(collection(firestore, 'students'), where('contact.email', '==', email))),
-          fetchSchoolYearSettings(firestore),
-          getDocs(query(collection(firestore, 'attendance'), orderBy(documentId()), limit(1))),
-        ])
-        if (!active) return
-        if (students.empty) {
-          setStudent(null)
-          return
-        }
-        const studentDoc = students.docs[0]
-        const info = studentDoc.data()?.personalInfo || {}
-        setStudent({ id: studentDoc.id, name: `${info.firstName || ''} ${info.lastName || ''}`.trim() || studentDoc.id })
-        setYears(attendanceSchoolYears(oldestAttendance.docs[0]?.id, current))
-      } catch (err) {
-        console.error('Failed to load parent attendance:', err)
-        if (active) setError('Unable to load attendance. Please refresh the page to try again.')
-      } finally {
-        if (active) setLoading(false)
-      }
-    }
-    load()
+    fetchSchoolYearSettings(firestore).then((current) => {
+      if (active) setYears(attendanceSchoolYears(earliestAttendanceDate, current))
+    }).catch((err) => {
+      console.error('Failed to load school year settings:', err)
+      if (active) setYearsError('Unable to load attendance. Please refresh the page to try again.')
+    })
     return () => { active = false }
-  }, [email])
+  }, [loading, error, earliestAttendanceDate])
 
-  if (loading) return <CSpinner color="primary" />
-  if (error) return <CAlert color="danger">{error}</CAlert>
-  if (!student) return <CAlert color="info">No linked students found.</CAlert>
+  if (error) {
+    return <CAlert color="danger">{error} <CButton color="link" onClick={retry}>Try again</CButton></CAlert>
+  }
+  if (yearsError) return <CAlert color="danger">{yearsError}</CAlert>
+  if (loading || !years) return <CSpinner color="primary" />
+  if (!selected) return <CAlert color="info">No linked students found.</CAlert>
 
   return (
     <CCard>
       <CCardHeader><h3 className="mb-0">Attendance</h3></CCardHeader>
       <CCardBody>
-        <p className="mb-4">{student.name}</p>
-        {years.map((year) => <AttendanceYear key={`${student.id}-${year.label}`} year={year} studentId={student.id} />)}
+        <ChildSelector options={children} selected={selected} onSelect={selectChild} />
+        {years.map((year) => <AttendanceYear key={`${selected.id}-${year.label}`} year={year} studentId={selected.id} />)}
       </CCardBody>
     </CCard>
   )

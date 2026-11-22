@@ -7,13 +7,13 @@ import { writeFileSync } from 'node:fs'
 vi.mock('../../../Firebase/firebase', () => ({ firestore: {} }))
 vi.mock('../../../Firebase/useAuth', () => ({ default: () => ({ user: authUser }) }))
 const authUser = { email: 'sample@tarbiyahlearning.ca' }
-vi.mock('firebase/firestore', () => ({
-  collection: vi.fn(), query: vi.fn(), where: vi.fn(), doc: vi.fn(),
-  getDocs: vi.fn(), getDoc: vi.fn(), setDoc: vi.fn(),
-}))
-import { getDoc, getDocs } from 'firebase/firestore'
+vi.mock('firebase/firestore', () => ({ doc: vi.fn(), getDoc: vi.fn() }))
+vi.mock('../../../services/parentPortal', () => ({ parentPortal: vi.fn() }))
+import { getDoc } from 'firebase/firestore'
+import { parentPortal } from '../../../services/parentPortal'
 import ParentReportCards from '../ParentReportCards'
 import { groupParentReports } from '../parentReportGroups'
+import { resetParentFamilyCache } from '../useParentFamily'
 
 const current = { label: '2026-2027', startDate: '2026-09-02' }
 const report = (id, extra = {}) => ({
@@ -24,6 +24,8 @@ const report = (id, extra = {}) => ({
 let root, container
 beforeEach(() => {
   vi.resetAllMocks()
+  resetParentFamilyCache()
+  sessionStorage.clear()
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
   container = document.createElement('div')
   document.body.appendChild(container)
@@ -34,15 +36,14 @@ afterEach(async () => {
   await act(async () => root.unmount())
   container.remove()
 })
+const sample = { id: 'sample-student', name: 'Sample Student', grade: '4' }
+const mockPortal = (byChild, children = [sample]) => parentPortal.mockImplementation(async (action, body) => {
+  if (action === 'family') return { children, signedInStudentIds: [children[0].id], earliestAttendanceDate: null }
+  if (action === 'reportCards') return { reports: byChild[body.studentId] || [] }
+  throw new Error(`unexpected ${action}`)
+})
 const renderReports = async (records) => {
-  getDocs.mockResolvedValueOnce({ empty: false, docs: [{
-    id: 'sample-student', data: () => ({ personalInfo: { firstName: 'Sample', lastName: 'Student' } }),
-  }] }).mockResolvedValueOnce({
-    empty: records.length === 0,
-    forEach: (fn) => records.forEach(({ id, ...data }) => fn({ id, data: () => data })),
-  })
-  // Empty primary results cause the existing legacy-name lookup.
-  if (!records.length) getDocs.mockResolvedValueOnce({ empty: true, forEach: () => {} })
+  mockPortal({ 'sample-student': records })
   await act(async () => root.render(<ParentReportCards />))
 }
 
@@ -90,8 +91,26 @@ it('shows a current-year empty state even when only last year has reports', asyn
   expect(container.querySelector('details').open).toBe(false)
 })
 
+it('lists every linked child and shows only the selected child\'s reports', async () => {
+  const sibling = { id: 'TLS992671', name: 'Test Student', grade: 'Grade 8' }
+  mockPortal({ 'sample-student': [report('mine')], TLS992671: [report('sibling-report', { reportCardTypeName: 'Grade 8 Report' })] }, [sample, sibling])
+  await act(async () => root.render(<ParentReportCards />))
+  const select = container.querySelector('select')
+  expect([...select.options].map((o) => o.textContent)).toEqual(['Sample Student · Grade 4', 'Test Student · Grade 8'])
+  expect(container.textContent).not.toContain('Grade 8 Report')
+  await act(async () => {
+    select.value = 'TLS992671'
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  expect(container.textContent).toContain('Grade 8 Report')
+  expect(parentPortal).toHaveBeenCalledWith('reportCards', { studentId: 'TLS992671' })
+})
+
 it('shows a load error instead of presenting a failed request as no reports', async () => {
-  getDocs.mockRejectedValue(new Error('permission-denied'))
+  parentPortal.mockImplementation(async (action) => {
+    if (action === 'family') return { children: [sample], signedInStudentIds: ['sample-student'] }
+    throw new Error('permission-denied')
+  })
   await act(async () => root.render(<ParentReportCards />))
   expect(container.textContent).toContain('Unable to load report cards.')
   expect(container.textContent).not.toContain('No report cards')

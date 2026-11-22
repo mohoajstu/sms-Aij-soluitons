@@ -1,9 +1,10 @@
 {
-  "name": "Report cards: enforce admin editing lock on open pages; print 7-8 progress subject comments; download a course's report cards as a ZIP built from saved data; direct Print buttons",
+  "name": "Report cards: enforce admin editing lock on open pages; print 7-8 progress subject comments; download a course's report cards as a ZIP built from saved data; direct Print buttons. Parent portal: any child's login shows all mutually linked siblings (child selector; attendance and report cards served by the parentPortal function)",
   "project": "tarbiyah-sms",
   "target": "hosting:tlasms",
   "baseAsset": "/assets/index-BOIc3rOn.js",
   "allowedFiles": [
+    "src/services/parentPortal.js",
     "src/views/Courses/__tests__/courseReportCardsSection.test.jsx",
     "src/views/Courses/courseDetails.js",
     "src/views/ReportCard/Components/AdminReportCardReview.js",
@@ -24,6 +25,14 @@
     "src/views/ReportCard/utils/courseReports.js",
     "src/views/ReportCard/utils/editingLock.js",
     "src/views/ReportCard/utils/printPdf.js",
-    "src/views/ReportCard/utils/reportPdf.js"
+    "src/views/ReportCard/utils/reportPdf.js",
+    "src/views/dashboard/ParentDashboard.js",
+    "src/views/dashboard/__tests__/ParentDashboard.test.jsx",
+    "src/views/parent/ChildSelector.jsx",
+    "src/views/parent/ParentAttendance.js",
+    "src/views/parent/ParentReportCards.js",
+    "src/views/parent/__tests__/ParentAttendance.test.jsx",
+    "src/views/parent/__tests__/ParentReportCards.test.jsx",
+    "src/views/parent/useParentFamily.js"
   ]
 }
