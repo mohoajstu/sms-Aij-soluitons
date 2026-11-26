@@ -1,5 +1,5 @@
 {
-  "name": "Report cards: enforce admin editing lock on open pages; print 7-8 progress subject comments; download a course's report cards as a ZIP built from saved data; direct Print buttons",
+  "name": "Report cards: enforce admin editing lock on open pages; print 7-8 progress subject comments; download a course's report cards as a ZIP built from saved data; direct Print buttons; approve past-year reports with their saved grade and attendance; print preview for unapproved reports; remove annotations left dangling by PDF flattening",
   "project": "tarbiyah-sms",
   "target": "hosting:tlasms",
   "baseAsset": "/assets/index-BOIc3rOn.js",
@@ -18,6 +18,10 @@
     "src/views/ReportCard/__tests__/progressExportComments.test.js",
     "src/views/ReportCard/__tests__/reportEditorPersistence.test.jsx",
     "src/views/ReportCard/__tests__/reportPdf.test.js",
+    "src/views/ReportCard/exportKGInitialObservations.js",
+    "src/views/ReportCard/exportProgressReport1to6.js",
+    "src/views/ReportCard/exportProgressReport7to8.js",
+    "src/views/ReportCard/exportQuranReport.js",
     "src/views/ReportCard/pdfFillingUtils.js",
     "src/views/ReportCard/utils.js",
     "src/views/ReportCard/utils/classPrint.js",

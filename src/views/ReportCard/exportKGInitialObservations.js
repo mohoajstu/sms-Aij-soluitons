@@ -8,6 +8,7 @@ import {
   fillPDFFormWithData,
   updateAllFieldAppearances,
   embedTimesRomanFont,
+  saveFlattenedPdf,
 } from './pdfFillingUtils'
 
 /**
@@ -215,7 +216,7 @@ export const exportKGInitialObservations = async (pdfPath, formData, studentName
       }
 
       // Save the final PDF
-      const finalPdfBytes = await pdfDoc.save({
+      const finalPdfBytes = await saveFlattenedPdf(pdfDoc, {
         useObjectStreams: false, // Better compatibility
       })
 
@@ -225,7 +226,7 @@ export const exportKGInitialObservations = async (pdfPath, formData, studentName
       console.error('❌ Error during flattening:', flattenError)
       // If flattening fails, save without flattening
       console.log('⚠️ Saving PDF without flattening due to error')
-      const finalPdfBytes = await pdfDoc.save({
+      const finalPdfBytes = await saveFlattenedPdf(pdfDoc, {
         useObjectStreams: false,
       })
       return finalPdfBytes

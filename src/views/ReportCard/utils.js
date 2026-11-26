@@ -48,6 +48,7 @@ import {
   normalizeSignatureFormData,
   embedSignaturesIntoPdf,
   drawTextIntoField,
+  saveFlattenedPdf,
 } from './pdfFillingUtils'
 // Import separate export functions for each report type
 import { exportProgressReport1to6 } from './exportProgressReport1to6'
@@ -2839,7 +2840,7 @@ const ReportCard = ({ presetReportCardId = null }) => {
             }
           }
 
-          finalPdfBytes = await pdfDoc.save({ useObjectStreams: false })
+          finalPdfBytes = await saveFlattenedPdf(pdfDoc, { useObjectStreams: false })
           break
       }
 

@@ -3,7 +3,7 @@
  * Ensures preview and download use IDENTICAL logic
  */
 
-import { PDFDocument, StandardFonts, PDFNumber, PDFName, PDFDict, PDFStream, PDFRef } from 'pdf-lib'
+import { PDFDocument, StandardFonts, PDFNumber, PDFName, PDFDict, PDFStream, PDFRef, PDFArray } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
 import { generateFieldNameVariations } from './fieldMappings'
 
@@ -915,4 +915,38 @@ export const embedTimesRomanFont = async (pdfDoc) => {
     // Fallback to standard TimesRoman font
     return await pdfDoc.embedFont(StandardFonts.TimesRoman)
   }
+}
+
+/**
+ * Drops page annotation entries that point at objects which no longer exist.
+ *
+ * pdf-lib 1.17.1's form.flatten() mishandles fields that have a widget on
+ * several pages (student name, OEN and grade in every page header): it
+ * deletes their widget objects but leaves them listed in each page's /Annots.
+ * The saved file then has a damaged cross-reference table that PDF readers
+ * must repair, and some printers and viewers stop at the first page.
+ *
+ * @returns {number} how many dangling entries were removed
+ */
+export const removeDanglingAnnotations = (pdfDoc) => {
+  let removed = 0
+  for (const page of pdfDoc.getPages()) {
+    const annotsKey = PDFName.of('Annots')
+    const annots = page.node.lookupMaybe(annotsKey, PDFArray)
+    if (!annots) continue
+    const kept = annots
+      .asArray()
+      .filter((entry) => !(entry instanceof PDFRef) || pdfDoc.context.lookup(entry) !== undefined)
+    removed += annots.size() - kept.length
+    if (kept.length === 0) page.node.delete(annotsKey)
+    else if (kept.length !== annots.size()) page.node.set(annotsKey, pdfDoc.context.obj(kept))
+  }
+  return removed
+}
+
+/** Saves a flattened report PDF after removing annotations flatten left dangling. */
+export const saveFlattenedPdf = async (pdfDoc, options = { useObjectStreams: false }) => {
+  const removed = removeDanglingAnnotations(pdfDoc)
+  if (removed > 0) console.log(`Removed ${removed} dangling annotation reference(s) left by flattening`)
+  return pdfDoc.save(options)
 }

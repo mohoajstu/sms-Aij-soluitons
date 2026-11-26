@@ -6,7 +6,8 @@ import { useReportScope } from '../utils/useReportScope'
 import ReportScopeFilter from './ReportScopeFilter'
 import { PDF_RENDER_VERSION } from '../utils/classPrint'
 import PrintPdfButton from './PrintPdfButton'
-import { buildReportPdf, getMergedFormDataForReport } from '../utils/reportPdf'
+import { buildReportPdf, getMergedFormDataForReport, isPastYearReport } from '../utils/reportPdf'
+import { printPdfBytes } from '../utils/printPdf'
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   CCard,
@@ -273,6 +274,38 @@ const AdminReportCardReview = () => {
     }
   }
 
+  // Past-year reports can be approved one at a time. They keep the grade and
+  // attendance saved with them (see getMergedFormDataForReport).
+  const approveFromRow = (reportCard) => {
+    if (isPastYearReport(reportCard, reportScope.current)) {
+      const year = getReportYear(reportCard, reportScope.current)
+      const ok = window.confirm(
+        `This report is from the ${year} school year.\n\nIt will be approved and published to parents using the grade and attendance saved with the report, not the student's current record. Continue?`,
+      )
+      if (!ok) return
+    }
+    approveAndPublishReportCard(reportCard)
+  }
+
+  // Builds the full PDF for a report that has not been approved yet and prints
+  // it, so every page prints. Nothing is uploaded or saved.
+  const printDraftPreview = async () => {
+    const report = selectedReportCardData
+    const reportCardType = REPORT_CARD_TYPES.find((t) => t.id === report.reportCardType)
+    if (!reportCardType?.pdfPath) throw new Error('Report card type configuration not found')
+    let formData = await getMergedFormDataForReport(firestore, report, { current: reportScope.current })
+    if (report.reportCardType === '7-8-report-card' && (report.term || 'term1') === 'term1') {
+      formData = (await applyMedianMappings(formData, {
+        grade: formData.grade || report.grade,
+        termKey: report.term || 'term1',
+        overwriteMismatches: false,
+      })).updated
+    }
+    const studentName = (formData.student || report.studentName || 'student').replace(/\s+/g, '-')
+    const bytes = await buildReportPdf(reportCardType, formData, studentName, 'Print Preview')
+    await printPdfBytes(bytes)
+  }
+
   // Approve and publish report card with PDF generation
   const approveAndPublishReportCard = async (reportCard) => {
     setApprovingIds(prev => new Set(prev).add(reportCard.id))
@@ -286,7 +319,7 @@ const AdminReportCardReview = () => {
         throw new Error('Report card type configuration not found')
       }
 
-      let mergedFormData = await getMergedFormDataForReport(firestore, reportCard)
+      let mergedFormData = await getMergedFormDataForReport(firestore, reportCard, { current: reportScope.current })
       let mediansChanged = false
 
       if (reportCard.reportCardType === '7-8-report-card' && (reportCard.term || 'term1') === 'term1') {
@@ -387,7 +420,7 @@ const AdminReportCardReview = () => {
         throw new Error('Report card type configuration not found')
       }
 
-      let mergedFormData = await getMergedFormDataForReport(firestore, reportCard)
+      let mergedFormData = await getMergedFormDataForReport(firestore, reportCard, { current: reportScope.current })
       let mediansChanged = false
 
       if (reportCard.reportCardType === '7-8-report-card' && (reportCard.term || 'term1') === 'term1') {
@@ -1269,12 +1302,12 @@ const AdminReportCardReview = () => {
                           View
                         </CButton>
                         
-                        {reportScope.year === reportScope.current.label && reportCard.status === 'pending' && (
+                        {reportCard.status === 'pending' && (
                           <>
                             <CButton
                               color="success"
                               size="sm"
-                              onClick={() => approveAndPublishReportCard(reportCard)}
+                              onClick={() => approveFromRow(reportCard)}
                               disabled={isApproving || batchApproving || reapprovingIds.has(reportCard.id)}
                             >
                               {isApproving ? (
@@ -1301,11 +1334,11 @@ const AdminReportCardReview = () => {
                           </>
                         )}
                         
-                        {reportScope.year === reportScope.current.label && reportCard.status === 'needs_revision' && (
+                        {reportCard.status === 'needs_revision' && (
                           <CButton
                             color="success"
                             size="sm"
-                            onClick={() => approveAndPublishReportCard(reportCard)}
+                            onClick={() => approveFromRow(reportCard)}
                             disabled={isApproving || batchApproving || isReapproving}
                           >
                             {isApproving ? (
@@ -1476,7 +1509,11 @@ const AdminReportCardReview = () => {
                 </div>
               ) : (
                 <div className="mt-3">
-                  <p>Saved draft · {getReportYear(selectedReportCardData, reportScope.current)} · {getReportTerm(selectedReportCardData) === 'term1' ? 'Term 1' : getReportTerm(selectedReportCardData) === 'term2' ? 'Term 2' : 'Term not recorded'}</p>
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <p className="mb-0">Saved draft · {getReportYear(selectedReportCardData, reportScope.current)} · {getReportTerm(selectedReportCardData) === 'term1' ? 'Term 1' : getReportTerm(selectedReportCardData) === 'term2' ? 'Term 2' : 'Term not recorded'}</p>
+                    <PrintPdfButton url={selectedReportCardData.id} label="Print preview" print={printDraftPreview}
+                      title="Print every page of this report as it would look if approved. Nothing is saved or published." />
+                  </div>
                   <PDFViewer pdfUrl={REPORT_CARD_TYPES.find((type) => type.id === selectedReportCardData.reportCardType)?.pdfPath}
                     formData={getLatestFormData(selectedReportCardData)} showPreview />
                 </div>
