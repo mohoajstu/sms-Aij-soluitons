@@ -6,7 +6,8 @@ import { useReportScope } from '../utils/useReportScope'
 import ReportScopeFilter from './ReportScopeFilter'
 import { PDF_RENDER_VERSION } from '../utils/classPrint'
 import PrintPdfButton from './PrintPdfButton'
-import { buildReportPdf, getMergedFormDataForReport, isPastYearReport } from '../utils/reportPdf'
+import { buildReportPdf, generateReportPdf, getMergedFormDataForReport, getReportPrintData, isPastYearReport, reportShowsGrade } from '../utils/reportPdf'
+import ClassPrintModal from './ClassPrintModal'
 import { printPdfBytes } from '../utils/printPdf'
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
@@ -75,6 +76,7 @@ const AdminReportCardReview = () => {
   const [reapproveMessage, setReapproveMessage] = useState('')
   const reapproveMessageTimeoutRef = useRef(null)
   const [versionHistory, setVersionHistory] = useState([])
+  const [showZipModal, setShowZipModal] = useState(false)
   const { user, role } = useAuth()
   const reportScope = useReportScope(reportCards)
 
@@ -274,17 +276,81 @@ const AdminReportCardReview = () => {
     }
   }
 
-  // Past-year reports can be approved one at a time. They keep the grade and
-  // attendance saved with them (see getMergedFormDataForReport).
-  const approveFromRow = (reportCard) => {
-    if (isPastYearReport(reportCard, reportScope.current)) {
-      const year = getReportYear(reportCard, reportScope.current)
-      const ok = window.confirm(
-        `This report is from the ${year} school year.\n\nIt will be approved and published to parents using the grade and attendance saved with the report, not the student's current record. Continue?`,
-      )
-      if (!ok) return
+  // Past-year reports print with the grade and attendance saved with them. If
+  // no grade was saved it is worked back from the student's grade now, which
+  // is wrong for a student who repeated a grade, so the admin sees those names
+  // before anything is published.
+  const confirmPastYearReports = async (reports, action) => {
+    const pastYear = reports.filter((report) => isPastYearReport(report, reportScope.current))
+    if (pastYear.length === 0) return true
+    const details = await Promise.all(
+      pastYear.map(async (report) => ({
+        report,
+        ...(await getReportPrintData(firestore, report, { current: reportScope.current })),
+      })),
+    )
+    const label = ({ report, formData }) =>
+      `${report.studentName}${formData.grade ? ` → Grade ${formData.grade}` : ''}`
+    const list = (items) =>
+      items.slice(0, 15).map((item) => `  • ${label(item)}`).join('\n') +
+      (items.length > 15 ? `\n  …and ${items.length - 15} more` : '')
+    const workedBack = details.filter((item) => item.gradeSource === 'worked-back')
+    const missing = details.filter(
+      (item) => item.gradeSource === 'none' && reportShowsGrade(item.report.reportCardType),
+    )
+    const years = [...new Set(pastYear.map((report) => getReportYear(report, reportScope.current)))].join(', ')
+    let message =
+      `${pastYear.length} report(s) are from the ${years} school year. ${action} uses the grade and ` +
+      `attendance saved with each report, not the student's current record.`
+    if (workedBack.length) {
+      message +=
+        `\n\n${workedBack.length} had no saved grade, so it was worked back from the student's grade ` +
+        `now. Check these (wrong if the student repeated a grade):\n${list(workedBack)}`
     }
+    if (missing.length) {
+      message +=
+        `\n\n${missing.length} have no grade anywhere and will be skipped. Add the grade to the ` +
+        `student's record in People first:\n${list(missing)}`
+    }
+    return window.confirm(`${message}\n\nContinue?`)
+  }
+
+  const approveFromRow = async (reportCard) => {
+    if (!(await confirmPastYearReports([reportCard], 'Approving'))) return
     approveAndPublishReportCard(reportCard)
+  }
+
+  const reapproveFromRow = async (reportCard) => {
+    if (!(await confirmPastYearReports([reportCard], 'Re-approving'))) return
+    reapproveReportCard(reportCard).catch(() => {})
+  }
+
+  // Approves several reports one after another, then lists any that failed.
+  const runBatchApproval = async (reports) => {
+    setBatchApproving(true)
+    const failures = []
+    for (const report of reports) {
+      try {
+        await approveAndPublishReportCard(report, { inBatch: true })
+      } catch (err) {
+        console.error(`Failed to approve report for ${report.studentName}:`, err)
+        failures.push(`${report.studentName}: ${err.message}`)
+      }
+    }
+    setBatchApproving(false)
+    alert(
+      `Batch approval complete!\n✅ Approved: ${reports.length - failures.length}\n❌ Failed: ${failures.length}` +
+        (failures.length ? `\n\n${failures.slice(0, 20).join('\n')}` : ''),
+    )
+  }
+
+  /** Grade a report will print with, or an error explaining why it cannot be published. */
+  const requireGrade = (reportCard, formData) => {
+    if (reportShowsGrade(reportCard.reportCardType) && !`${formData.grade || ''}`.trim()) {
+      throw new Error(
+        `No grade found for ${reportCard.studentName}. Add the grade to the student's record in People, then approve again.`,
+      )
+    }
   }
 
   // Builds the full PDF for a report that has not been approved yet and prints
@@ -307,7 +373,7 @@ const AdminReportCardReview = () => {
   }
 
   // Approve and publish report card with PDF generation
-  const approveAndPublishReportCard = async (reportCard) => {
+  const approveAndPublishReportCard = async (reportCard, { inBatch = false } = {}) => {
     setApprovingIds(prev => new Set(prev).add(reportCard.id))
     
     try {
@@ -320,6 +386,7 @@ const AdminReportCardReview = () => {
       }
 
       let mergedFormData = await getMergedFormDataForReport(firestore, reportCard, { current: reportScope.current })
+      requireGrade(reportCard, mergedFormData)
       let mediansChanged = false
 
       if (reportCard.reportCardType === '7-8-report-card' && (reportCard.term || 'term1') === 'term1') {
@@ -393,10 +460,11 @@ const AdminReportCardReview = () => {
         )
       )
 
-      alert(`✅ Report card approved and published for ${reportCard.studentName}!`)
+      if (!inBatch) alert(`✅ Report card approved and published for ${reportCard.studentName}!`)
       
     } catch (err) {
       console.error('❌ Error approving report card:', err)
+      if (inBatch) throw err
       alert(`Failed to approve report card: ${err.message}`)
     } finally {
       setApprovingIds(prev => {
@@ -408,7 +476,7 @@ const AdminReportCardReview = () => {
   }
 
   // Re-approve report card (regenerate PDF without logo and update existing records)
-  const reapproveReportCard = async (reportCard) => {
+  const reapproveReportCard = async (reportCard, { inBatch = false } = {}) => {
     setReapprovingIds(prev => new Set(prev).add(reportCard.id))
     
     try {
@@ -421,6 +489,7 @@ const AdminReportCardReview = () => {
       }
 
       let mergedFormData = await getMergedFormDataForReport(firestore, reportCard, { current: reportScope.current })
+      requireGrade(reportCard, mergedFormData)
       let mediansChanged = false
 
       if (reportCard.reportCardType === '7-8-report-card' && (reportCard.term || 'term1') === 'term1') {
@@ -519,7 +588,7 @@ const AdminReportCardReview = () => {
       
     } catch (err) {
       console.error('❌ Error re-approving report card:', err)
-      alert(`Failed to re-approve report card: ${err.message}`)
+      if (!inBatch) alert(`Failed to re-approve report card: ${err.message}`)
       throw err // Re-throw so batch re-approve can track failures
     } finally {
       setReapprovingIds(prev => {
@@ -533,7 +602,7 @@ const AdminReportCardReview = () => {
   // Batch re-approve selected approved reports
   const batchReapproveSelected = async () => {
     const reportsToReapprove = reportScope.records.filter(rc =>
-      reportScope.year === reportScope.current.label && rc.status === 'approved' && selectedForReapproval.has(rc.id)
+      rc.status === 'approved' && selectedForReapproval.has(rc.id)
     )
 
     if (reportsToReapprove.length === 0) {
@@ -547,14 +616,16 @@ const AdminReportCardReview = () => {
     )
 
     if (!confirmed) return
+    if (!(await confirmPastYearReports(reportsToReapprove, 'Re-approving'))) return
 
     setBatchApproving(true)
     let successCount = 0
     let failCount = 0
+    const failures = []
 
     for (const report of reportsToReapprove) {
       try {
-        await reapproveReportCard(report)
+        await reapproveReportCard(report, { inBatch: true })
         successCount++
         // Remove from selection after successful re-approval
         setSelectedForReapproval(prev => {
@@ -564,11 +635,13 @@ const AdminReportCardReview = () => {
         })
       } catch (err) {
         console.error(`Failed to re-approve report for ${report.studentName}:`, err)
+        failures.push(`${report.studentName}: ${err.message}`)
         failCount++
       }
     }
 
     setBatchApproving(false)
+    if (failures.length) alert(`Could not re-approve ${failures.length} report(s):\n\n${failures.slice(0, 20).join('\n')}`)
     setReapproveMessage(
       `Batch re-approval complete! ✅ Re-approved: ${successCount} ❌ Failed: ${failCount}`
     )
@@ -629,25 +702,8 @@ const AdminReportCardReview = () => {
     )
 
     if (!confirmed) return
-
-    setBatchApproving(true)
-    let successCount = 0
-    let failCount = 0
-
-    for (const report of reportsToApprove) {
-      try {
-        await approveAndPublishReportCard(report)
-        successCount++
-      } catch (err) {
-        console.error(`Failed to approve report for ${report.studentName}:`, err)
-        failCount++
-      }
-    }
-
-    setBatchApproving(false)
-    alert(
-      `Batch approval complete!\n✅ Approved: ${successCount}\n❌ Failed: ${failCount}`
-    )
+    if (!(await confirmPastYearReports(reportsToApprove, 'Approving'))) return
+    await runBatchApproval(reportsToApprove)
   }
 
   // Filter report cards
@@ -1065,9 +1121,28 @@ const AdminReportCardReview = () => {
             )
           })()}
 
+          {/* Download the filtered reports as one ZIP for printing. PDFs are rebuilt
+              from saved data, so past-year reports print with their grade. */}
+          {filteredReportCards.length > 0 && (
+            <CRow className="mb-3">
+              <CCol className="d-flex justify-content-end">
+                <CButton color="primary" variant="outline" size="sm" onClick={() => setShowZipModal(true)}>
+                  <CIcon icon={cilCloudDownload} className="me-1" />
+                  Download approved as ZIP ({filteredReportCards.filter((rc) => rc.status === 'approved').length})
+                </CButton>
+              </CCol>
+            </CRow>
+          )}
+          <ClassPrintModal
+            visible={showZipModal}
+            onClose={() => setShowZipModal(false)}
+            reports={showZipModal ? filteredReportCards : []}
+            getPdfBytes={(report) => generateReportPdf(firestore, report, { current: reportScope.current })}
+          />
+
           {/* Batch Approval Section - Show when there are pending reports in filtered results */}
           {(() => {
-            const pendingInFilter = filteredReportCards.filter(rc => reportScope.year === reportScope.current.label && rc.status === 'pending')
+            const pendingInFilter = filteredReportCards.filter(rc => rc.status === 'pending')
             return pendingInFilter.length > 0 && (
               <CRow className="mb-3">
                 <CCol>
@@ -1116,25 +1191,8 @@ const AdminReportCardReview = () => {
                             )
 
                             if (!confirmed) return
-
-                            setBatchApproving(true)
-                            let successCount = 0
-                            let failCount = 0
-
-                            for (const report of pendingReports) {
-                              try {
-                                await approveAndPublishReportCard(report)
-                                successCount++
-                              } catch (err) {
-                                console.error(`Failed to approve report for ${report.studentName}:`, err)
-                                failCount++
-                              }
-                            }
-
-                            setBatchApproving(false)
-                            alert(
-                              `Batch approval complete!\n✅ Approved: ${successCount}\n❌ Failed: ${failCount}`
-                            )
+                            if (!(await confirmPastYearReports(pendingReports, 'Approving'))) return
+                            await runBatchApproval(pendingReports)
                           }}
                           disabled={batchApproving}
                         >
@@ -1359,7 +1417,7 @@ const AdminReportCardReview = () => {
                           <CButton
                             color="info"
                             size="sm"
-                            onClick={() => reapproveReportCard(reportCard)}
+                            onClick={() => reapproveFromRow(reportCard)}
                             disabled={isReapproving || batchApproving || isApproving}
                           >
                             {isReapproving ? (
