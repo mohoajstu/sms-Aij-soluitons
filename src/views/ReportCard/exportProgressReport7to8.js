@@ -8,6 +8,7 @@ import {
   fillPDFFormWithData,
   updateAllFieldAppearances,
   embedTimesRomanFont,
+  saveFlattenedPdf,
 } from './pdfFillingUtils'
 
 /**
@@ -619,7 +620,7 @@ export const exportProgressReport7to8 = async (pdfPath, formData, studentName) =
 
     // Save the final PDF
     console.log('💾 Saving PDF...')
-    const finalPdfBytes = await pdfDoc.save({
+    const finalPdfBytes = await saveFlattenedPdf(pdfDoc, {
       useObjectStreams: false, // Better compatibility
     })
 

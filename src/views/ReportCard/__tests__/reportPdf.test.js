@@ -11,7 +11,8 @@ vi.mock('firebase/firestore', () => ({
       attendanceStats: { currentTermAbsenceCount: 3, yearAbsenceCount: 3, currentTermLateCount: 1, yearLateCount: 1 } }),
   }),
 }))
-import { generateReportPdf } from '../utils/reportPdf'
+import { PDFDocument, PDFArray, PDFName, PDFRef } from 'pdf-lib'
+import { generateReportPdf, getMergedFormDataForReport, isPastYearReport } from '../utils/reportPdf'
 
 const templatePath = (name) => fileURLToPath(new URL(`../../../assets/ReportCards/${name}`, import.meta.url))
 const TYPES = [
@@ -57,5 +58,55 @@ describe('generateReportPdf', () => {
 
   it('refuses an unknown report type', async () => {
     await expect(generateReportPdf({}, { reportCardType: 'nope' }, { reportCardTypes: TYPES })).rejects.toThrow('Unknown report type')
+  })
+
+  it('leaves no page annotations pointing at fields removed by flattening', async () => {
+    // student, OEN and grade have a widget on every page; pdf-lib's flatten
+    // deleted them but left them listed in each page's /Annots.
+    const report = { id: 'd3', studentId: 'S1', studentName: 'Amna Khan', reportCardType: '1-6-report-card', formData: { student: 'Amna Khan', grade: '2' } }
+    const doc = await PDFDocument.load(await generateReportPdf({}, report, { reportCardTypes: TYPES }))
+    expect(doc.getPageCount()).toBe(4)
+    for (const page of doc.getPages()) {
+      const annots = page.node.lookupMaybe(PDFName.of('Annots'), PDFArray)
+      for (const entry of annots?.asArray() || []) {
+        if (entry instanceof PDFRef) expect(doc.context.lookup(entry)).toBeDefined()
+      }
+    }
+  }, 60000)
+})
+
+describe('past-year reports', () => {
+  const current = { label: '2026-2027', startDate: '2026-09-02' }
+  const lastYear = {
+    id: 'S1_1-6-report-card_2025-2026_term1', studentId: 'S1', schoolYear: '2025-2026', term: 'term1',
+    reportCardType: '1-6-report-card', grade: '2',
+    formData: { student: 'Amna Khan', grade: '2', daysAbsent: 4, totalDaysAbsent: 4, timesLate: 2, totalTimesLate: 2 },
+  }
+
+  it('knows which reports are from an earlier school year', () => {
+    expect(isPastYearReport(lastYear, current)).toBe(true)
+    expect(isPastYearReport({ ...lastYear, schoolYear: '2026-2027' }, current)).toBe(false)
+    expect(isPastYearReport({ id: 'x' }, current)).toBe(false)
+  })
+
+  it('keeps the saved grade and attendance, not the student record', async () => {
+    // The mocked student record is now Grade 7 with 3 absences and 1 late.
+    const merged = await getMergedFormDataForReport({}, lastYear, { current })
+    expect(merged.grade).toBe('2')
+    expect([merged.daysAbsent, merged.totalDaysAbsent, merged.timesLate, merged.totalTimesLate]).toEqual([4, 4, 2, 2])
+    expect(merged.OEN).toBe('123456789')
+  })
+
+  it('falls back to the student snapshot saved with the report', async () => {
+    const report = { ...lastYear, grade: '', formData: { student: 'Amna Khan' }, selectedStudent: { id: 'S1', grade: 'Grade 2', currentTermAbsenceCount: 5 } }
+    const merged = await getMergedFormDataForReport({}, report, { current })
+    expect(merged.grade).toBe('2')
+    expect(merged.daysAbsent).toBe(5)
+  })
+
+  it('still refreshes grade and attendance for current-year reports', async () => {
+    const merged = await getMergedFormDataForReport({}, { ...lastYear, schoolYear: '2026-2027' }, { current })
+    expect(merged.grade).toBe('7')
+    expect(merged.daysAbsent).toBe(3)
   })
 })

@@ -11,17 +11,52 @@ import { exportProgressReport1to6 } from '../exportProgressReport1to6'
 import { exportProgressReport7to8 } from '../exportProgressReport7to8'
 import { exportKGInitialObservations } from '../exportKGInitialObservations'
 import { mergeFormDataWithStudent } from './mergeFormDataWithStudent'
+import { getReportYear, UNKNOWN_YEAR } from './reportScope'
+import { computeDefaultSchoolYear } from './schoolYear'
 import {
   fillPDFFormWithData,
   updateAllFieldAppearances,
   embedTimesRomanFont,
+  saveFlattenedPdf,
   normalizeSignatureFormData,
   embedSignaturesIntoPdf,
   drawTextIntoField,
 } from '../pdfFillingUtils'
 
-/** Report data with the student's latest name, OEN, grade and attendance filled in. */
-export const getMergedFormDataForReport = async (db, reportCard) => {
+/** True when a report belongs to a school year before the current one. */
+export const isPastYearReport = (reportCard, current = computeDefaultSchoolYear()) => {
+  const year = getReportYear(reportCard, current)
+  return year !== UNKNOWN_YEAR && year < current.label
+}
+
+const firstDefined = (...values) => values.find((value) => value !== undefined && value !== null && value !== '')
+
+/**
+ * A past-year report keeps the grade and attendance it was written with. The
+ * student record now holds this year's grade and attendance, so refilling from
+ * it would print last year's Grade 2 report as Grade 3. Name and OEN still
+ * come from the student record, which only corrects them.
+ */
+const keepSavedYearDetails = (student, reportCard) => {
+  const formData = reportCard.formData || {}
+  const snapshot = reportCard.selectedStudent || {}
+  return {
+    ...student,
+    grade: firstDefined(formData.grade, reportCard.grade, snapshot.grade, snapshot.program) || '',
+    program: undefined,
+    currentTermAbsenceCount: firstDefined(formData.daysAbsent, snapshot.currentTermAbsenceCount),
+    yearAbsenceCount: firstDefined(formData.totalDaysAbsent, snapshot.yearAbsenceCount),
+    currentTermLateCount: firstDefined(formData.timesLate, snapshot.currentTermLateCount),
+    yearLateCount: firstDefined(formData.totalTimesLate, snapshot.yearLateCount),
+  }
+}
+
+/**
+ * Report data with the student's latest name and OEN filled in. A current-year
+ * report also takes the student's latest grade and attendance; a past-year
+ * report keeps its own (see keepSavedYearDetails).
+ */
+export const getMergedFormDataForReport = async (db, reportCard, { current } = {}) => {
   let latestStudent = reportCard.selectedStudent || null
   const studentId = reportCard.studentId || reportCard.selectedStudent?.id || ''
   if (studentId) {
@@ -48,6 +83,10 @@ export const getMergedFormDataForReport = async (db, reportCard) => {
     } catch (studentFetchError) {
       console.warn('Could not fetch latest student info for approval:', studentFetchError)
     }
+  }
+
+  if (latestStudent && isPastYearReport(reportCard, current || computeDefaultSchoolYear())) {
+    latestStudent = keepSavedYearDetails(latestStudent, reportCard)
   }
 
   return latestStudent
@@ -118,7 +157,7 @@ export const exportGenericReport = async (pdfPath, formData, context = 'Admin Ap
     }
   }
 
-  return await pdfDoc.save({ useObjectStreams: false })
+  return await saveFlattenedPdf(pdfDoc, { useObjectStreams: false })
 }
 
 /** The PDF for one report type, from already-merged form data. */
@@ -147,11 +186,11 @@ export const buildReportPdf = async (
  * pending, so an approved report's saved data is what was approved (any
  * medians filled in at approval were saved with it).
  */
-export const generateReportPdf = async (db, report, { reportCardTypes } = {}) => {
+export const generateReportPdf = async (db, report, { reportCardTypes, current } = {}) => {
   const types = reportCardTypes || (await import('../utils')).REPORT_CARD_TYPES
   const reportCardType = types.find((type) => type.id === report.reportCardType)
   if (!reportCardType?.pdfPath) throw new Error(`Unknown report type "${report.reportCardType}"`)
-  const formData = await getMergedFormDataForReport(db, report)
+  const formData = await getMergedFormDataForReport(db, report, { current })
   const studentName = (formData.student || report.studentName || 'student').replace(/\s+/g, '-')
   return buildReportPdf(reportCardType, formData, studentName, 'Class ZIP')
 }

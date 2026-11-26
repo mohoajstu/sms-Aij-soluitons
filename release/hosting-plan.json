@@ -1,10 +1,19 @@
 {
-  "name": "Render all report PDF pages before printing stored reports",
+  "name": "Approve and reprint past-year report cards with their grade (single and batch), ZIP of approved reports for reprinting, print preview for unapproved reports, remove annotations left dangling by PDF flattening; includes the dev-server-only localhost print helper",
   "project": "tarbiyah-sms",
   "target": "hosting:tlasms",
-  "baseAsset": "/assets/index-l0lTPeWh.js",
+  "baseAsset": "/assets/index-CTsSHXmZ.js",
   "allowedFiles": [
+    "src/views/ReportCard/Components/AdminReportCardReview.js",
+    "src/views/ReportCard/__tests__/reportPdf.test.js",
+    "src/views/ReportCard/exportKGInitialObservations.js",
+    "src/views/ReportCard/exportProgressReport1to6.js",
+    "src/views/ReportCard/exportProgressReport7to8.js",
+    "src/views/ReportCard/exportQuranReport.js",
+    "src/views/ReportCard/pdfFillingUtils.js",
+    "src/views/ReportCard/utils.js",
     "src/views/ReportCard/utils/printPdf.js",
-    "src/views/ReportCard/utils/renderReportForPrint.js"
+    "src/views/ReportCard/utils/reportPdf.js",
+    "vite.config.mjs"
   ]
 }
