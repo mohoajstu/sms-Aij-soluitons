@@ -2,17 +2,27 @@ import { describe, it, expect, beforeAll, vi } from 'vitest'
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 
+const STUDENTS = {
+  // Older record shape: grade at the top level.
+  S1: { personalInfo: { firstName: 'Amna', lastName: 'Khan' }, grade: '7', schooling: { oen: '123456789' },
+    attendanceStats: { currentTermAbsenceCount: 3, yearAbsenceCount: 3, currentTermLateCount: 1, yearLateCount: 1 } },
+  // People management keeps the grade in schooling.program.
+  S2: { personalInfo: { firstName: 'Bilal', lastName: 'Ahmed' }, schooling: { program: 'grade 3', oen: '222' } },
+  S3: { personalInfo: { firstName: 'Sara', lastName: 'Ali' }, active: false, schooling: { program: 'Graduated', graduationYear: 2026 } },
+  S4: { personalInfo: { firstName: 'Omar', lastName: 'Noor' }, schooling: { program: 'SK' } },
+  S5: { personalInfo: { firstName: 'No', lastName: 'Grade' }, schooling: {} },
+}
 vi.mock('firebase/firestore', () => ({
   doc: (_db, name, id) => ({ path: `${name}/${id}` }),
-  getDoc: async (ref) => ({
-    id: ref.path.split('/')[1],
-    exists: () => ref.path === 'students/S1',
-    data: () => ({ personalInfo: { firstName: 'Amna', lastName: 'Khan' }, grade: '7', schooling: { oen: '123456789' },
-      attendanceStats: { currentTermAbsenceCount: 3, yearAbsenceCount: 3, currentTermLateCount: 1, yearLateCount: 1 } }),
-  }),
+  getDoc: async (ref) => {
+    const id = ref.path.split('/')[1]
+    return { id, exists: () => Boolean(STUDENTS[id]), data: () => STUDENTS[id] }
+  },
 }))
 import { PDFDocument, PDFArray, PDFName, PDFRef } from 'pdf-lib'
-import { generateReportPdf, getMergedFormDataForReport, isPastYearReport } from '../utils/reportPdf'
+import {
+  generateReportPdf, getMergedFormDataForReport, getReportPrintData, gradeInEarlierYear, isPastYearReport, normalizeGrade,
+} from '../utils/reportPdf'
 
 const templatePath = (name) => fileURLToPath(new URL(`../../../assets/ReportCards/${name}`, import.meta.url))
 const TYPES = [
@@ -108,5 +118,50 @@ describe('past-year reports', () => {
     const merged = await getMergedFormDataForReport({}, { ...lastYear, schoolYear: '2026-2027' }, { current })
     expect(merged.grade).toBe('7')
     expect(merged.daysAbsent).toBe(3)
+  })
+
+  it('works the grade back from the student record when none was saved', async () => {
+    const report = { ...lastYear, studentId: 'S2', grade: '', formData: { student: 'Bilal Ahmed' } }
+    const { formData, gradeSource } = await getReportPrintData({}, report, { current })
+    expect(formData.grade).toBe('2')
+    expect(gradeSource).toBe('worked-back')
+  })
+
+  it('prints the worked-back grade on the PDF', async () => {
+    const report = { ...lastYear, studentId: 'S2', grade: '', formData: { student: 'Bilal Ahmed' } }
+    const text = await pdfText(await generateReportPdf({}, report, { reportCardTypes: TYPES, current }))
+    expect(text.split('\n')[0]).toContain('Bilal Ahmed 2 ') // filled header values: OEN, attendance, name, grade
+  }, 60000)
+
+  it('refuses to build a report with no grade anywhere', async () => {
+    const report = { ...lastYear, studentId: 'S5', grade: '', formData: { student: 'No Grade' } }
+    expect((await getReportPrintData({}, report, { current })).gradeSource).toBe('none')
+    await expect(generateReportPdf({}, report, { reportCardTypes: TYPES, current })).rejects.toThrow('no grade')
+  })
+})
+
+describe('grades', () => {
+  const current = { label: '2026-2027', startDate: '2026-09-02' }
+
+  it('reads the current grade from schooling.program, like the report editor', async () => {
+    const report = { id: 'r', studentId: 'S2', schoolYear: '2026-2027', term: 'term1', reportCardType: '1-6-report-card', formData: {} }
+    const { formData, gradeSource } = await getReportPrintData({}, report, { current })
+    expect(formData.grade).toBe('3')
+    expect(gradeSource).toBe('student-record')
+  })
+
+  it('normalizes grade labels and never prints "Graduated"', () => {
+    expect(['grade 2', 'Grade 10', '02', 'JK', 'Junior Kindergarten', 'sk', 'Graduated', '', null].map(normalizeGrade))
+      .toEqual(['2', '10', '2', 'JK', 'JK', 'SK', '', '', ''])
+  })
+
+  it('works back through kindergarten and graduation', () => {
+    expect(gradeInEarlierYear(STUDENTS.S2, '2025-2026', current)).toBe('2')
+    expect(gradeInEarlierYear(STUDENTS.S2, '2024-2025', current)).toBe('1')
+    expect(gradeInEarlierYear(STUDENTS.S4, '2025-2026', current)).toBe('JK')
+    expect(gradeInEarlierYear(STUDENTS.S4, '2024-2025', current)).toBe('')
+    expect(gradeInEarlierYear(STUDENTS.S3, '2025-2026', current)).toBe('8')
+    expect(gradeInEarlierYear(STUDENTS.S3, '2024-2025', current)).toBe('7')
+    expect(gradeInEarlierYear(STUDENTS.S2, '2026-2027', current)).toBe('')
   })
 })

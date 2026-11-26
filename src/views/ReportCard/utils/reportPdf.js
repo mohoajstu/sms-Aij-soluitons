@@ -31,68 +31,139 @@ export const isPastYearReport = (reportCard, current = computeDefaultSchoolYear(
 
 const firstDefined = (...values) => values.find((value) => value !== undefined && value !== null && value !== '')
 
+const GRADE_LADDER = ['JK', 'SK', '1', '2', '3', '4', '5', '6', '7', '8']
+
+/** "grade 2", "Grade 2", "2" -> "2"; JK/SK kept; "Graduated" and blanks -> "". */
+export const normalizeGrade = (value) => {
+  const text = `${value ?? ''}`.trim().toLowerCase()
+  if (!text || text.includes('graduat')) return ''
+  if (text.includes('jk') || text.includes('junior') || text.includes('jr')) return 'JK'
+  if (text.includes('sk') || text.includes('senior') || text.includes('sr')) return 'SK'
+  const match = text.match(/\d+/)
+  return match ? String(Number(match[0])) : ''
+}
+
+/** The grade on a student record. People management keeps it in schooling.program. */
+const studentRecordGrade = (studentData = {}) =>
+  studentData.schooling?.program || studentData.personalInfo?.grade || studentData.grade || studentData.program || ''
+
 /**
- * A past-year report keeps the grade and attendance it was written with. The
- * student record now holds this year's grade and attendance, so refilling from
- * it would print last year's Grade 2 report as Grade 3. Name and OEN still
- * come from the student record, which only corrects them.
+ * The grade a student was in during an earlier school year, worked back from
+ * the grade on their record now (students move up one grade each September;
+ * graduates were in Grade 8 in the year ending in their graduation year).
+ * Wrong for a student who repeated a grade, so it is only a last resort.
  */
-const keepSavedYearDetails = (student, reportCard) => {
+export const gradeInEarlierYear = (studentData, reportYear, current) => {
+  const reportStart = Number(`${reportYear}`.slice(0, 4))
+  const currentStart = Number(`${current.label}`.slice(0, 4))
+  const yearsBack = currentStart - reportStart
+  if (!reportStart || !currentStart || yearsBack <= 0) return ''
+  const program = `${studentRecordGrade(studentData)}`.toLowerCase()
+  let index
+  if (program.includes('graduat')) {
+    const graduationYear = Number(studentData.schooling?.graduationYear)
+    if (!graduationYear) return ''
+    index = GRADE_LADDER.indexOf('8') - (graduationYear - 1 - reportStart)
+  } else {
+    const now = GRADE_LADDER.indexOf(normalizeGrade(program))
+    if (now < 0) return ''
+    index = now - yearsBack
+  }
+  return index >= 0 && index < GRADE_LADDER.length ? GRADE_LADDER[index] : ''
+}
+
+/**
+ * Builds the student details a report prints with, and says where the grade
+ * came from: "saved" (with the report), "student-record" (current-year
+ * reports), "worked-back" (past-year report with no saved grade) or "none".
+ *
+ * A past-year report keeps the grade and attendance it was written with: the
+ * student record now holds this year's, so refilling from it would print
+ * last year's Grade 2 report as Grade 3. Name and OEN still come from the
+ * student record, which only corrects them.
+ */
+const studentDetailsForReport = (studentData, studentId, reportCard, current) => {
   const formData = reportCard.formData || {}
   const snapshot = reportCard.selectedStudent || {}
+  const base = {
+    id: studentId,
+    fullName:
+      studentData.fullName ||
+      `${studentData.personalInfo?.firstName || ''} ${studentData.personalInfo?.lastName || ''}`.trim(),
+    firstName: studentData.personalInfo?.firstName || '',
+    lastName: studentData.personalInfo?.lastName || '',
+    oen: studentData.schooling?.oen || studentData.oen || studentData.OEN || '',
+    schoolId: studentData.schoolId || studentData.id || studentId,
+  }
+  if (!isPastYearReport(reportCard, current)) {
+    const recordGrade = normalizeGrade(studentRecordGrade(studentData))
+    const savedGrade = normalizeGrade(formData.grade)
+    return {
+      student: {
+        ...base,
+        grade: recordGrade || savedGrade,
+        currentTermAbsenceCount: studentData.attendanceStats?.currentTermAbsenceCount ?? studentData.currentTermAbsenceCount ?? 0,
+        yearAbsenceCount: studentData.attendanceStats?.yearAbsenceCount ?? studentData.yearAbsenceCount ?? 0,
+        currentTermLateCount: studentData.attendanceStats?.currentTermLateCount ?? studentData.currentTermLateCount ?? 0,
+        yearLateCount: studentData.attendanceStats?.yearLateCount ?? studentData.yearLateCount ?? 0,
+      },
+      gradeSource: recordGrade ? 'student-record' : savedGrade ? 'saved' : 'none',
+    }
+  }
+  const savedGrade = [formData.grade, reportCard.grade, snapshot.grade, snapshot.program, snapshot.schooling?.program]
+    .map(normalizeGrade)
+    .find(Boolean)
+  const workedBack = savedGrade ? '' : gradeInEarlierYear(studentData, getReportYear(reportCard, current), current)
   return {
-    ...student,
-    grade: firstDefined(formData.grade, reportCard.grade, snapshot.grade, snapshot.program) || '',
-    program: undefined,
-    currentTermAbsenceCount: firstDefined(formData.daysAbsent, snapshot.currentTermAbsenceCount),
-    yearAbsenceCount: firstDefined(formData.totalDaysAbsent, snapshot.yearAbsenceCount),
-    currentTermLateCount: firstDefined(formData.timesLate, snapshot.currentTermLateCount),
-    yearLateCount: firstDefined(formData.totalTimesLate, snapshot.yearLateCount),
+    student: {
+      ...base,
+      grade: savedGrade || workedBack,
+      currentTermAbsenceCount: firstDefined(formData.daysAbsent, snapshot.currentTermAbsenceCount),
+      yearAbsenceCount: firstDefined(formData.totalDaysAbsent, snapshot.yearAbsenceCount),
+      currentTermLateCount: firstDefined(formData.timesLate, snapshot.currentTermLateCount),
+      yearLateCount: firstDefined(formData.totalTimesLate, snapshot.yearLateCount),
+    },
+    gradeSource: savedGrade ? 'saved' : workedBack ? 'worked-back' : 'none',
   }
 }
 
 /**
- * Report data with the student's latest name and OEN filled in. A current-year
- * report also takes the student's latest grade and attendance; a past-year
- * report keeps its own (see keepSavedYearDetails).
+ * The data a report prints with, plus where its grade came from (see
+ * studentDetailsForReport). Current-year reports take the student's latest
+ * grade and attendance; past-year reports keep their own.
  */
-export const getMergedFormDataForReport = async (db, reportCard, { current } = {}) => {
-  let latestStudent = reportCard.selectedStudent || null
+export const getReportPrintData = async (db, reportCard, { current } = {}) => {
+  const scope = current || computeDefaultSchoolYear()
   const studentId = reportCard.studentId || reportCard.selectedStudent?.id || ''
+  let studentData = null
   if (studentId) {
     try {
       const studentSnap = await getDoc(doc(db, 'students', studentId))
-      if (studentSnap.exists()) {
-        const studentData = studentSnap.data()
-        latestStudent = {
-          id: studentSnap.id,
-          fullName:
-            studentData.fullName ||
-            `${studentData.personalInfo?.firstName || ''} ${studentData.personalInfo?.lastName || ''}`.trim(),
-          firstName: studentData.personalInfo?.firstName || '',
-          lastName: studentData.personalInfo?.lastName || '',
-          grade: studentData.grade || studentData.program || '',
-          oen: studentData.schooling?.oen || studentData.oen || studentData.OEN || '',
-          schoolId: studentData.schoolId || studentData.id || studentSnap.id,
-          currentTermAbsenceCount: studentData.attendanceStats?.currentTermAbsenceCount ?? 0,
-          yearAbsenceCount: studentData.attendanceStats?.yearAbsenceCount ?? 0,
-          currentTermLateCount: studentData.attendanceStats?.currentTermLateCount ?? 0,
-          yearLateCount: studentData.attendanceStats?.yearLateCount ?? 0,
-        }
-      }
+      if (studentSnap.exists()) studentData = studentSnap.data()
     } catch (studentFetchError) {
       console.warn('Could not fetch latest student info for approval:', studentFetchError)
     }
   }
-
-  if (latestStudent && isPastYearReport(reportCard, current || computeDefaultSchoolYear())) {
-    latestStudent = keepSavedYearDetails(latestStudent, reportCard)
+  // Without the student record, fall back to the snapshot saved with the draft.
+  const { student, gradeSource } = studentDetailsForReport(
+    studentData || { ...(reportCard.selectedStudent || {}), attendanceStats: undefined },
+    studentId,
+    reportCard,
+    scope,
+  )
+  if (!studentData && !reportCard.selectedStudent) {
+    const savedGrade = normalizeGrade(reportCard.formData?.grade)
+    return { formData: { ...(reportCard.formData || {}) }, gradeSource: savedGrade ? 'saved' : 'none' }
   }
-
-  return latestStudent
-    ? mergeFormDataWithStudent(reportCard.formData || {}, latestStudent)
-    : reportCard.formData || {}
+  return { formData: mergeFormDataWithStudent(reportCard.formData || {}, student), gradeSource }
 }
+
+/** Report data as it prints (see getReportPrintData). */
+export const getMergedFormDataForReport = async (db, reportCard, options = {}) =>
+  (await getReportPrintData(db, reportCard, options)).formData
+
+/** Report types whose PDF has a grade box. */
+export const reportShowsGrade = (reportCardType) => reportCardType !== 'quran-report'
 
 export const exportGenericReport = async (pdfPath, formData, context = 'Admin Approval') => {
   const response = await fetch(pdfPath)
@@ -191,6 +262,9 @@ export const generateReportPdf = async (db, report, { reportCardTypes, current }
   const reportCardType = types.find((type) => type.id === report.reportCardType)
   if (!reportCardType?.pdfPath) throw new Error(`Unknown report type "${report.reportCardType}"`)
   const formData = await getMergedFormDataForReport(db, report, { current })
+  if (reportShowsGrade(report.reportCardType) && !`${formData.grade || ''}`.trim()) {
+    throw new Error("no grade was found. Add the grade to the student's record in People")
+  }
   const studentName = (formData.student || report.studentName || 'student').replace(/\s+/g, '-')
   return buildReportPdf(reportCardType, formData, studentName, 'Class ZIP')
 }
